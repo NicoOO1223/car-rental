@@ -26,7 +26,9 @@ services:
       # Overrides the localhost value in backend/.env — containers reach
       # postgres via the compose network, not the host's loopback address.
       DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@postgres:5432/car_rental
-      CORS_ORIGINS: http://localhost:3001
+      # Both hostnames are listed since browsers treat localhost and
+      # 127.0.0.1 as different origins even though they're the same box.
+      CORS_ORIGINS: http://localhost:3001,http://127.0.0.1:3001
     depends_on:
       - postgres
     ports:
