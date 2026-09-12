@@ -1,0 +1,701 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Pencil } from "lucide-react";
+
+import {
+  getCar,
+  getCarReservations,
+  getLocations,
+  type Car,
+  type CarReservation,
+  type Location,
+} from "@/lib/api";
+import { getReservationStatusStyle } from "@/lib/status";
+import { CarStatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { CarEditModal } from "@/components/cars/CarEditModal";
+
+type Props = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const DAY_WIDTH = 90;
+const TIMELINE_DAYS = 30;
+
+export default function CarDetailsPage({ params }: Props) {
+  const [car, setCar] = useState<Car | null>(null);
+  const [reservations, setReservations] = useState<
+    CarReservation[]
+  >([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { id } = await params;
+
+        const [carData, reservationData, locationData] =
+          await Promise.all([
+            getCar(id),
+            getCarReservations(id),
+            getLocations(),
+          ]);
+
+        setCar(carData);
+        setReservations(reservationData);
+        setLocations(locationData);
+      } catch {
+        setError("Failed to load vehicle.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [params]);
+
+  function formatDate(date: string) {
+    return new Date(date).toLocaleDateString();
+  }
+
+  function formatDateTime(date: string) {
+    return new Date(date).toLocaleString();
+  }
+
+  function getReservationClass(status: string) {
+    return getReservationStatusStyle(status, "solid");
+  }
+
+  /*
+   * Timeline starts today and covers the next 30 days.
+   */
+  const timelineStart = useMemo(() => {
+    const date = new Date();
+
+    date.setHours(0, 0, 0, 0);
+
+    return date;
+  }, []);
+
+  const timelineDays = useMemo(() => {
+    return Array.from(
+      { length: TIMELINE_DAYS },
+      (_, index) => {
+        const date = new Date(timelineStart);
+
+        date.setDate(
+          timelineStart.getDate() + index
+        );
+
+        return date;
+      }
+    );
+  }, [timelineStart]);
+
+  function getDayDifference(
+    start: Date,
+    end: Date
+  ) {
+    const millisecondsPerDay =
+      1000 * 60 * 60 * 24;
+
+    return (
+      (end.getTime() - start.getTime()) /
+      millisecondsPerDay
+    );
+  }
+
+  function getReservationPosition(
+    reservation: CarReservation
+  ) {
+    const pickup = new Date(
+      reservation.pickup_at
+    );
+
+    const returnDate = new Date(
+      reservation.return_at
+    );
+
+    const startOffset = Math.max(
+      0,
+      getDayDifference(
+        timelineStart,
+        pickup
+      )
+    );
+
+    const endOffset = Math.min(
+      TIMELINE_DAYS,
+      getDayDifference(
+        timelineStart,
+        returnDate
+      )
+    );
+
+    const width =
+      Math.max(1, endOffset - startOffset);
+
+    return {
+      left: startOffset * DAY_WIDTH,
+      width: width * DAY_WIDTH,
+    };
+  }
+
+  /*
+   * Only show reservations that intersect
+   * the current 30-day timeline.
+   */
+  const visibleReservations = reservations.filter(
+    (reservation) => {
+      const pickup = new Date(
+        reservation.pickup_at
+      );
+
+      const returnDate = new Date(
+        reservation.return_at
+      );
+
+      const timelineEnd = new Date(
+        timelineStart
+      );
+
+      timelineEnd.setDate(
+        timelineStart.getDate() +
+          TIMELINE_DAYS
+      );
+
+      return (
+        pickup < timelineEnd &&
+        returnDate > timelineStart
+      );
+    }
+  );
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-gray-500">
+            Loading vehicle...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !car) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-8">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-red-600">
+            {error || "Vehicle not found."}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-50 p-8">
+      <div className="mx-auto max-w-6xl">
+
+        {/* Header */}
+        <div className="mb-8">
+
+          <button
+            onClick={() =>
+              (window.location.href = "/cars")
+            }
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to fleet
+          </button>
+
+          <div className="mt-4 flex items-center justify-between">
+
+            <div>
+              <h1 className="text-3xl font-bold">
+                {car.make} {car.model}
+              </h1>
+
+              <p className="mt-2 text-gray-500">
+                {car.license_plate}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <CarStatusBadge status={car.status} className="px-4 py-2 text-sm" />
+
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Pencil className="h-4 w-4" />
+                Edit
+              </Button>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Vehicle information */}
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+
+          <h2 className="text-xl font-semibold">
+            Vehicle Information
+          </h2>
+
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+            <div>
+              <p className="text-sm text-gray-500">
+                License Plate
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.license_plate}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Year
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.year}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Category
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.category || "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Price / Day
+              </p>
+
+              <p className="mt-1 font-medium">
+                €{Number(car.price_per_day).toFixed(2)}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Transmission
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.transmission || "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Fuel
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.fuel_type || "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Seats
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.seats ?? "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Current Location
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.current_location.airport_code}
+              </p>
+
+              <p className="text-sm text-gray-500">
+                {car.current_location.name}
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Availability timeline */}
+        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <h2 className="text-xl font-semibold">
+                Availability Schedule
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Next 30 days
+              </p>
+            </div>
+
+            <div className="flex gap-4 text-sm">
+
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-3 w-3 rounded-full ${getReservationStatusStyle("CONFIRMED", "dot")}`}
+                />
+                Reserved
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-3 w-3 rounded-full ${getReservationStatusStyle("ACTIVE", "dot")}`}
+                />
+                Active
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-3 w-3 rounded-full ${getReservationStatusStyle("COMPLETED", "dot")}`}
+                />
+                Completed
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Timeline */}
+          <div className="mt-6 overflow-x-auto">
+
+            <div
+              style={{
+                width:
+                  TIMELINE_DAYS * DAY_WIDTH,
+              }}
+            >
+
+              {/* Date headers */}
+              <div className="flex border-b">
+
+                {timelineDays.map(
+                  (date, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        width: DAY_WIDTH,
+                      }}
+                      className="shrink-0 border-r px-2 pb-3"
+                    >
+
+                      <p className="text-xs text-gray-400">
+                        {date.toLocaleDateString(
+                          undefined,
+                          {
+                            weekday: "short",
+                          }
+                        )}
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {date.getDate()}
+                      </p>
+
+                      <p className="text-xs text-gray-400">
+                        {date.toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                          }
+                        )}
+                      </p>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+              {/* Schedule row */}
+              <div
+                className="relative mt-4"
+                style={{
+                  height:
+                    Math.max(
+                      90,
+                      visibleReservations.length *
+                        70 +
+                        20
+                    ),
+                }}
+              >
+
+                {/* Grid */}
+                <div className="absolute inset-0 flex">
+
+                  {timelineDays.map(
+                    (_, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          width: DAY_WIDTH,
+                        }}
+                        className="shrink-0 border-r border-gray-100"
+                      />
+                    )
+                  )}
+
+                </div>
+
+                {/* Today marker */}
+                <div
+                  className="absolute bottom-0 top-0 border-l-2 border-dashed border-gray-900"
+                  style={{
+                    left: 0,
+                  }}
+                />
+
+                {/* Reservations */}
+                {visibleReservations.map(
+                  (reservation, index) => {
+
+                    const position =
+                      getReservationPosition(
+                        reservation
+                      );
+
+                    return (
+                      <div
+                        key={reservation.id}
+                        onClick={() =>
+                          (window.location.href =
+                            `/reservations/manage/${reservation.id}`)
+                        }
+                        className={`absolute flex cursor-pointer items-center overflow-hidden rounded-lg px-3 shadow-sm ${getReservationClass(
+                          reservation.status
+                        )}`}
+                        style={{
+                          left:
+                            position.left,
+                          width:
+                            position.width,
+                          top:
+                            index * 70 + 10,
+                          height: 50,
+                        }}
+                        title={`${reservation.customer.first_name} ${reservation.customer.last_name} — ${formatDateTime(
+                          reservation.pickup_at
+                        )} → ${formatDateTime(
+                          reservation.return_at
+                        )}`}
+                      >
+
+                        <div className="min-w-0">
+
+                          <p className="truncate text-sm font-semibold">
+                            {
+                              reservation
+                                .customer
+                                .first_name
+                            }{" "}
+                            {
+                              reservation
+                                .customer
+                                .last_name
+                            }
+                          </p>
+
+                          <p className="truncate text-xs opacity-90">
+                            {formatDate(
+                              reservation.pickup_at
+                            )}
+                            {" → "}
+                            {formatDate(
+                              reservation.return_at
+                            )}
+                          </p>
+
+                        </div>
+
+                      </div>
+                    );
+                  }
+                )}
+
+                {/* Available indicator */}
+                {visibleReservations.length ===
+                  0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700">
+                      Vehicle available — no
+                      reservations in this period
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <p className="mt-4 text-xs text-gray-400">
+            Scroll horizontally to view the full
+            schedule.
+          </p>
+
+        </section>
+
+        {/* Reservation details */}
+        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <h2 className="text-xl font-semibold">
+                Reservations
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Detailed booking information
+              </p>
+            </div>
+
+            <span className="text-sm text-gray-500">
+              {reservations.length} booking
+              {reservations.length !== 1
+                ? "s"
+                : ""}
+            </span>
+
+          </div>
+
+          {reservations.length === 0 ? (
+            <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
+
+              <p className="font-medium text-gray-700">
+                No reservations
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                This vehicle has no bookings.
+              </p>
+
+            </div>
+          ) : (
+            <div className="mt-6 space-y-3">
+
+              {reservations.map(
+                (reservation) => (
+
+                  <div
+                    key={reservation.id}
+                    onClick={() =>
+                      (window.location.href =
+                        `/reservations/manage/${reservation.id}`)
+                    }
+                    className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50"
+                  >
+
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                      <div>
+                        <p className="font-semibold">
+                          {
+                            reservation.customer
+                              .first_name
+                          }{" "}
+                          {
+                            reservation.customer
+                              .last_name
+                          }
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                          {
+                            reservation
+                              .pickup_location
+                              .airport_code
+                          }
+                          {" → "}
+                          {
+                            reservation
+                              .return_location
+                              .airport_code
+                          }
+                        </p>
+                      </div>
+
+                      <div className="md:text-right">
+
+                        <p className="font-medium">
+                          {formatDate(
+                            reservation.pickup_at
+                          )}
+                          {" → "}
+                          {formatDate(
+                            reservation.return_at
+                          )}
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                          {formatDateTime(
+                            reservation.pickup_at
+                          )}
+                          {" → "}
+                          {formatDateTime(
+                            reservation.return_at
+                          )}
+                        </p>
+
+                      </div>
+
+                      <span
+                        className={`self-start rounded-full px-3 py-1 text-xs font-medium md:self-auto ${getReservationClass(
+                          reservation.status
+                        )}`}
+                      >
+                        {reservation.status}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+          )}
+
+        </section>
+
+      </div>
+
+      {editing && (
+        <CarEditModal
+          car={car}
+          locations={locations}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => setCar(updated)}
+        />
+      )}
+    </main>
+  );
+}

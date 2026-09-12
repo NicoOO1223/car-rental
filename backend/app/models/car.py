@@ -1,0 +1,82 @@
+import uuid
+from datetime import datetime
+from decimal import Decimal
+
+from sqlalchemy import DateTime, Integer, Numeric, String, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+from app.models.location import Location
+
+
+class Car(Base):
+    __tablename__ = "cars"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    make: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    model: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    year: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    license_plate: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        unique=True,
+    )
+
+    category: Mapped[str | None] = mapped_column(
+        String(50),
+    )
+
+    transmission: Mapped[str | None] = mapped_column(
+        String(20),
+    )
+
+    fuel_type: Mapped[str | None] = mapped_column(
+        String(20),
+    )
+
+    seats: Mapped[int | None] = mapped_column(
+        Integer,
+    )
+
+    price_per_day: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
+    )
+
+    current_location_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("locations.id"),
+        nullable=False,
+    )
+
+    current_location: Mapped["Location"] = relationship()
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="AVAILABLE",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        nullable=False,
+    )
