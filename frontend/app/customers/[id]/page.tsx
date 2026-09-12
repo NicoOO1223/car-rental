@@ -12,6 +12,8 @@ import {
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CustomerEditModal } from "@/components/customers/CustomerEditModal";
+import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
   params: Promise<{
@@ -20,6 +22,7 @@ type Props = {
 };
 
 export default function CustomerDetailsPage({ params }: Props) {
+  const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [reservations, setReservations] = useState<CustomerReservation[]>([]);
 
@@ -60,9 +63,7 @@ export default function CustomerDetailsPage({ params }: Props) {
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-gray-500">Loading customer...</p>
-        </div>
+        <SkeletonDetailPage />
       </main>
     );
   }
@@ -86,7 +87,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => (window.location.href = "/customers")}
+            onClick={() => navigate("/customers")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -181,7 +182,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                 <div
                   key={reservation.id}
                   onClick={() =>
-                    (window.location.href = `/reservations/manage/${reservation.id}`)
+                    navigate(`/reservations/manage/${reservation.id}`)
                   }
                   className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50"
                 >

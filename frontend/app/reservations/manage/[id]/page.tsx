@@ -7,7 +7,7 @@ import {
   getReservation,
   getLocations,
   getHandover,
-  getAgreementDownloadUrl,
+  downloadAgreement,
   cancelReservation,
   updateReservationStatus,
   type Reservation,
@@ -17,6 +17,8 @@ import {
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
+import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
   params: Promise<{
@@ -29,6 +31,7 @@ const EDITABLE_STATUSES = new Set(["PENDING", "CONFIRMED", "ACTIVE"]);
 export default function ReservationDetailsPage({
   params,
 }: Props) {
+  const navigate = useNavigate();
   const [reservation, setReservation] =
     useState<Reservation | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -183,11 +186,7 @@ export default function ReservationDetailsPage({
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-gray-500">
-            Loading reservation...
-          </p>
-        </div>
+        <SkeletonDetailPage />
       </main>
     );
   }
@@ -218,8 +217,7 @@ export default function ReservationDetailsPage({
 
           <button
             onClick={() =>
-              (window.location.href =
-                "/reservations/manage")
+              navigate("/reservations/manage")
             }
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
@@ -280,7 +278,7 @@ export default function ReservationDetailsPage({
 
                 <button
                   onClick={() =>
-                    (window.location.href = `/customers/${reservation.customer.id}`)
+                    navigate(`/customers/${reservation.customer.id}`)
                   }
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
                 >
@@ -322,7 +320,7 @@ export default function ReservationDetailsPage({
 
                 <button
                   onClick={() =>
-                    (window.location.href = `/cars/${reservation.car.id}`)
+                    navigate(`/cars/${reservation.car.id}`)
                   }
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
                 >
@@ -630,7 +628,7 @@ export default function ReservationDetailsPage({
 
                   <button
                     onClick={() =>
-                      (window.location.href = `/reservations/finalize/${reservation.id}`)
+                      navigate(`/reservations/finalize/${reservation.id}`)
                     }
                     className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white hover:bg-gray-800"
                   >
@@ -682,12 +680,17 @@ export default function ReservationDetailsPage({
                   </button>
 
                   {handover?.has_agreement && (
-                    <a
-                      href={getAgreementDownloadUrl(reservation.id)}
+                    <button
+                      onClick={() =>
+                        downloadAgreement(
+                          reservation.id,
+                          `agreement-${reservation.id}.pdf`,
+                        )
+                      }
                       className="mt-3 block w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-50"
                     >
                       Download Agreement
-                    </a>
+                    </button>
                   )}
 
                 </div>
@@ -721,12 +724,17 @@ export default function ReservationDetailsPage({
                   </div>
 
                   {handover?.has_agreement && (
-                    <a
-                      href={getAgreementDownloadUrl(reservation.id)}
+                    <button
+                      onClick={() =>
+                        downloadAgreement(
+                          reservation.id,
+                          `agreement-${reservation.id}.pdf`,
+                        )
+                      }
                       className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-50"
                     >
                       Download Agreement
-                    </a>
+                    </button>
                   )}
                 </div>
               )}

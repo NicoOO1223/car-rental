@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationResponse,
@@ -25,6 +26,7 @@ from sqlalchemy import select
 router = APIRouter(
     prefix="/api/reservations",
     tags=["Reservations"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

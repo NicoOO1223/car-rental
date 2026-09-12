@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models import Customer, Reservation
 from app.schemas.customer import (
     CustomerListItem,
@@ -18,6 +19,7 @@ from app.services.customers import update_customer
 router = APIRouter(
     prefix="/api/customers",
     tags=["Customers"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

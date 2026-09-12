@@ -8,6 +8,7 @@ import {
   CalendarClock,
   FileSignature,
   LayoutDashboard,
+  LogOut,
   Menu,
   Plus,
   Users,
@@ -15,6 +16,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+
+import { clearToken } from "@/lib/api";
 
 const navigation: { name: string; href: string; icon: LucideIcon }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -94,6 +97,17 @@ function SidebarContent({
       {/* Footer */}
       <div className="border-t px-6 py-4">
         <p className="text-xs text-gray-400">Fleet Management</p>
+
+        <button
+          onClick={() => {
+            clearToken();
+            window.location.href = "/login";
+          }}
+          className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </button>
       </div>
     </div>
   );

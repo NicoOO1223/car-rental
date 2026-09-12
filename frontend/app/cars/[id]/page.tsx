@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/Button";
 import { CarEditModal } from "@/components/cars/CarEditModal";
 import { VehicleConditionModal } from "@/components/cars/VehicleConditionModal";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
+import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
   params: Promise<{
@@ -32,6 +34,7 @@ const DAY_WIDTH = 90;
 const TIMELINE_DAYS = 30;
 
 export default function CarDetailsPage({ params }: Props) {
+  const navigate = useNavigate();
   const [car, setCar] = useState<Car | null>(null);
   const [reservations, setReservations] = useState<
     CarReservation[]
@@ -218,11 +221,7 @@ export default function CarDetailsPage({ params }: Props) {
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-gray-500">
-            Loading vehicle...
-          </p>
-        </div>
+        <SkeletonDetailPage />
       </main>
     );
   }
@@ -248,7 +247,7 @@ export default function CarDetailsPage({ params }: Props) {
 
           <button
             onClick={() =>
-              (window.location.href = "/cars")
+              navigate("/cars")
             }
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
@@ -661,8 +660,7 @@ export default function CarDetailsPage({ params }: Props) {
                       <div
                         key={reservation.id}
                         onClick={() =>
-                          (window.location.href =
-                            `/reservations/manage/${reservation.id}`)
+                          navigate(`/reservations/manage/${reservation.id}`)
                         }
                         className={`absolute flex cursor-pointer items-center overflow-hidden rounded-lg px-3 shadow-sm ${getReservationClass(
                           reservation.status
@@ -784,8 +782,7 @@ export default function CarDetailsPage({ params }: Props) {
                   <div
                     key={reservation.id}
                     onClick={() =>
-                      (window.location.href =
-                        `/reservations/manage/${reservation.id}`)
+                      navigate(`/reservations/manage/${reservation.id}`)
                     }
                     className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50"
                   >

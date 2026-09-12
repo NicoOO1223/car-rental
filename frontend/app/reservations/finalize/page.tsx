@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 import { getReservations, type Reservation } from "@/lib/api";
+import { Skeleton, SkeletonRows, SkeletonStatTiles } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 export default function FinalizeReservationsPage() {
+  const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,9 @@ export default function FinalizeReservationsPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-gray-500">Loading reservations...</p>
+          <Skeleton className="mb-8 h-9 w-64" />
+          <SkeletonStatTiles count={1} className="mb-6 grid gap-4 sm:grid-cols-2" />
+          <SkeletonRows count={4} />
         </div>
       </main>
     );
@@ -144,7 +149,7 @@ export default function FinalizeReservationsPage() {
                   <tr
                     key={reservation.id}
                     onClick={() =>
-                      (window.location.href = `/reservations/finalize/${reservation.id}`)
+                      navigate(`/reservations/finalize/${reservation.id}`)
                     }
                     className="cursor-pointer border-b last:border-b-0 hover:bg-gray-50"
                   >

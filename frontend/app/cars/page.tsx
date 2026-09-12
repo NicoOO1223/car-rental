@@ -11,6 +11,8 @@ import {
 } from "@/lib/api";
 import { getCarStatusStyle, getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge, ReservationStatusBadge } from "@/components/ui/Badge";
+import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 // Only bookings that are actually confirmed or currently underway are
 // operationally relevant to the fleet schedule — pending requests and
@@ -24,6 +26,7 @@ type CarWithReservations = Car & {
 const DAY_WIDTH = 100; // Slightly wider for better readability
 
 export default function FleetPage() {
+  const navigate = useNavigate();
   const [cars, setCars] = useState<CarWithReservations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -235,10 +238,10 @@ export default function FleetPage() {
    */
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-blue-500 animate-spin" />
-          <p className="text-gray-500 font-medium tracking-wide">Loading fleet...</p>
+      <main className="min-h-screen bg-[#F8FAFC] p-8">
+        <div className="mx-auto max-w-7xl">
+          <Skeleton className="mb-8 h-9 w-64" />
+          <SkeletonRows count={6} />
         </div>
       </main>
     );
@@ -374,7 +377,7 @@ export default function FleetPage() {
                     <div key={car.id} className="p-4">
                       <div
                         onClick={() =>
-                          (window.location.href = `/cars/${car.id}`)
+                          navigate(`/cars/${car.id}`)
                         }
                         className="flex cursor-pointer items-start justify-between gap-3"
                       >
@@ -408,7 +411,7 @@ export default function FleetPage() {
                             <button
                               key={reservation.id}
                               onClick={() =>
-                                (window.location.href = `/reservations/manage/${reservation.id}`)
+                                navigate(`/reservations/manage/${reservation.id}`)
                               }
                               className="block w-full rounded-lg bg-gray-50 px-3 py-2 text-left transition hover:bg-gray-100"
                             >
@@ -492,7 +495,7 @@ export default function FleetPage() {
                       >
                         {/* Vehicle Information (Sticky Left) */}
                         <div
-                          onClick={() => (window.location.href = `/cars/${car.id}`)}
+                          onClick={() => navigate(`/cars/${car.id}`)}
                           className="w-[320px] shrink-0 cursor-pointer border-r border-gray-100 px-6 py-5 bg-white group-hover:bg-gray-50/80 sticky left-0 z-30 transition-colors"
                         >
                           <div className="flex flex-col gap-3">
@@ -591,11 +594,11 @@ export default function FleetPage() {
                                   role="button"
                                   tabIndex={0}
                                   onClick={() =>
-                                    (window.location.href = `/reservations/manage/${reservation.id}`)
+                                    navigate(`/reservations/manage/${reservation.id}`)
                                   }
                                   onKeyDown={(event) => {
                                     if (event.key === "Enter" || event.key === " ") {
-                                      window.location.href = `/reservations/manage/${reservation.id}`;
+                                      navigate(`/reservations/manage/${reservation.id}`);
                                     }
                                   }}
                                   className={`flex h-16 cursor-pointer flex-col justify-center overflow-hidden rounded-xl px-3 outline-none transition-all hover:scale-[1.02] focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-gray-900 ${getReservationStyles(

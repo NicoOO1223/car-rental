@@ -15,6 +15,8 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { getCarStatusHex } from "@/lib/status";
 import { PieChart, type PieChartDatum } from "@/components/charts/PieChart";
+import { Skeleton, SkeletonStatTiles } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 const FLEET_STATUS_ORDER: { key: string; label: string }[] = [
   { key: "available", label: "Available" },
@@ -29,6 +31,7 @@ function todayDateString() {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] =
     useState<Dashboard | null>(null);
 
@@ -120,9 +123,12 @@ export default function DashboardPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-7xl">
-          <p className="text-gray-500">
-            Loading dashboard...
-          </p>
+          <Skeleton className="mb-8 h-9 w-48" />
+          <SkeletonStatTiles count={2} className="mb-6 grid gap-4 sm:grid-cols-2" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-80 rounded-xl" />
+            <Skeleton className="h-80 rounded-xl" />
+          </div>
         </div>
       </main>
     );
@@ -281,7 +287,7 @@ export default function DashboardPage() {
                   <button
                     key={location.airport_code}
                     onClick={() =>
-                      (window.location.href = `/cars#${location.airport_code}`)
+                      navigate(`/cars#${location.airport_code}`)
                     }
                     className="block w-full rounded-lg text-left transition hover:bg-gray-50"
                   >
@@ -351,8 +357,7 @@ export default function DashboardPage() {
 
             <button
               onClick={() =>
-                (window.location.href =
-                  "/reservations/manage")
+                navigate("/reservations/manage")
               }
               className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
             >
@@ -382,8 +387,7 @@ export default function DashboardPage() {
                   <button
                     key={reservation.id}
                     onClick={() =>
-                      (window.location.href =
-                        `/reservations/manage/${reservation.id}`)
+                      navigate(`/reservations/manage/${reservation.id}`)
                     }
                     className="flex w-full flex-col gap-3 py-4 text-left hover:bg-gray-50 md:flex-row md:items-center md:justify-between"
                   >

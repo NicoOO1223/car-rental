@@ -6,7 +6,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import {
   createPaymentIntent,
   generateAgreement,
-  getAgreementDownloadUrl,
+  downloadAgreement,
   getHandover,
   getReservation,
   submitSignature,
@@ -22,6 +22,8 @@ import {
   SignaturePad,
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -56,6 +58,7 @@ function StepHeader({
 }
 
 export default function FinalizeHandoverPage({ params }: Props) {
+  const navigate = useNavigate();
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [handover, setHandover] = useState<Handover | null>(null);
@@ -176,7 +179,9 @@ export default function FinalizeHandoverPage({ params }: Props) {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-3xl">
-          <p className="text-gray-500">Loading handover...</p>
+          <Skeleton className="mb-4 h-4 w-32" />
+          <Skeleton className="mb-8 h-9 w-56" />
+          <Skeleton className="h-64 rounded-xl" />
         </div>
       </main>
     );
@@ -187,7 +192,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-3xl">
           <button
-            onClick={() => (window.location.href = "/reservations/finalize")}
+            onClick={() => navigate("/reservations/finalize")}
             className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -224,7 +229,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto max-w-3xl">
         <button
-          onClick={() => (window.location.href = "/reservations/finalize")}
+          onClick={() => navigate("/reservations/finalize")}
           className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -258,17 +263,22 @@ export default function FinalizeHandoverPage({ params }: Props) {
             </p>
 
             <div className="mt-6 flex justify-center gap-3">
-              <a
-                href={getAgreementDownloadUrl(reservation.id)}
+              <button
+                onClick={() =>
+                  downloadAgreement(
+                    reservation.id,
+                    `agreement-${reservation.id}.pdf`,
+                  )
+                }
                 className="inline-flex items-center justify-center rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
               >
                 Download Agreement
-              </a>
+              </button>
 
               <Button
                 variant="secondary"
                 onClick={() =>
-                  (window.location.href = `/reservations/manage/${reservation.id}`)
+                  navigate(`/reservations/manage/${reservation.id}`)
                 }
               >
                 View Reservation

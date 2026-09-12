@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.schemas.handover import (
     HandoverResponse,
     PaymentIntentResponse,
@@ -20,6 +21,7 @@ from app.services.handovers import (
 router = APIRouter(
     prefix="/api/reservations/{reservation_id}/handover",
     tags=["Handover"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

@@ -9,8 +9,11 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Skeleton, SkeletonRows, SkeletonStatTiles } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -136,7 +139,12 @@ export default function CustomersPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-7xl">
-          <p className="text-gray-500">Loading customers...</p>
+          <Skeleton className="mb-8 h-9 w-64" />
+          <SkeletonStatTiles
+            count={5}
+            className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+          />
+          <SkeletonRows count={6} />
         </div>
       </main>
     );
@@ -291,7 +299,7 @@ export default function CustomersPage() {
               <button
                 key={customer.id}
                 onClick={() =>
-                  (window.location.href = `/customers/${customer.id}`)
+                  navigate(`/customers/${customer.id}`)
                 }
                 className="block w-full p-4 text-left hover:bg-gray-50"
               >
@@ -359,7 +367,7 @@ export default function CustomersPage() {
                   <tr
                     key={customer.id}
                     onClick={() =>
-                      (window.location.href = `/customers/${customer.id}`)
+                      navigate(`/customers/${customer.id}`)
                     }
                     className="cursor-pointer border-b last:border-b-0 hover:bg-gray-50"
                   >

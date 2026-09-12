@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models import Car, Reservation
 from app.schemas.dashboard import (
     DashboardFleetStats,
@@ -25,6 +26,7 @@ from app.services.dashboard import get_daily_revenue
 router = APIRouter(
     prefix="/api/dashboard",
     tags=["Dashboard"],
+    dependencies=[Depends(get_current_user)],
 )
 
 

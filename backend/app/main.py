@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.auth import router as auth_router
 from app.routers.cars import router as cars_router
 from app.routers.locations import router as locations_router
 from app.routers.reservations import router as reservations_router
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 
 
+app.include_router(auth_router)
 app.include_router(locations_router)
 app.include_router(cars_router)
 app.include_router(reservations_router)

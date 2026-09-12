@@ -4,6 +4,7 @@ from app.models.handover import Handover
 from app.models.location import Location
 from app.models.maintenance_task import MaintenanceTask
 from app.models.reservation import Reservation
+from app.models.user import User
 
 __all__ = [
     "Car",
@@ -12,4 +13,5 @@ __all__ = [
     "Location",
     "MaintenanceTask",
     "Reservation",
+    "User",
 ]

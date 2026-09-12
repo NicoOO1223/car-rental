@@ -12,6 +12,7 @@ import {
   type MaintenanceTask,
 } from "@/lib/api";
 import { CarStatusBadge } from "@/components/ui/Badge";
+import { Skeleton, SkeletonRows, SkeletonStatTiles } from "@/components/ui/Skeleton";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 
 export default function MaintenancePage() {
@@ -107,7 +108,9 @@ export default function MaintenancePage() {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-gray-500">Loading maintenance tasks...</p>
+          <Skeleton className="mb-8 h-9 w-64" />
+          <SkeletonStatTiles count={2} className="mb-6 grid gap-4 sm:grid-cols-2" />
+          <SkeletonRows count={4} />
         </div>
       </main>
     );

@@ -7,8 +7,11 @@ import {
   type Reservation,
 } from "@/lib/api";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
+import { Skeleton, SkeletonRows, SkeletonStatTiles } from "@/components/ui/Skeleton";
+import { useNavigate } from "@/lib/useNavigate";
 
 export default function ManageReservationsPage() {
+  const navigate = useNavigate();
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -293,9 +296,12 @@ export default function ManageReservationsPage() {
     return (
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="mx-auto max-w-7xl">
-          <p className="text-gray-500">
-            Loading reservations...
-          </p>
+          <Skeleton className="mb-8 h-9 w-64" />
+          <SkeletonStatTiles
+            count={5}
+            className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+          />
+          <SkeletonRows count={6} />
         </div>
       </main>
     );
@@ -355,8 +361,7 @@ export default function ManageReservationsPage() {
 
             <button
               onClick={() =>
-                (window.location.href =
-                  "/reservations")
+                navigate("/reservations")
               }
               className="flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
             >
@@ -637,8 +642,7 @@ export default function ManageReservationsPage() {
               <button
                 key={reservation.id}
                 onClick={() =>
-                  (window.location.href =
-                    `/reservations/manage/${reservation.id}`)
+                  navigate(`/reservations/manage/${reservation.id}`)
                 }
                 className="block w-full p-4 text-left hover:bg-gray-50"
               >
@@ -739,8 +743,7 @@ export default function ManageReservationsPage() {
                     <tr
                       key={reservation.id}
                       onClick={() =>
-                        (window.location.href =
-                          `/reservations/manage/${reservation.id}`)
+                        navigate(`/reservations/manage/${reservation.id}`)
                       }
                       className="cursor-pointer border-b last:border-b-0 hover:bg-gray-50"
                     >

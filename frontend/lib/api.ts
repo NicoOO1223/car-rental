@@ -3,6 +3,76 @@
 // deployment that isn't talking to a local backend.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+const TOKEN_KEY = "auth_token";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+}
+
+export function clearToken() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+// Every exported function below goes through this instead of calling
+// fetch directly, so the auth token only needs attaching in one place.
+// A 401 means the token is missing/expired — bounce to /login (a full
+// reload here is intentional: it guarantees every page's in-memory
+// state resets alongside the cleared token, not just the current one).
+async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = getToken();
+  const headers = new Headers(init.headers);
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/login"
+  ) {
+    clearToken();
+    window.location.href = "/login";
+  }
+
+  return response;
+}
+
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+};
+
+export async function login(
+  email: string,
+  password: string,
+): Promise<LoginResponse> {
+  const response = await apiFetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to log in.");
+  }
+
+  return response.json();
+}
+
 export type Location = {
   id: string;
   name: string;
@@ -49,9 +119,7 @@ export type Reservation = {
 };
 
 export async function getLocations(): Promise<Location[]> {
-  const response = await fetch(
-    `${API_URL}/api/locations`
-  );
+  const response = await apiFetch("/api/locations");
 
   if (!response.ok) {
     throw new Error("Failed to fetch locations");
@@ -72,9 +140,7 @@ export async function getAvailableCars(
     return_at: returnAt,
   });
 
-  const response = await fetch(
-    `${API_URL}/api/cars/available?${params}`,
-  );
+  const response = await apiFetch(`/api/cars/available?${params}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch available cars");
@@ -99,16 +165,13 @@ export async function createReservation(data: {
   pickup_at: string;
   return_at: string;
 }) {
-  const response = await fetch(
-    `${API_URL}/api/reservations`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+  const response = await apiFetch("/api/reservations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -123,9 +186,7 @@ export async function createReservation(data: {
 }
 
 export async function getReservations(): Promise<Reservation[]> {
-  const response = await fetch(
-    `${API_URL}/api/reservations`
-  );
+  const response = await apiFetch("/api/reservations");
 
   if (!response.ok) {
     throw new Error("Failed to fetch reservations.");
@@ -137,9 +198,7 @@ export async function getReservations(): Promise<Reservation[]> {
 export async function getReservation(
   id: string
 ): Promise<Reservation> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${id}`
-  );
+  const response = await apiFetch(`/api/reservations/${id}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch reservation.");
@@ -167,17 +226,14 @@ export async function updateReservation(
     }>;
   }>,
 ): Promise<Reservation> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
+  const response = await apiFetch(`/api/reservations/${reservationId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
     },
-  );
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -192,8 +248,8 @@ export async function updateReservation(
 }
 
 export async function cancelReservation(reservationId: string) {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/cancel`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/cancel`,
     {
       method: "PATCH",
       headers: {
@@ -237,9 +293,7 @@ export type Car = {
 };
 
 export async function getCars() {
-  const response = await fetch(
-    `${API_URL}/api/cars`
-  );
+  const response = await apiFetch("/api/cars");
 
   if (!response.ok) {
     throw new Error("Failed to fetch cars");
@@ -251,9 +305,7 @@ export async function getCars() {
 export async function getCar(
   carId: string,
 ): Promise<Car> {
-  const response = await fetch(
-    `${API_URL}/api/cars/${carId}`,
-  );
+  const response = await apiFetch(`/api/cars/${carId}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch car");
@@ -281,17 +333,14 @@ export async function updateCar(
     last_oil_change_at: string | null;
   }>,
 ): Promise<Car> {
-  const response = await fetch(
-    `${API_URL}/api/cars/${carId}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
+  const response = await apiFetch(`/api/cars/${carId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
     },
-  );
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -333,9 +382,7 @@ export type CarReservation = {
 export async function getCarReservations(
   carId: string,
 ): Promise<CarReservation[]> {
-  const response = await fetch(
-    `${API_URL}/api/cars/${carId}/reservations`,
-  );
+  const response = await apiFetch(`/api/cars/${carId}/reservations`);
 
   if (!response.ok) {
     throw new Error(
@@ -352,9 +399,7 @@ export async function getCarReservations(
 export async function getCarStatusesByDate(
   date: string,
 ): Promise<Record<string, string>> {
-  const response = await fetch(
-    `${API_URL}/api/cars/status-by-date?date=${date}`,
-  );
+  const response = await apiFetch(`/api/cars/status-by-date?date=${date}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch car statuses for date.");
@@ -389,8 +434,8 @@ export async function getMaintenanceTasks(params?: {
 
   const queryString = query.toString();
 
-  const response = await fetch(
-    `${API_URL}/api/maintenance/tasks${queryString ? `?${queryString}` : ""}`,
+  const response = await apiFetch(
+    `/api/maintenance/tasks${queryString ? `?${queryString}` : ""}`,
   );
 
   if (!response.ok) {
@@ -403,9 +448,7 @@ export async function getMaintenanceTasks(params?: {
 export async function getCarMaintenanceTasks(
   carId: string,
 ): Promise<MaintenanceTask[]> {
-  const response = await fetch(
-    `${API_URL}/api/cars/${carId}/maintenance-tasks`,
-  );
+  const response = await apiFetch(`/api/cars/${carId}/maintenance-tasks`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch car maintenance history.");
@@ -419,7 +462,7 @@ export async function createMaintenanceTask(data: {
   task_type: string;
   notes?: string | null;
 }): Promise<MaintenanceTask> {
-  const response = await fetch(`${API_URL}/api/maintenance/tasks`, {
+  const response = await apiFetch("/api/maintenance/tasks", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -440,8 +483,8 @@ export async function createMaintenanceTask(data: {
 export async function completeMaintenanceTask(
   taskId: string,
 ): Promise<MaintenanceTask> {
-  const response = await fetch(
-    `${API_URL}/api/maintenance/tasks/${taskId}/complete`,
+  const response = await apiFetch(
+    `/api/maintenance/tasks/${taskId}/complete`,
     { method: "PATCH" },
   );
 
@@ -457,8 +500,8 @@ export async function completeMaintenanceTask(
 export async function cancelMaintenanceTask(
   taskId: string,
 ): Promise<MaintenanceTask> {
-  const response = await fetch(
-    `${API_URL}/api/maintenance/tasks/${taskId}/cancel`,
+  const response = await apiFetch(
+    `/api/maintenance/tasks/${taskId}/cancel`,
     { method: "PATCH" },
   );
 
@@ -475,8 +518,8 @@ export async function updateReservationStatus(
   reservationId: string,
   status: "CONFIRMED" | "COMPLETED" | "CANCELLED",
 ): Promise<Reservation> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/status`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/status`,
     {
       method: "PATCH",
       headers: {
@@ -563,9 +606,7 @@ export type Dashboard = {
 
 
 export async function getDashboard(): Promise<Dashboard> {
-  const response = await fetch(
-    `${API_URL}/api/dashboard`
-  );
+  const response = await apiFetch("/api/dashboard");
 
   if (!response.ok) {
     throw new Error("Failed to fetch dashboard");
@@ -603,9 +644,7 @@ export async function getFleetStatus(params: {
     search.set("location_id", params.locationId);
   }
 
-  const response = await fetch(
-    `${API_URL}/api/dashboard/fleet-status?${search}`,
-  );
+  const response = await apiFetch(`/api/dashboard/fleet-status?${search}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch fleet status");
@@ -640,9 +679,7 @@ export async function getRevenue(params: {
     search.set("end_date", params.endDate);
   }
 
-  const response = await fetch(
-    `${API_URL}/api/dashboard/revenue?${search}`,
-  );
+  const response = await apiFetch(`/api/dashboard/revenue?${search}`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -698,9 +735,7 @@ export type CustomerReservation = {
 };
 
 export async function getCustomers(): Promise<CustomerListItem[]> {
-  const response = await fetch(
-    `${API_URL}/api/customers`
-  );
+  const response = await apiFetch("/api/customers");
 
   if (!response.ok) {
     throw new Error("Failed to fetch customers");
@@ -712,9 +747,7 @@ export async function getCustomers(): Promise<CustomerListItem[]> {
 export async function getCustomer(
   customerId: string,
 ): Promise<Customer> {
-  const response = await fetch(
-    `${API_URL}/api/customers/${customerId}`,
-  );
+  const response = await apiFetch(`/api/customers/${customerId}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch customer");
@@ -726,9 +759,7 @@ export async function getCustomer(
 export async function getCustomerReservations(
   customerId: string,
 ): Promise<CustomerReservation[]> {
-  const response = await fetch(
-    `${API_URL}/api/customers/${customerId}/reservations`,
-  );
+  const response = await apiFetch(`/api/customers/${customerId}/reservations`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch customer reservations");
@@ -765,9 +796,7 @@ export type PaymentIntent = {
 };
 
 export async function getHandover(reservationId: string): Promise<Handover> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/handover`,
-  );
+  const response = await apiFetch(`/api/reservations/${reservationId}/handover`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -781,8 +810,8 @@ export async function getHandover(reservationId: string): Promise<Handover> {
 export async function createPaymentIntent(
   reservationId: string,
 ): Promise<PaymentIntent> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/handover/payment-intent`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/payment-intent`,
     { method: "POST" },
   );
 
@@ -798,8 +827,8 @@ export async function createPaymentIntent(
 export async function confirmHandoverPayment(
   reservationId: string,
 ): Promise<Handover> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/handover/confirm-payment`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/confirm-payment`,
     { method: "POST" },
   );
 
@@ -816,8 +845,8 @@ export async function submitSignature(
   reservationId: string,
   signatureImage: string,
 ): Promise<Handover> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/handover/signature`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/signature`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -837,8 +866,8 @@ export async function submitSignature(
 export async function generateAgreement(
   reservationId: string,
 ): Promise<Handover> {
-  const response = await fetch(
-    `${API_URL}/api/reservations/${reservationId}/handover/agreement`,
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/agreement`,
     { method: "POST" },
   );
 
@@ -851,8 +880,31 @@ export async function generateAgreement(
   return response.json();
 }
 
-export function getAgreementDownloadUrl(reservationId: string): string {
-  return `${API_URL}/api/reservations/${reservationId}/handover/agreement/download`;
+// Plain <a href> can't attach an Authorization header, so the PDF is
+// fetched here (with the token, like everything else) and handed to
+// the browser as a blob download instead of linking straight at the API.
+export async function downloadAgreement(
+  reservationId: string,
+  filename: string,
+): Promise<void> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/agreement/download`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to download agreement.");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export async function updateCustomer(
@@ -867,17 +919,14 @@ export async function updateCustomer(
     email: string;
   }>,
 ): Promise<Customer> {
-  const response = await fetch(
-    `${API_URL}/api/customers/${customerId}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
+  const response = await apiFetch(`/api/customers/${customerId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
     },
-  );
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
