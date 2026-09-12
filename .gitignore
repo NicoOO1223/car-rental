@@ -16,3 +16,9 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Azure bootstrap state — generated secrets/suffix, not for git
+deploy/.suffix
+deploy/.pgpassword
+deploy/outputs.json
+deploy/*.log

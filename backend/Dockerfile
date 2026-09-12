@@ -15,6 +15,9 @@ COPY app/ app/
 COPY alembic/ alembic/
 COPY alembic.ini .
 COPY docker-entrypoint.sh .
+# Not used by the running server — only kept so `az containerapp exec`
+# can seed demo data into a fresh deployment on demand.
+COPY seed.py .
 RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 8000
