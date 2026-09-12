@@ -12,5 +12,46 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Full-stack smoke test of the containerized app, ahead of any cloud
+  # deployment. Not required for local dev — that still runs the backend
+  # via uvicorn and the frontend via `npm run dev` directly, against this
+  # same postgres service on localhost:5432.
+  backend:
+    build: ./backend
+    container_name: car-rental-backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env
+    environment:
+      # Overrides the localhost value in backend/.env — containers reach
+      # postgres via the compose network, not the host's loopback address.
+      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@postgres:5432/car_rental
+      CORS_ORIGINS: http://localhost:3001
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Browser-side fetches hit the host's mapped port, not the compose
+        # network, so this is the host address, not the "backend" service name.
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        # Optional — leave unset to smoke-test everything except the Stripe
+        # payment step, which degrades gracefully without a publishable key.
+        # Set it here (or export it in your shell before `docker compose up`)
+        # to test payment too; it must match backend/.env's STRIPE_SECRET_KEY.
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    container_name: car-rental-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    # Mapped to a different host port than 3000 on purpose, so this
+    # smoke-test stack never collides with a `npm run dev` session.
+    ports:
+      - "3001:3000"
+
 volumes:
   postgres_data:
