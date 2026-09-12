@@ -1,0 +1,4 @@
+# Shell scripts run inside Linux containers — a CRLF shebang line
+# (`#!/bin/sh` followed by \r\n) fails to execute there. Force LF
+# regardless of what a Windows checkout would otherwise produce.
+*.sh text eol=lf
