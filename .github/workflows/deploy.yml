@@ -1,0 +1,83 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# OIDC federated login — no long-lived Azure credential stored in GitHub.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install containerapp CLI extension
+        run: az extension add --name containerapp --upgrade -y
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }} \
+            -f backend/Dockerfile backend
+          docker push ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
+
+      - name: Deploy backend
+        # Tagged with the commit SHA (not :latest) — Container Apps only
+        # creates a new revision when the image reference string itself
+        # changes, so a reused tag silently keeps serving the old image.
+        run: |
+          az containerapp update \
+            --name car-rental-backend \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --image ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install containerapp CLI extension
+        run: az extension add --name containerapp --upgrade -y
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - name: Build and push frontend image
+        # NEXT_PUBLIC_* vars are inlined into the client bundle at build
+        # time, so they're passed as build args here, not runtime env vars.
+        run: |
+          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} \
+            --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }} \
+            -f frontend/Dockerfile frontend
+          docker push ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+      - name: Deploy frontend
+        run: |
+          az containerapp update \
+            --name car-rental-frontend \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --image ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
