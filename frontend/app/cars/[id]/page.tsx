@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Wrench } from "lucide-react";
 
 import {
+  cancelMaintenanceTask,
+  completeMaintenanceTask,
   getCar,
+  getCarMaintenanceTasks,
   getCarReservations,
   getLocations,
   type Car,
   type CarReservation,
   type Location,
+  type MaintenanceTask,
 } from "@/lib/api";
 import { getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CarEditModal } from "@/components/cars/CarEditModal";
+import { VehicleConditionModal } from "@/components/cars/VehicleConditionModal";
+import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 
 type Props = {
   params: Promise<{
@@ -31,26 +37,31 @@ export default function CarDetailsPage({ params }: Props) {
     CarReservation[]
   >([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
+  const [editingCondition, setEditingCondition] = useState(false);
+  const [loggingTask, setLoggingTask] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       try {
         const { id } = await params;
 
-        const [carData, reservationData, locationData] =
+        const [carData, reservationData, locationData, taskData] =
           await Promise.all([
             getCar(id),
             getCarReservations(id),
             getLocations(),
+            getCarMaintenanceTasks(id),
           ]);
 
         setCar(carData);
         setReservations(reservationData);
         setLocations(locationData);
+        setMaintenanceTasks(taskData);
       } catch {
         setError("Failed to load vehicle.");
       } finally {
@@ -60,6 +71,32 @@ export default function CarDetailsPage({ params }: Props) {
 
     loadData();
   }, [params]);
+
+  const openTask = maintenanceTasks.find((task) => task.status === "OPEN");
+
+  async function handleCompleteTask(taskId: string) {
+    const updated = await completeMaintenanceTask(taskId);
+
+    setMaintenanceTasks((tasks) =>
+      tasks.map((task) => (task.id === updated.id ? updated : task)),
+    );
+
+    if (car) {
+      setCar({ ...car, status: "AVAILABLE" });
+    }
+  }
+
+  async function handleCancelTask(taskId: string) {
+    const updated = await cancelMaintenanceTask(taskId);
+
+    setMaintenanceTasks((tasks) =>
+      tasks.map((task) => (task.id === updated.id ? updated : task)),
+    );
+
+    if (car) {
+      setCar({ ...car, status: "AVAILABLE" });
+    }
+  }
 
   function formatDate(date: string) {
     return new Date(date).toLocaleDateString();
@@ -337,6 +374,146 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
           </div>
+        </section>
+
+        {/* Vehicle condition */}
+        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Vehicle Condition
+            </h2>
+
+            <Button variant="secondary" onClick={() => setEditingCondition(true)}>
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Mileage
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.mileage != null ? `${car.mileage.toLocaleString()} km` : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Tire Condition
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.tire_condition ? car.tire_condition.replace("_", " ") : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Last Oil Change
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.last_oil_change_at ? formatDate(car.last_oil_change_at) : "—"}
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Maintenance history */}
+        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <h2 className="text-xl font-semibold">
+                Maintenance History
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Maintenance and cleaning tasks logged for this vehicle
+              </p>
+            </div>
+
+            {openTask ? (
+              <span className="text-sm font-medium text-gray-500">
+                Task already open below
+              </span>
+            ) : (
+              <Button variant="secondary" onClick={() => setLoggingTask(true)}>
+                <Wrench className="h-4 w-4" />
+                Log Task
+              </Button>
+            )}
+
+          </div>
+
+          {maintenanceTasks.length === 0 ? (
+            <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
+              <p className="font-medium text-gray-700">
+                No maintenance history
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Nothing has been logged for this vehicle yet.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {maintenanceTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <CarStatusBadge status={task.task_type} />
+
+                    <div>
+                      <p className="text-sm font-medium">
+                        {task.notes || "No notes"}
+                      </p>
+
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        Opened {formatDateTime(task.opened_at)}
+                        {task.completed_at && (
+                          <> · Closed {formatDateTime(task.completed_at)}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-start sm:self-auto">
+                    <span className="text-xs font-medium text-gray-500">
+                      {task.status}
+                    </span>
+
+                    {task.status === "OPEN" && (
+                      <>
+                        <button
+                          onClick={() => handleCompleteTask(task.id)}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                        >
+                          Mark Complete
+                        </button>
+
+                        <button
+                          onClick={() => handleCancelTask(task.id)}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Availability timeline */}
@@ -694,6 +871,25 @@ export default function CarDetailsPage({ params }: Props) {
           locations={locations}
           onClose={() => setEditing(false)}
           onSaved={(updated) => setCar(updated)}
+        />
+      )}
+
+      {editingCondition && (
+        <VehicleConditionModal
+          car={car}
+          onClose={() => setEditingCondition(false)}
+          onSaved={(updated) => setCar(updated)}
+        />
+      )}
+
+      {loggingTask && (
+        <NewTaskModal
+          car={car}
+          onClose={() => setLoggingTask(false)}
+          onCreated={(task) => {
+            setMaintenanceTasks((tasks) => [task, ...tasks]);
+            setCar({ ...car, status: task.task_type });
+          }}
         />
       )}
     </main>

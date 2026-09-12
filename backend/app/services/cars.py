@@ -15,6 +15,13 @@ VALID_CAR_STATUSES = {
     "CLEANING",
 }
 
+VALID_TIRE_CONDITIONS = {
+    "GOOD",
+    "FAIR",
+    "WORN",
+    "NEEDS_REPLACEMENT",
+}
+
 
 def update_car(
     db: Session,
@@ -47,6 +54,13 @@ def update_car(
 
     if "status" in updates and updates["status"] not in VALID_CAR_STATUSES:
         raise ValueError("Invalid status value.")
+
+    if (
+        "tire_condition" in updates
+        and updates["tire_condition"] is not None
+        and updates["tire_condition"] not in VALID_TIRE_CONDITIONS
+    ):
+        raise ValueError("Invalid tire condition value.")
 
     for field, value in updates.items():
         setattr(car, field, value)

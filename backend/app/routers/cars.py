@@ -8,9 +8,11 @@ from sqlalchemy import select
 from app.database import get_db
 from app.models import Car, Reservation
 from app.schemas.car import CarResponse, CarUpdate
+from app.schemas.maintenance import MaintenanceTaskResponse
 from app.schemas.reservation import CarReservationResponse
 from app.services.availability import get_available_cars, get_car_statuses_for_date
 from app.services.cars import update_car
+from app.services.maintenance import list_tasks_for_car
 
 from sqlalchemy import select
 router = APIRouter(
@@ -100,6 +102,24 @@ def get_car_reservations(
     ).all()
 
     return reservations
+
+@router.get(
+    "/{car_id}/maintenance-tasks",
+    response_model=list[MaintenanceTaskResponse],
+)
+def get_car_maintenance_tasks(
+    car_id: UUID,
+    db: Session = Depends(get_db),
+):
+    try:
+        tasks = list_tasks_for_car(db, car_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
+    return tasks
 
 @router.get("/{car_id}", response_model=CarResponse)
 def get_car(

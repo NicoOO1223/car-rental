@@ -5,17 +5,19 @@ from decimal import Decimal
 from sqlalchemy import delete
 
 from app.database import SessionLocal
-from app.models import Car, Customer, Handover, Location, Reservation
+from app.models import Car, Customer, Handover, Location, MaintenanceTask, Reservation
 
 
 def seed():
     db = SessionLocal()
 
     try:
-        # Clear existing data. Handovers reference reservations via a
-        # foreign key, so they must go first.
+        # Clear existing data. Handovers reference reservations, and
+        # maintenance tasks reference cars, via foreign keys, so both
+        # must go before their parent table.
         db.execute(delete(Handover))
         db.execute(delete(Reservation))
+        db.execute(delete(MaintenanceTask))
         db.execute(delete(Car))
         db.execute(delete(Customer))
         db.execute(delete(Location))
@@ -65,6 +67,9 @@ def seed():
                 price_per_day=Decimal("45.00"),
                 current_location_id=olbia.id,
                 status="AVAILABLE",
+                mileage=18500,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 5, 12),
             ),
             Car(
                 make="Fiat",
@@ -78,6 +83,9 @@ def seed():
                 price_per_day=Decimal("55.00"),
                 current_location_id=olbia.id,
                 status="AVAILABLE",
+                mileage=12300,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 6, 2),
             ),
             Car(
                 make="Peugeot",
@@ -91,6 +99,9 @@ def seed():
                 price_per_day=Decimal("50.00"),
                 current_location_id=olbia.id,
                 status="AVAILABLE",
+                mileage=34200,
+                tire_condition="FAIR",
+                last_oil_change_at=date(2026, 3, 20),
             ),
             Car(
                 make="Volkswagen",
@@ -104,6 +115,9 @@ def seed():
                 price_per_day=Decimal("70.00"),
                 current_location_id=cagliari.id,
                 status="AVAILABLE",
+                mileage=9800,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 7, 8),
             ),
             Car(
                 make="Toyota",
@@ -117,6 +131,9 @@ def seed():
                 price_per_day=Decimal("60.00"),
                 current_location_id=cagliari.id,
                 status="AVAILABLE",
+                mileage=15600,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 5, 28),
             ),
             Car(
                 make="Renault",
@@ -130,6 +147,9 @@ def seed():
                 price_per_day=Decimal("48.00"),
                 current_location_id=cagliari.id,
                 status="RENTED",
+                mileage=41500,
+                tire_condition="WORN",
+                last_oil_change_at=date(2026, 2, 14),
             ),
             Car(
                 make="BMW",
@@ -143,6 +163,9 @@ def seed():
                 price_per_day=Decimal("90.00"),
                 current_location_id=alghero.id,
                 status="AVAILABLE",
+                mileage=6200,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 7, 15),
             ),
             Car(
                 make="Fiat",
@@ -156,6 +179,9 @@ def seed():
                 price_per_day=Decimal("42.00"),
                 current_location_id=alghero.id,
                 status="AVAILABLE",
+                mileage=22100,
+                tire_condition="FAIR",
+                last_oil_change_at=date(2026, 4, 9),
             ),
             Car(
                 make="Jeep",
@@ -169,6 +195,9 @@ def seed():
                 price_per_day=Decimal("85.00"),
                 current_location_id=alghero.id,
                 status="CLEANING",
+                mileage=28700,
+                tire_condition="GOOD",
+                last_oil_change_at=date(2026, 6, 20),
             ),
             Car(
                 make="Peugeot",
@@ -182,6 +211,9 @@ def seed():
                 price_per_day=Decimal("95.00"),
                 current_location_id=olbia.id,
                 status="MAINTENANCE",
+                mileage=37900,
+                tire_condition="NEEDS_REPLACEMENT",
+                last_oil_change_at=date(2026, 1, 30),
             ),
         ]
 
@@ -330,6 +362,41 @@ def seed():
         ]
 
         db.add_all(reservations)
+        db.flush()
+
+        # ---------------------------------------------------------
+        # MAINTENANCE TASKS
+        # ---------------------------------------------------------
+
+        maintenance_tasks = [
+            # Open task matching SA-009-AA's seeded CLEANING status.
+            MaintenanceTask(
+                car_id=cars[8].id,
+                task_type="CLEANING",
+                status="OPEN",
+                notes="Deep clean after long rental — pet hair and sand.",
+                opened_at=datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc),
+            ),
+            # Open task matching SA-010-AA's seeded MAINTENANCE status.
+            MaintenanceTask(
+                car_id=cars[9].id,
+                task_type="MAINTENANCE",
+                status="OPEN",
+                notes="Front tires need replacing before next rental.",
+                opened_at=datetime(2026, 9, 10, 14, 0, tzinfo=timezone.utc),
+            ),
+            # Completed historical task, for a car that's otherwise AVAILABLE.
+            MaintenanceTask(
+                car_id=cars[0].id,
+                task_type="MAINTENANCE",
+                status="DONE",
+                notes="Routine oil change and filter replacement.",
+                opened_at=datetime(2026, 5, 12, 9, 0, tzinfo=timezone.utc),
+                completed_at=datetime(2026, 5, 12, 11, 30, tzinfo=timezone.utc),
+            ),
+        ]
+
+        db.add_all(maintenance_tasks)
 
         db.commit()
 
@@ -338,6 +405,7 @@ def seed():
         print("Cars: 10")
         print("Customers: 5")
         print("Reservations: 6")
+        print("Maintenance tasks: 3")
 
     except Exception:
         db.rollback()

@@ -231,6 +231,9 @@ export type Car = {
     airport_code: string;
   };
   status: string;
+  mileage: number | null;
+  tire_condition: string | null;
+  last_oil_change_at: string | null;
 };
 
 export async function getCars() {
@@ -273,6 +276,9 @@ export async function updateCar(
     price_per_day: number;
     current_location_id: string;
     status: string;
+    mileage: number | null;
+    tire_condition: string | null;
+    last_oil_change_at: string | null;
   }>,
 ): Promise<Car> {
   const response = await fetch(
@@ -352,6 +358,114 @@ export async function getCarStatusesByDate(
 
   if (!response.ok) {
     throw new Error("Failed to fetch car statuses for date.");
+  }
+
+  return response.json();
+}
+
+export type MaintenanceTask = {
+  id: string;
+  car: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+  };
+  task_type: string;
+  status: string;
+  notes: string | null;
+  opened_at: string;
+  completed_at: string | null;
+};
+
+export async function getMaintenanceTasks(params?: {
+  status?: string;
+  task_type?: string;
+}): Promise<MaintenanceTask[]> {
+  const query = new URLSearchParams();
+
+  if (params?.status) query.set("status", params.status);
+  if (params?.task_type) query.set("task_type", params.task_type);
+
+  const queryString = query.toString();
+
+  const response = await fetch(
+    `${API_URL}/api/maintenance/tasks${queryString ? `?${queryString}` : ""}`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch maintenance tasks.");
+  }
+
+  return response.json();
+}
+
+export async function getCarMaintenanceTasks(
+  carId: string,
+): Promise<MaintenanceTask[]> {
+  const response = await fetch(
+    `${API_URL}/api/cars/${carId}/maintenance-tasks`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch car maintenance history.");
+  }
+
+  return response.json();
+}
+
+export async function createMaintenanceTask(data: {
+  car_id: string;
+  task_type: string;
+  notes?: string | null;
+}): Promise<MaintenanceTask> {
+  const response = await fetch(`${API_URL}/api/maintenance/tasks`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to create maintenance task");
+  }
+
+  return response.json();
+}
+
+export async function completeMaintenanceTask(
+  taskId: string,
+): Promise<MaintenanceTask> {
+  const response = await fetch(
+    `${API_URL}/api/maintenance/tasks/${taskId}/complete`,
+    { method: "PATCH" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to complete maintenance task");
+  }
+
+  return response.json();
+}
+
+export async function cancelMaintenanceTask(
+  taskId: string,
+): Promise<MaintenanceTask> {
+  const response = await fetch(
+    `${API_URL}/api/maintenance/tasks/${taskId}/cancel`,
+    { method: "PATCH" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to cancel maintenance task");
   }
 
   return response.json();

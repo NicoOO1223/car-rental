@@ -11,6 +11,7 @@ import {
   Menu,
   Plus,
   Users,
+  Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navigation: { name: string; href: string; icon: LucideIcon }[] = [
   { name: "Finalize Rentals", href: "/reservations/finalize", icon: FileSignature },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Fleet", href: "/cars", icon: Car },
+  { name: "Maintenance", href: "/maintenance", icon: Wrench },
 ];
 
 function SidebarContent({

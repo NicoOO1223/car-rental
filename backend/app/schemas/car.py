@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -25,6 +26,9 @@ class CarResponse(BaseModel):
     price_per_day: Decimal
     current_location: LocationSummary
     status: str
+    mileage: int | None
+    tire_condition: str | None
+    last_oil_change_at: date | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,3 +45,6 @@ class CarUpdate(BaseModel):
     price_per_day: Decimal | None = None
     current_location_id: UUID | None = None
     status: str | None = None
+    mileage: int | None = None
+    tire_condition: str | None = None
+    last_oil_change_at: date | None = None

@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, ForeignKey
+from sqlalchemy import Date, DateTime, Integer, Numeric, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -74,6 +74,16 @@ class Car(Base):
         nullable=False,
         default="AVAILABLE",
     )
+
+    # --- Vehicle condition (manually edited; kept separate from
+    # MaintenanceTask history, which tracks the work orders themselves) ---
+    mileage: Mapped[int | None] = mapped_column(Integer)
+
+    tire_condition: Mapped[str | None] = mapped_column(
+        String(20),
+    )  # GOOD | FAIR | WORN | NEEDS_REPLACEMENT
+
+    last_oil_change_at: Mapped[date | None] = mapped_column(Date)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
