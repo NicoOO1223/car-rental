@@ -18,6 +18,7 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { bookingReference, formatCurrency } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -58,11 +59,19 @@ export default function ReservationDetailsPage({
         setReservation(data);
         setLocations(locationData);
 
-        // Not every reservation has a handover (only ones that reached
-        // CONFIRMED) — tolerate its absence rather than failing the page.
-        try {
-          setHandover(await getHandover(id));
-        } catch {
+        // A handover only exists once a reservation reaches CONFIRMED.
+        // Asking for one on a PENDING or CANCELLED booking is a
+        // guaranteed 400, so skip the request rather than firing it and
+        // swallowing the error — it was logging a console error on every
+        // pending reservation anyone opened. The catch stays for the
+        // genuine race where the status changed under us.
+        if (["CONFIRMED", "ACTIVE", "COMPLETED"].includes(data.status)) {
+          try {
+            setHandover(await getHandover(id));
+          } catch {
+            setHandover(null);
+          }
+        } else {
           setHandover(null);
         }
       } catch {
@@ -185,7 +194,7 @@ export default function ReservationDetailsPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <SkeletonDetailPage />
       </main>
     );
@@ -193,7 +202,7 @@ export default function ReservationDetailsPage({
 
   if (error || !reservation) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
             {error || "Reservation not found."}
@@ -209,7 +218,7 @@ export default function ReservationDetailsPage({
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
@@ -243,8 +252,11 @@ export default function ReservationDetailsPage({
                 )}
               </div>
 
-              <p className="mt-2 text-sm text-gray-500">
-                {reservation.id}
+              <p className="mt-2 text-sm text-ink-muted">
+                Booking{" "}
+                <span className="font-mono text-ink-secondary">
+                  {bookingReference(reservation.id)}
+                </span>
               </p>
             </div>
 
@@ -269,7 +281,7 @@ export default function ReservationDetailsPage({
           <div className="space-y-6 lg:col-span-2">
 
             {/* Customer */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
@@ -311,7 +323,7 @@ export default function ReservationDetailsPage({
             </section>
 
             {/* Vehicle */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
@@ -355,8 +367,48 @@ export default function ReservationDetailsPage({
               </div>
             </section>
 
+            {/* Extras — only rendered when the booking has any, so a
+                plain booking does not gain an empty panel. */}
+            {reservation.extras.length > 0 && (
+              <section className="rounded-xl bg-surface p-6 shadow-sm">
+                <h2 className="text-lg font-semibold">Extras</h2>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Booked add-ons, at the prices they were booked at.
+                </p>
+
+                <ul className="mt-5 divide-y divide-gray-100">
+                  {reservation.extras.map((line) => (
+                    <li
+                      key={line.extra_id}
+                      className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {line.name}
+                          {line.quantity > 1 && (
+                            <span className="text-gray-500">
+                              {" × "}
+                              {line.quantity}
+                            </span>
+                          )}
+                        </p>
+
+                        <p className="mt-0.5 text-sm text-gray-500">
+                          {formatCurrency(line.unit_price)}
+                          {line.price_unit === "PER_DAY"
+                            ? " per day"
+                            : " one-off"}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {/* Rental timeline */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <h2 className="text-lg font-semibold">
                 Rental timeline
@@ -369,7 +421,7 @@ export default function ReservationDetailsPage({
 
                   <div className="flex flex-col items-center">
 
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-900 text-white">
                       <Check className="h-4 w-4" />
                     </div>
 
@@ -451,7 +503,7 @@ export default function ReservationDetailsPage({
           <div className="space-y-6">
 
             {/* Reservation summary */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <h2 className="text-lg font-semibold">
                 Reservation summary
@@ -524,7 +576,7 @@ export default function ReservationDetailsPage({
             </section>
 
             {/* Locations */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <h2 className="text-lg font-semibold">
                 Locations
@@ -576,7 +628,7 @@ export default function ReservationDetailsPage({
             </section>
 
             {/* Actions */}
-            <section className="rounded-xl bg-white p-6 shadow-sm">
+            <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <h2 className="text-lg font-semibold">
                 Actions
@@ -597,7 +649,7 @@ export default function ReservationDetailsPage({
                       handleStatusChange("CONFIRMED")
                     }
                     disabled={updatingStatus || cancelling}
-                    className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {updatingStatus
                       ? "Approving..."
@@ -630,7 +682,7 @@ export default function ReservationDetailsPage({
                     onClick={() =>
                       navigate(`/reservations/finalize/${reservation.id}`)
                     }
-                    className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white hover:bg-gray-800"
+                    className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                   >
                     Start Handover (Payment &amp; Agreement)
                   </button>
@@ -672,7 +724,7 @@ export default function ReservationDetailsPage({
                       handleStatusChange("COMPLETED")
                     }
                     disabled={updatingStatus}
-                    className="mt-4 w-full rounded-lg bg-black px-4 py-3 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {updatingStatus
                       ? "Completing rental..."

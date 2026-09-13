@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { createMaintenanceTask, type Car, type MaintenanceTask } from "@/lib/api";
+import { Field, SelectField, Textarea } from "@/components/ui/Field";
+import {
+  createMaintenanceTask,
+  type Car,
+  type MaintenanceTask,
+} from "@/lib/api";
 
 const TASK_TYPE_OPTIONS = ["MAINTENANCE", "CLEANING"];
-
-const inputClass = "mt-2 w-full rounded-lg border p-3";
-const labelClass = "block text-sm font-medium";
 
 type Props = {
   // Car detail page usage: car is fixed, no picker shown.
@@ -49,9 +51,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
       onCreated(task);
       onClose();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to log task.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to log task.");
     } finally {
       setSaving(false);
     }
@@ -60,72 +60,76 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
   return (
     <Modal
       isOpen
-      title="Log Maintenance / Cleaning Task"
+      title="Log a task"
+      description="Opening a task takes the vehicle out of new bookings until it is closed."
       onClose={onClose}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="new-task-form" disabled={saving}>
-            {saving ? "Saving..." : "Log Task"}
+          <Button type="submit" form="new-task-form" loading={saving}>
+            {saving ? "Saving" : "Log task"}
           </Button>
         </>
       }
     >
       <form id="new-task-form" onSubmit={handleSubmit} className="space-y-4">
         {car ? (
-          <div>
-            <label className={labelClass}>Vehicle</label>
-            <p className="mt-2 rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
-              {car.make} {car.model} · {car.license_plate}
-            </p>
-          </div>
+          <Field label="Vehicle">
+            {(fieldProps) => (
+              <p
+                id={fieldProps.id}
+                className="rounded-lg border border-border-strong bg-surface-sunken px-3.5 py-2.5 text-sm text-ink-secondary"
+              >
+                {car.make} {car.model} · {car.license_plate}
+              </p>
+            )}
+          </Field>
         ) : (
-          <div>
-            <label className={labelClass}>Vehicle</label>
-            <select
-              value={carId}
-              onChange={(e) => setCarId(e.target.value)}
-              className={inputClass}
-              required
-            >
-              {cars?.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.make} {option.model} · {option.license_plate}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div>
-          <label className={labelClass}>Task Type</label>
-          <select
-            value={taskType}
-            onChange={(e) => setTaskType(e.target.value)}
-            className={inputClass}
+          <SelectField
+            label="Vehicle"
+            required
+            value={carId}
+            onChange={(event) => setCarId(event.target.value)}
           >
-            {TASK_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {cars?.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.make} {option.model} · {option.license_plate}
               </option>
             ))}
-          </select>
-        </div>
+          </SelectField>
+        )}
 
-        <div>
-          <label className={labelClass}>Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className={inputClass}
-            rows={3}
-            placeholder="Reason for this task..."
-          />
-        </div>
+        <SelectField
+          label="Task type"
+          value={taskType}
+          onChange={(event) => setTaskType(event.target.value)}
+        >
+          {TASK_TYPE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </SelectField>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Field label="Notes">
+          {(fieldProps) => (
+            <Textarea
+              {...fieldProps}
+              rows={3}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Reason for this task..."
+            />
+          )}
+        </Field>
+
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
       </form>
     </Modal>
   );

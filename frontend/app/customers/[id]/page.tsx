@@ -13,6 +13,7 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CustomerEditModal } from "@/components/customers/CustomerEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { bookingReference } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -62,7 +63,7 @@ export default function CustomerDetailsPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <SkeletonDetailPage />
       </main>
     );
@@ -70,7 +71,7 @@ export default function CustomerDetailsPage({ params }: Props) {
 
   if (error || !customer) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
             {error || "Customer not found."}
@@ -81,7 +82,7 @@ export default function CustomerDetailsPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
@@ -113,7 +114,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         </div>
 
         {/* Customer information */}
-        <section className="rounded-xl bg-white p-6 shadow-sm">
+        <section className="rounded-xl bg-surface p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Customer Information</h2>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -147,14 +148,16 @@ export default function CustomerDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Customer ID</p>
-              <p className="mt-1 truncate font-medium">{customer.id}</p>
+              <p className="text-sm text-gray-500">Customer reference</p>
+              <p className="mt-1 font-mono font-medium">
+                {bookingReference(customer.id)}
+              </p>
             </div>
           </div>
         </section>
 
         {/* Reservation history */}
-        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">Reservations</h2>

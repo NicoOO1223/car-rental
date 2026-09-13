@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
 from app.main import app
 from tests.test_reservations import (
+    create_reservation,
+    ensure_car_available,
     force_reservation_status,
     get_car_by_plate,
     get_location_id,
@@ -261,3 +263,203 @@ def test_fleet_status_unknown_location_returns_empty():
         "maintenance": 0,
         "cleaning": 0,
     }
+
+
+# --- Fleet by location -----------------------------------------------------
+
+
+def test_fleet_by_location_ignores_car_status_with_no_reservation():
+    """
+    GET /api/dashboard's "locations" breakdown must derive RENTED/RESERVED
+    from actual reservation data, not from the live Car.status field --
+    that field is directly editable (e.g. via the car-edit modal) and can
+    say RENTED indefinitely with no reservation ever backing it.
+    """
+
+    originals = snapshot_and_set_statuses({"SA-006-AA": "RENTED"})
+
+    try:
+        car = get_car_by_plate("SA-006-AA")
+
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+
+        location_stats = next(
+            location
+            for location in response.json()["locations"]
+            if location["airport_code"] == car["current_location"]["airport_code"]
+        )
+
+        # The car's live status says RENTED, but with zero reservations
+        # backing it, it must fall back to available rather than
+        # inflating the "rented" bucket for its airport.
+        assert location_stats["rented"] == 0
+    finally:
+        restore_statuses(originals)
+
+
+def test_fleet_by_location_reflects_a_real_active_rental():
+    """
+    Counterpart to the test above: a reservation that genuinely overlaps
+    today, once ACTIVE, must still count as RENTED -- confirming the
+    derivation isn't just always reporting available. Uses a fresh
+    reservation spanning today rather than a seed date, since the
+    derivation is "as of today", not as of any historical date.
+    """
+
+    car = ensure_car_available("SA-009-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now - timedelta(hours=1)).isoformat(),
+        (now + timedelta(hours=6)).isoformat(),
+    )
+
+    force_reservation_status(reservation["id"], "ACTIVE")
+
+    try:
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+
+        location_stats = next(
+            location
+            for location in response.json()["locations"]
+            if location["airport_code"] == car["current_location"]["airport_code"]
+        )
+
+        assert location_stats["rented"] >= 1
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")
+
+
+# --- Upcoming pickups / upcoming returns ---------------------------------
+
+
+def test_upcoming_returns_includes_in_progress_rental():
+    """
+    A rental that has already started (past pickup, future return) is the
+    case upcoming_returns exists for -- it must not be missing just
+    because upcoming_pickups' own filter (pickup_at >= now) obviously
+    excludes it.
+    """
+
+    car = ensure_car_available("SA-005-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now - timedelta(minutes=5)).isoformat(),
+        (now + timedelta(minutes=30)).isoformat(),
+    )
+
+    force_reservation_status(reservation["id"], "ACTIVE")
+
+    try:
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+
+        body = response.json()
+        pickup_ids = {r["id"] for r in body["upcoming_pickups"]}
+        return_ids = {r["id"] for r in body["upcoming_returns"]}
+
+        assert reservation["id"] in return_ids
+        assert reservation["id"] not in pickup_ids
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")
+
+
+def test_upcoming_returns_excludes_bookings_not_yet_started():
+    """
+    The bug the naive mirrored query (return_at >= now alone) would have
+    had: a booking that hasn't started yet also has a return date in the
+    future, but it must not show up in "returns" -- only a rental that is
+    genuinely in progress belongs there.
+    """
+
+    car = ensure_car_available("SA-006-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=10)).isoformat(),
+        (now + timedelta(days=13)).isoformat(),
+    )
+
+    try:
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+
+        body = response.json()
+        pickup_ids = {r["id"] for r in body["upcoming_pickups"]}
+        return_ids = {r["id"] for r in body["upcoming_returns"]}
+
+        assert reservation["id"] in pickup_ids
+        assert reservation["id"] not in return_ids
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")
+
+
+def test_upcoming_lists_exclude_cancelled():
+    car = ensure_car_available("SA-007-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=5)).isoformat(),
+        (now + timedelta(days=8)).isoformat(),
+    )
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+    response = client.get("/api/dashboard")
+    assert response.status_code == 200
+
+    body = response.json()
+    pickup_ids = {r["id"] for r in body["upcoming_pickups"]}
+    return_ids = {r["id"] for r in body["upcoming_returns"]}
+
+    assert reservation["id"] not in pickup_ids
+    assert reservation["id"] not in return_ids
+
+
+def test_upcoming_pickups_ordered_ascending():
+    car = ensure_car_available("SA-008-AA")
+    now = datetime.now(timezone.utc)
+
+    earlier = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=20)).isoformat(),
+        (now + timedelta(days=22)).isoformat(),
+    )
+
+    try:
+        later = create_reservation(
+            car["id"],
+            car["current_location"]["id"],
+            (now + timedelta(days=25)).isoformat(),
+            (now + timedelta(days=27)).isoformat(),
+        )
+
+        try:
+            response = client.get("/api/dashboard")
+            assert response.status_code == 200
+
+            ids_in_order = [
+                r["id"] for r in response.json()["upcoming_pickups"]
+            ]
+
+            assert earlier["id"] in ids_in_order
+            assert later["id"] in ids_in_order
+            assert ids_in_order.index(earlier["id"]) < ids_in_order.index(
+                later["id"]
+            )
+        finally:
+            force_reservation_status(later["id"], "CANCELLED")
+    finally:
+        force_reservation_status(earlier["id"], "CANCELLED")

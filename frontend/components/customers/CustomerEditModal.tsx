@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/Field";
 import { updateCustomer, type Customer } from "@/lib/api";
 
 type Props = {
@@ -11,9 +12,6 @@ type Props = {
   onClose: () => void;
   onSaved: (updated: Customer) => void;
 };
-
-const inputClass = "mt-2 w-full rounded-lg border p-3";
-const labelClass = "block text-sm font-medium";
 
 export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
   const [firstName, setFirstName] = useState(customer.first_name);
@@ -58,15 +56,15 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title="Edit Customer"
+      title="Edit customer"
       onClose={onClose}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="customer-edit-form" disabled={saving}>
-            {saving ? "Saving..." : "Save changes"}
+          <Button type="submit" form="customer-edit-form" loading={saving}>
+            {saving ? "Saving" : "Save changes"}
           </Button>
         </>
       }
@@ -77,81 +75,72 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
         className="space-y-4"
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelClass}>First Name</label>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="First name"
+            required
+            autoComplete="given-name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Last Name</label>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Last name"
+            required
+            autoComplete="family-name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Date of Birth</label>
-            <input
-              type="date"
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Date of birth"
+            type="date"
+            required
+            autoComplete="bday"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Postal Code</label>
-            <input
-              value={postalCode}
-              onChange={(e) => setPostalCode(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Postal code"
+            required
+            autoComplete="postal-code"
+            value={postalCode}
+            onChange={(event) => setPostalCode(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Phone Number</label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Phone number"
+            type="tel"
+            required
+            autoComplete="tel"
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-          <div className="sm:col-span-2">
-            <label className={labelClass}>Address</label>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          <TextField
+            label="Address"
+            required
+            autoComplete="street-address"
+            className="sm:col-span-2"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+          />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
       </form>
     </Modal>
   );

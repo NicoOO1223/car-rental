@@ -238,7 +238,7 @@ export default function FleetPage() {
    */
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <Skeleton className="mb-8 h-9 w-64" />
           <SkeletonRows count={6} />
@@ -249,8 +249,8 @@ export default function FleetPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-8">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100 max-w-md">
+      <main className="min-h-screen flex items-center justify-center bg-canvas p-4 sm:p-6 lg:p-8">
+        <div className="rounded-xl bg-surface p-8 text-center shadow-sm max-w-md">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
             <span className="text-red-600 text-xl">!</span>
           </div>
@@ -267,12 +267,12 @@ export default function FleetPage() {
    * ---------------------------------------------------------
    */
   return (
-    <main className="min-h-screen bg-[#F8FAFC] p-6 lg:p-10 font-sans">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1800px]">
         {/* Header & Controls */}
         <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-ink">
               Fleet Overview
             </h1>
             <p className="mt-2 text-gray-500">
@@ -288,7 +288,7 @@ export default function FleetPage() {
                 placeholder="Search make, model, plate..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border-0 bg-white px-4 py-2.5 pl-10 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 transition-all"
+                className="w-full rounded-lg border border-border-strong bg-white py-2.5 pl-10 pr-4 text-sm text-ink transition placeholder:text-ink-muted focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -303,13 +303,13 @@ export default function FleetPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-gray-900 outline-none sm:flex-none"
+                className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-gray-900 sm:flex-none"
               />
               <div className="h-4 w-px bg-gray-300" />
               <select
                 value={timelineDaysCount}
                 onChange={(e) => setTimelineDaysCount(Number(e.target.value))}
-                className="rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-gray-900 outline-none cursor-pointer"
+                className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-gray-900"
               >
                 <option value={7}>1 Week</option>
                 <option value={14}>2 Weeks</option>
@@ -321,7 +321,7 @@ export default function FleetPage() {
         </div>
 
         {/* Legend */}
-        <div className="mb-6 flex flex-wrap items-center gap-6 text-sm font-medium text-gray-600 bg-white px-6 py-3 rounded-2xl shadow-sm ring-1 ring-gray-100">
+        <div className="mb-6 flex flex-wrap items-center gap-6 rounded-xl bg-surface px-6 py-3 text-sm font-medium text-ink-secondary shadow-sm">
           <div className="flex items-center gap-2.5">
             <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("CONFIRMED", "dot")}`} />
             Confirmed
@@ -341,7 +341,7 @@ export default function FleetPage() {
             <section
               key={location.airportCode}
               id={location.airportCode}
-              className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 scroll-mt-6"
+              className="overflow-hidden rounded-xl bg-surface shadow-sm scroll-mt-6"
             >
               {/* Airport Header */}
               <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
@@ -375,11 +375,10 @@ export default function FleetPage() {
 
                   return (
                     <div key={car.id} className="p-4">
-                      <div
-                        onClick={() =>
-                          navigate(`/cars/${car.id}`)
-                        }
-                        className="flex cursor-pointer items-start justify-between gap-3"
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/cars/${car.id}`)}
+                        className="flex w-full items-start justify-between gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                       >
                         <div>
                           <p className="font-bold text-gray-900">
@@ -399,7 +398,7 @@ export default function FleetPage() {
                           status={displayStatus}
                           className="shrink-0"
                         />
-                      </div>
+                      </button>
 
                       <div className="mt-3 space-y-1.5">
                         {reservations.length === 0 ? (
@@ -494,9 +493,10 @@ export default function FleetPage() {
                         className="group flex border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                       >
                         {/* Vehicle Information (Sticky Left) */}
-                        <div
+                        <button
+                          type="button"
                           onClick={() => navigate(`/cars/${car.id}`)}
-                          className="w-[320px] shrink-0 cursor-pointer border-r border-gray-100 px-6 py-5 bg-white group-hover:bg-gray-50/80 sticky left-0 z-30 transition-colors"
+                          className="sticky left-0 z-30 w-[320px] shrink-0 border-r border-gray-100 bg-white px-6 py-5 text-left transition-colors group-hover:bg-gray-50/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
                         >
                           <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
@@ -527,7 +527,7 @@ export default function FleetPage() {
                               <span>{car.category || "Standard"}</span>
                             </p>
                           </div>
-                        </div>
+                        </button>
 
                         {/* Timeline Grid & Reservations */}
                         <div
@@ -669,7 +669,7 @@ export default function FleetPage() {
 
         {/* Empty Search / Fleet State */}
         {carsByLocation.length === 0 && !loading && (
-          <div className="rounded-2xl bg-white p-16 text-center shadow-sm ring-1 ring-gray-100 mt-8">
+          <div className="mt-8 rounded-xl bg-surface p-10 text-center shadow-sm">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 mb-4">
               <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

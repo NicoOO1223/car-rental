@@ -1,28 +1,68 @@
 @import "tailwindcss";
 
+/*
+  This app is deliberately light-only and deliberately monochrome. Status
+  identity comes from an icon plus a label rather than from hue (see
+  lib/status.ts); red is reserved for errors and appears nowhere else.
+
+  There is no prefers-color-scheme block here on purpose. One used to
+  exist and flipped the body background to near-black behind a UI whose
+  every surface is a hardcoded light gray or white, so the app rendered
+  broken on a dark-OS machine. Reinstating dark mode means theming every
+  surface, not re-adding these two variables.
+*/
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Semantic surfaces and ink. The page sits on canvas, panels sit on
+     surface, and text steps down primary -> secondary -> muted. */
+  --canvas: #f9fafb;
+  --surface: #ffffff;
+  --surface-sunken: #f3f4f6;
+
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  --ink: #111827;
+  --ink-secondary: #4b5563;
+  /* Raised from the old gray-400 (#9ca3af, about 2.8:1 on white) so that
+     small supporting text clears WCAG AA. */
+  --ink-muted: #6b7280;
+
+  --accent: #111827;
+  --accent-hover: #1f2937;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+
+  --color-border-subtle: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
+  background: var(--canvas);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Geist, loaded in app/layout.tsx. This used to read
+     `Arial, Helvetica, sans-serif`, which silently overrode the webfont
+     on every page that did not opt back in with `font-sans`. */
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Top progress bar shown during client-side navigation — see
@@ -33,5 +73,34 @@ body {
   }
   100% {
     transform: translateX(300%);
+  }
+}
+
+/* Mobile navigation drawer and modal panels. */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

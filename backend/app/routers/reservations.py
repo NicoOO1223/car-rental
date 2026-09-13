@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.schemas.pricing import PriceBreakdownFields
 from app.schemas.reservation import (
     ReservationCreate,
+    ReservationQuoteRequest,
+    ReservationQuoteResponse,
     ReservationResponse,
     ReservationListResponse,
     ReservationStatusUpdate,
@@ -13,6 +16,7 @@ from app.schemas.reservation import (
 from app.services.reservations import (
     create_reservation,
     cancel_reservation,
+    quote_reservation,
     update_reservation_status,
     update_reservation,
 )
@@ -48,6 +52,7 @@ def create_reservation_endpoint(
             return_location_id=data.return_location_id,
             pickup_at=data.pickup_at,
             return_at=data.return_at,
+            extras=data.extras,
         )
 
     except ValueError as exc:
@@ -57,6 +62,35 @@ def create_reservation_endpoint(
         )
 
     return reservation
+
+@router.post(
+    "/quote",
+    response_model=ReservationQuoteResponse,
+)
+def quote_reservation_endpoint(
+    data: ReservationQuoteRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Server-computed price for a not-yet-created booking, so the booking
+    wizard renders exactly what will be charged instead of reimplementing
+    the pricing rules client-side.
+    """
+
+    try:
+        breakdown, rental_days, available, message = quote_reservation(db, data)
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    return ReservationQuoteResponse(
+        **PriceBreakdownFields.from_breakdown(breakdown, rental_days).model_dump(),
+        car_available=available,
+        availability_message=message,
+    )
 
 @router.patch(
     "/{reservation_id}/cancel",
@@ -100,6 +134,9 @@ def get_reservations(
             joinedload(Reservation.car),
             joinedload(Reservation.pickup_location),
             joinedload(Reservation.return_location),
+            # selectinload, not joinedload: extras is a collection, and
+            # joining it would fan out parent rows and break .all().
+            selectinload(Reservation.extras),
         )
         .order_by(Reservation.pickup_at.desc())
     ).all()
@@ -121,6 +158,7 @@ def get_reservation(
             joinedload(Reservation.car),
             joinedload(Reservation.pickup_location),
             joinedload(Reservation.return_location),
+            selectinload(Reservation.extras),
         )
         .where(Reservation.id == reservation_id)
     )

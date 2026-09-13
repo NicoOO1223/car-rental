@@ -69,6 +69,13 @@ class Car(Base):
 
     current_location: Mapped["Location"] = relationship()
 
+    # Customer-facing photo, shown in the booking wizard's vehicle step.
+    # Nullable on purpose: the frontend falls back to a category
+    # illustration, so a car without a photo is never a blank box.
+    image_url: Mapped[str | None] = mapped_column(
+        String(500),
+    )
+
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

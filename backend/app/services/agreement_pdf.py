@@ -6,6 +6,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 
 # Placeholder rental terms — not real legal copy. Review/replace with actual
@@ -37,6 +38,14 @@ def render_agreement_pdf(reservation, car, handover) -> bytes:
 
     def line(text, size=10, gap=5 * mm):
         nonlocal y
+
+        # Break to a new page before running into the bottom margin. The
+        # itemization grew open-ended when add-ons were introduced, and the
+        # signature block below needs 30 mm of clear space.
+        if y < 40 * mm:
+            doc.showPage()
+            y = height - 20 * mm
+
         doc.setFont("Helvetica", size)
         doc.drawString(left, y, text)
         y -= gap
@@ -72,12 +81,19 @@ def render_agreement_pdf(reservation, car, handover) -> bytes:
         reservation.return_at,
         reservation.pickup_location_id,
         reservation.return_location_id,
+        selections_from_reservation(reservation),
     )
     line(f"Base rental: {breakdown.base_amount:.2f} {currency}".strip())
     if breakdown.short_term_fee:
         line(f"Short-term rental fee: {breakdown.short_term_fee:.2f} {currency}".strip())
     if breakdown.airport_change_fee:
         line(f"Airport change fee: {breakdown.airport_change_fee:.2f} {currency}".strip())
+    for extra_line in breakdown.extras:
+        quantity_label = f"{extra_line.quantity} x " if extra_line.quantity > 1 else ""
+        line(
+            f"{quantity_label}{extra_line.name}: "
+            f"{extra_line.amount:.2f} {currency}".strip()
+        )
     amount = handover.payment_amount if handover.payment_amount is not None else breakdown.total_amount
     line(f"Total paid: {amount:.2f} {currency}".strip())
     line(f"Paid at: {handover.paid_at.isoformat() if handover.paid_at else 'N/A'}")

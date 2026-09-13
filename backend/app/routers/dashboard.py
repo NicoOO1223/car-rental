@@ -30,6 +30,30 @@ router = APIRouter(
 )
 
 
+def _to_dashboard_reservation(reservation: Reservation) -> DashboardReservation:
+    return DashboardReservation(
+        id=reservation.id,
+
+        customer_first_name=reservation.customer.first_name,
+        customer_last_name=reservation.customer.last_name,
+
+        car_make=reservation.car.make,
+        car_model=reservation.car.model,
+        car_license_plate=reservation.car.license_plate,
+
+        pickup_location_name=reservation.pickup_location.name,
+        pickup_location_code=reservation.pickup_location.airport_code,
+
+        return_location_name=reservation.return_location.name,
+        return_location_code=reservation.return_location.airport_code,
+
+        pickup_at=reservation.pickup_at,
+        return_at=reservation.return_at,
+
+        status=reservation.status,
+    )
+
+
 @router.get(
     "",
     response_model=DashboardResponse,
@@ -144,10 +168,10 @@ def get_dashboard(
     )
 
     # ---------------------------------------------------------
-    # Upcoming reservations
+    # Upcoming pickups
     # ---------------------------------------------------------
 
-    upcoming = db.scalars(
+    upcoming_pickup_rows = db.scalars(
         select(Reservation)
         .where(
             Reservation.pickup_at >= now,
@@ -165,77 +189,79 @@ def get_dashboard(
         .limit(10)
     ).all()
 
-    upcoming_reservations = [
-        DashboardReservation(
-            id=reservation.id,
+    upcoming_pickups = [
+        _to_dashboard_reservation(reservation)
+        for reservation in upcoming_pickup_rows
+    ]
 
-            customer_first_name=
-                reservation.customer.first_name,
-            customer_last_name=
-                reservation.customer.last_name,
+    # ---------------------------------------------------------
+    # Upcoming returns
+    # ---------------------------------------------------------
+    #
+    # Deliberately not the mirror of the query above (return_at >= now
+    # alone). That would catch nearly every non-cancelled reservation in
+    # the system, since a booking's return date sits in the future for
+    # the entire span between being made and actually returning — a
+    # reservation for next month would show up here today, ahead of a car
+    # that is genuinely out and due back this afternoon. Requiring
+    # pickup_at <= now as well restricts this to rentals already in
+    # progress, matching the time-bound test
+    # frontend/app/reservations/manage/page.tsx's "On the road" quick
+    # filter already uses. This also keeps the two lists disjoint: a
+    # reservation can satisfy pickup_at >= now or pickup_at <= now, never
+    # both.
 
-            car_make=reservation.car.make,
-            car_model=reservation.car.model,
-            car_license_plate=
-                reservation.car.license_plate,
-
-            pickup_location_name=
-                reservation.pickup_location.name,
-            pickup_location_code=
-                reservation.pickup_location.airport_code,
-
-            return_location_name=
-                reservation.return_location.name,
-            return_location_code=
-                reservation.return_location.airport_code,
-
-            pickup_at=reservation.pickup_at,
-            return_at=reservation.return_at,
-
-            status=reservation.status,
+    upcoming_return_rows = db.scalars(
+        select(Reservation)
+        .where(
+            Reservation.pickup_at <= now,
+            Reservation.return_at >= now,
+            Reservation.status != "CANCELLED",
         )
-        for reservation in upcoming
+        .options(
+            joinedload(Reservation.customer),
+            joinedload(Reservation.car),
+            joinedload(Reservation.pickup_location),
+            joinedload(Reservation.return_location),
+        )
+        .order_by(
+            Reservation.return_at.asc()
+        )
+        .limit(10)
+    ).all()
+
+    upcoming_returns = [
+        _to_dashboard_reservation(reservation)
+        for reservation in upcoming_return_rows
     ]
 
     # ---------------------------------------------------------
     # Fleet by location
     # ---------------------------------------------------------
+    #
+    # Deliberately not Car.status, which is set directly (e.g. via the
+    # car-edit modal) and can drift out of sync with reality -- a car can
+    # sit at RENTED indefinitely with no reservation ever backing it.
+    # This derives each car's status from actual reservation data
+    # instead, via the same get_fleet_status_counts the "Fleet status"
+    # pie chart above already uses (see
+    # app/services/availability.py::_compute_car_statuses_for_date), so
+    # the two panels can no longer disagree about the same car.
 
-    location_map = {}
+    today_date = now.date()
 
-    for car in cars:
-        location = car.current_location
-
-        if location.id not in location_map:
-            location_map[location.id] = {
-                "airport_code": location.airport_code,
-                "name": location.name,
-                "total": 0,
-                "available": 0,
-                "reserved": 0,
-                "rented": 0,
-                "maintenance": 0,
-                "cleaning": 0,
-            }
-
-        location_data = location_map[location.id]
-
-        location_data["total"] += 1
-
-        if car.status == "AVAILABLE":
-            location_data["available"] += 1
-        elif car.status == "RESERVED":
-            location_data["reserved"] += 1
-        elif car.status == "RENTED":
-            location_data["rented"] += 1
-        elif car.status == "MAINTENANCE":
-            location_data["maintenance"] += 1
-        elif car.status == "CLEANING":
-            location_data["cleaning"] += 1
+    locations_by_id = {
+        car.current_location.id: car.current_location
+        for car in cars
+    }
 
     locations = [
-        DashboardLocationStats(**location)
-        for location in location_map.values()
+        DashboardLocationStats(
+            airport_code=location.airport_code,
+            name=location.name,
+            **get_fleet_status_counts(db, today_date, location.id),
+        )
+        for location in locations_by_id.values()
     ]
 
     locations.sort(
@@ -246,7 +272,8 @@ def get_dashboard(
         fleet=fleet,
         reservations=reservation_stats,
         today=today,
-        upcoming_reservations=upcoming_reservations,
+        upcoming_pickups=upcoming_pickups,
+        upcoming_returns=upcoming_returns,
         locations=locations,
     )
 

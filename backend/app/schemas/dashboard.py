@@ -65,7 +65,12 @@ class DashboardResponse(BaseModel):
     reservations: DashboardReservationStats
     today: DashboardTodayStats
 
-    upcoming_reservations: list[DashboardReservation]
+    # Split by direction rather than one pickup-sorted list: a returns
+    # card needs rentals already in progress (see the router), which is a
+    # different filter from pickups, not just a different sort order.
+    upcoming_pickups: list[DashboardReservation]
+    upcoming_returns: list[DashboardReservation]
+
     locations: list[DashboardLocationStats]
 
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
 
 import {
   getDashboard,
@@ -11,8 +10,8 @@ import {
   type Location,
   type FleetStatus,
 } from "@/lib/api";
-import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { UpcomingCard } from "@/components/dashboard/UpcomingCard";
 import { getCarStatusHex } from "@/lib/status";
 import { PieChart, type PieChartDatum } from "@/components/charts/PieChart";
 import { Skeleton, SkeletonStatTiles } from "@/components/ui/Skeleton";
@@ -110,18 +109,9 @@ export default function DashboardPage() {
     };
   }, [airportFilter, dateFilter]);
 
-  function formatDateTime(date: string) {
-    return new Date(date).toLocaleString([], {
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <Skeleton className="mb-8 h-9 w-48" />
           <SkeletonStatTiles count={2} className="mb-6 grid gap-4 sm:grid-cols-2" />
@@ -136,7 +126,7 @@ export default function DashboardPage() {
 
   if (error || !dashboard) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <p className="text-red-600">
             {error || "Failed to load dashboard."}
@@ -158,17 +148,17 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">
-            Dashboard
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
+            Overview
           </h1>
 
-          <p className="mt-2 text-gray-600">
-            Overview of your fleet and reservations.
+          <p className="mt-2 text-ink-secondary">
+            Your fleet and reservations at a glance.
           </p>
         </div>
 
@@ -213,6 +203,21 @@ export default function DashboardPage() {
 
         </section>
 
+        {/* Next pickups + Next returns */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <UpcomingCard
+            direction="pickup"
+            reservations={dashboard.upcoming_pickups}
+            viewAllHref="/reservations/manage?window=UPCOMING"
+          />
+
+          <UpcomingCard
+            direction="return"
+            reservations={dashboard.upcoming_returns}
+            viewAllHref="/reservations/manage?window=ACTIVE"
+          />
+        </div>
+
         {/* Fleet status + Fleet by location */}
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
 
@@ -231,11 +236,10 @@ export default function DashboardPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <select
+                  aria-label="Filter fleet status by airport"
                   value={airportFilter}
-                  onChange={(event) =>
-                    setAirportFilter(event.target.value)
-                  }
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black"
+                  onChange={(event) => setAirportFilter(event.target.value)}
+                  className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
                   <option value="">All airports</option>
 
@@ -248,11 +252,10 @@ export default function DashboardPage() {
 
                 <input
                   type="date"
+                  aria-label="Fleet status date"
                   value={dateFilter}
-                  onChange={(event) =>
-                    setDateFilter(event.target.value)
-                  }
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black"
+                  onChange={(event) => setDateFilter(event.target.value)}
+                  className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
               </div>
             </div>
@@ -339,114 +342,6 @@ export default function DashboardPage() {
           </Card>
 
         </div>
-
-        {/* Upcoming reservations */}
-        <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <h2 className="text-lg font-semibold">
-                Upcoming reservations
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Next scheduled pickups
-              </p>
-            </div>
-
-            <button
-              onClick={() =>
-                navigate("/reservations/manage")
-              }
-              className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
-            >
-              View all
-              <ArrowRight className="h-4 w-4" />
-            </button>
-
-          </div>
-
-          {dashboard.upcoming_reservations.length === 0 ? (
-            <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
-
-              <p className="font-medium text-gray-700">
-                No upcoming reservations
-              </p>
-
-              <p className="mt-1 text-sm text-gray-500">
-                There are no future bookings.
-              </p>
-
-            </div>
-          ) : (
-            <div className="mt-6 max-h-[420px] divide-y overflow-y-auto pr-1">
-
-              {dashboard.upcoming_reservations.map(
-                (reservation) => (
-                  <button
-                    key={reservation.id}
-                    onClick={() =>
-                      navigate(`/reservations/manage/${reservation.id}`)
-                    }
-                    className="flex w-full flex-col gap-3 py-4 text-left hover:bg-gray-50 md:flex-row md:items-center md:justify-between"
-                  >
-
-                    <div>
-                      <p className="font-medium">
-                        {
-                          reservation
-                            .customer_first_name
-                        }{" "}
-                        {
-                          reservation
-                            .customer_last_name
-                        }
-                      </p>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        {reservation.car_make}{" "}
-                        {reservation.car_model}
-                        {" · "}
-                        {reservation.car_license_plate}
-                      </p>
-                    </div>
-
-                    <div className="md:text-right">
-
-                      <p className="font-medium">
-                        {formatDateTime(
-                          reservation.pickup_at
-                        )}
-                      </p>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        {
-                          reservation
-                            .pickup_location_code
-                        }
-                        {" → "}
-                        {
-                          reservation
-                            .return_location_code
-                        }
-                      </p>
-
-                    </div>
-
-                    <ReservationStatusBadge
-                      status={reservation.status}
-                      className="self-start md:self-auto"
-                    />
-
-                  </button>
-                )
-              )}
-
-            </div>
-          )}
-
-        </section>
 
       </div>
     </main>

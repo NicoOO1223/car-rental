@@ -2,10 +2,19 @@ import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.database import SessionLocal
-from app.models import Car, Customer, Handover, Location, MaintenanceTask, Reservation
+from app.models import (
+    Car,
+    Customer,
+    Extra,
+    Handover,
+    Location,
+    MaintenanceTask,
+    Reservation,
+    ReservationExtra,
+)
 
 
 def seed():
@@ -14,8 +23,14 @@ def seed():
     try:
         # Clear existing data. Handovers reference reservations, and
         # maintenance tasks reference cars, via foreign keys, so both
-        # must go before their parent table.
+        # must go before their parent table. Reservation extras reference
+        # reservations, so they go before those.
+        #
+        # The `extras` catalog itself is deliberately NOT cleared — it is
+        # migration-owned reference data, like a lookup table, and is
+        # present in deployed environments where this script never runs.
         db.execute(delete(Handover))
+        db.execute(delete(ReservationExtra))
         db.execute(delete(Reservation))
         db.execute(delete(MaintenanceTask))
         db.execute(delete(Car))
@@ -365,6 +380,56 @@ def seed():
         db.flush()
 
         # ---------------------------------------------------------
+        # RESERVATION EXTRAS
+        # ---------------------------------------------------------
+        #
+        # Attached to two reservations so the detail page, the agreement
+        # PDF and the payment screen all have real add-on data to render.
+        #
+        # Deliberately NOT attached to reservations[0]: that is the
+        # COMPLETED one whose revenue tests/test_dashboard_revenue.py pins
+        # at exactly 180.0. Revenue reporting is base-only by design (see
+        # app/services/dashboard.py), but leaving that reservation
+        # extras-free keeps the assertion honest either way.
+
+        catalog = {
+            extra.code: extra
+            for extra in db.scalars(select(Extra)).all()
+        }
+
+        def book_extra(reservation, code, quantity=1):
+            extra = catalog.get(code)
+
+            # A dev database created before the extras migration, or one
+            # where a catalog row was deleted by hand, should still seed.
+            if extra is None:
+                return None
+
+            return ReservationExtra(
+                reservation_id=reservation.id,
+                extra_id=extra.id,
+                quantity=quantity,
+                extra_code=extra.code,
+                name=extra.name,
+                unit_price=extra.price,
+                price_unit=extra.price_unit,
+            )
+
+        reservation_extras = [
+            line
+            for line in [
+                book_extra(reservations[1], "ADDITIONAL_DRIVER"),
+                book_extra(reservations[1], "BABY_SEAT"),
+                book_extra(reservations[2], "REFUELING_SERVICE"),
+                book_extra(reservations[2], "CHILD_SEAT", quantity=2),
+            ]
+            if line is not None
+        ]
+
+        db.add_all(reservation_extras)
+        db.flush()
+
+        # ---------------------------------------------------------
         # MAINTENANCE TASKS
         # ---------------------------------------------------------
 
@@ -405,6 +470,8 @@ def seed():
         print("Cars: 10")
         print("Customers: 5")
         print("Reservations: 6")
+        print(f"Reservation extras: {len(reservation_extras)}")
+        print(f"Extras catalog (migration-owned, untouched): {len(catalog)}")
         print("Maintenance tasks: 3")
 
     except Exception:

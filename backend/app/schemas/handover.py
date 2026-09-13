@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.schemas.pricing import PriceBreakdownExtraLine
+
 
 class HandoverResponse(BaseModel):
     id: UUID
@@ -51,9 +53,16 @@ class PaymentIntentResponse(BaseModel):
     payment_amount: float | None
     payment_currency: str | None
 
-    # Itemized breakdown of payment_amount — lets the frontend show the
-    # surcharges (short-term rental, airport change) without duplicating
-    # the pricing rules in JS beyond the pre-booking estimate.
+    # Itemized breakdown of payment_amount, so the counter screen can show
+    # exactly what is being charged. Shares its shape with the pre-booking
+    # quote (POST /api/reservations/quote), so one frontend component
+    # renders both.
     base_amount: float
     short_term_fee: float
     airport_change_fee: float
+
+    # Booked add-ons, at the prices they were booked at. Added alongside
+    # the flat fields above rather than replacing them, so existing
+    # consumers keep working.
+    extras: list[PriceBreakdownExtraLine] = []
+    extras_amount: float = 0.0

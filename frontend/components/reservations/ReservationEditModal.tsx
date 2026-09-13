@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { SelectField, TextField } from "@/components/ui/Field";
 import {
   getAvailableCars,
   updateReservation,
@@ -24,9 +25,6 @@ type Props = {
   onClose: () => void;
   onSaved: (updated: Reservation) => void;
 };
-
-const inputClass = "mt-2 w-full rounded-lg border p-3";
-const labelClass = "block text-sm font-medium";
 
 // The backend stores/accepts UTC ISO timestamps; <input type="datetime-local">
 // works with a local, timezone-less string. These helpers convert between them.
@@ -169,7 +167,8 @@ export function ReservationEditModal({
   return (
     <Modal
       isOpen
-      title="Edit Reservation"
+      title="Edit reservation"
+      size="lg"
       onClose={onClose}
       footer={
         <>
@@ -192,163 +191,140 @@ export function ReservationEditModal({
         className="space-y-6"
       >
         <div>
-          <h3 className="text-sm font-semibold text-gray-500">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
             Rental period
           </h3>
 
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>Pickup</label>
-              <input
-                type="datetime-local"
-                value={pickupAt}
-                onChange={(e) => setPickupAt(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Pickup"
+              type="datetime-local"
+              required
+              value={pickupAt}
+              onChange={(event) => setPickupAt(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Return</label>
-              <input
-                type="datetime-local"
-                value={returnAt}
-                onChange={(e) => setReturnAt(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Return"
+              type="datetime-local"
+              required
+              value={returnAt}
+              onChange={(event) => setReturnAt(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Pickup location</label>
-              <select
-                value={pickupLocationId}
-                onChange={(e) => setPickupLocationId(e.target.value)}
-                className={inputClass}
-              >
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.airport_code} — {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              label="Pickup location"
+              value={pickupLocationId}
+              onChange={(event) => setPickupLocationId(event.target.value)}
+            >
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.airport_code} — {location.name}
+                </option>
+              ))}
+            </SelectField>
 
-            <div>
-              <label className={labelClass}>Return location</label>
-              <select
-                value={returnLocationId}
-                onChange={(e) => setReturnLocationId(e.target.value)}
-                className={inputClass}
-              >
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.airport_code} — {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              label="Return location"
+              value={returnLocationId}
+              onChange={(event) => setReturnLocationId(event.target.value)}
+            >
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.airport_code} — {location.name}
+                </option>
+              ))}
+            </SelectField>
 
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Assigned vehicle</label>
-              <select
-                value={carId}
-                onChange={(e) => setCarId(e.target.value)}
-                className={inputClass}
-              >
-                {carOptions.map((car) => (
-                  <option key={car.id} value={car.id}>
-                    {car.make} {car.model} — {car.license_plate}
-                    {car.id === reservation.car.id ? " (current)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              label="Assigned vehicle"
+              className="sm:col-span-2"
+              value={carId}
+              onChange={(event) => setCarId(event.target.value)}
+            >
+              {carOptions.map((car) => (
+                <option key={car.id} value={car.id}>
+                  {car.make} {car.model} — {car.license_plate}
+                  {car.id === reservation.car.id ? " (current)" : ""}
+                </option>
+              ))}
+            </SelectField>
           </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-gray-500">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
             Customer details
           </h3>
 
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>First name</label>
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="First name"
+              required
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Last name</label>
-              <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Last name"
+              required
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Date of birth</label>
-              <input
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Date of birth"
+              type="date"
+              required
+              autoComplete="bday"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Postal code</label>
-              <input
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Postal code"
+              required
+              autoComplete="postal-code"
+              value={postalCode}
+              onChange={(event) => setPostalCode(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Phone number</label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Phone number"
+              type="tel"
+              required
+              autoComplete="tel"
+              value={phoneNumber}
+              onChange={(event) => setPhoneNumber(event.target.value)}
+            />
 
-            <div>
-              <label className={labelClass}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
 
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Address</label>
-              <input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
+            <TextField
+              label="Address"
+              required
+              autoComplete="street-address"
+              className="sm:col-span-2"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+            />
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
       </form>
     </Modal>
   );

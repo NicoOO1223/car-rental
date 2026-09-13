@@ -4,9 +4,7 @@ import { useState } from "react";
 
 import { login, setToken } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
-
-const inputClass = "mt-2 w-full rounded-lg border p-3";
-const labelClass = "block text-sm font-medium";
+import { TextField } from "@/components/ui/Field";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,50 +22,56 @@ export default function LoginPage() {
     try {
       const { access_token } = await login(email, password);
       setToken(access_token);
+      // A full load rather than a client transition, so the auth guard
+      // re-evaluates from scratch with the new token in place.
       window.location.href = "/";
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to log in.",
-      );
+      setError(err instanceof Error ? err.message : "Failed to log in.");
       setSubmitting(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-8">
-      <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold">Car Rental</h1>
-        <p className="mt-1 text-sm text-gray-500">Sign in to the management panel.</p>
+    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-8">
+      <div className="w-full max-w-sm rounded-xl bg-surface p-8 shadow-sm">
+        <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
+          CR
+        </div>
+
+        <h1 className="text-2xl font-bold tracking-tight text-ink">
+          Car Rental
+        </h1>
+        <p className="mt-1 text-sm text-ink-muted">
+          Sign in to the management panel.
+        </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className={labelClass}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              autoComplete="email"
-              required
-            />
-          </div>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              autoComplete="current-password"
-              required
-            />
-          </div>
+          <TextField
+            label="Password"
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-          <Button type="submit" fullWidth disabled={submitting}>
-            {submitting ? "Signing in..." : "Sign in"}
+          <Button type="submit" fullWidth loading={submitting}>
+            {submitting ? "Signing in" : "Sign in"}
           </Button>
         </form>
       </div>

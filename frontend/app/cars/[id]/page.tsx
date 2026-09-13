@@ -220,7 +220,7 @@ export default function CarDetailsPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <SkeletonDetailPage />
       </main>
     );
@@ -228,7 +228,7 @@ export default function CarDetailsPage({ params }: Props) {
 
   if (error || !car) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
             {error || "Vehicle not found."}
@@ -239,7 +239,7 @@ export default function CarDetailsPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
@@ -280,7 +280,7 @@ export default function CarDetailsPage({ params }: Props) {
         </div>
 
         {/* Vehicle information */}
-        <section className="rounded-xl bg-white p-6 shadow-sm">
+        <section className="rounded-xl bg-surface p-6 shadow-sm">
 
           <h2 className="text-xl font-semibold">
             Vehicle Information
@@ -376,7 +376,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Vehicle condition */}
-        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
 
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">
@@ -425,7 +425,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Maintenance history */}
-        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
 
           <div className="flex items-center justify-between">
 
@@ -495,14 +495,14 @@ export default function CarDetailsPage({ params }: Props) {
                       <>
                         <button
                           onClick={() => handleCompleteTask(task.id)}
-                          className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                          className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                         >
                           Mark Complete
                         </button>
 
                         <button
                           onClick={() => handleCancelTask(task.id)}
-                          className="rounded-lg border px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                          className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                         >
                           Cancel
                         </button>
@@ -516,7 +516,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Availability timeline */}
-        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
@@ -580,7 +580,7 @@ export default function CarDetailsPage({ params }: Props) {
                       className="shrink-0 border-r px-2 pb-3"
                     >
 
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-ink-muted">
                         {date.toLocaleDateString(
                           undefined,
                           {
@@ -593,7 +593,7 @@ export default function CarDetailsPage({ params }: Props) {
                         {date.getDate()}
                       </p>
 
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-ink-muted">
                         {date.toLocaleDateString(
                           undefined,
                           {
@@ -730,7 +730,7 @@ export default function CarDetailsPage({ params }: Props) {
 
           </div>
 
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="mt-4 text-xs text-ink-muted">
             Scroll horizontally to view the full
             schedule.
           </p>
@@ -738,7 +738,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Reservation details */}
-        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
 
           <div className="flex items-center justify-between">
 

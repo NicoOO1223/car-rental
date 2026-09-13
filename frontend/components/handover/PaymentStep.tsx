@@ -9,8 +9,12 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 
-import { confirmHandoverPayment } from "@/lib/api";
+import {
+  confirmHandoverPayment,
+  type PriceBreakdownExtraLine,
+} from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { PriceBreakdownList } from "@/components/pricing/PriceBreakdownList";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -24,6 +28,8 @@ type Props = {
   baseAmount: number;
   shortTermFee: number;
   airportChangeFee: number;
+  extras: PriceBreakdownExtraLine[];
+  extrasAmount: number;
   onPaid: () => void;
 };
 
@@ -92,6 +98,7 @@ export function PaymentStep({
   baseAmount,
   shortTermFee,
   airportChangeFee,
+  extras,
   onPaid,
 }: Props) {
   if (!stripePromise) {
@@ -104,36 +111,23 @@ export function PaymentStep({
     );
   }
 
-  const currencyLabel = currency?.toUpperCase() ?? "";
-
   return (
     <div className="space-y-4">
       {amount !== null && (
-        <div className="space-y-1.5 text-sm">
-          <div className="flex justify-between text-gray-600">
-            <span>Base rental</span>
-            <span>{baseAmount.toFixed(2)} {currencyLabel}</span>
-          </div>
-
-          {shortTermFee > 0 && (
-            <div className="flex justify-between text-gray-600">
-              <span>Short-term rental fee</span>
-              <span>{shortTermFee.toFixed(2)} {currencyLabel}</span>
-            </div>
-          )}
-
-          {airportChangeFee > 0 && (
-            <div className="flex justify-between text-gray-600">
-              <span>Airport change fee</span>
-              <span>{airportChangeFee.toFixed(2)} {currencyLabel}</span>
-            </div>
-          )}
-
-          <div className="flex justify-between border-t pt-1.5 font-semibold text-gray-900">
-            <span>Amount due</span>
-            <span>{amount.toFixed(2)} {currencyLabel}</span>
-          </div>
-        </div>
+        // The same component the booking wizard renders, fed the same
+        // server-computed breakdown, so the quoted price and the charged
+        // price cannot present differently.
+        <PriceBreakdownList
+          breakdown={{
+            base_amount: baseAmount,
+            short_term_fee: shortTermFee,
+            airport_change_fee: airportChangeFee,
+            extras,
+            total_amount: amount,
+            currency: currency ?? "eur",
+          }}
+          totalLabel="Amount due"
+        />
       )}
 
       <Elements stripe={stripePromise} options={{ clientSecret }}>

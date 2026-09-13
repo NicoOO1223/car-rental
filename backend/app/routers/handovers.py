@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.schemas.pricing import PriceBreakdownExtraLine
 from app.schemas.handover import (
     HandoverResponse,
     PaymentIntentResponse,
@@ -67,6 +68,18 @@ def create_payment_intent_endpoint(
         base_amount=float(breakdown.base_amount),
         short_term_fee=float(breakdown.short_term_fee),
         airport_change_fee=float(breakdown.airport_change_fee),
+        extras=[
+            PriceBreakdownExtraLine(
+                code=line.code,
+                name=line.name,
+                quantity=line.quantity,
+                unit_price=float(line.unit_price),
+                price_unit=line.price_unit,
+                amount=float(line.amount),
+            )
+            for line in breakdown.extras
+        ],
+        extras_amount=float(breakdown.extras_amount),
     )
 
 

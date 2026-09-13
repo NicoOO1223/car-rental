@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -6,6 +7,8 @@ from pydantic import BaseModel, ConfigDict
 from typing import Literal
 
 from app.schemas.customer import CustomerUpdate
+from app.schemas.extra import ExtraSelectionRequest
+from app.schemas.pricing import PriceBreakdownFields
 
 class CustomerCreate(BaseModel):
     first_name: str
@@ -47,6 +50,22 @@ class LocationSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReservationExtraResponse(BaseModel):
+    """
+    One add-on line on a reservation, at the price it was booked at rather
+    than the current catalog price.
+    """
+
+    extra_id: UUID
+    extra_code: str
+    name: str
+    quantity: int
+    unit_price: Decimal
+    price_unit: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ReservationCreate(BaseModel):
     customer: CustomerCreate
 
@@ -57,6 +76,32 @@ class ReservationCreate(BaseModel):
 
     pickup_at: datetime
     return_at: datetime
+
+    extras: list[ExtraSelectionRequest] = []
+
+
+class ReservationQuoteRequest(BaseModel):
+    car_id: UUID
+
+    pickup_location_id: UUID
+    return_location_id: UUID
+
+    pickup_at: datetime
+    return_at: datetime
+
+    extras: list[ExtraSelectionRequest] = []
+
+
+class ReservationQuoteResponse(PriceBreakdownFields):
+    # Availability is reported, not enforced. The wizard only offers cars
+    # that came back from /api/cars/available, so unavailability here means
+    # someone booked the car while the user was filling in the form.
+    # Failing the quote outright would blank the price panel the user is
+    # reading; this way the wizard shows a correct price alongside a
+    # precise warning and disables Confirm. POST /api/reservations remains
+    # the hard gate.
+    car_available: bool
+    availability_message: str | None
 
 
 class ReservationResponse(BaseModel):
@@ -79,6 +124,8 @@ class ReservationResponse(BaseModel):
     pickup_location: LocationSummary
     return_location: LocationSummary
 
+    extras: list[ReservationExtraResponse] = []
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -95,6 +142,11 @@ class ReservationListResponse(BaseModel):
     return_at: datetime
 
     status: str
+
+    # Present here as well as on ReservationResponse because
+    # GET /api/reservations/{id} — the detail page's endpoint — returns
+    # this schema, and the detail page shows the booked add-ons.
+    extras: list[ReservationExtraResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -151,3 +203,7 @@ class ReservationUpdate(BaseModel):
     car_id: UUID | None = None
 
     customer: CustomerUpdate | None = None
+
+    # Absent leaves the add-ons alone; present replaces the whole set.
+    # Refused once payment has succeeded — see update_reservation.
+    extras: list[ExtraSelectionRequest] | None = None

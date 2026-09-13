@@ -11,6 +11,7 @@
 import {
   CheckCheck,
   CircleCheck,
+  CircleDot,
   Clock,
   KeyRound,
   PlayCircle,
@@ -27,7 +28,9 @@ type StatusWeight = "neutral" | "active" | "muted";
 const WEIGHT_BADGE: Record<StatusWeight, string> = {
   neutral: "bg-gray-100 text-gray-700",
   active: "bg-gray-900 text-white",
-  muted: "bg-white text-gray-400 border border-gray-200",
+  // Raised from text-gray-400 (about 2.8:1 on white, below AA). Muted
+  // still reads as de-emphasized against the darker neutral weight.
+  muted: "bg-white text-gray-500 border border-gray-300",
 };
 
 const WEIGHT_SOLID: Record<StatusWeight, string> = {
@@ -128,4 +131,51 @@ export function getReservationStatusStyle(
 
 export function getReservationStatusIcon(status: string): LucideIcon | undefined {
   return RESERVATION_STATUS_ICONS[status];
+}
+
+// --- Maintenance tasks ---------------------------------------------------
+//
+// A task has two independent dimensions, and the maintenance page used to
+// conflate them: it rendered task_type through CarStatusBadge (which
+// happened to work only because MAINTENANCE and CLEANING are also car
+// statuses) and printed task status as bare text with no badge at all.
+
+const TASK_TYPE_WEIGHT: Record<string, StatusWeight> = {
+  MAINTENANCE: "neutral",
+  CLEANING: "neutral",
+};
+
+export const TASK_TYPE_ICONS: Record<string, LucideIcon> = {
+  MAINTENANCE: Wrench,
+  CLEANING: Sparkles,
+};
+
+const TASK_STATUS_WEIGHT: Record<string, StatusWeight> = {
+  OPEN: "active",
+  DONE: "neutral",
+  CANCELLED: "muted",
+};
+
+export const TASK_STATUS_ICONS: Record<string, LucideIcon> = {
+  OPEN: CircleDot,
+  DONE: CheckCheck,
+  CANCELLED: XCircle,
+};
+
+export function getTaskTypeStyle(taskType: string): string {
+  const weight = TASK_TYPE_WEIGHT[taskType];
+  return weight ? WEIGHT_BADGE[weight] : DEFAULT_CAR_STATUS_STYLE;
+}
+
+export function getTaskTypeIcon(taskType: string): LucideIcon | undefined {
+  return TASK_TYPE_ICONS[taskType];
+}
+
+export function getTaskStatusStyle(status: string): string {
+  const weight = TASK_STATUS_WEIGHT[status];
+  return weight ? WEIGHT_BADGE[weight] : DEFAULT_CAR_STATUS_STYLE;
+}
+
+export function getTaskStatusIcon(status: string): LucideIcon | undefined {
+  return TASK_STATUS_ICONS[status];
 }

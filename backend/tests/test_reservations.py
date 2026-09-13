@@ -92,26 +92,31 @@ def create_reservation(
     location_id: str,
     pickup_at: str,
     return_at: str,
+    extras: list | None = None,
 ) -> dict:
-    response = client.post(
-        "/api/reservations",
-        json={
-            "customer": {
-                "first_name": "Test",
-                "last_name": "User",
-                "date_of_birth": "1995-01-01",
-                "address": "Test Street 1",
-                "postal_code": "1000AA",
-                "phone_number": "+31600000000",
-                "email": "test.user@example.com",
-            },
-            "car_id": car_id,
-            "pickup_location_id": location_id,
-            "return_location_id": location_id,
-            "pickup_at": pickup_at,
-            "return_at": return_at,
+    payload = {
+        "customer": {
+            "first_name": "Test",
+            "last_name": "User",
+            "date_of_birth": "1995-01-01",
+            "address": "Test Street 1",
+            "postal_code": "1000AA",
+            "phone_number": "+31600000000",
+            "email": "test.user@example.com",
         },
-    )
+        "car_id": car_id,
+        "pickup_location_id": location_id,
+        "return_location_id": location_id,
+        "pickup_at": pickup_at,
+        "return_at": return_at,
+    }
+
+    # Only sent when asked for, so the no-extras path stays exactly what
+    # every pre-existing caller of this helper was testing.
+    if extras is not None:
+        payload["extras"] = extras
+
+    response = client.post("/api/reservations", json=payload)
 
     assert response.status_code == 201
 

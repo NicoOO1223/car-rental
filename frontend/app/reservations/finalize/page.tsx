@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { FileSignature, RefreshCw } from "lucide-react";
 
 import { getReservations, type Reservation } from "@/lib/api";
-import { Skeleton, SkeletonRows, SkeletonStatTiles } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
+import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
+import { formatDate, formatTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 export default function FinalizeReservationsPage() {
   const navigate = useNavigate();
-  const [reservations, setReservations] = useState<Reservation[]>([]);
 
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -20,8 +24,7 @@ export default function FinalizeReservationsPage() {
     setError("");
 
     try {
-      const data = await getReservations();
-      setReservations(data);
+      setReservations(await getReservations());
     } catch {
       setError("Failed to load reservations.");
     } finally {
@@ -32,8 +35,7 @@ export default function FinalizeReservationsPage() {
   useEffect(() => {
     async function loadReservations() {
       try {
-        const data = await getReservations();
-        setReservations(data);
+        setReservations(await getReservations());
       } catch {
         setError("Failed to load reservations.");
       } finally {
@@ -44,173 +46,141 @@ export default function FinalizeReservationsPage() {
     loadReservations();
   }, []);
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }
+  const awaitingHandover = useMemo(
+    () =>
+      reservations
+        .filter((reservation) => reservation.status === "CONFIRMED")
+        .sort(
+          (a, b) =>
+            new Date(a.pickup_at).getTime() - new Date(b.pickup_at).getTime(),
+        ),
+    [reservations],
+  );
 
-  function formatTime(date: string) {
-    return new Date(date).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  const awaitingHandover = useMemo(() => {
-    return reservations
-      .filter((reservation) => reservation.status === "CONFIRMED")
-      .sort(
-        (a, b) =>
-          new Date(a.pickup_at).getTime() - new Date(b.pickup_at).getTime(),
-      );
-  }, [reservations]);
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-6xl">
-          <Skeleton className="mb-8 h-9 w-64" />
-          <SkeletonStatTiles count={1} className="mb-6 grid gap-4 sm:grid-cols-2" />
-          <SkeletonRows count={4} />
-        </div>
-      </main>
-    );
-  }
+  const columns: Column<Reservation>[] = [
+    {
+      id: "customer",
+      header: "Customer",
+      mobile: "primary",
+      cell: (reservation) =>
+        `${reservation.customer.first_name} ${reservation.customer.last_name}`,
+      sortable: true,
+      sortAccessor: (reservation) =>
+        `${reservation.customer.last_name} ${reservation.customer.first_name}`,
+    },
+    {
+      id: "vehicle",
+      header: "Vehicle",
+      mobile: "secondary",
+      cell: (reservation) => (
+        <TwoLine
+          primary={`${reservation.car.make} ${reservation.car.model}`}
+          secondary={reservation.car.license_plate}
+        />
+      ),
+      mobileCell: (reservation) =>
+        `${reservation.car.make} ${reservation.car.model} · ${reservation.car.license_plate}`,
+      sortable: true,
+      sortAccessor: (reservation) =>
+        `${reservation.car.make} ${reservation.car.model}`,
+    },
+    {
+      id: "pickup",
+      header: "Pickup",
+      mobileLabel: "Pickup",
+      cell: (reservation) => (
+        <TwoLine
+          primary={formatDate(reservation.pickup_at)}
+          secondary={formatTime(reservation.pickup_at)}
+        />
+      ),
+      mobileCell: (reservation) =>
+        `${formatDate(reservation.pickup_at)}, ${formatTime(reservation.pickup_at)}`,
+      sortable: true,
+      sortAccessor: (reservation) => new Date(reservation.pickup_at),
+    },
+    {
+      id: "route",
+      header: "Route",
+      mobileLabel: "Route",
+      cell: (reservation) => (
+        <span className="text-sm font-medium text-ink">
+          {reservation.pickup_location.airport_code}
+          <span className="mx-2 text-ink-muted" aria-hidden="true">
+            →
+          </span>
+          {reservation.return_location.airport_code}
+        </span>
+      ),
+    },
+  ];
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-xl bg-white p-8 shadow-sm">
-            <p className="text-red-600">{error}</p>
+      <PageShell width="medium">
+        <div className="rounded-xl bg-surface p-8 shadow-sm">
+          <p className="text-red-600" role="alert">
+            {error}
+          </p>
 
-            <button
-              onClick={() => refreshReservations()}
-              className="mt-4 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Try again
-            </button>
-          </div>
+          <Button className="mt-4" onClick={refreshReservations}>
+            Try again
+          </Button>
         </div>
-      </main>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Finalize Rentals</h1>
-
-            <p className="mt-2 text-gray-600">
-              Confirmed reservations waiting for the customer to arrive —
-              take payment, capture a signature, and generate the agreement.
-            </p>
-          </div>
-
-          <button
-            onClick={() => refreshReservations()}
+    <PageShell width="medium">
+      <PageHeader
+        title="Finalize rentals"
+        description="Confirmed reservations waiting for the customer to arrive. Take payment, capture a signature, and generate the agreement."
+        actions={
+          <Button
+            variant="secondary"
+            onClick={refreshReservations}
             disabled={refreshing}
-            className="flex items-center gap-2 self-start rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             <RefreshCw
               className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
             />
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-        </div>
+            {refreshing ? "Refreshing" : "Refresh"}
+          </Button>
+        }
+      />
 
-        <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Awaiting handover</p>
-          <p className="mt-2 text-3xl font-bold">{awaitingHandover.length}</p>
-        </div>
+      <StatTileGrid columns={2} className="mb-6">
+        <StatTile
+          label="Awaiting handover"
+          value={awaitingHandover.length}
+          icon={FileSignature}
+        />
+      </StatTileGrid>
 
-        <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="border-b bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-sm font-semibold">
-                    Customer
-                  </th>
-                  <th className="px-6 py-4 text-sm font-semibold">Vehicle</th>
-                  <th className="px-6 py-4 text-sm font-semibold">Pickup</th>
-                  <th className="px-6 py-4 text-sm font-semibold">Route</th>
-                  <th className="px-6 py-4 text-sm font-semibold" />
-                </tr>
-              </thead>
-
-              <tbody>
-                {awaitingHandover.map((reservation) => (
-                  <tr
-                    key={reservation.id}
-                    onClick={() =>
-                      navigate(`/reservations/finalize/${reservation.id}`)
-                    }
-                    className="cursor-pointer border-b last:border-b-0 hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-5">
-                      <div className="font-medium">
-                        {reservation.customer.first_name}{" "}
-                        {reservation.customer.last_name}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-5">
-                      <div className="font-medium">
-                        {reservation.car.make} {reservation.car.model}
-                      </div>
-                      <div className="mt-1 text-sm text-gray-500">
-                        {reservation.car.license_plate}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-5">
-                      <div className="font-medium">
-                        {formatDate(reservation.pickup_at)}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatTime(reservation.pickup_at)}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-5">
-                      <span className="text-sm font-medium">
-                        {reservation.pickup_location.airport_code}
-                      </span>
-                      <span className="mx-2 text-gray-400">→</span>
-                      <span className="text-sm font-medium">
-                        {reservation.return_location.airport_code}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-5 text-right">
-                      <span className="text-sm font-medium text-gray-600">
-                        Start handover →
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {awaitingHandover.length === 0 && (
-          <div className="mt-6 rounded-xl bg-white p-10 text-center shadow-sm">
-            <p className="font-medium text-gray-700">
-              Nothing waiting for handover
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Confirmed reservations will show up here as they&apos;re approved.
-            </p>
-          </div>
-        )}
-      </div>
-    </main>
+      <DataTable
+        rows={awaitingHandover}
+        columns={columns}
+        rowKey={(reservation) => reservation.id}
+        loading={loading}
+        onRowClick={(reservation) =>
+          navigate(`/reservations/finalize/${reservation.id}`)
+        }
+        rowActions={[
+          {
+            label: "Start handover",
+            onClick: (reservation) =>
+              navigate(`/reservations/finalize/${reservation.id}`),
+          },
+        ]}
+        empty={{
+          icon: FileSignature,
+          title: "Nothing waiting for handover",
+          description:
+            "Confirmed reservations show up here once they are approved.",
+        }}
+      />
+    </PageShell>
   );
 }

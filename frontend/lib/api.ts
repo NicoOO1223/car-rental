@@ -116,7 +116,108 @@ export type Reservation = {
   pickup_at: string;
   return_at: string;
   status: string;
+
+  extras: ReservationExtra[];
 };
+
+// --- Add-ons -------------------------------------------------------------
+
+export type PriceUnit = "PER_DAY" | "PER_RENTAL";
+
+/** A bookable add-on from the catalog. */
+export type Extra = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  /** Serialized from a Decimal, so it arrives as a string. */
+  price: string;
+  price_unit: PriceUnit;
+  max_quantity: number;
+  sort_order: number;
+};
+
+/** An add-on as booked, at the price it was booked at. */
+export type ReservationExtra = {
+  extra_id: string;
+  extra_code: string;
+  name: string;
+  quantity: number;
+  unit_price: string;
+  price_unit: PriceUnit;
+};
+
+export type ExtraSelection = {
+  extra_id: string;
+  quantity: number;
+};
+
+export type PriceBreakdownExtraLine = {
+  code: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  price_unit: PriceUnit;
+  amount: number;
+};
+
+/**
+ * A server-computed price. The booking wizard used to reimplement the
+ * surcharge rules in TypeScript and keep them in sync with
+ * backend/app/services/pricing.py by hand; every amount now comes from
+ * here instead.
+ */
+export type PriceBreakdown = {
+  rental_days: number;
+  currency: string;
+
+  base_amount: number;
+  short_term_fee: number;
+  airport_change_fee: number;
+
+  extras: PriceBreakdownExtraLine[];
+  extras_amount: number;
+
+  total_amount: number;
+};
+
+export type ReservationQuote = PriceBreakdown & {
+  car_available: boolean;
+  availability_message: string | null;
+};
+
+export async function getExtras(): Promise<Extra[]> {
+  const response = await apiFetch("/api/extras");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch extras.");
+  }
+
+  return response.json();
+}
+
+export async function quoteReservation(data: {
+  car_id: string;
+  pickup_location_id: string;
+  return_location_id: string;
+  pickup_at: string;
+  return_at: string;
+  extras: ExtraSelection[];
+}): Promise<ReservationQuote> {
+  const response = await apiFetch("/api/reservations/quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to price this booking.");
+  }
+
+  return response.json();
+}
 
 export async function getLocations(): Promise<Location[]> {
   const response = await apiFetch("/api/locations");
@@ -133,7 +234,7 @@ export async function getAvailableCars(
   locationId: string,
   pickupAt: string,
   returnAt: string,
-) {
+): Promise<Car[]> {
   const params = new URLSearchParams({
     location_id: locationId,
     pickup_at: pickupAt,
@@ -164,7 +265,8 @@ export async function createReservation(data: {
   return_location_id: string;
   pickup_at: string;
   return_at: string;
-}) {
+  extras?: ExtraSelection[];
+}): Promise<Reservation> {
   const response = await apiFetch("/api/reservations", {
     method: "POST",
     headers: {
@@ -280,7 +382,15 @@ export type Car = {
   transmission: string | null;
   fuel_type: string | null;
   seats: number | null;
-  price_per_day: number;
+  /**
+   * A string, not a number: this is a Decimal server-side, and Pydantic
+   * serializes it as "45.00" to avoid float rounding. This type used to
+   * claim `number`, which silently produced string concatenation wherever
+   * anyone did arithmetic on it.
+   */
+  price_per_day: string;
+  /** Null for most of the fleet; the UI falls back to a category illustration. */
+  image_url: string | null;
   current_location: {
     id: string;
     name: string;
@@ -292,7 +402,7 @@ export type Car = {
   last_oil_change_at: string | null;
 };
 
-export async function getCars() {
+export async function getCars(): Promise<Car[]> {
   const response = await apiFetch("/api/cars");
 
   if (!response.ok) {
@@ -326,6 +436,7 @@ export async function updateCar(
     fuel_type: string | null;
     seats: number | null;
     price_per_day: number;
+    image_url: string | null;
     current_location_id: string;
     status: string;
     mileage: number | null;
@@ -546,6 +657,28 @@ export async function updateReservationStatus(
   return response.json();
 }
 
+export type DashboardReservation = {
+  id: string;
+
+  customer_first_name: string;
+  customer_last_name: string;
+
+  car_make: string;
+  car_model: string;
+  car_license_plate: string;
+
+  pickup_location_name: string;
+  pickup_location_code: string;
+
+  return_location_name: string;
+  return_location_code: string;
+
+  pickup_at: string;
+  return_at: string;
+
+  status: string;
+};
+
 export type Dashboard = {
   fleet: {
     total: number;
@@ -569,27 +702,12 @@ export type Dashboard = {
     returns: number;
   };
 
-  upcoming_reservations: {
-    id: string;
-
-    customer_first_name: string;
-    customer_last_name: string;
-
-    car_make: string;
-    car_model: string;
-    car_license_plate: string;
-
-    pickup_location_name: string;
-    pickup_location_code: string;
-
-    return_location_name: string;
-    return_location_code: string;
-
-    pickup_at: string;
-    return_at: string;
-
-    status: string;
-  }[];
+  // Split by direction rather than one pickup-sorted list: "returns"
+  // means a rental already in progress and due back soon, which the
+  // server filters differently from "pickups" — see
+  // backend/app/routers/dashboard.py.
+  upcoming_pickups: DashboardReservation[];
+  upcoming_returns: DashboardReservation[];
 
   locations: {
     airport_code: string;
@@ -793,6 +911,8 @@ export type PaymentIntent = {
   base_amount: number;
   short_term_fee: number;
   airport_change_fee: number;
+  extras: PriceBreakdownExtraLine[];
+  extras_amount: number;
 };
 
 export async function getHandover(reservationId: string): Promise<Handover> {

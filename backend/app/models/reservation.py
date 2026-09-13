@@ -64,6 +64,19 @@ class Reservation(Base):
         foreign_keys=[return_location_id],
     )
 
+    # Association-object pattern rather than secondary=, because each line
+    # carries its own quantity and price snapshot. delete-orphan is the one
+    # place this codebase needs a cascade: replacing the extras set on an
+    # edit must delete the dropped rows.
+    #
+    # Load this with selectinload, never joinedload — it is the only
+    # collection relationship in the app, and joinedload against a
+    # collection fans out parent rows and breaks db.scalars(...).all().
+    extras: Mapped[list["ReservationExtra"]] = relationship(
+        "ReservationExtra",
+        cascade="all, delete-orphan",
+    )
+
     pickup_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

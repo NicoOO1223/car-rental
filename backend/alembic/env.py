@@ -6,7 +6,17 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database import Base
-from app.models import Car, Customer, Handover, Location, MaintenanceTask, Reservation, User
+from app.models import (
+    Car,
+    Customer,
+    Extra,
+    Handover,
+    Location,
+    MaintenanceTask,
+    Reservation,
+    ReservationExtra,
+    User,
+)
 
 import os
 

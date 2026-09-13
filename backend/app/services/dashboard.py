@@ -18,6 +18,12 @@ def get_daily_revenue(
     the rental started), for every day in [start_date, end_date]
     inclusive. Days with no completed pickups are included with 0
     revenue so a line chart built from this has no gaps.
+
+    This is deliberately *vehicle* revenue, not money taken: it excludes
+    the short-term and airport-change surcharges, and it excludes add-ons
+    (reservation_extras). Widening it to total charged is a separate
+    decision — it needs a reservation_extras join and would move the
+    figure the seeded-data test pins.
     """
 
     if start_date > end_date:

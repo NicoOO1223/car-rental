@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Car,
   CalendarClock,
+  ChevronsLeft,
+  ChevronsRight,
   FileSignature,
   LayoutDashboard,
   LogOut,
@@ -19,95 +21,265 @@ import {
 
 import { clearToken } from "@/lib/api";
 
-const navigation: { name: string; href: string; icon: LucideIcon }[] = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Reservations", href: "/reservations/manage", icon: CalendarClock },
-  { name: "Finalize Rentals", href: "/reservations/finalize", icon: FileSignature },
-  { name: "Customers", href: "/customers", icon: Users },
-  { name: "Fleet", href: "/cars", icon: Car },
-  { name: "Maintenance", href: "/maintenance", icon: Wrench },
+type NavItem = { name: string; href: string; icon: LucideIcon };
+
+/**
+ * Grouped rather than one flat list of six. "Bookings" and "Fleet" are
+ * genuinely different jobs, and the labels give the eye somewhere to land
+ * when scanning for a destination.
+ */
+const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [{ name: "Overview", href: "/", icon: LayoutDashboard }],
+  },
+  {
+    label: "Bookings",
+    items: [
+      { name: "Reservations", href: "/reservations/manage", icon: CalendarClock },
+      {
+        name: "Finalize Rentals",
+        href: "/reservations/finalize",
+        icon: FileSignature,
+      },
+      { name: "Customers", href: "/customers", icon: Users },
+    ],
+  },
+  {
+    label: "Fleet",
+    items: [
+      { name: "Vehicles", href: "/cars", icon: Car },
+      { name: "Maintenance", href: "/maintenance", icon: Wrench },
+    ],
+  },
 ];
+
+const COLLAPSE_STORAGE_KEY = "sidebar-collapsed";
+
+/**
+ * The collapsed preference lives in localStorage, which does not exist on
+ * the server. useSyncExternalStore is React's sanctioned way to read
+ * browser-only state without a hydration mismatch — reading it in an
+ * effect instead would mean a setState during mount, and reading it in
+ * render would differ between server and client.
+ */
+const collapseListeners = new Set<() => void>();
+
+function subscribeToCollapse(callback: () => void) {
+  collapseListeners.add(callback);
+  window.addEventListener("storage", callback);
+
+  return () => {
+    collapseListeners.delete(callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getCollapseSnapshot(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSE_STORAGE_KEY) === "true";
+  } catch {
+    // Private browsing or blocked storage.
+    return false;
+  }
+}
+
+function getCollapseServerSnapshot(): boolean {
+  return false;
+}
+
+function setStoredCollapse(next: boolean) {
+  try {
+    window.localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
+  } catch {
+    // The preference simply will not persist.
+  }
+
+  // localStorage writes do not fire a storage event in the same tab.
+  for (const listener of collapseListeners) listener();
+}
+
+function isItemActive(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
 
 function SidebarContent({
   pathname,
+  collapsed,
   onNavigate,
   onClose,
+  onToggleCollapse,
+  accountEmail,
 }: {
   pathname: string;
+  collapsed: boolean;
   onNavigate?: () => void;
   onClose?: () => void;
+  onToggleCollapse?: () => void;
+  accountEmail: string | null;
 }) {
+  const isNewBooking = pathname.startsWith("/reservations/new");
+
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b px-6 py-5">
-        <div>
-          <h1 className="text-xl font-bold">Car Rental</h1>
-          <p className="mt-1 text-xs text-gray-500">Management Panel</p>
-        </div>
+    <div className="flex h-full flex-col bg-surface">
+      <div
+        className={`flex items-start justify-between border-b border-border-subtle py-5 ${
+          collapsed ? "px-3" : "px-5"
+        }`}
+      >
+        {collapsed ? (
+          <span
+            className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white"
+            aria-hidden="true"
+          >
+            CR
+          </span>
+        ) : (
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold tracking-tight text-ink">
+              Car Rental
+            </h1>
+            <p className="mt-0.5 text-xs text-ink-muted">Management Panel</p>
+          </div>
+        )}
 
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="-mr-2 -mt-1 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="-mr-2 -mt-1 rounded-lg p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5">
+      <nav
+        aria-label="Main"
+        className={`flex-1 overflow-y-auto py-5 ${collapsed ? "px-2" : "px-3"}`}
+      >
         <Link
-          href="/reservations"
+          href="/reservations/new"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 rounded-lg bg-black px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
+          title={collapsed ? "New Reservation" : undefined}
+          aria-current={isNewBooking ? "page" : undefined}
+          className={`flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
+            collapsed ? "px-2" : "px-3"
+          } ${isNewBooking ? "ring-2 ring-gray-900 ring-offset-2" : ""}`}
         >
-          <Plus className="h-4 w-4" />
-          New Reservation
+          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {!collapsed && "New Reservation"}
+          {collapsed && <span className="sr-only">New Reservation</span>}
         </Link>
 
-        <p className="mt-6 px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Navigation
-        </p>
-        <div className="space-y-1">
-          {navigation.map((item) => {
-            const isActive =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </div>
+        {NAV_SECTIONS.map((section, sectionIndex) => (
+          <div key={section.label ?? sectionIndex} className="mt-6">
+            {section.label && !collapsed && (
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                {section.label}
+              </p>
+            )}
+
+            {section.label && collapsed && (
+              <div
+                className="mx-2 mb-2 border-t border-border-subtle"
+                aria-hidden="true"
+              />
+            )}
+
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const active = isItemActive(pathname, item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onNavigate}
+                    title={collapsed ? item.name : undefined}
+                    aria-current={active ? "page" : undefined}
+                    className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+                      collapsed ? "justify-center px-2" : "px-3"
+                    } ${
+                      active
+                        ? "bg-surface-sunken text-ink"
+                        : "text-ink-secondary hover:bg-surface-sunken hover:text-ink"
+                    }`}
+                  >
+                    {/* An accent bar as well as the tint, so the current
+                        page is obvious rather than a faint gray wash. */}
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gray-900"
+                      />
+                    )}
+
+                    <item.icon
+                      className={`h-4 w-4 shrink-0 ${
+                        active ? "text-ink" : "text-ink-muted"
+                      }`}
+                      aria-hidden="true"
+                    />
+
+                    {!collapsed && item.name}
+                    {collapsed && <span className="sr-only">{item.name}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t px-6 py-4">
-        <p className="text-xs text-gray-400">Fleet Management</p>
+      <div
+        className={`border-t border-border-subtle py-4 ${
+          collapsed ? "px-2" : "px-5"
+        }`}
+      >
+        {!collapsed && accountEmail && (
+          <p className="truncate text-xs text-ink-muted" title={accountEmail}>
+            {accountEmail}
+          </p>
+        )}
 
-        <button
-          onClick={() => {
-            clearToken();
-            window.location.href = "/login";
-          }}
-          className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Sign out
-        </button>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              clearToken();
+              // A full reload rather than a client transition, so no
+              // stale authenticated state survives into the login page.
+              window.location.href = "/login";
+            }}
+            title={collapsed ? "Sign out" : undefined}
+            className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+              collapsed ? "mx-auto justify-center px-2" : "px-0"
+            }`}
+          >
+            <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {!collapsed && "Sign out"}
+            {collapsed && <span className="sr-only">Sign out</span>}
+          </button>
+
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+                collapsed ? "mx-auto" : ""
+              }`}
+            >
+              {collapsed ? (
+                <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -117,68 +289,129 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close the drawer whenever the route actually changes (covers
-  // back/forward navigation too, not just clicking a link) — adjusting
-  // state during render on a prop change, per React's own guidance,
-  // rather than an effect that would just cause an extra render pass.
+  const collapsed = useSyncExternalStore(
+    subscribeToCollapse,
+    getCollapseSnapshot,
+    getCollapseServerSnapshot,
+  );
+
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
   const [lastPathname, setLastPathname] = useState(pathname);
   if (pathname !== lastPathname) {
     setLastPathname(pathname);
     setMobileOpen(false);
   }
 
-  // Lock body scroll while the mobile drawer is open, same as Modal.
+  function toggleCollapse() {
+    setStoredCollapse(!collapsed);
+  }
+
+  // Escape to close and a focus trap, matching Modal. The drawer used to
+  // have neither, so keyboard users could tab straight out of an open
+  // drawer into the page behind it.
   useEffect(() => {
-    if (!mobileOpen) {
-      return;
+    if (!mobileOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawerRef.current) return;
+
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.offsetParent !== null);
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !drawerRef.current.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
+
+    document.addEventListener("keydown", handleKeyDown);
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
   }, [mobileOpen]);
 
   return (
     <>
-      {/* Mobile top bar — only the sidebar's stand-in below the lg
-          breakpoint; the real sidebar (below) takes over at lg and up. */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b bg-white px-4 py-3 lg:hidden">
-        <h1 className="text-lg font-bold">Car Rental</h1>
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border-subtle bg-surface px-4 py-3 lg:hidden">
+        <h1 className="text-lg font-bold tracking-tight text-ink">Car Rental</h1>
 
         <button
+          ref={menuButtonRef}
+          type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
-          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+          aria-expanded={mobileOpen}
+          className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/40 animate-[fade-in_0.15s_ease-out]"
             onClick={() => setMobileOpen(false)}
           />
 
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-xl">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="absolute inset-y-0 left-0 w-72 max-w-[85vw] shadow-xl animate-[slide-in-left_0.2s_ease-out]"
+          >
             <SidebarContent
               pathname={pathname}
+              collapsed={false}
+              accountEmail={null}
               onNavigate={() => setMobileOpen(false)}
-              onClose={() => setMobileOpen(false)}
+              onClose={() => {
+                setMobileOpen(false);
+                menuButtonRef.current?.focus();
+              }}
             />
           </div>
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r bg-white lg:block">
+      <aside
+        className={`hidden shrink-0 border-r border-border-subtle lg:block ${
+          collapsed ? "w-16" : "w-64"
+        } transition-[width] duration-200`}
+      >
         <div className="sticky top-0 h-screen">
-          <SidebarContent pathname={pathname} />
+          <SidebarContent
+            pathname={pathname}
+            collapsed={collapsed}
+            accountEmail={null}
+            onToggleCollapse={toggleCollapse}
+          />
         </div>
       </aside>
     </>

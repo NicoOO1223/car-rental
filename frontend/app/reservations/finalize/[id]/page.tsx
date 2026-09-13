@@ -45,8 +45,8 @@ function StepHeader({
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
           status === "done" || status === "active"
-            ? "bg-black text-white"
-            : "bg-gray-100 text-gray-400"
+            ? "bg-gray-900 text-white"
+            : "bg-gray-100 text-ink-muted"
         }`}
       >
         {status === "done" ? <Check className="h-4 w-4" /> : index}
@@ -177,7 +177,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-3xl">
           <Skeleton className="mb-4 h-4 w-32" />
           <Skeleton className="mb-8 h-9 w-56" />
@@ -189,7 +189,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   if (loadError || !reservation || !handover) {
     return (
-      <main className="min-h-screen bg-gray-50 p-8">
+      <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-3xl">
           <button
             onClick={() => navigate("/reservations/finalize")}
@@ -226,7 +226,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
       : "locked";
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-3xl">
         <button
           onClick={() => navigate("/reservations/finalize")}
@@ -251,7 +251,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
         {agreementDone ? (
           <Card className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-900 text-white">
               <Check className="h-6 w-6" />
             </div>
 
@@ -270,7 +270,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     `agreement-${reservation.id}.pdf`,
                   )
                 }
-                className="inline-flex items-center justify-center rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+                className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
               >
                 Download Agreement
               </button>
@@ -312,6 +312,8 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     baseAmount={paymentIntent.base_amount}
                     shortTermFee={paymentIntent.short_term_fee}
                     airportChangeFee={paymentIntent.airport_change_fee}
+                    extras={paymentIntent.extras}
+                    extrasAmount={paymentIntent.extras_amount}
                     onPaid={handlePaid}
                   />
                 ) : (
@@ -361,7 +363,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-ink-muted">
                     Complete payment first.
                   </p>
                 )}
@@ -396,7 +398,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-ink-muted">
                     Capture the customer&apos;s signature first.
                   </p>
                 )}

@@ -1,14 +1,22 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from typing import Sequence
 from uuid import UUID
 
-# Surcharges applied on top of the base day-rate. Mirrored in the booking
-# wizard (frontend/app/reservations/page.tsx) for the pre-booking estimate —
-# keep both in sync if these rules change.
+# Surcharges applied on top of the base day-rate. These are pricing *rules*,
+# which is why they live here as constants rather than in the database —
+# unlike add-ons (app/models/extra.py), which are products with editable
+# prices. Surfaced to the booking wizard via POST /api/reservations/quote;
+# the wizard no longer reimplements any of this in TypeScript.
 SHORT_TERM_THRESHOLD_DAYS = 5
 SHORT_TERM_FEE = Decimal("30.00")
 AIRPORT_CHANGE_FEE = Decimal("50.00")
+
+# How an add-on's catalog price scales. Stored on each extras row and
+# snapshotted onto each reservation_extras row at booking time.
+PRICE_UNIT_PER_DAY = "PER_DAY"
+PRICE_UNIT_PER_RENTAL = "PER_RENTAL"
 
 
 def calculate_rental_duration_days(pickup_at: datetime, return_at: datetime) -> int:
@@ -30,15 +38,80 @@ def calculate_rental_price(
     return price_per_day * calculate_rental_duration_days(pickup_at, return_at)
 
 
+@dataclass(frozen=True)
+class ExtraSelection:
+    """
+    A chosen add-on with its prices already resolved — either from the live
+    catalog (quoting, creating a booking) or from a reservation's
+    snapshotted reservation_extras rows (charging, printing the agreement).
+
+    A plain value object on purpose: this module imports nothing from
+    app.models and stays unit-testable without a database.
+    """
+
+    code: str
+    name: str
+    quantity: int
+    unit_price: Decimal
+    price_unit: str
+
+
+@dataclass(frozen=True)
+class ExtraLine:
+    """An ExtraSelection priced against a concrete rental duration."""
+
+    code: str
+    name: str
+    quantity: int
+    unit_price: Decimal
+    price_unit: str
+    amount: Decimal
+
+
 @dataclass
 class PriceBreakdown:
     base_amount: Decimal
     short_term_fee: Decimal
     airport_change_fee: Decimal
+    # Defaulted so every call site and test that predates add-ons keeps
+    # constructing a valid, extras-free breakdown unchanged.
+    extras: list[ExtraLine] = field(default_factory=list)
+
+    @property
+    def extras_amount(self) -> Decimal:
+        return sum(
+            (line.amount for line in self.extras),
+            Decimal("0.00"),
+        )
 
     @property
     def total_amount(self) -> Decimal:
-        return self.base_amount + self.short_term_fee + self.airport_change_fee
+        return (
+            self.base_amount
+            + self.short_term_fee
+            + self.airport_change_fee
+            + self.extras_amount
+        )
+
+
+def calculate_extra_line(selection: ExtraSelection, rental_days: int) -> ExtraLine:
+    """
+    Price one add-on against a rental duration:
+
+    - PER_DAY:    unit_price x quantity x rental days
+    - PER_RENTAL: unit_price x quantity, regardless of duration
+    """
+
+    multiplier = rental_days if selection.price_unit == PRICE_UNIT_PER_DAY else 1
+
+    return ExtraLine(
+        code=selection.code,
+        name=selection.name,
+        quantity=selection.quantity,
+        unit_price=selection.unit_price,
+        price_unit=selection.price_unit,
+        amount=selection.unit_price * selection.quantity * multiplier,
+    )
 
 
 def calculate_price_breakdown(
@@ -47,6 +120,7 @@ def calculate_price_breakdown(
     return_at: datetime,
     pickup_location_id: UUID,
     return_location_id: UUID,
+    extras: Sequence[ExtraSelection] = (),
 ) -> PriceBreakdown:
     """
     Itemized reservation cost, applied at handover-payment time (so it
@@ -57,13 +131,21 @@ def calculate_price_breakdown(
     - Short-term fee: +30.00 when the rental runs under 5 days.
     - Airport-change fee: +50.00 when pickup and return airports differ
       (a one-way rental).
+    - Extras: each selected add-on at its snapshotted unit price, times its
+      quantity, times the duration for per-day extras. Extras deliberately
+      do not affect the short-term or airport rules.
+
+    Extras share calculate_rental_duration_days with the base rental, so
+    the two can never disagree about how long the rental is.
     """
 
-    base_amount = calculate_rental_price(price_per_day, pickup_at, return_at)
+    rental_days = calculate_rental_duration_days(pickup_at, return_at)
+
+    base_amount = price_per_day * rental_days
 
     short_term_fee = (
         SHORT_TERM_FEE
-        if calculate_rental_duration_days(pickup_at, return_at) < SHORT_TERM_THRESHOLD_DAYS
+        if rental_days < SHORT_TERM_THRESHOLD_DAYS
         else Decimal("0.00")
     )
 
@@ -77,4 +159,8 @@ def calculate_price_breakdown(
         base_amount=base_amount,
         short_term_fee=short_term_fee,
         airport_change_fee=airport_change_fee,
+        extras=[
+            calculate_extra_line(selection, rental_days)
+            for selection in extras
+        ],
     )

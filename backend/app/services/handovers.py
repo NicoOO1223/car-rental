@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 
 import stripe
 from sqlalchemy import select
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, Handover, Reservation
 from app.services.agreement_pdf import render_agreement_pdf
+from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 
 stripe.api_key = STRIPE_SECRET_KEY
@@ -86,8 +88,19 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
         reservation.return_at,
         reservation.pickup_location_id,
         reservation.return_location_id,
+        # Snapshotted prices, not the live catalog — a booking is charged
+        # what it was booked at.
+        selections_from_reservation(reservation),
     )
-    amount = breakdown.total_amount
+
+    # Quantized before the cents conversion below. Every input today is an
+    # exact 2-dp Decimal multiplied by integers, so int() truncation is
+    # currently safe; it stops being obviously safe the moment a
+    # percentage-based or prorated extra is added.
+    amount = breakdown.total_amount.quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
 
     try:
         if handover.stripe_payment_intent_id:

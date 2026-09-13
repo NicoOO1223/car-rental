@@ -1,9 +1,20 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Car, Customer, Reservation
+from app.models import Car, Customer, Handover, Reservation
 from app.schemas.reservation import ReservationUpdate
 from app.services.availability import has_conflicting_reservation
 from app.services.customers import find_matching_customer
+from app.services.extras import (
+    build_reservation_extras,
+    resolve_extra_selections,
+    selections_from_catalog,
+)
+from app.services.pricing import (
+    PriceBreakdown,
+    calculate_price_breakdown,
+    calculate_rental_duration_days,
+)
 
 
 def create_reservation(
@@ -14,6 +25,7 @@ def create_reservation(
     return_location_id,
     pickup_at,
     return_at,
+    extras=(),
 ):
     # ---------------------------------------------------------
     # 1. Validate dates
@@ -61,7 +73,18 @@ def create_reservation(
         )
 
     # ---------------------------------------------------------
-    # 6. Find or create customer
+    # 6. Validate selected extras
+    # ---------------------------------------------------------
+    #
+    # Deliberately before the customer step: resolve_extra_selections can
+    # raise, and step 7 flushes a new Customer row. Validating first keeps
+    # a rejected booking from leaving a flushed, uncommitted customer in
+    # the session.
+
+    resolved_extras = resolve_extra_selections(db, extras)
+
+    # ---------------------------------------------------------
+    # 7. Find or create customer
     # ---------------------------------------------------------
     #
     # Reuse an existing customer with the exact same details
@@ -95,7 +118,7 @@ def create_reservation(
         db.flush()
 
     # ---------------------------------------------------------
-    # 7. Create reservation
+    # 8. Create reservation
     # ---------------------------------------------------------
 
     reservation = Reservation(
@@ -106,6 +129,7 @@ def create_reservation(
         pickup_at=pickup_at,
         return_at=return_at,
         status="PENDING",
+        extras=build_reservation_extras(resolved_extras),
     )
 
     db.add(reservation)
@@ -114,6 +138,60 @@ def create_reservation(
     db.refresh(reservation)
 
     return reservation
+
+def quote_reservation(
+    db: Session,
+    data,
+) -> tuple[PriceBreakdown, int, bool, str | None]:
+    """
+    Price a booking that does not exist yet.
+
+    This is the single source of pricing truth for the booking wizard — the
+    wizard previously reimplemented the surcharge rules in TypeScript and
+    had to be kept in sync with app/services/pricing.py by hand.
+
+    Availability is reported rather than raised. The three conditions
+    checked here are exactly the ones create_reservation enforces, but a
+    car that became unavailable mid-form should show the user a correct
+    price next to a precise warning, not an error where the summary was.
+    """
+
+    if data.return_at <= data.pickup_at:
+        raise ValueError("Return time must be after pickup time.")
+
+    car = db.get(Car, data.car_id)
+
+    if car is None:
+        raise ValueError("Car not found.")
+
+    resolved = resolve_extra_selections(db, data.extras)
+
+    breakdown = calculate_price_breakdown(
+        car.price_per_day,
+        data.pickup_at,
+        data.return_at,
+        data.pickup_location_id,
+        data.return_location_id,
+        selections_from_catalog(resolved),
+    )
+
+    rental_days = calculate_rental_duration_days(data.pickup_at, data.return_at)
+
+    if car.current_location_id != data.pickup_location_id:
+        available = False
+        message = "Car is not located at the selected pickup location."
+    elif car.status != "AVAILABLE":
+        available = False
+        message = "Car is not currently available."
+    elif has_conflicting_reservation(db, car.id, data.pickup_at, data.return_at):
+        available = False
+        message = "Car is already reserved for part of this period."
+    else:
+        available = True
+        message = None
+
+    return breakdown, rental_days, available, message
+
 
 def cancel_reservation(
     db: Session,
@@ -291,6 +369,43 @@ def update_reservation(
             exclude_unset=True
         ).items():
             setattr(customer, field, value)
+
+    # ---------------------------------------------------------
+    # 5. Replace the extras set, if one was supplied
+    # ---------------------------------------------------------
+
+    if data.extras is not None:
+        handover = db.scalar(
+            select(Handover).where(Handover.reservation_id == reservation_id)
+        )
+
+        # Add-ons cannot change once money has been taken: the captured
+        # PaymentIntent amount would no longer match the itemization
+        # printed on the rental agreement.
+        if handover is not None and handover.payment_status == "SUCCEEDED":
+            raise ValueError(
+                "Extras cannot be changed after payment has been taken."
+            )
+
+        resolved = resolve_extra_selections(db, data.extras)
+
+        # Re-snapshot only genuinely new lines. A line whose extra is
+        # unchanged keeps the price it was booked at, even if the catalog
+        # has moved since.
+        existing = {line.extra_id: line for line in reservation.extras}
+        rebuilt = []
+
+        for extra, quantity in resolved:
+            line = existing.get(extra.id)
+
+            if line is not None:
+                line.quantity = quantity
+                rebuilt.append(line)
+            else:
+                rebuilt.append(build_reservation_extras([(extra, quantity)])[0])
+
+        # delete-orphan on Reservation.extras removes the dropped lines.
+        reservation.extras = rebuilt
 
     db.commit()
     db.refresh(reservation)

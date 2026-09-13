@@ -2,10 +2,34 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
-from app.services.pricing import calculate_price_breakdown
+from app.services.pricing import ExtraSelection, calculate_price_breakdown
 
 
 PRICE_PER_DAY = Decimal("50.00")
+
+ADDITIONAL_DRIVER = ExtraSelection(
+    code="ADDITIONAL_DRIVER",
+    name="Additional driver",
+    quantity=1,
+    unit_price=Decimal("7.00"),
+    price_unit="PER_DAY",
+)
+
+REFUELING = ExtraSelection(
+    code="REFUELING_SERVICE",
+    name="Refueling service",
+    quantity=1,
+    unit_price=Decimal("45.00"),
+    price_unit="PER_RENTAL",
+)
+
+TWO_BABY_SEATS = ExtraSelection(
+    code="BABY_SEAT",
+    name="Baby seat",
+    quantity=2,
+    unit_price=Decimal("6.00"),
+    price_unit="PER_DAY",
+)
 
 
 def test_breakdown_no_surcharges_for_long_same_airport_trip():
@@ -89,3 +113,120 @@ def test_breakdown_both_surcharges_stack():
     assert breakdown.short_term_fee == Decimal("30.00")
     assert breakdown.airport_change_fee == Decimal("50.00")
     assert breakdown.total_amount == Decimal("180.00")
+
+
+# --- Add-ons -------------------------------------------------------------
+
+
+def test_breakdown_without_extras_is_unchanged():
+    """
+    Regression guard for the defaulted `extras` parameter: calling with the
+    original five arguments must behave exactly as it did before add-ons
+    existed.
+    """
+
+    same_location = uuid4()
+
+    breakdown = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
+        same_location,
+        same_location,
+    )
+
+    assert breakdown.extras == []
+    assert breakdown.extras_amount == Decimal("0.00")
+    assert breakdown.total_amount == Decimal("350.00")
+
+
+def test_per_day_extra_scales_with_duration():
+    same_location = uuid4()
+
+    breakdown = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
+        same_location,
+        same_location,
+        [ADDITIONAL_DRIVER],
+    )
+
+    assert breakdown.extras[0].amount == Decimal("49.00")  # 7.00 x 7
+    assert breakdown.extras_amount == Decimal("49.00")
+    assert breakdown.total_amount == Decimal("399.00")  # 350 + 49
+
+
+def test_per_rental_extra_does_not_scale_with_duration():
+    same_location = uuid4()
+
+    long_rental = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
+        same_location,
+        same_location,
+        [REFUELING],
+    )
+
+    short_rental = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
+        same_location,
+        same_location,
+        [REFUELING],
+    )
+
+    assert long_rental.extras_amount == Decimal("45.00")
+    assert short_rental.extras_amount == Decimal("45.00")
+
+
+def test_extra_quantity_multiplies_line():
+    same_location = uuid4()
+
+    breakdown = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 4, 10, 0, tzinfo=timezone.utc),  # 3 days
+        same_location,
+        same_location,
+        [TWO_BABY_SEATS],
+    )
+
+    assert breakdown.extras[0].amount == Decimal("36.00")  # 6.00 x 2 x 3
+
+
+def test_mixed_extras_sum_into_total():
+    same_location = uuid4()
+
+    breakdown = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
+        same_location,
+        same_location,
+        [ADDITIONAL_DRIVER, REFUELING],
+    )
+
+    # base 100 + short-term 30 + driver (7 x 2) + refueling 45
+    assert breakdown.extras_amount == Decimal("59.00")
+    assert breakdown.total_amount == Decimal("189.00")
+
+
+def test_extras_do_not_affect_surcharge_rules():
+    """Add-ons are priced alongside the surcharges, never into them."""
+
+    same_location = uuid4()
+
+    breakdown = calculate_price_breakdown(
+        PRICE_PER_DAY,
+        datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc),
+        datetime(2027, 1, 7, 10, 0, tzinfo=timezone.utc),  # 6 days
+        same_location,
+        same_location,
+        [ADDITIONAL_DRIVER, REFUELING, TWO_BABY_SEATS],
+    )
+
+    assert breakdown.short_term_fee == Decimal("0.00")
+    assert breakdown.airport_change_fee == Decimal("0.00")

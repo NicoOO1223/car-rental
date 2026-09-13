@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCar, type Car } from "@/lib/api";
 
 const TIRE_CONDITION_OPTIONS = ["GOOD", "FAIR", "WORN", "NEEDS_REPLACEMENT"];
@@ -13,9 +14,6 @@ type Props = {
   onClose: () => void;
   onSaved: (updated: Car) => void;
 };
-
-const inputClass = "mt-2 w-full rounded-lg border p-3";
-const labelClass = "block text-sm font-medium";
 
 export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
   const [mileage, setMileage] = useState(
@@ -56,15 +54,15 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title="Edit Vehicle Condition"
+      title="Edit vehicle condition"
       onClose={onClose}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="vehicle-condition-form" disabled={saving}>
-            {saving ? "Saving..." : "Save changes"}
+          <Button type="submit" form="vehicle-condition-form" loading={saving}>
+            {saving ? "Saving" : "Save changes"}
           </Button>
         </>
       }
@@ -75,45 +73,41 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
         className="space-y-4"
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelClass}>Mileage (km)</label>
-            <input
-              type="number"
-              min="0"
-              value={mileage}
-              onChange={(e) => setMileage(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+          <TextField
+            label="Mileage (km)"
+            type="number"
+            min="0"
+            value={mileage}
+            onChange={(event) => setMileage(event.target.value)}
+          />
 
-          <div>
-            <label className={labelClass}>Tire Condition</label>
-            <select
-              value={tireCondition}
-              onChange={(e) => setTireCondition(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Unknown</option>
-              {TIRE_CONDITION_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Tire condition"
+            value={tireCondition}
+            onChange={(event) => setTireCondition(event.target.value)}
+          >
+            <option value="">Unknown</option>
+            {TIRE_CONDITION_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option.replace("_", " ")}
+              </option>
+            ))}
+          </SelectField>
 
-          <div className="sm:col-span-2">
-            <label className={labelClass}>Last Oil Change</label>
-            <input
-              type="date"
-              value={lastOilChangeAt}
-              onChange={(e) => setLastOilChangeAt(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+          <TextField
+            label="Last oil change"
+            type="date"
+            className="sm:col-span-2"
+            value={lastOilChangeAt}
+            onChange={(event) => setLastOilChangeAt(event.target.value)}
+          />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
       </form>
     </Modal>
   );

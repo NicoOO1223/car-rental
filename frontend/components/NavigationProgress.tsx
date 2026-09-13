@@ -29,7 +29,12 @@ export function NavigationProgressProvider({
   return (
     <NavigationProgressContext.Provider value={{ navigate, isPending }}>
       {isPending && (
-        <div className="fixed left-0 top-0 z-[100] h-0.5 w-full overflow-hidden bg-gray-200">
+        <div
+          role="progressbar"
+          aria-busy="true"
+          aria-label="Loading page"
+          className="fixed left-0 top-0 z-[100] h-0.5 w-full overflow-hidden bg-gray-200"
+        >
           <div className="h-full w-1/3 animate-[progress-slide_0.9s_ease-in-out_infinite] bg-gray-900" />
         </div>
       )}
