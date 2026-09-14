@@ -78,6 +78,58 @@ def test_login_unknown_email():
     assert response.status_code == 401
 
 
+def test_login_email_is_case_insensitive():
+    """
+    The row is stored lowercase; logging in with a differently-cased
+    version of the same address (the realistic case — a mail client or
+    a person capitalizing part of it) must still succeed.
+    """
+
+    user = _create_test_user()
+
+    try:
+        response = client.post(
+            "/api/auth/login",
+            json={"email": TEST_EMAIL.upper(), "password": TEST_PASSWORD},
+        )
+
+        assert response.status_code == 200
+        assert len(response.json()["access_token"]) > 0
+    finally:
+        _delete_test_user(user.id)
+
+
+def test_login_matches_a_mixed_case_stored_email():
+    """
+    The other direction: a row stored with mixed case (e.g. created
+    before create_staff_user.py normalized on write) must still be
+    reachable by a lowercase login.
+    """
+
+    db = SessionLocal()
+
+    try:
+        user = User(
+            email="Mixed.Case@Example.com",
+            hashed_password=hash_password(TEST_PASSWORD),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    finally:
+        db.close()
+
+    try:
+        response = client.post(
+            "/api/auth/login",
+            json={"email": "mixed.case@example.com", "password": TEST_PASSWORD},
+        )
+
+        assert response.status_code == 200
+    finally:
+        _delete_test_user(user.id)
+
+
 def test_protected_endpoint_rejects_missing_token():
     app.dependency_overrides.pop(get_current_user, None)
 

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import bcrypt
 import jwt
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import SECRET_KEY
@@ -41,7 +41,17 @@ def decode_access_token(token: str) -> str:
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    user = db.scalar(select(User).where(User.email == email))
+    # Case-insensitive on purpose: "Name@Example.com" and
+    # "name@example.com" are the same mailbox, and a staff member
+    # shouldn't get locked out over how their email client happened to
+    # capitalize it. Comparing via lower() on both sides works regardless
+    # of the case a row was originally stored in, rather than relying on
+    # every account having been created through a normalizing path.
+    normalized_email = email.strip().lower()
+
+    user = db.scalar(
+        select(User).where(func.lower(User.email) == normalized_email)
+    )
 
     if user is None or not verify_password(password, user.hashed_password):
         return None

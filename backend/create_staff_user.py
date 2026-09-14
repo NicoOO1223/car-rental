@@ -17,7 +17,7 @@ second argument.
 import getpass
 import sys
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.database import SessionLocal
 from app.models import User
@@ -25,20 +25,29 @@ from app.services.auth import hash_password
 
 
 def create_staff_user(email: str, password: str):
+    # Stored (and checked) lowercase so login's case-insensitive lookup
+    # (see app/services/auth.py::authenticate_user) always has a
+    # consistent value to match against, and so "Name@Example.com" can't
+    # be created as a second account alongside an existing
+    # "name@example.com".
+    normalized_email = email.strip().lower()
+
     db = SessionLocal()
 
     try:
-        existing = db.scalar(select(User).where(User.email == email))
+        existing = db.scalar(
+            select(User).where(func.lower(User.email) == normalized_email)
+        )
 
         if existing is not None:
-            print(f"A user with email {email!r} already exists.")
+            print(f"A user with email {normalized_email!r} already exists.")
             sys.exit(1)
 
-        user = User(email=email, hashed_password=hash_password(password))
+        user = User(email=normalized_email, hashed_password=hash_password(password))
         db.add(user)
         db.commit()
 
-        print(f"Created staff user: {email}")
+        print(f"Created staff user: {normalized_email}")
 
     finally:
         db.close()
