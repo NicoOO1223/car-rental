@@ -1,4 +1,21 @@
+import logging
 import os
+
+import sentry_sdk
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+
+# Error tracking. Optional — leave SENTRY_DSN unset (e.g. local dev, CI) and
+# this is a no-op.
+if sentry_dsn := os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        send_default_pii=False,
+        traces_sample_rate=0.0,
+    )
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

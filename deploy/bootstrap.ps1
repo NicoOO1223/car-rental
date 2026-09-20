@@ -49,6 +49,8 @@ function Get-EnvValue($path, $key) {
 
 $stripeSecretKey = Get-EnvValue "$repoRoot\backend\.env" "STRIPE_SECRET_KEY"
 $stripePublishableKey = Get-EnvValue "$repoRoot\frontend\.env.local" "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+$backendSentryDsn = Get-EnvValue "$repoRoot\backend\.env" "SENTRY_DSN"
+$frontendSentryDsn = Get-EnvValue "$repoRoot\frontend\.env.local" "NEXT_PUBLIC_SENTRY_DSN"
 
 Write-Host "== Resource group ==" -ForegroundColor Cyan
 Invoke-Checked { az group create --name $rg --location $location --output none } "create resource group"
@@ -124,12 +126,12 @@ Invoke-Checked { az containerapp registry set --name car-rental-backend --resour
 
 Invoke-Checked {
     az containerapp secret set --name car-rental-backend --resource-group $rg `
-        --secrets database-url="$databaseUrl" stripe-secret-key="$stripeSecretKey" --output none
+        --secrets database-url="$databaseUrl" stripe-secret-key="$stripeSecretKey" sentry-dsn="$backendSentryDsn" --output none
 } "set backend secrets"
 
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key CORS_ORIGINS="http://localhost:3000" `
+        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
         --output none
 } "set backend env vars"
 
@@ -141,6 +143,7 @@ Invoke-Checked {
     docker build -t "$acrLoginServer/frontend:latest" -f "$repoRoot\frontend\Dockerfile" `
         --build-arg NEXT_PUBLIC_API_URL="https://$backendFqdn" `
         --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$stripePublishableKey" `
+        --build-arg NEXT_PUBLIC_SENTRY_DSN="$frontendSentryDsn" `
         "$repoRoot\frontend"
 } "docker build frontend"
 Invoke-Checked { docker push "$acrLoginServer/frontend:latest" } "docker push frontend"
@@ -179,7 +182,7 @@ Write-Host "Frontend URL: https://$frontendFqdn"
 Write-Host "== Pointing backend's CORS at the real frontend URL ==" -ForegroundColor Cyan
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key CORS_ORIGINS="https://$frontendFqdn" `
+        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="https://$frontendFqdn" `
         --output none
 } "update backend CORS"
 

@@ -3,6 +3,8 @@ name: Deploy to Azure Container Apps
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch: {}
 
 # OIDC federated login — no long-lived Azure credential stored in GitHub.
@@ -11,11 +13,64 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-production
+  group: deploy-production-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: car_rental
+          POSTGRES_USER: car_rental
+          POSTGRES_PASSWORD: car_rental_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U car_rental"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental
+      SECRET_KEY: ci-placeholder-secret-key-not-for-production
+      CORS_ORIGINS: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run backend test suite
+        working-directory: backend
+        run: pytest
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
   deploy-backend:
+    needs: backend-tests
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +104,8 @@ jobs:
             --image ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
 
   deploy-frontend:
+    needs: frontend-checks
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,6 +129,7 @@ jobs:
           docker build -t ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} \
             --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
             --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }} \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }} \
             -f frontend/Dockerfile frontend
           docker push ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
 
