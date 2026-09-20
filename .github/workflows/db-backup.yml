@@ -1,0 +1,117 @@
+name: Database backup & restore drill
+
+on:
+  schedule:
+    # Daily, off the hour to avoid the top-of-hour scheduling crowd on GH Actions.
+    - cron: "17 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Dump and upload backup
+        env:
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          POSTGRES_ADMIN_USER: ${{ vars.POSTGRES_ADMIN_USER }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          POSTGRES_DB_NAME: ${{ vars.POSTGRES_DB_NAME }}
+          BACKUP_STORAGE_ACCOUNT: ${{ vars.BACKUP_STORAGE_ACCOUNT }}
+          BACKUP_CONTAINER_NAME: ${{ vars.BACKUP_CONTAINER_NAME }}
+        run: bash deploy/backup/backup.sh
+
+  # Proves the backup that's actually sitting in storage right now is
+  # restorable — restores into a throwaway container on the runner, never
+  # into production. Runs the same day as the backup so a broken backup is
+  # caught with zero lag.
+  restore-drill:
+    needs: backup
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: car_rental
+          POSTGRES_USER: car_rental
+          POSTGRES_PASSWORD: car_rental_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U car_rental"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Install postgresql-client-16
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget gnupg lsb-release
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Download most recent backup
+        env:
+          BACKUP_STORAGE_ACCOUNT: ${{ vars.BACKUP_STORAGE_ACCOUNT }}
+          BACKUP_CONTAINER_NAME: ${{ vars.BACKUP_CONTAINER_NAME }}
+        run: |
+          latest=$(az storage blob list \
+            --auth-mode login \
+            --account-name "$BACKUP_STORAGE_ACCOUNT" \
+            --container-name "$BACKUP_CONTAINER_NAME" \
+            --query "sort_by([], &properties.lastModified)[-1].name" -o tsv)
+          echo "Restoring latest backup: $latest"
+          az storage blob download \
+            --auth-mode login \
+            --account-name "$BACKUP_STORAGE_ACCOUNT" \
+            --container-name "$BACKUP_CONTAINER_NAME" \
+            --name "$latest" \
+            --file restore.dump
+
+      - name: Restore into throwaway database
+        run: |
+          pg_restore --no-owner --no-privileges \
+            -d "postgresql://car_rental:car_rental_dev@localhost:5432/car_rental" \
+            restore.dump
+
+      - name: Apply migrations to restored database
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Verify restored data
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: python ../deploy/backup/verify_restore.py
+
+      - name: Smoke test restored database with backend test suite
+        working-directory: backend
+        run: pytest

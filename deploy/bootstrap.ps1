@@ -68,11 +68,13 @@ $acrLoginServer = $deployOutput.acrLoginServer.value
 $containerAppsEnvId = $deployOutput.containerAppsEnvId.value
 $postgresFqdn = $deployOutput.postgresServerFqdn.value
 $postgresDbName = $deployOutput.postgresDbName.value
+$backupStorageAccountName = $deployOutput.backupStorageAccountName.value
 
 $databaseUrl = "postgresql+psycopg://carrentaladmin:${pgPassword}@${postgresFqdn}:5432/${postgresDbName}?sslmode=require"
 
 Write-Host "ACR: $acrLoginServer"
 Write-Host "Postgres: $postgresFqdn"
+Write-Host "Backup storage account: $backupStorageAccountName"
 
 Write-Host "== Logging in to ACR (for local docker build/push) ==" -ForegroundColor Cyan
 # ACR Tasks (az acr build's remote build) requires a support request on
@@ -189,6 +191,14 @@ Write-Host ""
 Write-Host "Next: wake the backend and seed demo data with:"
 Write-Host "  curl https://$backendFqdn/health"
 Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python seed.py`""
+Write-Host ""
+Write-Host "One-time manual step for scheduled DB backups (bicep can't grant" -ForegroundColor Yellow
+Write-Host "this since the GitHub OIDC service principal isn't bicep-managed)." -ForegroundColor Yellow
+Write-Host "Lets db-backup.yml write blobs with 'az storage blob upload --auth-mode login'" -ForegroundColor Yellow
+Write-Host "instead of a long-lived storage account key:" -ForegroundColor Yellow
+Write-Host "  az role assignment create --assignee <AZURE_CLIENT_ID's objectId> \`""
+Write-Host "    --role `"Storage Blob Data Contributor`" --scope <backup storage account resource ID>"
+Write-Host "See deploy/BACKUP_RESTORE.md for the full setup checklist."
 
 # Save non-secret outputs for the GitHub Actions workflow to reference.
 @{
@@ -197,4 +207,7 @@ Write-Host "  az containerapp exec --name car-rental-backend --resource-group $r
     acrLoginServer = $acrLoginServer
     backendFqdn = $backendFqdn
     frontendFqdn = $frontendFqdn
+    postgresServerFqdn = $postgresFqdn
+    postgresDbName = $postgresDbName
+    backupStorageAccountName = $backupStorageAccountName
 } | ConvertTo-Json | Set-Content "$PSScriptRoot\outputs.json"
