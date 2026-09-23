@@ -56,24 +56,6 @@ export const COUNTRIES: { code: string; name: string }[] = [
   { code: "RS", name: "Serbia" },
 ];
 
-/**
- * Renders an ISO alpha-2 code as its flag emoji via Unicode regional
- * indicator symbols — no image assets or icon library needed. Returns
- * an empty string for anything that isn't exactly two letters.
- */
-export function countryFlagEmoji(code: string | null | undefined): string {
-  if (!code || code.length !== 2) return "";
-
-  const upper = code.toUpperCase();
-  if (!/^[A-Z]{2}$/.test(upper)) return "";
-
-  const codePoints = [...upper].map(
-    (char) => 127397 + char.charCodeAt(0),
-  );
-
-  return String.fromCodePoint(...codePoints);
-}
-
 export function countryName(code: string | null | undefined): string {
   return COUNTRIES.find((country) => country.code === code)?.name ?? "";
 }

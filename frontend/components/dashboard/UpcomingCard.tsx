@@ -10,9 +10,9 @@ import {
 
 import type { DashboardReservation } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
-import { countryFlagEmoji, countryName } from "@/lib/countries";
 import { formatCurrency, formatDateShort, formatTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
@@ -120,16 +120,11 @@ export function UpcomingCard({
               className="flex w-full flex-col gap-3 py-3 text-left transition hover:bg-surface-sunken md:flex-row md:items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
             >
               <div className="min-w-0 md:flex-1">
-                <p className="truncate font-medium text-ink">
-                  {countryFlagEmoji(reservation.customer_nationality) && (
-                    <span
-                      className="mr-1.5"
-                      title={countryName(reservation.customer_nationality)}
-                    >
-                      {countryFlagEmoji(reservation.customer_nationality)}
-                    </span>
-                  )}
-                  {reservation.customer_first_name} {reservation.customer_last_name}
+                <p className="flex items-center gap-1.5 truncate font-medium text-ink">
+                  <CountryFlag code={reservation.customer_nationality} />
+                  <span className="truncate">
+                    {reservation.customer_first_name} {reservation.customer_last_name}
+                  </span>
                 </p>
 
                 {reservation.customer_phone_number && (
