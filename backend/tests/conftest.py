@@ -45,6 +45,20 @@ def _ensure_fake_user_row():
         if db.get(User, _fake_user.id) is None:
             db.add(_fake_user)
             db.commit()
+
+            # commit() expires every attribute on _fake_user by default
+            # (expire_on_commit=True), so the very next access anywhere
+            # in the suite would try to lazily refresh it — but this
+            # session is closed by then, so on a genuinely fresh
+            # database (this add+commit branch actually running, unlike
+            # against the persistent local dev DB where the row already
+            # exists and this whole branch is skipped) that raises
+            # DetachedInstanceError. expunge() after a refresh detaches
+            # it with its attributes already fully loaded in memory
+            # instead, matching how it behaves when this branch never
+            # runs at all.
+            db.refresh(_fake_user)
+            db.expunge(_fake_user)
     finally:
         db.close()
 
