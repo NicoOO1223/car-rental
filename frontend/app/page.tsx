@@ -259,17 +259,17 @@ export default function DashboardPage() {
         {/* Next pickups + Next returns */}
         <h2 className="mt-8 text-lg font-semibold text-ink">Pickups &amp; returns</h2>
 
-        {/* A 2x2 grid (filter row, then card row) rather than nesting the
-            filter above just the pickups card — that made the pickups
-            card start lower than returns, since each column sized itself
-            independently. Grid auto-placement puts both filter-row cells
-            in row 1 and both cards in row 2, so the cards' tops line up
-            regardless of the (empty, same-height) cell beside the filter. */}
+        {/* A grid (full-width filter row, then a 2-col card row) rather
+            than nesting the filter above just the pickups card — that
+            made the pickups card start lower than returns, since each
+            column sized itself independently. Spanning the filter across
+            both columns also gives it the room it needs to keep the
+            weekday buttons and date range on one line instead of
+            wrapping. */}
         <div className="mt-8 grid gap-x-6 gap-y-3 lg:grid-cols-2">
-          {/* Positioned above the pickups card, but the range still
-              applies to both lists — getDashboard() takes one shared
-              start/end pair (see the effect above). */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* The range still applies to both lists — getDashboard()
+              takes one shared start/end pair (see the effect above). */}
+          <div className="flex flex-wrap items-center gap-2 lg:col-span-2">
             <button
               type="button"
               onClick={() => {
@@ -326,8 +326,6 @@ export default function DashboardPage() {
               className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
-
-          <div aria-hidden="true" className="hidden lg:block" />
 
           <div className={`transition-opacity ${upcomingLoading ? "opacity-50" : ""}`}>
             <UpcomingCard

@@ -246,6 +246,7 @@ def seed():
                 date_of_birth=date(1988, 4, 12),
                 address="Via Roma 15",
                 postal_code="20121",
+                nationality="IT",
             ),
             Customer(
                 first_name="Anna",
@@ -253,6 +254,7 @@ def seed():
                 date_of_birth=date(1992, 7, 23),
                 address="Via Milano 42",
                 postal_code="20100",
+                nationality="IT",
             ),
             Customer(
                 first_name="Lukas",
@@ -260,6 +262,7 @@ def seed():
                 date_of_birth=date(1985, 11, 3),
                 address="Hauptstrasse 18",
                 postal_code="10115",
+                nationality="DE",
             ),
             Customer(
                 first_name="Sophie",
@@ -267,6 +270,7 @@ def seed():
                 date_of_birth=date(1995, 2, 17),
                 address="Rue de Paris 21",
                 postal_code="75001",
+                nationality="FR",
             ),
             Customer(
                 first_name="James",
@@ -274,6 +278,7 @@ def seed():
                 date_of_birth=date(1987, 9, 30),
                 address="Baker Street 10",
                 postal_code="NW1 6XE",
+                nationality="GB",
             ),
         ]
 
