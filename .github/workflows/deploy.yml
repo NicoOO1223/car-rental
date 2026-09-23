@@ -45,6 +45,18 @@ jobs:
       - name: Install backend dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Apply database migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Seed reference data
+        # The test suite exercises real seeded cars/locations/extras
+        # (e.g. ensure_car_available("SA-008-AA")), not fixtures — the
+        # CI Postgres service starts empty, so it needs the same seed
+        # data local dev runs against.
+        working-directory: backend
+        run: python seed.py
+
       - name: Run backend test suite
         working-directory: backend
         run: pytest
@@ -65,8 +77,15 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm run typecheck
+      # build before typecheck, not after: `tsc --noEmit` alone resolves
+      # Next.js's generated types (e.g. LayoutProps) from .next/types,
+      # which only exists once `next build` (or `next dev`) has run at
+      # least once. A fresh checkout has no .next dir, so typecheck-then-
+      # build fails on a clean clone even with correct code. `next build`
+      # itself already fails on real type errors (no ignoreBuildErrors
+      # set in next.config.ts), so nothing is lost by reordering.
       - run: npm run build
+      - run: npm run typecheck
 
   deploy-backend:
     needs: backend-tests
