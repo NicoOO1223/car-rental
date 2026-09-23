@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   getDashboard,
@@ -45,21 +45,54 @@ export default function DashboardPage() {
   const [fleetStatusLoading, setFleetStatusLoading] = useState(true);
   const [fleetStatusError, setFleetStatusError] = useState("");
 
-  useEffect(() => {
-    async function loadDashboard() {
-      try {
-        const data = await getDashboard();
+  // Narrows upcoming_pickups/upcoming_returns to a specific window —
+  // "" on both means the default "everything from now on" view.
+  const [upcomingStartDate, setUpcomingStartDate] = useState("");
+  const [upcomingEndDate, setUpcomingEndDate] = useState("");
+  const [upcomingLoading, setUpcomingLoading] = useState(false);
+  const hasLoadedDashboardRef = useRef(false);
 
-        setDashboard(data);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      if (hasLoadedDashboardRef.current) {
+        // Not the first load — a range filter changed. Only dim the
+        // pickups/returns section instead of re-showing the full-page
+        // skeleton over panels that aren't affected by this filter.
+        setUpcomingLoading(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const data = await getDashboard({
+          startDate: upcomingStartDate || undefined,
+          endDate: upcomingEndDate || undefined,
+        });
+
+        if (!cancelled) {
+          setDashboard(data);
+          hasLoadedDashboardRef.current = true;
+        }
       } catch {
-        setError("Failed to load dashboard.");
+        if (!cancelled) {
+          setError("Failed to load dashboard.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setUpcomingLoading(false);
+        }
       }
     }
 
     loadDashboard();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [upcomingStartDate, upcomingEndDate]);
 
   useEffect(() => {
     async function loadLocations() {
@@ -204,18 +237,89 @@ export default function DashboardPage() {
         </section>
 
         {/* Next pickups + Next returns */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <UpcomingCard
-            direction="pickup"
-            reservations={dashboard.upcoming_pickups}
-            viewAllHref="/reservations/manage?window=UPCOMING"
-          />
+        <h2 className="mt-8 text-lg font-semibold text-ink">Pickups &amp; returns</h2>
 
-          <UpcomingCard
-            direction="return"
-            reservations={dashboard.upcoming_returns}
-            viewAllHref="/reservations/manage?window=ACTIVE"
-          />
+        {/* A 2x2 grid (filter row, then card row) rather than nesting the
+            filter above just the pickups card — that made the pickups
+            card start lower than returns, since each column sized itself
+            independently. Grid auto-placement puts both filter-row cells
+            in row 1 and both cards in row 2, so the cards' tops line up
+            regardless of the (empty, same-height) cell beside the filter. */}
+        <div className="mt-8 grid gap-x-6 gap-y-3 lg:grid-cols-2">
+          {/* Positioned above the pickups card, but the range still
+              applies to both lists — getDashboard() takes one shared
+              start/end pair (see the effect above). */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setUpcomingStartDate("");
+                setUpcomingEndDate("");
+              }}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                !upcomingStartDate && !upcomingEndDate
+                  ? "bg-gray-900 text-white"
+                  : "bg-surface-sunken text-ink-secondary hover:text-ink"
+              }`}
+            >
+              All upcoming
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const today = todayDateString();
+                setUpcomingStartDate(today);
+                setUpcomingEndDate(today);
+              }}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                upcomingStartDate === todayDateString() &&
+                upcomingEndDate === todayDateString()
+                  ? "bg-gray-900 text-white"
+                  : "bg-surface-sunken text-ink-secondary hover:text-ink"
+              }`}
+            >
+              Today
+            </button>
+
+            <input
+              type="date"
+              aria-label="From date"
+              value={upcomingStartDate}
+              onChange={(event) => setUpcomingStartDate(event.target.value)}
+              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+
+            <span className="text-ink-muted" aria-hidden="true">
+              –
+            </span>
+
+            <input
+              type="date"
+              aria-label="To date"
+              value={upcomingEndDate}
+              onChange={(event) => setUpcomingEndDate(event.target.value)}
+              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+
+          <div aria-hidden="true" className="hidden lg:block" />
+
+          <div className={`transition-opacity ${upcomingLoading ? "opacity-50" : ""}`}>
+            <UpcomingCard
+              direction="pickup"
+              reservations={dashboard.upcoming_pickups}
+              viewAllHref="/reservations/manage?window=UPCOMING"
+            />
+          </div>
+
+          <div className={`transition-opacity ${upcomingLoading ? "opacity-50" : ""}`}>
+            <UpcomingCard
+              direction="return"
+              reservations={dashboard.upcoming_returns}
+              viewAllHref="/reservations/manage?window=ACTIVE"
+            />
+          </div>
         </div>
 
         {/* Fleet status + Fleet by location */}

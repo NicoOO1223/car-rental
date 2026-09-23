@@ -1,13 +1,18 @@
 "use client";
 
-import { ArrowRight, PlaneLanding, PlaneTakeoff, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Phone,
+  PlaneLanding,
+  PlaneTakeoff,
+  type LucideIcon,
+} from "lucide-react";
 
 import type { DashboardReservation } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
-import { TwoLine } from "@/components/ui/DataTable";
-import { formatDateTime } from "@/lib/format";
+import { formatDateShort, formatTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Direction = "pickup" | "return";
@@ -32,6 +37,12 @@ const DIRECTION_CONFIG: Record<
     timestampKey: "pickup_at" | "return_at";
     emptyTitle: string;
     emptyDescription: string;
+    // Pickup rows jump straight into the handover flow (payment,
+    // signature, agreement) since that's the very next action for a
+    // CONFIRMED reservation. Returns don't have an equivalent
+    // "finalize" screen — completing a return happens from the
+    // reservation detail page instead, so that's where those rows go.
+    detailHref: (id: string) => string;
   }
 > = {
   pickup: {
@@ -41,6 +52,7 @@ const DIRECTION_CONFIG: Record<
     timestampKey: "pickup_at",
     emptyTitle: "No upcoming pickups",
     emptyDescription: "There are no future pickups scheduled.",
+    detailHref: (id) => `/reservations/finalize/${id}`,
   },
   return: {
     icon: PlaneLanding,
@@ -49,6 +61,7 @@ const DIRECTION_CONFIG: Record<
     timestampKey: "return_at",
     emptyTitle: "No upcoming returns",
     emptyDescription: "There are no vehicles due back.",
+    detailHref: (id) => `/reservations/manage/${id}`,
   },
 };
 
@@ -102,17 +115,30 @@ export function UpcomingCard({
             <button
               key={reservation.id}
               type="button"
-              onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
-              className="flex w-full flex-col gap-3 py-3 text-left transition hover:bg-surface-sunken md:flex-row md:items-center md:justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
+              onClick={() => navigate(config.detailHref(reservation.id))}
+              className="flex w-full flex-col gap-3 py-3 text-left transition hover:bg-surface-sunken md:flex-row md:items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
             >
-              <TwoLine
-                primary={`${reservation.customer_first_name} ${reservation.customer_last_name}`}
-                secondary={`${reservation.car_make} ${reservation.car_model} · ${reservation.car_license_plate}`}
-              />
+              <div className="min-w-0 md:flex-1">
+                <p className="truncate font-medium text-ink">
+                  {reservation.customer_first_name} {reservation.customer_last_name}
+                </p>
 
-              <div className="md:text-right">
+                {reservation.customer_phone_number && (
+                  <p className="mt-1 flex items-center gap-1 text-sm text-ink-muted">
+                    <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{reservation.customer_phone_number}</span>
+                  </p>
+                )}
+
+                <p className="mt-1 truncate text-sm text-ink-muted">
+                  {reservation.car_make} {reservation.car_model}
+                </p>
+              </div>
+
+              <div className="shrink-0 md:w-36 md:text-right">
                 <p className="font-medium text-ink">
-                  {formatDateTime(reservation[config.timestampKey])}
+                  {formatDateShort(reservation[config.timestampKey])},{" "}
+                  {formatTime(reservation[config.timestampKey])}
                 </p>
 
                 <p className="mt-1 text-sm text-ink-muted">
@@ -124,7 +150,7 @@ export function UpcomingCard({
 
               <ReservationStatusBadge
                 status={reservation.status}
-                className="self-start md:self-auto"
+                className="shrink-0 self-start md:self-auto"
               />
             </button>
           ))}

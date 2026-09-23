@@ -9,7 +9,6 @@ from app.config import SECRET_KEY
 from app.models import User
 
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
 
 
 def hash_password(password: str) -> str:
@@ -22,10 +21,18 @@ def verify_password(password: str, hashed_password: str) -> bool:
     )
 
 
-def create_access_token(user_id) -> str:
+def create_access_token(user_id, expire_days: int) -> str:
+    """
+    expire_days comes from configuration.access_token_expire_days
+    (app/services/configuration.py). A token's exp claim is baked in at
+    issue time, so changing this value only affects tokens issued
+    afterward — it never shortens or extends a session already in
+    progress.
+    """
+
     payload = {
         "sub": str(user_id),
-        "exp": datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS),
+        "exp": datetime.utcnow() + timedelta(days=expire_days),
     }
 
     return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
@@ -40,14 +47,17 @@ def decode_access_token(token: str) -> str:
     return payload["sub"]
 
 
-def authenticate_user(db: Session, email: str, password: str) -> User | None:
+def normalize_email(email: str) -> str:
     # Case-insensitive on purpose: "Name@Example.com" and
     # "name@example.com" are the same mailbox, and a staff member
     # shouldn't get locked out over how their email client happened to
-    # capitalize it. Comparing via lower() on both sides works regardless
-    # of the case a row was originally stored in, rather than relying on
-    # every account having been created through a normalizing path.
-    normalized_email = email.strip().lower()
+    # capitalize it. Used both to look up an existing account and to
+    # store new/updated ones, so every code path agrees on one form.
+    return email.strip().lower()
+
+
+def authenticate_user(db: Session, email: str, password: str) -> User | None:
+    normalized_email = normalize_email(email)
 
     user = db.scalar(
         select(User).where(func.lower(User.email) == normalized_email)

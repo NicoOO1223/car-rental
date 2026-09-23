@@ -29,6 +29,9 @@ from app.routers.dashboard import router as dashboard_router
 from app.routers.customers import router as customers_router
 from app.routers.handovers import router as handovers_router
 from app.routers.maintenance import router as maintenance_router
+from app.routers.audit_logs import router as audit_logs_router
+from app.routers.users import router as users_router
+from app.routers.configuration import router as configuration_router
 
 app = FastAPI(
     title="Car Rental API",
@@ -62,6 +65,9 @@ app.include_router(dashboard_router)
 app.include_router(customers_router)
 app.include_router(handovers_router)
 app.include_router(maintenance_router)
+app.include_router(audit_logs_router)
+app.include_router(users_router)
+app.include_router(configuration_router)
 
 @app.get("/health")
 def health_check():

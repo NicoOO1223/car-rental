@@ -137,6 +137,17 @@ def test_fleet_status_cagliari_2026_08_26():
     # location afterward.
     sa006_original_airport = snapshot_and_set_location("SA-006-AA", "CAG")
 
+    # seed.py's SA-004-AA reservation covering this day was CONFIRMED; by
+    # now (real elapsed time in this shared dev DB) it has genuinely gone
+    # through the real handover flow and is ACTIVE. Force it back to
+    # CONFIRMED for this test -- which is specifically about the RESERVED
+    # bucket -- and restore it to ACTIVE afterward. Same fix already
+    # applied to the OLB/Alghero variants of this test below for their
+    # own cars.
+    sa004 = get_car_by_plate("SA-004-AA")
+    confirmed_reservation_id = find_reservation_id(sa004["id"], "2026-08-25")
+    force_reservation_status(confirmed_reservation_id, "CONFIRMED")
+
     try:
         cag_id = get_location_id("CAG")
 
@@ -165,6 +176,7 @@ def test_fleet_status_cagliari_2026_08_26():
     finally:
         restore_statuses(originals)
         restore_location("SA-006-AA", sa006_original_airport)
+        force_reservation_status(confirmed_reservation_id, "ACTIVE")
 
 
 def test_fleet_status_alghero_2026_08_26():
@@ -425,6 +437,114 @@ def test_upcoming_lists_exclude_cancelled():
 
     assert reservation["id"] not in pickup_ids
     assert reservation["id"] not in return_ids
+
+
+def test_upcoming_pickups_includes_customer_phone_number():
+    car = ensure_car_available("SA-005-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=1)).isoformat(),
+        (now + timedelta(days=3)).isoformat(),
+    )
+
+    try:
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+
+        row = next(
+            r
+            for r in response.json()["upcoming_pickups"]
+            if r["id"] == reservation["id"]
+        )
+        assert row["customer_phone_number"] == "+31600000000"
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")
+
+
+def test_dashboard_date_range_excludes_pickups_outside_window():
+    car = ensure_car_available("SA-006-AA")
+    now = datetime.now(timezone.utc)
+
+    in_range = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=2)).isoformat(),
+        (now + timedelta(days=4)).isoformat(),
+    )
+
+    try:
+        out_of_range = create_reservation(
+            car["id"],
+            car["current_location"]["id"],
+            (now + timedelta(days=40)).isoformat(),
+            (now + timedelta(days=42)).isoformat(),
+        )
+
+        try:
+            start = (now + timedelta(days=1)).date().isoformat()
+            end = (now + timedelta(days=5)).date().isoformat()
+
+            response = client.get(
+                "/api/dashboard",
+                params={"start_date": start, "end_date": end},
+            )
+            assert response.status_code == 200
+
+            pickup_ids = {
+                r["id"] for r in response.json()["upcoming_pickups"]
+            }
+            assert in_range["id"] in pickup_ids
+            assert out_of_range["id"] not in pickup_ids
+        finally:
+            force_reservation_status(out_of_range["id"], "CANCELLED")
+    finally:
+        force_reservation_status(in_range["id"], "CANCELLED")
+
+
+def test_dashboard_date_range_returns_includes_not_yet_started_booking():
+    """
+    Unlike the default (no-range) view, an explicit range on the returns
+    list isn't restricted to rentals already in progress — a booking
+    whose return_at falls in the requested window belongs there even if
+    it hasn't been picked up yet.
+    """
+
+    car = ensure_car_available("SA-007-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now + timedelta(days=30)).isoformat(),
+        (now + timedelta(days=32)).isoformat(),
+    )
+
+    try:
+        start = (now + timedelta(days=29)).date().isoformat()
+        end = (now + timedelta(days=33)).date().isoformat()
+
+        response = client.get(
+            "/api/dashboard",
+            params={"start_date": start, "end_date": end},
+        )
+        assert response.status_code == 200
+
+        return_ids = {r["id"] for r in response.json()["upcoming_returns"]}
+        assert reservation["id"] in return_ids
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")
+
+
+def test_dashboard_date_range_rejects_start_after_end():
+    response = client.get(
+        "/api/dashboard",
+        params={"start_date": "2027-01-10", "end_date": "2027-01-01"},
+    )
+
+    assert response.status_code == 400
 
 
 def test_upcoming_pickups_ordered_ascending():

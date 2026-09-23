@@ -14,7 +14,12 @@ class HandoverResponse(BaseModel):
     payment_amount: float | None
     payment_currency: str | None
     payment_status: str
+    payment_method: str | None
     paid_at: datetime | None
+
+    refund_amount: float | None
+    refunded_at: datetime | None
+    stripe_refund_id: str | None
 
     signed_at: datetime | None
     has_signature: bool
@@ -35,7 +40,15 @@ class HandoverResponse(BaseModel):
             ),
             payment_currency=handover.payment_currency,
             payment_status=handover.payment_status,
+            payment_method=handover.payment_method,
             paid_at=handover.paid_at,
+            refund_amount=(
+                float(handover.refund_amount)
+                if handover.refund_amount is not None
+                else None
+            ),
+            refunded_at=handover.refunded_at,
+            stripe_refund_id=handover.stripe_refund_id,
             signed_at=handover.signed_at,
             has_signature=handover.signature_image is not None,
             generated_at=handover.generated_at,

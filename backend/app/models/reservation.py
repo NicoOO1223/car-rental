@@ -46,6 +46,23 @@ class Reservation(Base):
         nullable=False,
     )
 
+    # Permanently nullable, not a temporary migration stage: rows created
+    # before this column existed have no real acting user to attribute,
+    # and that history is never fabricated. ondelete="SET NULL" so
+    # deleting a User row can't be blocked by, or cascade into, old
+    # reservations it's attributed on.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     customer: Mapped["Customer"] = relationship(
     "Customer",
     )

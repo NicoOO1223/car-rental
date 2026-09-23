@@ -60,12 +60,16 @@ export default function ReservationDetailsPage({
         setLocations(locationData);
 
         // A handover only exists once a reservation reaches CONFIRMED.
-        // Asking for one on a PENDING or CANCELLED booking is a
-        // guaranteed 400, so skip the request rather than firing it and
-        // swallowing the error — it was logging a console error on every
-        // pending reservation anyone opened. The catch stays for the
-        // genuine race where the status changed under us.
-        if (["CONFIRMED", "ACTIVE", "COMPLETED"].includes(data.status)) {
+        // Asking for one on a PENDING booking is a guaranteed 400, so
+        // skip the request rather than firing it and swallowing the
+        // error — it was logging a console error on every pending
+        // reservation anyone opened. CANCELLED is included despite that
+        // same risk (a reservation cancelled while still PENDING never
+        // got one either) because a reservation that reached the
+        // counter, paid, and was *then* cancelled keeps its Handover
+        // row — that's exactly where refund status lives. The catch
+        // handles both the genuine race and the no-handover case.
+        if (["CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"].includes(data.status)) {
           try {
             setHandover(await getHandover(id));
           } catch {
@@ -123,9 +127,15 @@ export default function ReservationDetailsPage({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this reservation?"
-    );
+    const willRefund = handover?.payment_status === "SUCCEEDED";
+    const confirmationMessage = willRefund
+      ? `Are you sure you want to cancel this reservation? This will also refund ${formatCurrency(
+          handover!.payment_amount ?? 0,
+          handover!.payment_currency ?? undefined,
+        )} to the customer via ${handover!.payment_method === "CASH" ? "cash" : "card"}.`
+      : "Are you sure you want to cancel this reservation?";
+
+    const confirmed = window.confirm(confirmationMessage);
 
     if (!confirmed) {
       return;
@@ -139,6 +149,10 @@ export default function ReservationDetailsPage({
         await cancelReservation(reservation.id);
 
       setReservation(updatedReservation);
+
+      if (willRefund) {
+        setHandover(await getHandover(reservation.id));
+      }
     } catch (error) {
       setActionError(
         error instanceof Error
@@ -758,6 +772,17 @@ export default function ReservationDetailsPage({
                   <p className="mt-1 text-sm text-gray-500">
                     This reservation is no longer active.
                   </p>
+
+                  {handover?.payment_status === "REFUNDED" && (
+                    <p className="mt-2 text-sm text-gray-700">
+                      Refunded{" "}
+                      {formatCurrency(
+                        handover.refund_amount ?? 0,
+                        handover.payment_currency ?? undefined,
+                      )}{" "}
+                      via {handover.payment_method === "CASH" ? "cash" : "card"}.
+                    </p>
+                  )}
                 </div>
               )}
 

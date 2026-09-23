@@ -9,10 +9,14 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileSignature,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
   Plus,
+  SlidersHorizontal,
+  TrendingUp,
+  UserCog,
   Users,
   Wrench,
   X,
@@ -20,15 +24,17 @@ import {
 } from "lucide-react";
 
 import { clearToken } from "@/lib/api";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 type NavItem = { name: string; href: string; icon: LucideIcon };
+type NavSection = { label: string | null; items: NavItem[] };
 
 /**
  * Grouped rather than one flat list of six. "Bookings" and "Fleet" are
  * genuinely different jobs, and the labels give the eye somewhere to land
  * when scanning for a destination.
  */
-const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+const BASE_NAV_SECTIONS: NavSection[] = [
   {
     label: null,
     items: [{ name: "Overview", href: "/", icon: LayoutDashboard }],
@@ -53,6 +59,19 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
     ],
   },
 ];
+
+// Only shown to admins (see Sidebar()) — a client-side convenience, not
+// the security boundary. Every route/endpoint behind it is independently
+// gated server-side by require_role("admin").
+const ADMIN_NAV_SECTION: NavSection = {
+  label: "Admin",
+  items: [
+    { name: "Users", href: "/admin/users", icon: UserCog },
+    { name: "Audit Log", href: "/admin/audit-log", icon: History },
+    { name: "Revenue", href: "/admin/revenue", icon: TrendingUp },
+    { name: "Configuration", href: "/admin/configuration", icon: SlidersHorizontal },
+  ],
+};
 
 const COLLAPSE_STORAGE_KEY = "sidebar-collapsed";
 
@@ -106,6 +125,7 @@ function isItemActive(pathname: string, href: string): boolean {
 function SidebarContent({
   pathname,
   collapsed,
+  sections,
   onNavigate,
   onClose,
   onToggleCollapse,
@@ -113,6 +133,7 @@ function SidebarContent({
 }: {
   pathname: string;
   collapsed: boolean;
+  sections: NavSection[];
   onNavigate?: () => void;
   onClose?: () => void;
   onToggleCollapse?: () => void;
@@ -173,7 +194,7 @@ function SidebarContent({
           {collapsed && <span className="sr-only">New Reservation</span>}
         </Link>
 
-        {NAV_SECTIONS.map((section, sectionIndex) => (
+        {sections.map((section, sectionIndex) => (
           <div key={section.label ?? sectionIndex} className="mt-6">
             {section.label && !collapsed && (
               <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
@@ -288,6 +309,21 @@ function SidebarContent({
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useCurrentUser();
+
+  // Per-employee display preference, configured from /admin/users — not
+  // a security boundary. Every route behind a hidden item stays reachable
+  // by URL, exactly like the Admin section already is for non-admins.
+  const hiddenNavItems = new Set(user?.hidden_nav_items ?? []);
+  const visibleBaseSections = BASE_NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !hiddenNavItems.has(item.href)),
+  })).filter((section) => section.items.length > 0);
+
+  const sections =
+    user?.role === "admin"
+      ? [...visibleBaseSections, ADMIN_NAV_SECTION]
+      : visibleBaseSections;
 
   const collapsed = useSyncExternalStore(
     subscribeToCollapse,
@@ -389,7 +425,8 @@ export default function Sidebar() {
             <SidebarContent
               pathname={pathname}
               collapsed={false}
-              accountEmail={null}
+              sections={sections}
+              accountEmail={user?.email ?? null}
               onNavigate={() => setMobileOpen(false)}
               onClose={() => {
                 setMobileOpen(false);
@@ -409,7 +446,8 @@ export default function Sidebar() {
           <SidebarContent
             pathname={pathname}
             collapsed={collapsed}
-            accountEmail={null}
+            sections={sections}
+            accountEmail={user?.email ?? null}
             onToggleCollapse={toggleCollapse}
           />
         </div>

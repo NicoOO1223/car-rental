@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user
+from app.models import User
 from app.schemas.pricing import PriceBreakdownExtraLine
 from app.schemas.handover import (
     HandoverResponse,
@@ -12,6 +13,7 @@ from app.schemas.handover import (
     SignatureSubmit,
 )
 from app.services.handovers import (
+    confirm_cash_payment,
     confirm_payment,
     create_or_reuse_payment_intent,
     generate_agreement,
@@ -22,7 +24,7 @@ from app.services.handovers import (
 router = APIRouter(
     prefix="/api/reservations/{reservation_id}/handover",
     tags=["Handover"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 
@@ -37,9 +39,10 @@ def _raise_for_value_error(exc: ValueError):
 def get_handover_state(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover = get_or_create_handover(db, reservation_id)
+        handover = get_or_create_handover(db, reservation_id, actor=current_user)
     except ValueError as exc:
         _raise_for_value_error(exc)
 
@@ -50,9 +53,12 @@ def get_handover_state(
 def create_payment_intent_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover, intent, breakdown = create_or_reuse_payment_intent(db, reservation_id)
+        handover, intent, breakdown = create_or_reuse_payment_intent(
+            db, reservation_id, actor=current_user
+        )
     except ValueError as exc:
         _raise_for_value_error(exc)
 
@@ -87,9 +93,24 @@ def create_payment_intent_endpoint(
 def confirm_payment_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover = confirm_payment(db, reservation_id)
+        handover = confirm_payment(db, reservation_id, actor=current_user)
+    except ValueError as exc:
+        _raise_for_value_error(exc)
+
+    return HandoverResponse.from_model(handover)
+
+
+@router.post("/confirm-cash-payment", response_model=HandoverResponse)
+def confirm_cash_payment_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    try:
+        handover = confirm_cash_payment(db, reservation_id, actor=current_user)
     except ValueError as exc:
         _raise_for_value_error(exc)
 
@@ -101,9 +122,12 @@ def submit_signature_endpoint(
     reservation_id: UUID,
     data: SignatureSubmit,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover = submit_signature(db, reservation_id, data.signature_image)
+        handover = submit_signature(
+            db, reservation_id, data.signature_image, actor=current_user
+        )
     except ValueError as exc:
         _raise_for_value_error(exc)
 
@@ -114,9 +138,10 @@ def submit_signature_endpoint(
 def generate_agreement_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover = generate_agreement(db, reservation_id)
+        handover = generate_agreement(db, reservation_id, actor=current_user)
     except ValueError as exc:
         _raise_for_value_error(exc)
 
@@ -127,9 +152,10 @@ def generate_agreement_endpoint(
 def download_agreement_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        handover = get_or_create_handover(db, reservation_id)
+        handover = get_or_create_handover(db, reservation_id, actor=current_user)
     except ValueError as exc:
         _raise_for_value_error(exc)
 

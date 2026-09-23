@@ -38,6 +38,7 @@ import {
   type BookingStep,
 } from "@/components/booking/Stepper";
 import { DateRangeCalendar, toDateKey } from "@/components/booking/DateRangeCalendar";
+import { IdentityVerificationStep } from "@/components/identity/IdentityVerificationStep";
 import { CarImage } from "@/components/cars/CarImage";
 import { categoryLabel } from "@/lib/carDisplay";
 import {
@@ -113,6 +114,9 @@ export default function NewReservationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [created, setCreated] = useState<Reservation | null>(null);
+  const [identityVerification, setIdentityVerification] = useState<
+    Reservation["customer"]["identity_verification"]
+  >(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -367,6 +371,7 @@ export default function NewReservationPage() {
       });
 
       setCreated(reservation);
+      setIdentityVerification(reservation.customer.identity_verification);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Failed to create reservation.",
@@ -423,6 +428,24 @@ export default function NewReservationPage() {
               </div>
             )}
           </dl>
+
+          <div className="mt-6 rounded-lg bg-surface-sunken p-4 text-left">
+            <h2 className="text-sm font-semibold text-ink">
+              Verify your identity now (optional)
+            </h2>
+            <p className="mt-1 text-sm text-ink-secondary">
+              Speed up pickup by verifying your driving licence ahead of
+              time. You can also do this in person when you collect the
+              car.
+            </p>
+            <div className="mt-3">
+              <IdentityVerificationStep
+                customerId={created.customer.id}
+                identityVerification={identityVerification}
+                onUpdate={setIdentityVerification}
+              />
+            </div>
+          </div>
 
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button

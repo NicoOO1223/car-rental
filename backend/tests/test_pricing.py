@@ -2,10 +2,34 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
+from app.database import SessionLocal
+from app.services.configuration import get_configuration
 from app.services.pricing import ExtraSelection, calculate_price_breakdown
 
 
 PRICE_PER_DAY = Decimal("50.00")
+
+
+def _configuration_kwargs() -> dict:
+    """
+    Surcharge amounts are admin-editable via the configuration table now,
+    not module constants — sourced from the actual seeded row (rather than
+    re-hardcoding 5/30.00/50.00 here) so these tests fail if the seeded
+    defaults ever drift from what they assert.
+    """
+
+    db = SessionLocal()
+
+    try:
+        configuration = get_configuration(db)
+        return {
+            "short_term_threshold_days": configuration.short_term_threshold_days,
+            "short_term_fee": configuration.short_term_fee,
+            "airport_change_fee": configuration.airport_change_fee,
+        }
+    finally:
+        db.close()
+
 
 ADDITIONAL_DRIVER = ExtraSelection(
     code="ADDITIONAL_DRIVER",
@@ -41,6 +65,7 @@ def test_breakdown_no_surcharges_for_long_same_airport_trip():
         datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
         same_location,
         same_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.base_amount == Decimal("350.00")  # 50 x 7
@@ -58,6 +83,7 @@ def test_breakdown_short_term_fee_applies_under_5_days():
         datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
         same_location,
         same_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.base_amount == Decimal("100.00")  # 50 x 2
@@ -75,6 +101,7 @@ def test_breakdown_exactly_5_days_is_not_short_term():
         datetime(2027, 1, 6, 10, 0, tzinfo=timezone.utc),  # exactly 5 days
         same_location,
         same_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.short_term_fee == Decimal("0.00")
@@ -90,6 +117,7 @@ def test_breakdown_airport_change_fee_applies_for_different_locations():
         datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
         pickup_location,
         return_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.short_term_fee == Decimal("0.00")
@@ -107,6 +135,7 @@ def test_breakdown_both_surcharges_stack():
         datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
         pickup_location,
         return_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.base_amount == Decimal("100.00")
@@ -120,9 +149,8 @@ def test_breakdown_both_surcharges_stack():
 
 def test_breakdown_without_extras_is_unchanged():
     """
-    Regression guard for the defaulted `extras` parameter: calling with the
-    original five arguments must behave exactly as it did before add-ons
-    existed.
+    Regression guard for the defaulted `extras` parameter: calling with no
+    extras must behave exactly as it did before add-ons existed.
     """
 
     same_location = uuid4()
@@ -133,6 +161,7 @@ def test_breakdown_without_extras_is_unchanged():
         datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
         same_location,
         same_location,
+        **_configuration_kwargs(),
     )
 
     assert breakdown.extras == []
@@ -149,7 +178,8 @@ def test_per_day_extra_scales_with_duration():
         datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
         same_location,
         same_location,
-        [ADDITIONAL_DRIVER],
+        **_configuration_kwargs(),
+        extras=[ADDITIONAL_DRIVER],
     )
 
     assert breakdown.extras[0].amount == Decimal("49.00")  # 7.00 x 7
@@ -166,7 +196,8 @@ def test_per_rental_extra_does_not_scale_with_duration():
         datetime(2027, 1, 8, 10, 0, tzinfo=timezone.utc),  # 7 days
         same_location,
         same_location,
-        [REFUELING],
+        **_configuration_kwargs(),
+        extras=[REFUELING],
     )
 
     short_rental = calculate_price_breakdown(
@@ -175,7 +206,8 @@ def test_per_rental_extra_does_not_scale_with_duration():
         datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
         same_location,
         same_location,
-        [REFUELING],
+        **_configuration_kwargs(),
+        extras=[REFUELING],
     )
 
     assert long_rental.extras_amount == Decimal("45.00")
@@ -191,7 +223,8 @@ def test_extra_quantity_multiplies_line():
         datetime(2027, 1, 4, 10, 0, tzinfo=timezone.utc),  # 3 days
         same_location,
         same_location,
-        [TWO_BABY_SEATS],
+        **_configuration_kwargs(),
+        extras=[TWO_BABY_SEATS],
     )
 
     assert breakdown.extras[0].amount == Decimal("36.00")  # 6.00 x 2 x 3
@@ -206,7 +239,8 @@ def test_mixed_extras_sum_into_total():
         datetime(2027, 1, 3, 10, 0, tzinfo=timezone.utc),  # 2 days
         same_location,
         same_location,
-        [ADDITIONAL_DRIVER, REFUELING],
+        **_configuration_kwargs(),
+        extras=[ADDITIONAL_DRIVER, REFUELING],
     )
 
     # base 100 + short-term 30 + driver (7 x 2) + refueling 45
@@ -225,7 +259,8 @@ def test_extras_do_not_affect_surcharge_rules():
         datetime(2027, 1, 7, 10, 0, tzinfo=timezone.utc),  # 6 days
         same_location,
         same_location,
-        [ADDITIONAL_DRIVER, REFUELING, TWO_BABY_SEATS],
+        **_configuration_kwargs(),
+        extras=[ADDITIONAL_DRIVER, REFUELING, TWO_BABY_SEATS],
     )
 
     assert breakdown.short_term_fee == Decimal("0.00")

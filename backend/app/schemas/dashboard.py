@@ -31,6 +31,7 @@ class DashboardReservation(BaseModel):
 
     customer_first_name: str
     customer_last_name: str
+    customer_phone_number: str | None
 
     car_make: str
     car_model: str
@@ -85,8 +86,26 @@ class DashboardRevenuePoint(BaseModel):
     revenue: float
 
 
+class DashboardRevenueByMethod(BaseModel):
+    card: float
+    cash: float
+
+
 class DashboardRevenueResponse(BaseModel):
     start_date: date
     end_date: date
+
+    # Vehicle revenue: day-rate x duration of COMPLETED reservations,
+    # attributed to pickup date. Deliberately excludes surcharges/extras
+    # — see get_daily_revenue()'s docstring.
     points: list[DashboardRevenuePoint]
     total_revenue: float
+
+    # Money actually collected: SUCCEEDED handover payments, attributed
+    # to payment date. Includes surcharges/extras (they're baked into
+    # payment_amount), excludes anything later refunded — see
+    # get_collected_revenue()'s docstring.
+    collected_points: list[DashboardRevenuePoint]
+    total_collected: float
+    collected_by_method: DashboardRevenueByMethod
+    total_refunded: float

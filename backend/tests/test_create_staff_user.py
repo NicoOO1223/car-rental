@@ -34,6 +34,51 @@ def test_create_staff_user_stores_email_lowercase():
         _delete_by_email(email)
 
 
+def test_create_staff_user_defaults_to_staff_role():
+    email = "default-role@example.com"
+
+    try:
+        create_staff_user(email, "a-password")
+
+        db = SessionLocal()
+        try:
+            stored = db.query(User).filter(User.email == email).first()
+            assert stored.role == "staff"
+        finally:
+            db.close()
+    finally:
+        _delete_by_email(email)
+
+
+def test_create_staff_user_accepts_explicit_admin_role():
+    email = "explicit-admin@example.com"
+
+    try:
+        create_staff_user(email, "a-password", role="admin")
+
+        db = SessionLocal()
+        try:
+            stored = db.query(User).filter(User.email == email).first()
+            assert stored.role == "admin"
+        finally:
+            db.close()
+    finally:
+        _delete_by_email(email)
+
+
+def test_create_staff_user_rejects_an_invalid_role():
+    email = "invalid-role@example.com"
+
+    with pytest.raises(SystemExit):
+        create_staff_user(email, "a-password", role="superuser")
+
+    db = SessionLocal()
+    try:
+        assert db.query(User).filter(User.email == email).first() is None
+    finally:
+        db.close()
+
+
 def test_create_staff_user_rejects_a_case_variant_duplicate():
     """
     A row already exists as "dup@example.com"; asking to create

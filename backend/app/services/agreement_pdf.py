@@ -5,9 +5,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
+from sqlalchemy.orm import Session
 
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
+from app.services.configuration import get_configuration
 
 # Placeholder rental terms — not real legal copy. Review/replace with actual
 # terms drafted for this business before relying on this document.
@@ -21,7 +23,7 @@ TERMS_LINES = [
 ]
 
 
-def render_agreement_pdf(reservation, car, handover) -> bytes:
+def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
     buffer = BytesIO()
     doc = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -62,6 +64,13 @@ def render_agreement_pdf(reservation, car, handover) -> bytes:
     line(f"{reservation.customer.first_name} {reservation.customer.last_name}")
     line(f"Date of birth: {reservation.customer.date_of_birth}")
     line(f"Address: {reservation.customer.address}, {reservation.customer.postal_code}")
+    if reservation.customer.identity_verified_at:
+        line(
+            f"Identity verified via Stripe Identity on "
+            f"{reservation.customer.identity_verified_at:%Y-%m-%d} "
+            f"({reservation.customer.identity_document_type}, "
+            f"{reservation.customer.identity_issuing_country})"
+        )
     y -= 4 * mm
 
     heading("Vehicle")
@@ -75,13 +84,17 @@ def render_agreement_pdf(reservation, car, handover) -> bytes:
 
     heading("Payment")
     currency = handover.payment_currency.upper() if handover.payment_currency else ""
+    configuration = get_configuration(db)
     breakdown = calculate_price_breakdown(
         car.price_per_day,
         reservation.pickup_at,
         reservation.return_at,
         reservation.pickup_location_id,
         reservation.return_location_id,
-        selections_from_reservation(reservation),
+        short_term_threshold_days=configuration.short_term_threshold_days,
+        short_term_fee=configuration.short_term_fee,
+        airport_change_fee=configuration.airport_change_fee,
+        extras=selections_from_reservation(reservation),
     )
     line(f"Base rental: {breakdown.base_amount:.2f} {currency}".strip())
     if breakdown.short_term_fee:

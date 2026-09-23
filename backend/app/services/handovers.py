@@ -6,10 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import STRIPE_SECRET_KEY
-from app.models import Car, Handover, Reservation
+from app.models import Car, Handover, Reservation, User
 from app.services.agreement_pdf import render_agreement_pdf
+from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
+from app.services.configuration import get_configuration
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -18,7 +20,7 @@ stripe.api_key = STRIPE_SECRET_KEY
 PAYMENT_METHOD_TYPES = ["card"]
 
 
-def get_or_create_handover(db: Session, reservation_id) -> Handover:
+def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover:
     """
     Fetch the Handover row for a reservation, creating an empty one if
     absent. Only CONFIRMED reservations may have a handover started —
@@ -43,7 +45,11 @@ def get_or_create_handover(db: Session, reservation_id) -> Handover:
             "Handover is only available for confirmed reservations."
         )
 
-    handover = Handover(reservation_id=reservation_id)
+    handover = Handover(
+        reservation_id=reservation_id,
+        created_by=actor.id,
+        updated_by=actor.id,
+    )
 
     db.add(handover)
     db.commit()
@@ -60,7 +66,7 @@ def _require_stripe_configured() -> None:
         )
 
 
-def create_or_reuse_payment_intent(db: Session, reservation_id):
+def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
     """
     Idempotent: reuses an existing non-canceled PaymentIntent (re-verified
     live against Stripe) rather than creating a duplicate on retry, e.g. a
@@ -77,10 +83,11 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id)
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     reservation = db.get(Reservation, reservation_id)
     car = db.get(Car, reservation.car_id)
+    configuration = get_configuration(db)
 
     breakdown = calculate_price_breakdown(
         car.price_per_day,
@@ -88,9 +95,12 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
         reservation.return_at,
         reservation.pickup_location_id,
         reservation.return_location_id,
+        short_term_threshold_days=configuration.short_term_threshold_days,
+        short_term_fee=configuration.short_term_fee,
+        airport_change_fee=configuration.airport_change_fee,
         # Snapshotted prices, not the live catalog — a booking is charged
         # what it was booked at.
-        selections_from_reservation(reservation),
+        extras=selections_from_reservation(reservation),
     )
 
     # Quantized before the cents conversion below. Every input today is an
@@ -126,7 +136,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
 
         intent = stripe.PaymentIntent.create(
             amount=int(amount * 100),
-            currency="eur",
+            currency=configuration.default_currency,
             payment_method_types=PAYMENT_METHOD_TYPES,
             metadata={"reservation_id": str(reservation_id)},
         )
@@ -135,8 +145,10 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
 
     handover.stripe_payment_intent_id = intent.id
     handover.payment_amount = amount
-    handover.payment_currency = "eur"
+    handover.payment_currency = configuration.default_currency
     handover.payment_status = "PROCESSING"
+    handover.payment_method = "CARD"
+    handover.updated_by = actor.id
 
     db.commit()
     db.refresh(handover)
@@ -144,7 +156,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id):
     return handover, intent, breakdown
 
 
-def confirm_payment(db: Session, reservation_id) -> Handover:
+def confirm_payment(db: Session, reservation_id, actor: User) -> Handover:
     """
     Server-side verification against Stripe — the frontend's own
     stripe.confirmPayment() result is never trusted on its own.
@@ -152,7 +164,7 @@ def confirm_payment(db: Session, reservation_id) -> Handover:
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id)
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if not handover.stripe_payment_intent_id:
         raise ValueError("No payment has been initiated for this reservation.")
@@ -172,17 +184,150 @@ def confirm_payment(db: Session, reservation_id) -> Handover:
     else:
         handover.payment_status = "FAILED"
 
+    handover.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.payment_confirmed",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={
+            "payment_method": "CARD",
+            "stripe_payment_intent_id": handover.stripe_payment_intent_id,
+            "payment_status": handover.payment_status,
+        },
+    )
+
     db.commit()
     db.refresh(handover)
 
     return handover
 
 
-def submit_signature(db: Session, reservation_id, signature_image: str) -> Handover:
-    handover = get_or_create_handover(db, reservation_id)
+def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
+    """
+    Records a cash payment taken at the counter. There's no third party
+    to verify this against — unlike confirm_payment(), which re-checks a
+    card payment against Stripe, this is a direct staff attestation that
+    the full amount was received in cash, made at the moment they take
+    it. The amount charged is computed fresh, the same way
+    create_or_reuse_payment_intent() does for card, so it reflects the
+    reservation's current dates/locations/extras.
+    """
+
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
+
+    reservation = db.get(Reservation, reservation_id)
+    car = db.get(Car, reservation.car_id)
+    configuration = get_configuration(db)
+
+    breakdown = calculate_price_breakdown(
+        car.price_per_day,
+        reservation.pickup_at,
+        reservation.return_at,
+        reservation.pickup_location_id,
+        reservation.return_location_id,
+        short_term_threshold_days=configuration.short_term_threshold_days,
+        short_term_fee=configuration.short_term_fee,
+        airport_change_fee=configuration.airport_change_fee,
+        extras=selections_from_reservation(reservation),
+    )
+
+    amount = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    handover.payment_amount = amount
+    handover.payment_currency = configuration.default_currency
+    handover.payment_status = "SUCCEEDED"
+    handover.payment_method = "CASH"
+    handover.paid_at = datetime.utcnow()
+    handover.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.payment_confirmed",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={
+            "payment_method": "CASH",
+            "payment_status": handover.payment_status,
+        },
+    )
+
+    db.commit()
+    db.refresh(handover)
+
+    return handover
+
+
+def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handover | None:
+    """
+    Called from cancel_reservation() (app/services/reservations.py) when
+    a reservation is cancelled. Refunds the full payment_amount if this
+    reservation's handover shows a SUCCEEDED payment — a CARD payment
+    gets a real Stripe refund against the original PaymentIntent, a CASH
+    payment is recorded as a staff attestation, the same reasoning
+    confirm_cash_payment() uses for taking cash in the first place.
+    Returns the updated Handover, or None if there was nothing to
+    refund (no handover yet, or payment_status isn't SUCCEEDED — a
+    still-PROCESSING or never-attempted payment has nothing captured to
+    give back).
+
+    Never commits — the caller commits this together with the
+    reservation's own status change, so a refund is never recorded
+    without the cancellation it belongs to actually going through.
+    """
+
+    handover = db.scalar(
+        select(Handover).where(Handover.reservation_id == reservation_id)
+    )
+
+    if handover is None or handover.payment_status != "SUCCEEDED":
+        return None
+
+    if handover.payment_method == "CARD":
+        _require_stripe_configured()
+
+        try:
+            refund = stripe.Refund.create(
+                payment_intent=handover.stripe_payment_intent_id
+            )
+        except stripe.StripeError as exc:
+            raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+
+        handover.stripe_refund_id = refund.id
+
+    handover.refund_amount = handover.payment_amount
+    handover.refunded_at = datetime.utcnow()
+    handover.payment_status = "REFUNDED"
+    handover.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.refund_issued",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={
+            "amount": float(handover.refund_amount),
+            "currency": handover.payment_currency,
+            "method": handover.payment_method,
+            "reservation_id": str(reservation_id),
+        },
+    )
+
+    return handover
+
+
+def submit_signature(
+    db: Session, reservation_id, signature_image: str, actor: User
+) -> Handover:
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     handover.signature_image = signature_image
     handover.signed_at = datetime.utcnow()
+    handover.updated_by = actor.id
 
     db.commit()
     db.refresh(handover)
@@ -190,7 +335,7 @@ def submit_signature(db: Session, reservation_id, signature_image: str) -> Hando
     return handover
 
 
-def generate_agreement(db: Session, reservation_id) -> Handover:
+def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
     """
     Validates payment SUCCEEDED + signature present, generates the PDF,
     and — all in one transaction — sets Reservation.status = ACTIVE and
@@ -198,7 +343,7 @@ def generate_agreement(db: Session, reservation_id) -> Handover:
     reaches ACTIVE.
     """
 
-    handover = get_or_create_handover(db, reservation_id)
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if handover.payment_status != "SUCCEEDED":
         raise ValueError("Payment must be completed before generating the agreement.")
@@ -208,6 +353,11 @@ def generate_agreement(db: Session, reservation_id) -> Handover:
 
     reservation = db.get(Reservation, reservation_id)
 
+    if reservation.customer.identity_verification_status != "verified":
+        raise ValueError(
+            "Identity verification is required before generating the agreement."
+        )
+
     if reservation.status != "CONFIRMED":
         raise ValueError(
             f"Cannot generate agreement for a {reservation.status.lower()} reservation."
@@ -215,12 +365,23 @@ def generate_agreement(db: Session, reservation_id) -> Handover:
 
     car = db.get(Car, reservation.car_id)
 
-    pdf_bytes = render_agreement_pdf(reservation, car, handover)
+    pdf_bytes = render_agreement_pdf(db, reservation, car, handover)
 
     handover.agreement_pdf = pdf_bytes
     handover.generated_at = datetime.utcnow()
+    handover.updated_by = actor.id
     reservation.status = "ACTIVE"
+    reservation.updated_by = actor.id
     car.status = "RENTED"
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.agreement_generated",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={"reservation_id": str(reservation.id)},
+    )
 
     db.commit()
     db.refresh(handover)

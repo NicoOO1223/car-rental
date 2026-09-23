@@ -1,9 +1,13 @@
 import random
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
+from app.dependencies import get_current_user
 from app.main import app
+from app.models import User
+from tests.test_handovers import create_confirmed_reservation
 from tests.test_reservations import (
     ensure_car_available,
     force_reservation_status,
@@ -12,6 +16,30 @@ from tests.test_reservations import (
 
 
 client = TestClient(app)
+
+
+def test_revenue_rejects_staff_role():
+    staff_user = User(
+        id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+        email="test-suite@example.com",
+        hashed_password="unused",
+        role="staff",
+        is_active=True,
+    )
+
+    app.dependency_overrides[get_current_user] = lambda: staff_user
+
+    try:
+        response = client.get(
+            "/api/dashboard/revenue",
+            params={"start_date": "2026-07-28", "end_date": "2026-08-08"},
+        )
+
+        assert response.status_code == 403
+    finally:
+        # Restored by conftest's own override_auth fixture on the next
+        # test anyway, but leave no trace within this test.
+        app.dependency_overrides.pop(get_current_user, None)
 
 
 def test_revenue_known_seed_completed_reservation():
@@ -163,3 +191,74 @@ def test_revenue_invalid_range_rejected():
     )
 
     assert response.status_code == 400
+
+
+def _random_dates(days: int = 2) -> tuple[str, str]:
+    offset_days = random.randint(3000, 8000)
+    pickup = datetime.now(timezone.utc) + timedelta(days=offset_days)
+    return_at = pickup + timedelta(days=days)
+
+    return (
+        pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        return_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+
+def _today_revenue() -> dict:
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    return client.get(
+        "/api/dashboard/revenue",
+        params={"start_date": today, "end_date": today},
+    ).json()
+
+
+def test_collected_revenue_includes_cash_payment_by_method():
+    # Money collected is attributed to paid_at (today, since the payment
+    # happens now), not the reservation's own pickup date -- unlike the
+    # unrelated points/total_revenue field, which is why this doesn't
+    # need a far-future pickup date to isolate itself.
+    pickup_at, return_at = _random_dates()
+    reservation = create_confirmed_reservation("SA-008-AA", pickup_at, return_at)
+
+    before = _today_revenue()
+
+    payment_response = client.post(
+        f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment"
+    )
+    assert payment_response.status_code == 200
+    amount = payment_response.json()["payment_amount"]
+
+    after = _today_revenue()
+
+    assert after["total_collected"] == round(before["total_collected"] + amount, 2)
+    assert after["collected_by_method"]["cash"] == round(
+        before["collected_by_method"]["cash"] + amount, 2
+    )
+    assert after["collected_by_method"]["card"] == before["collected_by_method"]["card"]
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_collected_revenue_excludes_refunded_payment():
+    pickup_at, return_at = _random_dates()
+    reservation = create_confirmed_reservation("SA-008-AA", pickup_at, return_at)
+
+    payment_response = client.post(
+        f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment"
+    )
+    amount = payment_response.json()["payment_amount"]
+
+    with_payment = _today_revenue()
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+    after_refund = _today_revenue()
+
+    # The refunded handover moved out of SUCCEEDED, so it no longer
+    # counts toward collected revenue -- no separate subtraction logic
+    # needed on the backend, just confirming it here.
+    assert after_refund["total_collected"] == round(
+        with_payment["total_collected"] - amount, 2
+    )
+    assert after_refund["total_refunded"] >= amount

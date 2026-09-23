@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from typing import Literal
 
-from app.schemas.customer import CustomerUpdate
+from app.schemas.customer import CustomerUpdate, IdentityVerificationSummary
 from app.schemas.extra import ExtraSelectionRequest
 from app.schemas.pricing import PriceBreakdownFields
 
@@ -29,6 +29,7 @@ class CustomerSummary(BaseModel):
     postal_code: str
     phone_number: str | None
     email: str | None
+    identity_verification: IdentityVerificationSummary | None
 
     model_config = ConfigDict(from_attributes=True)
 

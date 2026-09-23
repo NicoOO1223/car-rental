@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Pencil, ShieldAlert, Trash2 } from "lucide-react";
 
 import {
+  downloadCustomerDataExport,
+  eraseCustomer,
   getCustomer,
   getCustomerReservations,
   type Customer,
@@ -14,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { CustomerEditModal } from "@/components/customers/CustomerEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
 import { bookingReference } from "@/lib/format";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -24,12 +27,17 @@ type Props = {
 
 export default function CustomerDetailsPage({ params }: Props) {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [reservations, setReservations] = useState<CustomerReservation[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+  const [erasing, setErasing] = useState(false);
+  const [privacyActionError, setPrivacyActionError] = useState("");
 
   useEffect(() => {
     async function loadData() {
@@ -59,6 +67,47 @@ export default function CustomerDetailsPage({ params }: Props) {
 
   function formatDateTime(date: string) {
     return new Date(date).toLocaleString();
+  }
+
+  async function handleExport() {
+    if (!customer) return;
+
+    setExporting(true);
+    setPrivacyActionError("");
+
+    try {
+      await downloadCustomerDataExport(customer.id);
+    } catch (err) {
+      setPrivacyActionError(
+        err instanceof Error ? err.message : "Failed to export customer data.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleErase() {
+    if (!customer) return;
+
+    const confirmed = window.confirm(
+      "Erase this customer's personal data? This cannot be undone — their name, date of birth, address, and contact details will be permanently replaced with placeholders. Their reservation history stays on file.",
+    );
+
+    if (!confirmed) return;
+
+    setErasing(true);
+    setPrivacyActionError("");
+
+    try {
+      const updated = await eraseCustomer(customer.id);
+      setCustomer(updated);
+    } catch (err) {
+      setPrivacyActionError(
+        err instanceof Error ? err.message : "Failed to erase customer data.",
+      );
+    } finally {
+      setErasing(false);
+    }
   }
 
   if (loading) {
@@ -95,7 +144,7 @@ export default function CustomerDetailsPage({ params }: Props) {
             Back to customers
           </button>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold">
                 {customer.first_name} {customer.last_name}
@@ -106,11 +155,55 @@ export default function CustomerDetailsPage({ params }: Props) {
               </p>
             </div>
 
-            <Button variant="secondary" onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              {user?.role === "admin" && (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={handleExport}
+                    disabled={exporting}
+                  >
+                    <Download className="h-4 w-4" />
+                    {exporting ? "Exporting..." : "Export Data"}
+                  </Button>
+
+                  {!customer.anonymized_at && (
+                    <Button
+                      variant="danger"
+                      onClick={handleErase}
+                      disabled={erasing}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {erasing ? "Erasing..." : "Erase Customer Data"}
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {!customer.anonymized_at && (
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </div>
+
+          {privacyActionError && (
+            <p className="mt-3 text-sm text-red-600">{privacyActionError}</p>
+          )}
+
+          {customer.anonymized_at && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                This customer&apos;s personal data was erased on{" "}
+                {formatDate(customer.anonymized_at)}. Their reservation history
+                is kept for accounting/legal record-keeping, but the fields
+                below are placeholders and can no longer be edited.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Customer information */}

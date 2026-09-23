@@ -4,8 +4,9 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer
+from app.models import Customer, User
 from app.schemas.customer import CustomerUpdate
+from app.services.audit import audit_log
 
 
 def normalized_customer_key(
@@ -63,16 +64,28 @@ def update_customer(
     db: Session,
     customer_id: UUID,
     data: CustomerUpdate,
+    actor: User,
 ) -> Customer:
     customer = db.get(Customer, customer_id)
 
     if customer is None:
         raise ValueError("Customer not found.")
 
+    if customer.anonymized_at is not None:
+        raise ValueError("Customer data has been erased and can no longer be edited.")
+
     updates = data.model_dump(exclude_unset=True)
 
     for field, value in updates.items():
         setattr(customer, field, value)
+
+    audit_log(
+        db,
+        user=actor,
+        action="customer.updated",
+        entity_type="customer",
+        entity_id=customer.id,
+    )
 
     db.commit()
     db.refresh(customer)

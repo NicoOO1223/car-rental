@@ -166,3 +166,37 @@ def test_protected_endpoint_accepts_valid_token():
         assert response.status_code == 200
     finally:
         _delete_test_user(user.id)
+
+
+def test_me_returns_authenticated_user():
+    app.dependency_overrides.pop(get_current_user, None)
+    user = _create_test_user()
+
+    try:
+        login = client.post(
+            "/api/auth/login",
+            json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+        )
+        token = login.json()["access_token"]
+
+        response = client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "id": str(user.id),
+            "email": TEST_EMAIL,
+            "role": "staff",
+            "hidden_nav_items": [],
+        }
+    finally:
+        _delete_test_user(user.id)
+
+
+def test_me_rejects_missing_token():
+    app.dependency_overrides.pop(get_current_user, None)
+
+    response = client.get("/api/auth/me")
+
+    assert response.status_code == 401

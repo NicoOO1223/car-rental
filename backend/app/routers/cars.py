@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user
 from app.models import Car, Reservation
 from app.schemas.car import CarResponse, CarUpdate
 from app.schemas.maintenance import MaintenanceTaskResponse
@@ -19,7 +19,7 @@ from sqlalchemy import select
 router = APIRouter(
     prefix="/api/cars",
     tags=["Cars"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 @router.get("", response_model=list[CarResponse])

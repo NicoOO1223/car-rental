@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user
 from app.models import Location
 from app.schemas.location import LocationResponse
 
@@ -11,7 +11,7 @@ from app.schemas.location import LocationResponse
 router = APIRouter(
     prefix="/api/locations",
     tags=["Locations"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 

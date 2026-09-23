@@ -54,6 +54,23 @@ export type LoginResponse = {
   token_type: string;
 };
 
+export type CurrentUser = {
+  id: string;
+  email: string;
+  role: "admin" | "staff";
+  hidden_nav_items: string[];
+};
+
+export async function getCurrentUser(): Promise<CurrentUser> {
+  const response = await apiFetch("/api/auth/me");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch current user.");
+  }
+
+  return response.json();
+}
+
 export async function login(
   email: string,
   password: string,
@@ -80,6 +97,13 @@ export type Location = {
   address: string | null;
 };
 
+export type IdentityVerification = {
+  status: string | null;
+  document_type: string | null;
+  issuing_country: string | null;
+  verified_at: string | null;
+};
+
 export type Reservation = {
   id: string;
 
@@ -92,6 +116,7 @@ export type Reservation = {
     postal_code: string;
     phone_number: string | null;
     email: string | null;
+    identity_verification: IdentityVerification | null;
   };
 
   car: {
@@ -662,6 +687,7 @@ export type DashboardReservation = {
 
   customer_first_name: string;
   customer_last_name: string;
+  customer_phone_number: string | null;
 
   car_make: string;
   car_model: string;
@@ -723,8 +749,16 @@ export type Dashboard = {
 };
 
 
-export async function getDashboard(): Promise<Dashboard> {
-  const response = await apiFetch("/api/dashboard");
+export async function getDashboard(range?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<Dashboard> {
+  const params = new URLSearchParams();
+  if (range?.startDate) params.set("start_date", range.startDate);
+  if (range?.endDate) params.set("end_date", range.endDate);
+
+  const query = params.toString();
+  const response = await apiFetch(`/api/dashboard${query ? `?${query}` : ""}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch dashboard");
@@ -779,8 +813,19 @@ export type RevenuePoint = {
 export type Revenue = {
   start_date: string;
   end_date: string;
+
+  // Vehicle revenue: day-rate x duration of completed reservations,
+  // attributed to pickup date. Excludes surcharges/extras.
   points: RevenuePoint[];
   total_revenue: number;
+
+  // Money actually collected: SUCCEEDED handover payments, attributed
+  // to payment date. Includes surcharges/extras, excludes anything
+  // later refunded.
+  collected_points: RevenuePoint[];
+  total_collected: number;
+  collected_by_method: { card: number; cash: number };
+  total_refunded: number;
 };
 
 export async function getRevenue(params: {
@@ -808,6 +853,98 @@ export async function getRevenue(params: {
   return response.json();
 }
 
+// Builds the CSV client-side from the already-fetched response — the
+// same reasoning downloadCustomerDataExport uses for its JSON export,
+// rather than adding a backend-streamed report endpoint for data the
+// page already has in hand.
+export function downloadRevenueCsv(revenue: Revenue): void {
+  const collectedByDate = new Map(
+    revenue.collected_points.map((point) => [point.date, point.revenue]),
+  );
+
+  const rows = [
+    ["date", "vehicle_revenue", "collected_revenue"],
+    ...revenue.points.map((point) => [
+      point.date,
+      point.revenue.toFixed(2),
+      (collectedByDate.get(point.date) ?? 0).toFixed(2),
+    ]),
+  ];
+
+  const csv = rows.map((row) => row.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `revenue-${revenue.start_date}-to-${revenue.end_date}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export type AuditLogEntry = {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type AuditLogListResponse = {
+  items: AuditLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export async function getAuditLogs(params: {
+  entityType?: string;
+  action?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+  limit: number;
+  offset: number;
+}): Promise<AuditLogListResponse> {
+  const search = new URLSearchParams();
+
+  if (params.entityType) search.set("entity_type", params.entityType);
+  if (params.action) search.set("action", params.action);
+  if (params.userId) search.set("user_id", params.userId);
+  if (params.startDate) search.set("start_date", params.startDate);
+  if (params.endDate) search.set("end_date", params.endDate);
+  search.set("limit", String(params.limit));
+  search.set("offset", String(params.offset));
+
+  const response = await apiFetch(`/api/audit-logs?${search}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch audit log.");
+  }
+
+  return response.json();
+}
+
+export type AuditLogActor = {
+  id: string;
+  email: string;
+};
+
+export async function getAuditLogActors(): Promise<AuditLogActor[]> {
+  const response = await apiFetch("/api/audit-logs/actors");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch audit log actors.");
+  }
+
+  return response.json();
+}
+
 export type Customer = {
   id: string;
   first_name: string;
@@ -818,6 +955,8 @@ export type Customer = {
   phone_number: string | null;
   email: string | null;
   created_at: string;
+  anonymized_at: string | null;
+  identity_verification: IdentityVerification | null;
 };
 
 export type CustomerListItem = Customer & {
@@ -886,6 +1025,132 @@ export async function getCustomerReservations(
   return response.json();
 }
 
+// --- Data retention & GDPR (admin only) -----------------------------------
+
+export type CustomerExportReservation = {
+  id: string;
+  car_make: string;
+  car_model: string;
+  car_license_plate: string;
+  pickup_location_code: string;
+  return_location_code: string;
+  pickup_at: string;
+  return_at: string;
+  status: string;
+  payment_status: string | null;
+  payment_method: "CARD" | "CASH" | null;
+  payment_amount: number | null;
+  payment_currency: string | null;
+  has_signature: boolean;
+  has_agreement: boolean;
+};
+
+export type CustomerDataExport = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  address: string;
+  postal_code: string;
+  phone_number: string | null;
+  email: string | null;
+  created_at: string;
+  anonymized_at: string | null;
+  identity_verification: IdentityVerification | null;
+  reservations: CustomerExportReservation[];
+  exported_at: string;
+};
+
+// Right to erasure — irreversible, admin-only. The customer row stays
+// (reservations/handovers still reference it) but its PII is blanked.
+export async function eraseCustomer(customerId: string): Promise<Customer> {
+  const response = await apiFetch(`/api/customers/${customerId}/erase`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to erase customer data.");
+  }
+
+  return response.json();
+}
+
+// Right to access / data portability — fetches the full data bundle and
+// hands the browser a downloadable JSON file, the same way
+// downloadAgreement hands it a PDF.
+export async function downloadCustomerDataExport(
+  customerId: string,
+): Promise<void> {
+  const response = await apiFetch(`/api/customers/${customerId}/export`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to export customer data.");
+  }
+
+  const bundle: CustomerDataExport = await response.json();
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `customer-${customerId}-data-export.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Starts (or resumes) a Stripe Identity VerificationSession for the
+// customer. The returned client_secret is handed to
+// stripe.verifyIdentity() to launch Stripe's hosted document + selfie
+// capture flow — no document data is ever collected by this app itself.
+export async function createIdentityVerificationSession(
+  customerId: string,
+): Promise<{ client_secret: string | null }> {
+  const response = await apiFetch(
+    `/api/customers/${customerId}/identity-verification`,
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(
+      errorData?.detail || "Failed to start identity verification.",
+    );
+  }
+
+  return response.json();
+}
+
+// Re-checks the verification session against Stripe. Call this after
+// stripe.verifyIdentity() resolves, and via a manual "check status"
+// action while Stripe is still processing.
+export async function refreshIdentityVerificationStatus(
+  customerId: string,
+): Promise<Customer> {
+  const response = await apiFetch(
+    `/api/customers/${customerId}/identity-verification/refresh`,
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(
+      errorData?.detail || "Failed to check identity verification status.",
+    );
+  }
+
+  return response.json();
+}
+
 export type Handover = {
   id: string;
   reservation_id: string;
@@ -894,7 +1159,12 @@ export type Handover = {
   payment_amount: number | null;
   payment_currency: string | null;
   payment_status: string;
+  payment_method: "CARD" | "CASH" | null;
   paid_at: string | null;
+
+  refund_amount: number | null;
+  refunded_at: string | null;
+  stripe_refund_id: string | null;
 
   signed_at: string | null;
   has_signature: boolean;
@@ -956,6 +1226,23 @@ export async function confirmHandoverPayment(
     const errorData = await response.json().catch(() => null);
 
     throw new Error(errorData?.detail || "Failed to confirm payment.");
+  }
+
+  return response.json();
+}
+
+export async function confirmCashPayment(
+  reservationId: string,
+): Promise<Handover> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/confirm-cash-payment`,
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to confirm cash payment.");
   }
 
   return response.json();
@@ -1027,6 +1314,88 @@ export async function downloadAgreement(
   URL.revokeObjectURL(url);
 }
 
+export type User = {
+  id: string;
+  email: string;
+  role: "admin" | "staff";
+  is_active: boolean;
+  created_at: string;
+  hidden_nav_items: string[];
+};
+
+export async function getUsers(): Promise<User[]> {
+  const response = await apiFetch("/api/users");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch users.");
+  }
+
+  return response.json();
+}
+
+export async function createUser(data: {
+  email: string;
+  password: string;
+  role: string;
+}): Promise<User> {
+  const response = await apiFetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to create user.");
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  userId: string,
+  data: Partial<{
+    email: string;
+    role: string;
+    is_active: boolean;
+    hidden_nav_items: string[];
+  }>,
+): Promise<User> {
+  const response = await apiFetch(`/api/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to update user.");
+  }
+
+  return response.json();
+}
+
+export async function resetUserPassword(
+  userId: string,
+  password: string,
+): Promise<User> {
+  const response = await apiFetch(`/api/users/${userId}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to reset password.");
+  }
+
+  return response.json();
+}
+
 export async function updateCustomer(
   customerId: string,
   data: Partial<{
@@ -1054,6 +1423,42 @@ export async function updateCustomer(
     throw new Error(
       errorData?.detail || "Failed to update customer",
     );
+  }
+
+  return response.json();
+}
+
+export type Configuration = {
+  short_term_threshold_days: number;
+  short_term_fee: number;
+  airport_change_fee: number;
+  default_currency: string;
+  access_token_expire_days: number;
+};
+
+export async function getConfiguration(): Promise<Configuration> {
+  const response = await apiFetch("/api/configuration");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch configuration.");
+  }
+
+  return response.json();
+}
+
+export async function updateConfiguration(
+  data: Partial<Configuration>,
+): Promise<Configuration> {
+  const response = await apiFetch("/api/configuration", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to update configuration.");
   }
 
   return response.json();

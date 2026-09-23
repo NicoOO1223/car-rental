@@ -25,7 +25,7 @@ class PriceBreakdownFields(BaseModel):
     """
 
     rental_days: int
-    currency: str = "eur"
+    currency: str
 
     base_amount: float
     short_term_fee: float
@@ -41,9 +41,11 @@ class PriceBreakdownFields(BaseModel):
         cls,
         breakdown: PriceBreakdown,
         rental_days: int,
+        currency: str,
     ) -> "PriceBreakdownFields":
         return cls(
             rental_days=rental_days,
+            currency=currency,
             base_amount=float(breakdown.base_amount),
             short_term_fee=float(breakdown.short_term_fee),
             airport_change_fee=float(breakdown.airport_change_fee),

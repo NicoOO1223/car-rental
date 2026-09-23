@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user
 from app.schemas.pricing import PriceBreakdownFields
+from app.services.configuration import get_configuration
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationQuoteRequest,
@@ -21,7 +22,7 @@ from app.services.reservations import (
     update_reservation,
 )
 
-from app.models import Reservation
+from app.models import Reservation, User
 
 from uuid import UUID
 from sqlalchemy import select
@@ -30,7 +31,7 @@ from sqlalchemy import select
 router = APIRouter(
     prefix="/api/reservations",
     tags=["Reservations"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 
@@ -42,6 +43,7 @@ router = APIRouter(
 def create_reservation_endpoint(
     data: ReservationCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
         reservation = create_reservation(
@@ -53,6 +55,7 @@ def create_reservation_endpoint(
             pickup_at=data.pickup_at,
             return_at=data.return_at,
             extras=data.extras,
+            actor=current_user,
         )
 
     except ValueError as exc:
@@ -86,8 +89,12 @@ def quote_reservation_endpoint(
             detail=str(exc),
         )
 
+    currency = get_configuration(db).default_currency
+
     return ReservationQuoteResponse(
-        **PriceBreakdownFields.from_breakdown(breakdown, rental_days).model_dump(),
+        **PriceBreakdownFields.from_breakdown(
+            breakdown, rental_days, currency
+        ).model_dump(),
         car_available=available,
         availability_message=message,
     )
@@ -99,11 +106,13 @@ def quote_reservation_endpoint(
 def cancel_reservation_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
         reservation = cancel_reservation(
             db=db,
             reservation_id=reservation_id,
+            actor=current_user,
         )
 
     except ValueError as exc:
@@ -179,12 +188,14 @@ def update_reservation_status_endpoint(
     reservation_id: UUID,
     data: ReservationStatusUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
         reservation = update_reservation_status(
             db=db,
             reservation_id=reservation_id,
             new_status=data.status,
+            actor=current_user,
         )
 
     except ValueError as exc:
@@ -209,12 +220,14 @@ def update_reservation_endpoint(
     reservation_id: UUID,
     data: ReservationUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     try:
         reservation = update_reservation(
             db=db,
             reservation_id=reservation_id,
             data=data,
+            actor=current_user,
         )
 
     except ValueError as exc:

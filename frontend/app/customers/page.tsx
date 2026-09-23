@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Users } from "lucide-react";
 
 import { getCustomers, type CustomerListItem } from "@/lib/api";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
@@ -124,10 +125,15 @@ export default function CustomersPage() {
       header: "Customer",
       mobile: "primary",
       cell: (customer) => (
-        <TwoLine
-          primary={`${customer.first_name} ${customer.last_name}`}
-          secondary={customer.postal_code}
-        />
+        <div className="flex items-center gap-2">
+          <TwoLine
+            primary={`${customer.first_name} ${customer.last_name}`}
+            secondary={customer.postal_code}
+          />
+          {customer.anonymized_at && (
+            <Badge colorClass="bg-gray-100 text-gray-600">Erased</Badge>
+          )}
+        </div>
       ),
       mobileCell: (customer) =>
         `${customer.first_name} ${customer.last_name}`,

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user
 from app.schemas.maintenance import MaintenanceTaskCreate, MaintenanceTaskResponse
 from app.services.maintenance import (
     cancel_task,
@@ -16,7 +16,7 @@ from app.services.maintenance import (
 router = APIRouter(
     prefix="/api/maintenance",
     tags=["Maintenance"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 

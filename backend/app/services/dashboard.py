@@ -1,9 +1,10 @@
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Car, Reservation
+from app.models import Car, Handover, Reservation
 from app.services.pricing import calculate_rental_price
 
 
@@ -60,3 +61,85 @@ def get_daily_revenue(
         current += timedelta(days=1)
 
     return points
+
+
+@dataclass
+class CollectedRevenue:
+    points: list[tuple[date, float]]
+    total_collected: float
+    card_total: float
+    cash_total: float
+    total_refunded: float
+
+
+def get_collected_revenue(
+    db: Session,
+    start_date: date,
+    end_date: date,
+) -> CollectedRevenue:
+    """
+    Money actually collected — Handover.payment_amount where
+    payment_status == "SUCCEEDED", attributed to the day it was paid
+    (paid_at), for every day in [start_date, end_date] inclusive. A
+    refunded handover excludes itself automatically once its status
+    moves to REFUNDED, so no separate subtraction is needed here;
+    refunds are totalled separately below, by the day they were issued.
+
+    This is the counterpart to get_daily_revenue() above: that one is
+    *vehicle* revenue (day-rate x duration of completed rentals,
+    attributed to pickup date); this one is cash actually taken
+    (attributed to payment date), includes surcharges and add-ons
+    baked into payment_amount, and is split by payment method.
+    """
+
+    if start_date > end_date:
+        raise ValueError("start_date must be on or before end_date.")
+
+    range_start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    range_end = datetime.combine(end_date, time.min, tzinfo=timezone.utc) + timedelta(
+        days=1
+    )
+
+    paid_rows = db.execute(
+        select(Handover.paid_at, Handover.payment_amount, Handover.payment_method).where(
+            Handover.payment_status == "SUCCEEDED",
+            Handover.paid_at >= range_start,
+            Handover.paid_at < range_end,
+        )
+    ).all()
+
+    collected_by_day: dict[date, float] = {}
+    card_total = 0.0
+    cash_total = 0.0
+
+    for paid_at, payment_amount, payment_method in paid_rows:
+        amount = float(payment_amount) if payment_amount is not None else 0.0
+        day = paid_at.date()
+        collected_by_day[day] = collected_by_day.get(day, 0.0) + amount
+
+        if payment_method == "CARD":
+            card_total += amount
+        elif payment_method == "CASH":
+            cash_total += amount
+
+    points: list[tuple[date, float]] = []
+    current = start_date
+
+    while current <= end_date:
+        points.append((current, collected_by_day.get(current, 0.0)))
+        current += timedelta(days=1)
+
+    total_refunded = db.scalar(
+        select(func.coalesce(func.sum(Handover.refund_amount), 0)).where(
+            Handover.refunded_at >= range_start,
+            Handover.refunded_at < range_end,
+        )
+    )
+
+    return CollectedRevenue(
+        points=points,
+        total_collected=sum(collected_by_day.values()),
+        card_total=card_total,
+        cash_total=cash_total,
+        total_refunded=float(total_refunded or 0),
+    )

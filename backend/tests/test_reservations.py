@@ -1,13 +1,17 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models import Car, Reservation
+from app.models import AuditLog, Car, Reservation
 
 
 client = TestClient(app)
+
+# Matches tests/conftest.py's _fake_user, which every request in this
+# suite authenticates as by default.
+TEST_SUITE_USER_ID = UUID("00000000-0000-0000-0000-000000000000")
 
 
 def get_olb_id():
@@ -277,6 +281,101 @@ def test_update_reservation_completed_rejected():
 
     assert response.status_code == 400
     assert "completed" in response.json()["detail"].lower()
+
+
+def test_create_reservation_sets_created_by_and_updated_by():
+    aho_id = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    reservation = create_reservation(
+        car["id"],
+        aho_id,
+        "2027-01-10T10:00:00Z",
+        "2027-01-12T10:00:00Z",
+    )
+
+    db = SessionLocal()
+    try:
+        row = db.get(Reservation, reservation["id"])
+        assert row.created_by == TEST_SUITE_USER_ID
+        assert row.updated_by == TEST_SUITE_USER_ID
+    finally:
+        db.close()
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_cancel_reservation_records_audit_log():
+    aho_id = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    reservation = create_reservation(
+        car["id"],
+        aho_id,
+        "2027-01-20T10:00:00Z",
+        "2027-01-22T10:00:00Z",
+    )
+
+    response = client.patch(f"/api/reservations/{reservation['id']}/cancel")
+    assert response.status_code == 200
+
+    db = SessionLocal()
+    try:
+        row = db.get(Reservation, reservation["id"])
+        assert row.updated_by == TEST_SUITE_USER_ID
+
+        entry = (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.entity_type == "reservation",
+                AuditLog.entity_id == UUID(reservation["id"]),
+                AuditLog.action == "reservation.cancelled",
+            )
+            .first()
+        )
+        assert entry is not None
+        assert entry.user_id == TEST_SUITE_USER_ID
+    finally:
+        db.close()
+
+
+def test_update_reservation_status_records_audit_log():
+    aho_id = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    reservation = create_reservation(
+        car["id"],
+        aho_id,
+        "2027-01-25T10:00:00Z",
+        "2027-01-27T10:00:00Z",
+    )
+
+    response = client.patch(
+        f"/api/reservations/{reservation['id']}/status",
+        json={"status": "CONFIRMED"},
+    )
+    assert response.status_code == 200
+
+    db = SessionLocal()
+    try:
+        row = db.get(Reservation, reservation["id"])
+        assert row.updated_by == TEST_SUITE_USER_ID
+
+        entry = (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.entity_type == "reservation",
+                AuditLog.entity_id == UUID(reservation["id"]),
+                AuditLog.action == "reservation.status_changed",
+            )
+            .first()
+        )
+        assert entry is not None
+        assert entry.details == {"from": "PENDING", "to": "CONFIRMED"}
+    finally:
+        db.close()
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 
 def test_update_reservation_not_found():

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_authenticated_user, require_role
 from app.models import Car, Reservation
 from app.schemas.dashboard import (
     DashboardFleetStats,
@@ -15,18 +15,19 @@ from app.schemas.dashboard import (
     DashboardReservation,
     DashboardReservationStats,
     DashboardResponse,
+    DashboardRevenueByMethod,
     DashboardRevenuePoint,
     DashboardRevenueResponse,
     DashboardTodayStats,
 )
 from app.services.availability import get_fleet_status_counts
-from app.services.dashboard import get_daily_revenue
+from app.services.dashboard import get_collected_revenue, get_daily_revenue
 
 
 router = APIRouter(
     prefix="/api/dashboard",
     tags=["Dashboard"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 
@@ -36,6 +37,7 @@ def _to_dashboard_reservation(reservation: Reservation) -> DashboardReservation:
 
         customer_first_name=reservation.customer.first_name,
         customer_last_name=reservation.customer.last_name,
+        customer_phone_number=reservation.customer.phone_number,
 
         car_make=reservation.car.make,
         car_model=reservation.car.model,
@@ -59,8 +61,31 @@ def _to_dashboard_reservation(reservation: Reservation) -> DashboardReservation:
     response_model=DashboardResponse,
 )
 def get_dashboard(
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
     db: Session = Depends(get_db),
 ):
+    # When set, these narrow the "upcoming pickups"/"upcoming returns"
+    # lists below to a specific window (e.g. "today", or a staff-picked
+    # range) instead of the default "everything from now on, capped at
+    # 10". Left unset, both lists keep their original default behavior
+    # exactly — this is additive, not a replacement.
+    if start_date or end_date:
+        resolved_start = start_date or end_date
+        resolved_end = end_date or start_date
+
+        if resolved_start > resolved_end:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date must not be after end_date.",
+            )
+
+        range_start = datetime.combine(resolved_start, time.min, tzinfo=timezone.utc)
+        range_end = datetime.combine(resolved_end, time.min, tzinfo=timezone.utc) + timedelta(days=1)
+    else:
+        range_start = None
+        range_end = None
+
     # ---------------------------------------------------------
     # Fleet statistics
     # ---------------------------------------------------------
@@ -171,12 +196,23 @@ def get_dashboard(
     # Upcoming pickups
     # ---------------------------------------------------------
 
-    upcoming_pickup_rows = db.scalars(
-        select(Reservation)
-        .where(
+    if range_start is not None:
+        # An explicit range was requested — "pickups in this window",
+        # full stop, no additional "from now on" constraint.
+        pickup_filters = [
+            Reservation.pickup_at >= range_start,
+            Reservation.pickup_at < range_end,
+            Reservation.status != "CANCELLED",
+        ]
+    else:
+        pickup_filters = [
             Reservation.pickup_at >= now,
             Reservation.status != "CANCELLED",
-        )
+        ]
+
+    pickup_query = (
+        select(Reservation)
+        .where(*pickup_filters)
         .options(
             joinedload(Reservation.customer),
             joinedload(Reservation.car),
@@ -186,8 +222,12 @@ def get_dashboard(
         .order_by(
             Reservation.pickup_at.asc()
         )
-        .limit(10)
-    ).all()
+    )
+
+    if range_start is None:
+        pickup_query = pickup_query.limit(10)
+
+    upcoming_pickup_rows = db.scalars(pickup_query).all()
 
     upcoming_pickups = [
         _to_dashboard_reservation(reservation)
@@ -210,14 +250,28 @@ def get_dashboard(
     # filter already uses. This also keeps the two lists disjoint: a
     # reservation can satisfy pickup_at >= now or pickup_at <= now, never
     # both.
+    #
+    # That "already in progress" constraint only makes sense for the
+    # open-ended default view, though — once a specific range is
+    # requested, "returns due in this window" is the whole answer, even
+    # for a reservation that hasn't been picked up yet.
 
-    upcoming_return_rows = db.scalars(
-        select(Reservation)
-        .where(
+    if range_start is not None:
+        return_filters = [
+            Reservation.return_at >= range_start,
+            Reservation.return_at < range_end,
+            Reservation.status != "CANCELLED",
+        ]
+    else:
+        return_filters = [
             Reservation.pickup_at <= now,
             Reservation.return_at >= now,
             Reservation.status != "CANCELLED",
-        )
+        ]
+
+    return_query = (
+        select(Reservation)
+        .where(*return_filters)
         .options(
             joinedload(Reservation.customer),
             joinedload(Reservation.car),
@@ -227,8 +281,12 @@ def get_dashboard(
         .order_by(
             Reservation.return_at.asc()
         )
-        .limit(10)
-    ).all()
+    )
+
+    if range_start is None:
+        return_query = return_query.limit(10)
+
+    upcoming_return_rows = db.scalars(return_query).all()
 
     upcoming_returns = [
         _to_dashboard_reservation(reservation)
@@ -301,6 +359,10 @@ def get_fleet_status(
 @router.get(
     "/revenue",
     response_model=DashboardRevenueResponse,
+    # Aggregate financial reporting — narrower than the rest of the
+    # dashboard, which every staff member uses for routine day-to-day
+    # operations.
+    dependencies=[Depends(require_role("admin"))],
 )
 def get_revenue(
     start_date: date | None = Query(None),
@@ -314,6 +376,7 @@ def get_revenue(
 
     try:
         points = get_daily_revenue(db, resolved_start, resolved_end)
+        collected = get_collected_revenue(db, resolved_start, resolved_end)
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
@@ -328,4 +391,14 @@ def get_revenue(
             for day, revenue in points
         ],
         total_revenue=sum(revenue for _, revenue in points),
+        collected_points=[
+            DashboardRevenuePoint(date=day, revenue=revenue)
+            for day, revenue in collected.points
+        ],
+        total_collected=collected.total_collected,
+        collected_by_method=DashboardRevenueByMethod(
+            card=collected.card_total,
+            cash=collected.cash_total,
+        ),
+        total_refunded=collected.total_refunded,
     )

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard } from "lucide-react";
 
 import {
   createPaymentIntent,
@@ -17,11 +17,12 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
-import { PaymentStep } from "@/components/handover/PaymentStep";
+import { CashPaymentForm, PaymentStep } from "@/components/handover/PaymentStep";
 import {
   SignaturePad,
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
+import { IdentityVerificationStep } from "@/components/identity/IdentityVerificationStep";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useNavigate } from "@/lib/useNavigate";
 
@@ -76,6 +77,10 @@ export default function FinalizeHandoverPage({ params }: Props) {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
 
+  const [identityVerification, setIdentityVerification] = useState<
+    Reservation["customer"]["identity_verification"]
+  >(null);
+
   const signaturePadRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
@@ -91,6 +96,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
         setReservation(reservationData);
         setHandover(handoverData);
+        setIdentityVerification(reservationData.customer.identity_verification);
 
         if (handoverData.payment_status !== "SUCCEEDED") {
           // A payment-intent failure (e.g. Stripe not configured yet)
@@ -209,32 +215,50 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   const paymentDone = handover.payment_status === "SUCCEEDED";
   const signatureDone = handover.has_signature;
+  const identityDone = identityVerification?.status === "verified";
   const agreementDone = handover.has_agreement;
 
   const paymentStatus: StepStatus = paymentDone ? "done" : "active";
-  const signatureStatus: StepStatus = agreementDone
+  const identityStatus: StepStatus = agreementDone
     ? "done"
-    : signatureDone
+    : identityDone
       ? "done"
       : paymentDone
         ? "active"
         : "locked";
-  const agreementStatus: StepStatus = agreementDone
+  const signatureStatus: StepStatus = agreementDone
     ? "done"
     : signatureDone
+      ? "done"
+      : identityDone
+        ? "active"
+        : "locked";
+  const agreementStatus: StepStatus = agreementDone
+    ? "done"
+    : signatureDone && identityDone
       ? "active"
       : "locked";
 
   return (
     <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-3xl">
-        <button
-          onClick={() => navigate("/reservations/finalize")}
-          className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to finalize
-        </button>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <button
+            onClick={() => navigate("/reservations/finalize")}
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to finalize
+          </button>
+
+          <button
+            onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
+            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
+          >
+            View/Change Reservation
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
 
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -293,15 +317,29 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
               <div className="mt-5">
                 {paymentDone ? (
-                  <p className="text-sm text-gray-700">
+                  <p className="flex items-center gap-1.5 text-sm text-gray-700">
+                    {handover.payment_method === "CASH" ? (
+                      <Banknote className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    )}
                     Payment received
+                    {handover.payment_method &&
+                      ` (${handover.payment_method === "CASH" ? "Cash" : "Card"})`}
                     {handover.payment_amount !== null &&
                       ` — ${handover.payment_amount.toFixed(2)} ${handover.payment_currency?.toUpperCase()}`}
                     .
                   </p>
                 ) : paymentIntentError ? (
-                  <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
-                    {paymentIntentError}
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
+                      {paymentIntentError} Card payment is unavailable, but you
+                      can still take cash.
+                    </div>
+                    <CashPaymentForm
+                      reservationId={reservation.id}
+                      onPaid={handlePaid}
+                    />
                   </div>
                 ) : paymentIntent?.client_secret ? (
                   <PaymentStep
@@ -324,10 +362,33 @@ export default function FinalizeHandoverPage({ params }: Props) {
               </div>
             </Card>
 
-            {/* Step 2: Signature */}
-            <Card className={signatureStatus === "locked" ? "opacity-50" : ""}>
+            {/* Step 2: Identity verification */}
+            <Card className={identityStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
                 index={2}
+                title="Identity Verification"
+                status={identityStatus}
+              />
+
+              <div className="mt-5">
+                {identityStatus === "active" || identityStatus === "done" ? (
+                  <IdentityVerificationStep
+                    customerId={reservation.customer.id}
+                    identityVerification={identityVerification}
+                    onUpdate={setIdentityVerification}
+                  />
+                ) : (
+                  <p className="text-sm text-ink-muted">
+                    Complete payment first.
+                  </p>
+                )}
+              </div>
+            </Card>
+
+            {/* Step 3: Signature */}
+            <Card className={signatureStatus === "locked" ? "opacity-50" : ""}>
+              <StepHeader
+                index={3}
                 title="Customer Signature"
                 status={signatureStatus}
               />
@@ -364,16 +425,16 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   </div>
                 ) : (
                   <p className="text-sm text-ink-muted">
-                    Complete payment first.
+                    Verify the customer&apos;s identity first.
                   </p>
                 )}
               </div>
             </Card>
 
-            {/* Step 3: Generate agreement */}
+            {/* Step 4: Generate agreement */}
             <Card className={agreementStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
-                index={3}
+                index={4}
                 title="Generate Agreement"
                 status={agreementStatus}
               />
@@ -399,7 +460,8 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   </div>
                 ) : (
                   <p className="text-sm text-ink-muted">
-                    Capture the customer&apos;s signature first.
+                    Capture the customer&apos;s signature and verify their
+                    identity first.
                   </p>
                 )}
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Banknote, CreditCard } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -10,6 +11,7 @@ import {
 } from "@stripe/react-stripe-js";
 
 import {
+  confirmCashPayment,
   confirmHandoverPayment,
   type PriceBreakdownExtraLine,
 } from "@/lib/api";
@@ -84,9 +86,50 @@ function PaymentForm({
       )}
 
       <Button type="submit" disabled={!stripe || submitting} fullWidth>
+        <CreditCard className="h-4 w-4" aria-hidden="true" />
         {submitting ? "Processing payment..." : "Charge Card"}
       </Button>
     </form>
+  );
+}
+
+export function CashPaymentForm({
+  reservationId,
+  onPaid,
+}: Pick<Props, "reservationId" | "onPaid">) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleConfirm() {
+    setConfirming(true);
+    setError("");
+
+    try {
+      await confirmCashPayment(reservationId);
+      onPaid();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to confirm cash payment.",
+      );
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        Confirm only once the full amount has been received in cash from the
+        customer.
+      </p>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <Button onClick={handleConfirm} disabled={confirming} fullWidth>
+        <Banknote className="h-4 w-4" aria-hidden="true" />
+        {confirming ? "Confirming..." : "Confirm Cash Payment"}
+      </Button>
+    </div>
   );
 }
 
@@ -101,15 +144,7 @@ export function PaymentStep({
   extras,
   onPaid,
 }: Props) {
-  if (!stripePromise) {
-    return (
-      <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
-        Stripe is not configured yet — set{" "}
-        <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> in{" "}
-        <code>frontend/.env.local</code> to enable payment.
-      </div>
-    );
-  }
+  const [method, setMethod] = useState<"card" | "cash">("card");
 
   return (
     <div className="space-y-4">
@@ -130,9 +165,44 @@ export function PaymentStep({
         />
       )}
 
-      <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <PaymentForm reservationId={reservationId} onPaid={onPaid} />
-      </Elements>
+      <div className="flex gap-2 border-b border-border-strong">
+        {(
+          [
+            { key: "card", label: "Card", Icon: CreditCard },
+            { key: "cash", label: "Cash", Icon: Banknote },
+          ] as const
+        ).map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMethod(key)}
+            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              method === key
+                ? "border-gray-900 text-ink"
+                : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {method === "card" ? (
+        stripePromise ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentForm reservationId={reservationId} onPaid={onPaid} />
+          </Elements>
+        ) : (
+          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
+            Stripe is not configured yet — set{" "}
+            <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> in{" "}
+            <code>frontend/.env.local</code> to enable card payment.
+          </div>
+        )
+      ) : (
+        <CashPaymentForm reservationId={reservationId} onPaid={onPaid} />
+      )}
     </div>
   );
 }

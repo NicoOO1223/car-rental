@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 
 import { getToken } from "@/lib/api";
+import { CurrentUserProvider } from "@/components/CurrentUserProvider";
 import Sidebar from "@/components/Sidebar";
 
 function subscribe(callback: () => void) {
@@ -59,21 +60,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      {/* Lets a keyboard user jump past the whole nav, which is otherwise
-          six links and a button before every page's first control. */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[110] focus:rounded-lg focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
-      >
-        Skip to content
-      </a>
+    <CurrentUserProvider>
+      <div className="flex min-h-screen flex-col lg:flex-row">
+        {/* Lets a keyboard user jump past the whole nav, which is otherwise
+            six links and a button before every page's first control. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[110] focus:rounded-lg focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+        >
+          Skip to content
+        </a>
 
-      <Sidebar />
+        <Sidebar />
 
-      <div id="main-content" className="min-w-0 flex-1">
-        {children}
+        <div id="main-content" className="min-w-0 flex-1">
+          {children}
+        </div>
       </div>
-    </div>
+    </CurrentUserProvider>
   );
 }

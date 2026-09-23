@@ -4,14 +4,14 @@ from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
-# Surcharges applied on top of the base day-rate. These are pricing *rules*,
-# which is why they live here as constants rather than in the database —
-# unlike add-ons (app/models/extra.py), which are products with editable
-# prices. Surfaced to the booking wizard via POST /api/reservations/quote;
-# the wizard no longer reimplements any of this in TypeScript.
-SHORT_TERM_THRESHOLD_DAYS = 5
-SHORT_TERM_FEE = Decimal("30.00")
-AIRPORT_CHANGE_FEE = Decimal("50.00")
+# Surcharges applied on top of the base day-rate are admin-editable via the
+# configuration table (app/models/configuration.py,
+# app/services/configuration.py) rather than constants, unlike
+# PRICE_UNIT_PER_DAY/PRICE_UNIT_PER_RENTAL below, which are fixed enum
+# values, not business-rule amounts. Callers fetch the current values with
+# get_configuration() and pass them into calculate_price_breakdown() below,
+# which stays free of any DB dependency so it remains unit-testable on its
+# own.
 
 # How an add-on's catalog price scales. Stored on each extras row and
 # snapshotted onto each reservation_extras row at booking time.
@@ -120,6 +120,10 @@ def calculate_price_breakdown(
     return_at: datetime,
     pickup_location_id: UUID,
     return_location_id: UUID,
+    *,
+    short_term_threshold_days: int,
+    short_term_fee: Decimal,
+    airport_change_fee: Decimal,
     extras: Sequence[ExtraSelection] = (),
 ) -> PriceBreakdown:
     """
@@ -128,12 +132,18 @@ def calculate_price_breakdown(
     any edits made after creation):
 
     - Base: price_per_day x ceil(duration in days).
-    - Short-term fee: +30.00 when the rental runs under 5 days.
-    - Airport-change fee: +50.00 when pickup and return airports differ
+    - Short-term fee: applied when the rental runs under
+      short_term_threshold_days.
+    - Airport-change fee: applied when pickup and return airports differ
       (a one-way rental).
     - Extras: each selected add-on at its snapshotted unit price, times its
       quantity, times the duration for per-day extras. Extras deliberately
       do not affect the short-term or airport rules.
+
+    short_term_threshold_days/short_term_fee/airport_change_fee come from
+    the configuration table (app/services/configuration.py::get_configuration) — passed in
+    by the caller rather than read here, so this function stays a pure,
+    DB-free calculation.
 
     Extras share calculate_rental_duration_days with the base rental, so
     the two can never disagree about how long the rental is.
@@ -143,22 +153,22 @@ def calculate_price_breakdown(
 
     base_amount = price_per_day * rental_days
 
-    short_term_fee = (
-        SHORT_TERM_FEE
-        if rental_days < SHORT_TERM_THRESHOLD_DAYS
+    short_term_fee_amount = (
+        short_term_fee
+        if rental_days < short_term_threshold_days
         else Decimal("0.00")
     )
 
-    airport_change_fee = (
-        AIRPORT_CHANGE_FEE
+    airport_change_fee_amount = (
+        airport_change_fee
         if pickup_location_id != return_location_id
         else Decimal("0.00")
     )
 
     return PriceBreakdown(
         base_amount=base_amount,
-        short_term_fee=short_term_fee,
-        airport_change_fee=airport_change_fee,
+        short_term_fee=short_term_fee_amount,
+        airport_change_fee=airport_change_fee_amount,
         extras=[
             calculate_extra_line(selection, rental_days)
             for selection in extras

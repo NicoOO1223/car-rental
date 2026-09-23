@@ -1,8 +1,10 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
+from app.database import SessionLocal
 from app.main import app
+from app.models import AuditLog
 from tests.test_reservations import (
     create_reservation,
     ensure_car_available,
@@ -334,5 +336,88 @@ def test_update_customer_phone_and_email():
     assert response.status_code == 200
     assert response.json()["phone_number"] == "+31699999999"
     assert response.json()["email"] == "new.contact@example.com"
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def _audit_rows_for_customer(customer_id: str, action: str):
+    db = SessionLocal()
+    try:
+        return (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.entity_type == "customer",
+                AuditLog.entity_id == UUID(customer_id),
+                AuditLog.action == action,
+            )
+            .all()
+        )
+    finally:
+        db.close()
+
+
+def test_get_customer_detail_records_audit_log():
+    aho_id = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    reservation = create_reservation_with_customer(
+        car["id"],
+        aho_id,
+        "2028-07-01T10:00:00Z",
+        "2028-07-03T10:00:00Z",
+        {
+            "first_name": "Audited",
+            "last_name": "Lookup",
+            "date_of_birth": "1993-04-04",
+            "address": "Audit Street 1",
+            "postal_code": "AUD01",
+            "phone_number": "+31600000000",
+            "email": "audited.lookup@example.com",
+        },
+    )
+    customer_id = reservation["customer_id"]
+
+    before = _audit_rows_for_customer(customer_id, "customer.viewed")
+    assert before == []
+
+    response = client.get(f"/api/customers/{customer_id}")
+    assert response.status_code == 200
+
+    after = _audit_rows_for_customer(customer_id, "customer.viewed")
+    assert len(after) == 1
+
+    client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_get_customers_list_does_not_record_audit_log():
+    """
+    The list endpoint is a routine, high-frequency screen load returning
+    many customers at once — auditing every view would flood the table
+    and bury the signal that the detail endpoint's audit entry provides.
+    """
+    aho_id = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    reservation = create_reservation_with_customer(
+        car["id"],
+        aho_id,
+        "2028-07-05T10:00:00Z",
+        "2028-07-07T10:00:00Z",
+        {
+            "first_name": "Listed",
+            "last_name": "Customer",
+            "date_of_birth": "1993-05-05",
+            "address": "List Street 1",
+            "postal_code": "LST01",
+            "phone_number": "+31600000000",
+            "email": "listed.customer@example.com",
+        },
+    )
+    customer_id = reservation["customer_id"]
+
+    response = client.get("/api/customers")
+    assert response.status_code == 200
+
+    assert _audit_rows_for_customer(customer_id, "customer.viewed") == []
 
     client.patch(f"/api/reservations/{reservation['id']}/cancel")

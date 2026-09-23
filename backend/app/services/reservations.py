@@ -1,10 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Car, Customer, Handover, Reservation
+from app.models import Car, Customer, Handover, Reservation, User
 from app.schemas.reservation import ReservationUpdate
+from app.services.audit import audit_log
 from app.services.availability import has_conflicting_reservation
 from app.services.customers import find_matching_customer
+from app.services.handovers import refund_handover_if_paid
 from app.services.extras import (
     build_reservation_extras,
     resolve_extra_selections,
@@ -15,6 +17,7 @@ from app.services.pricing import (
     calculate_price_breakdown,
     calculate_rental_duration_days,
 )
+from app.services.configuration import get_configuration
 
 
 def create_reservation(
@@ -25,6 +28,7 @@ def create_reservation(
     return_location_id,
     pickup_at,
     return_at,
+    actor: User,
     extras=(),
 ):
     # ---------------------------------------------------------
@@ -130,6 +134,8 @@ def create_reservation(
         return_at=return_at,
         status="PENDING",
         extras=build_reservation_extras(resolved_extras),
+        created_by=actor.id,
+        updated_by=actor.id,
     )
 
     db.add(reservation)
@@ -165,6 +171,7 @@ def quote_reservation(
         raise ValueError("Car not found.")
 
     resolved = resolve_extra_selections(db, data.extras)
+    configuration = get_configuration(db)
 
     breakdown = calculate_price_breakdown(
         car.price_per_day,
@@ -172,7 +179,10 @@ def quote_reservation(
         data.return_at,
         data.pickup_location_id,
         data.return_location_id,
-        selections_from_catalog(resolved),
+        short_term_threshold_days=configuration.short_term_threshold_days,
+        short_term_fee=configuration.short_term_fee,
+        airport_change_fee=configuration.airport_change_fee,
+        extras=selections_from_catalog(resolved),
     )
 
     rental_days = calculate_rental_duration_days(data.pickup_at, data.return_at)
@@ -196,6 +206,7 @@ def quote_reservation(
 def cancel_reservation(
     db: Session,
     reservation_id,
+    actor: User,
 ):
     reservation = db.get(
         Reservation,
@@ -215,7 +226,21 @@ def cancel_reservation(
             "Completed reservations cannot be cancelled."
         )
 
+    # Refund whatever was actually paid before flipping the status, so a
+    # refund failure (e.g. a Stripe error) leaves the reservation
+    # un-cancelled rather than cancelled with the money never returned.
+    refund_handover_if_paid(db, reservation_id, actor)
+
     reservation.status = "CANCELLED"
+    reservation.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="reservation.cancelled",
+        entity_type="reservation",
+        entity_id=reservation.id,
+    )
 
     db.commit()
     db.refresh(reservation)
@@ -226,6 +251,7 @@ def update_reservation_status(
     db: Session,
     reservation_id,
     new_status: str,
+    actor: User,
 ):
     reservation = db.get(
         Reservation,
@@ -268,11 +294,21 @@ def update_reservation_status(
         )
 
     reservation.status = new_status
+    reservation.updated_by = actor.id
 
     if new_status == "COMPLETED":
         # Completing a rental hands the vehicle back to the fleet.
         car = db.get(Car, reservation.car_id)
         car.status = "AVAILABLE"
+
+    audit_log(
+        db,
+        user=actor,
+        action="reservation.status_changed",
+        entity_type="reservation",
+        entity_id=reservation.id,
+        metadata={"from": current_status, "to": new_status},
+    )
 
     db.commit()
     db.refresh(reservation)
@@ -283,6 +319,7 @@ def update_reservation(
     db: Session,
     reservation_id,
     data: ReservationUpdate,
+    actor: User,
 ):
     reservation = db.get(Reservation, reservation_id)
 
@@ -361,6 +398,7 @@ def update_reservation(
     reservation.pickup_location_id = effective_pickup_location_id
     reservation.return_location_id = effective_return_location_id
     reservation.car_id = target_car_id
+    reservation.updated_by = actor.id
 
     if data.customer is not None:
         customer = db.get(Customer, reservation.customer_id)
