@@ -66,9 +66,10 @@ export default function DashboardPage() {
   const [fleetStatusError, setFleetStatusError] = useState("");
 
   // Narrows upcoming_pickups/upcoming_returns to a specific window —
-  // "" on both means the default "everything from now on" view.
-  const [upcomingStartDate, setUpcomingStartDate] = useState("");
-  const [upcomingEndDate, setUpcomingEndDate] = useState("");
+  // defaults to today; "" on both is the "All upcoming" view, reachable
+  // via its own button below.
+  const [upcomingStartDate, setUpcomingStartDate] = useState(todayDateString());
+  const [upcomingEndDate, setUpcomingEndDate] = useState(todayDateString());
   const [upcomingLoading, setUpcomingLoading] = useState(false);
   const hasLoadedDashboardRef = useRef(false);
 
