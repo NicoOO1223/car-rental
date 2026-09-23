@@ -100,8 +100,8 @@ export function EditUserModal({ user, isSelf, onClose, onSaved }: Props) {
             Visible pages
           </legend>
           <p className="mt-1 text-xs text-ink-muted">
-            Unchecked pages are hidden from this employee's sidebar. This is a
-            display preference, not an access restriction.
+            Unchecked pages are hidden from this employee&apos;s sidebar. This
+            is a display preference, not an access restriction.
           </p>
 
           <div className="mt-2 space-y-2">

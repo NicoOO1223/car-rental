@@ -44,8 +44,24 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => {
-    refreshUsers();
-  }, [refreshUsers]);
+    // Same effect as calling refreshUsers() directly, but defined inline
+    // (matching every other page's mount-time load effect in this app)
+    // rather than invoking the shared useCallback, which the stricter
+    // set-state-in-effect lint rule flags as a cascading-render risk.
+    async function load() {
+      setError("");
+
+      try {
+        setUsers(await getUsers());
+      } catch {
+        setError("Failed to load users.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
