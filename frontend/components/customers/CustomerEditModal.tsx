@@ -4,8 +4,9 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/Field";
+import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCustomer, type Customer } from "@/lib/api";
+import { COUNTRIES } from "@/lib/countries";
 
 type Props = {
   customer: Customer;
@@ -21,6 +22,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
   const [postalCode, setPostalCode] = useState(customer.postal_code);
   const [phoneNumber, setPhoneNumber] = useState(customer.phone_number ?? "");
   const [email, setEmail] = useState(customer.email ?? "");
+  const [nationality, setNationality] = useState(customer.nationality ?? "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -40,6 +42,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
         postal_code: postalCode,
         phone_number: phoneNumber,
         email,
+        nationality: nationality || undefined,
       });
 
       onSaved(updated);
@@ -134,6 +137,20 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />
+
+          <SelectField
+            label="Nationality"
+            autoComplete="country"
+            value={nationality}
+            onChange={(event) => setNationality(event.target.value)}
+          >
+            <option value="">Select a country...</option>
+            {COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </SelectField>
         </div>
 
         {error && (

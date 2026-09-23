@@ -361,6 +361,7 @@ export default function NewReservationPage() {
           postal_code: customer.postal_code,
           phone_number: customer.phone_number,
           email: customer.email,
+          nationality: customer.nationality || undefined,
         },
         car_id: selectedCar.id,
         pickup_location_id: pickupLocationId,

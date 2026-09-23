@@ -65,6 +65,7 @@ def get_customers(
             postal_code=row.Customer.postal_code,
             phone_number=row.Customer.phone_number,
             email=row.Customer.email,
+            nationality=row.Customer.nationality,
             created_at=row.Customer.created_at,
             anonymized_at=row.Customer.anonymized_at,
             reservation_count=row.reservation_count,

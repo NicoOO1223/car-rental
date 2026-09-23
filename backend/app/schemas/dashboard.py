@@ -32,6 +32,7 @@ class DashboardReservation(BaseModel):
     customer_first_name: str
     customer_last_name: str
     customer_phone_number: str | None
+    customer_nationality: str | None
 
     car_make: str
     car_model: str
@@ -47,6 +48,12 @@ class DashboardReservation(BaseModel):
     return_at: datetime
 
     status: str
+
+    # The full price breakdown total (base + surcharges + extras),
+    # computed fresh from the reservation's current details — the same
+    # figure a payment-intent/cash-payment charge would use, not
+    # necessarily what (if anything) has actually been paid yet.
+    total_price: float
 
 
 class DashboardLocationStats(BaseModel):

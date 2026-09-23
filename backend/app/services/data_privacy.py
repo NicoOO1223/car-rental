@@ -80,6 +80,7 @@ def anonymize_customer(db: Session, customer_id: UUID, actor: User) -> Customer:
     customer.postal_code = ERASED_POSTAL_CODE
     customer.phone_number = None
     customer.email = None
+    customer.nationality = None
 
     customer.identity_verification_session_id = None
     customer.identity_verification_status = None
@@ -188,6 +189,7 @@ def export_customer_data(
         postal_code=customer.postal_code,
         phone_number=customer.phone_number,
         email=customer.email,
+        nationality=customer.nationality,
         created_at=customer.created_at,
         anonymized_at=customer.anonymized_at,
         identity_verification=customer.identity_verification,

@@ -116,6 +116,7 @@ export type Reservation = {
     postal_code: string;
     phone_number: string | null;
     email: string | null;
+    nationality: string | null;
     identity_verification: IdentityVerification | null;
   };
 
@@ -284,6 +285,7 @@ export async function createReservation(data: {
     postal_code: string;
     phone_number: string;
     email: string;
+    nationality?: string;
   };
   car_id: string;
   pickup_location_id: string;
@@ -688,6 +690,7 @@ export type DashboardReservation = {
   customer_first_name: string;
   customer_last_name: string;
   customer_phone_number: string | null;
+  customer_nationality: string | null;
 
   car_make: string;
   car_model: string;
@@ -703,6 +706,8 @@ export type DashboardReservation = {
   return_at: string;
 
   status: string;
+
+  total_price: number;
 };
 
 export type Dashboard = {
@@ -954,6 +959,7 @@ export type Customer = {
   postal_code: string;
   phone_number: string | null;
   email: string | null;
+  nationality: string | null;
   created_at: string;
   anonymized_at: string | null;
   identity_verification: IdentityVerification | null;
@@ -1054,6 +1060,7 @@ export type CustomerDataExport = {
   postal_code: string;
   phone_number: string | null;
   email: string | null;
+  nationality: string | null;
   created_at: string;
   anonymized_at: string | null;
   identity_verification: IdentityVerification | null;
@@ -1406,6 +1413,7 @@ export async function updateCustomer(
     postal_code: string;
     phone_number: string;
     email: string;
+    nationality: string;
   }>,
 ): Promise<Customer> {
   const response = await apiFetch(`/api/customers/${customerId}`, {

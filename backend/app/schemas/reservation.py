@@ -18,6 +18,7 @@ class CustomerCreate(BaseModel):
     postal_code: str
     phone_number: str
     email: str
+    nationality: str | None = None
 
 
 class CustomerSummary(BaseModel):
@@ -29,6 +30,7 @@ class CustomerSummary(BaseModel):
     postal_code: str
     phone_number: str | None
     email: str | None
+    nationality: str | None
     identity_verification: IdentityVerificationSummary | None
 
     model_config = ConfigDict(from_attributes=True)

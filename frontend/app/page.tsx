@@ -29,6 +29,26 @@ function todayDateString() {
   return new Date().toISOString().split("T")[0];
 }
 
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** This week's Mon–Sun as date-input values, so staff can jump straight
+ * to any day in the current week instead of picking two dates by hand. */
+function currentWeekDates(): { label: string; date: string }[] {
+  const today = new Date();
+  const day = today.getUTCDay(); // 0 (Sun) – 6 (Sat)
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() + mondayOffset);
+
+  return WEEKDAY_LABELS.map((label, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(monday.getUTCDate() + index);
+
+    return { label, date: date.toISOString().split("T")[0] };
+  });
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] =
@@ -265,22 +285,26 @@ export default function DashboardPage() {
               All upcoming
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                const today = todayDateString();
-                setUpcomingStartDate(today);
-                setUpcomingEndDate(today);
-              }}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                upcomingStartDate === todayDateString() &&
-                upcomingEndDate === todayDateString()
-                  ? "bg-gray-900 text-white"
-                  : "bg-surface-sunken text-ink-secondary hover:text-ink"
-              }`}
-            >
-              Today
-            </button>
+            {currentWeekDates().map(({ label, date }) => (
+              <button
+                key={date}
+                type="button"
+                onClick={() => {
+                  setUpcomingStartDate(date);
+                  setUpcomingEndDate(date);
+                }}
+                title={date === todayDateString() ? `${label} (today)` : label}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  upcomingStartDate === date && upcomingEndDate === date
+                    ? "bg-gray-900 text-white"
+                    : date === todayDateString()
+                      ? "bg-surface-sunken text-ink ring-1 ring-inset ring-border-strong"
+                      : "bg-surface-sunken text-ink-secondary hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
 
             <input
               type="date"

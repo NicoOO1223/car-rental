@@ -12,7 +12,8 @@ import type { DashboardReservation } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
-import { formatDateShort, formatTime } from "@/lib/format";
+import { countryFlagEmoji, countryName } from "@/lib/countries";
+import { formatCurrency, formatDateShort, formatTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Direction = "pickup" | "return";
@@ -120,6 +121,14 @@ export function UpcomingCard({
             >
               <div className="min-w-0 md:flex-1">
                 <p className="truncate font-medium text-ink">
+                  {countryFlagEmoji(reservation.customer_nationality) && (
+                    <span
+                      className="mr-1.5"
+                      title={countryName(reservation.customer_nationality)}
+                    >
+                      {countryFlagEmoji(reservation.customer_nationality)}
+                    </span>
+                  )}
                   {reservation.customer_first_name} {reservation.customer_last_name}
                 </p>
 
@@ -132,6 +141,12 @@ export function UpcomingCard({
 
                 <p className="mt-1 truncate text-sm text-ink-muted">
                   {reservation.car_make} {reservation.car_model}
+                  <span aria-hidden="true"> · </span>
+                  {reservation.car_license_plate}
+                </p>
+
+                <p className="mt-1 text-sm font-medium text-ink">
+                  {formatCurrency(reservation.total_price)}
                 </p>
               </div>
 

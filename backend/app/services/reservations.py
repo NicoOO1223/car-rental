@@ -116,6 +116,7 @@ def create_reservation(
             postal_code=customer_data.postal_code,
             phone_number=customer_data.phone_number,
             email=customer_data.email,
+            nationality=customer_data.nationality,
         )
 
         db.add(customer)

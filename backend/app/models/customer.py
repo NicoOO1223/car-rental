@@ -54,6 +54,11 @@ class Customer(Base):
         String(255),
     )
 
+    # ISO 3166-1 alpha-2 country code (e.g. "IT", "DE"). Nullable and
+    # optional at booking time, same reasoning as phone_number/email —
+    # existing rows predate this field.
+    nationality: Mapped[str | None] = mapped_column(String(2))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

@@ -1,9 +1,11 @@
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
@@ -21,7 +23,10 @@ from app.schemas.dashboard import (
     DashboardTodayStats,
 )
 from app.services.availability import get_fleet_status_counts
+from app.services.configuration import get_configuration
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
+from app.services.extras import selections_from_reservation
+from app.services.pricing import calculate_price_breakdown
 
 
 router = APIRouter(
@@ -31,13 +36,27 @@ router = APIRouter(
 )
 
 
-def _to_dashboard_reservation(reservation: Reservation) -> DashboardReservation:
+def _to_dashboard_reservation(reservation: Reservation, configuration) -> DashboardReservation:
+    breakdown = calculate_price_breakdown(
+        reservation.car.price_per_day,
+        reservation.pickup_at,
+        reservation.return_at,
+        reservation.pickup_location_id,
+        reservation.return_location_id,
+        short_term_threshold_days=configuration.short_term_threshold_days,
+        short_term_fee=configuration.short_term_fee,
+        airport_change_fee=configuration.airport_change_fee,
+        extras=selections_from_reservation(reservation),
+    )
+    total_price = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
     return DashboardReservation(
         id=reservation.id,
 
         customer_first_name=reservation.customer.first_name,
         customer_last_name=reservation.customer.last_name,
         customer_phone_number=reservation.customer.phone_number,
+        customer_nationality=reservation.customer.nationality,
 
         car_make=reservation.car.make,
         car_model=reservation.car.model,
@@ -53,6 +72,8 @@ def _to_dashboard_reservation(reservation: Reservation) -> DashboardReservation:
         return_at=reservation.return_at,
 
         status=reservation.status,
+
+        total_price=float(total_price),
     )
 
 
@@ -192,6 +213,8 @@ def get_dashboard(
         returns=today_returns,
     )
 
+    configuration = get_configuration(db)
+
     # ---------------------------------------------------------
     # Upcoming pickups
     # ---------------------------------------------------------
@@ -218,6 +241,7 @@ def get_dashboard(
             joinedload(Reservation.car),
             joinedload(Reservation.pickup_location),
             joinedload(Reservation.return_location),
+            selectinload(Reservation.extras),
         )
         .order_by(
             Reservation.pickup_at.asc()
@@ -230,7 +254,7 @@ def get_dashboard(
     upcoming_pickup_rows = db.scalars(pickup_query).all()
 
     upcoming_pickups = [
-        _to_dashboard_reservation(reservation)
+        _to_dashboard_reservation(reservation, configuration)
         for reservation in upcoming_pickup_rows
     ]
 
@@ -277,6 +301,7 @@ def get_dashboard(
             joinedload(Reservation.car),
             joinedload(Reservation.pickup_location),
             joinedload(Reservation.return_location),
+            selectinload(Reservation.extras),
         )
         .order_by(
             Reservation.return_at.asc()
@@ -289,7 +314,7 @@ def get_dashboard(
     upcoming_return_rows = db.scalars(return_query).all()
 
     upcoming_returns = [
-        _to_dashboard_reservation(reservation)
+        _to_dashboard_reservation(reservation, configuration)
         for reservation in upcoming_return_rows
     ]
 

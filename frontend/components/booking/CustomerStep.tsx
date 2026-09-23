@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, UserRound, X } from "lucide-react";
 
-import { Field, Input, TextField } from "@/components/ui/Field";
+import { Field, Input, SelectField, TextField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { getCustomers, type CustomerListItem } from "@/lib/api";
+import { COUNTRIES } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
 
 export type CustomerDetails = {
@@ -16,6 +17,7 @@ export type CustomerDetails = {
   postal_code: string;
   phone_number: string;
   email: string;
+  nationality: string;
 };
 
 export const EMPTY_CUSTOMER: CustomerDetails = {
@@ -26,6 +28,7 @@ export const EMPTY_CUSTOMER: CustomerDetails = {
   postal_code: "",
   phone_number: "",
   email: "",
+  nationality: "",
 };
 
 /**
@@ -96,6 +99,7 @@ export function CustomerStep({
       postal_code: customer.postal_code,
       phone_number: customer.phone_number ?? "",
       email: customer.email ?? "",
+      nationality: customer.nationality ?? "",
     });
   }
 
@@ -254,6 +258,21 @@ export function CustomerStep({
             onChange={set("email")}
             error={errors.email}
           />
+
+          <SelectField
+            label="Nationality"
+            autoComplete="country"
+            value={value.nationality}
+            onChange={set("nationality")}
+            error={errors.nationality}
+          >
+            <option value="">Select a country...</option>
+            {COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </SelectField>
         </div>
       </div>
     </div>

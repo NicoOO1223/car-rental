@@ -12,6 +12,7 @@ class CustomerUpdate(BaseModel):
     postal_code: str | None = None
     phone_number: str | None = None
     email: str | None = None
+    nationality: str | None = None
 
 
 class IdentityVerificationSummary(BaseModel):
@@ -32,6 +33,7 @@ class CustomerResponse(BaseModel):
     postal_code: str
     phone_number: str | None
     email: str | None
+    nationality: str | None
     created_at: datetime
     anonymized_at: datetime | None
     identity_verification: IdentityVerificationSummary | None
@@ -48,6 +50,7 @@ class CustomerListItem(BaseModel):
     postal_code: str
     phone_number: str | None
     email: str | None
+    nationality: str | None
     created_at: datetime
     anonymized_at: datetime | None
 
@@ -97,6 +100,7 @@ class CustomerDataExport(BaseModel):
     postal_code: str
     phone_number: str | None
     email: str | None
+    nationality: str | None
     created_at: datetime
     anonymized_at: datetime | None
     identity_verification: IdentityVerificationSummary | None
