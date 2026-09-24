@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
   // Produces a self-contained .next/standalone server, which the Docker
   // build copies into a slim runtime image instead of shipping node_modules.
   output: "standalone",
+
+  // The check-in flow used to live under /reservations/finalize.
+  async redirects() {
+    return [
+      {
+        source: "/reservations/finalize",
+        destination: "/handovers",
+        permanent: true,
+      },
+      {
+        source: "/reservations/finalize/:id",
+        destination: "/handovers/:id/check-in",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 // Only wrap with Sentry once a DSN is actually configured, so local/CI

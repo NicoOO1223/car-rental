@@ -8,9 +8,13 @@ import {
   generateAgreement,
   downloadAgreement,
   getHandover,
+  getIdentityDetails,
+  getPublicConfiguration,
   getReservation,
+  submitEmployeeSignature,
   submitSignature,
   type Handover,
+  type IdentityDetails,
   type PaymentIntent,
   type Reservation,
 } from "@/lib/api";
@@ -18,45 +22,20 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { CashPaymentForm, PaymentStep } from "@/components/handover/PaymentStep";
+import { DepositStep } from "@/components/handover/DepositStep";
 import {
   SignaturePad,
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
-import { IdentityVerificationStep } from "@/components/identity/IdentityVerificationStep";
+import { IdentityDetailsForm } from "@/components/identity/IdentityDetailsForm";
+import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatDateTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-type StepStatus = "locked" | "active" | "done";
-
-function StepHeader({
-  index,
-  title,
-  status,
-}: {
-  index: number;
-  title: string;
-  status: StepStatus;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-          status === "done" || status === "active"
-            ? "bg-gray-900 text-white"
-            : "bg-gray-100 text-ink-muted"
-        }`}
-      >
-        {status === "done" ? <Check className="h-4 w-4" /> : index}
-      </div>
-
-      <h2 className="text-lg font-semibold">{title}</h2>
-    </div>
-  );
-}
 
 export default function FinalizeHandoverPage({ params }: Props) {
   const navigate = useNavigate();
@@ -74,14 +53,19 @@ export default function FinalizeHandoverPage({ params }: Props) {
   const [signing, setSigning] = useState(false);
   const [signatureError, setSignatureError] = useState("");
 
+  const [employeeSigning, setEmployeeSigning] = useState(false);
+  const [employeeSignatureError, setEmployeeSignatureError] = useState("");
+
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
 
-  const [identityVerification, setIdentityVerification] = useState<
-    Reservation["customer"]["identity_verification"]
-  >(null);
+  const [identityDetails, setIdentityDetails] =
+    useState<IdentityDetails | null>(null);
+  // 0 = deposits are off.
+  const [depositAmount, setDepositAmount] = useState(0);
 
   const signaturePadRef = useRef<SignaturePadHandle>(null);
+  const employeeSignaturePadRef = useRef<SignaturePadHandle>(null);
 
   useEffect(() => {
     async function load() {
@@ -96,7 +80,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
         setReservation(reservationData);
         setHandover(handoverData);
-        setIdentityVerification(reservationData.customer.identity_verification);
+        setIdentityDetails(
+          await getIdentityDetails(reservationData.customer.id, id),
+        );
+        setDepositAmount(
+          (await getPublicConfiguration()).security_deposit_amount,
+        );
 
         if (handoverData.payment_status !== "SUCCEEDED") {
           // A payment-intent failure (e.g. Stripe not configured yet)
@@ -158,6 +147,32 @@ export default function FinalizeHandoverPage({ params }: Props) {
     }
   }
 
+  async function handleSaveEmployeeSignature() {
+    if (!reservationId || !employeeSignaturePadRef.current) return;
+
+    if (employeeSignaturePadRef.current.isEmpty()) {
+      setEmployeeSignatureError("Please sign before continuing.");
+      return;
+    }
+
+    setEmployeeSigning(true);
+    setEmployeeSignatureError("");
+
+    try {
+      const dataUrl = employeeSignaturePadRef.current.toDataURL();
+      const updated = await submitEmployeeSignature(reservationId, dataUrl);
+      setHandover(updated);
+    } catch (error) {
+      setEmployeeSignatureError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save employee signature.",
+      );
+    } finally {
+      setEmployeeSigning(false);
+    }
+  }
+
   async function handleGenerateAgreement() {
     if (!reservationId) return;
 
@@ -198,11 +213,11 @@ export default function FinalizeHandoverPage({ params }: Props) {
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-3xl">
           <button
-            onClick={() => navigate("/reservations/finalize")}
+            onClick={() => navigate("/handovers")}
             className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to finalize
+            Back to handovers
           </button>
 
           <p className="text-red-600">
@@ -215,15 +230,31 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   const paymentDone = handover.payment_status === "SUCCEEDED";
   const signatureDone = handover.has_signature;
-  const identityDone = identityVerification?.status === "verified";
+  const employeeSignatureDone = handover.has_employee_signature;
+  const identityDone = identityDetails?.problem === null;
   const agreementDone = handover.has_agreement;
 
+  // A deposit is required when one is configured, or was already taken.
+  const depositRequired = handover.deposit_status !== null || depositAmount > 0;
+  const depositDone = handover.deposit_status === "HELD";
+  const depositOk = !depositRequired || depositDone;
+
+  // Step numbers shift by one when the deposit step is shown.
+  const identityIndex = depositRequired ? 3 : 2;
+
   const paymentStatus: StepStatus = paymentDone ? "done" : "active";
+  const depositStatus: StepStatus = agreementDone
+    ? "done"
+    : depositDone
+      ? "done"
+      : paymentDone
+        ? "active"
+        : "locked";
   const identityStatus: StepStatus = agreementDone
     ? "done"
     : identityDone
       ? "done"
-      : paymentDone
+      : paymentDone && depositOk
         ? "active"
         : "locked";
   const signatureStatus: StepStatus = agreementDone
@@ -233,9 +264,16 @@ export default function FinalizeHandoverPage({ params }: Props) {
       : identityDone
         ? "active"
         : "locked";
+  const employeeSignatureStatus: StepStatus = agreementDone
+    ? "done"
+    : employeeSignatureDone
+      ? "done"
+      : signatureDone && identityDone
+        ? "active"
+        : "locked";
   const agreementStatus: StepStatus = agreementDone
     ? "done"
-    : signatureDone && identityDone
+    : signatureDone && identityDone && employeeSignatureDone && depositOk
       ? "active"
       : "locked";
 
@@ -244,11 +282,11 @@ export default function FinalizeHandoverPage({ params }: Props) {
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <button
-            onClick={() => navigate("/reservations/finalize")}
+            onClick={() => navigate("/handovers")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to finalize
+            Back to handovers
           </button>
 
           <button
@@ -262,11 +300,14 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Vehicle Handover</h1>
+            <h1 className="text-3xl font-bold">Vehicle Check-in</h1>
             <p className="mt-2 text-gray-600">
               {reservation.customer.first_name}{" "}
               {reservation.customer.last_name} · {reservation.car.make}{" "}
               {reservation.car.model} · {reservation.car.license_plate}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Booked {formatDateTime(reservation.created_at)}
             </p>
           </div>
 
@@ -279,7 +320,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
               <Check className="h-6 w-6" />
             </div>
 
-            <h2 className="text-xl font-semibold">Handover complete</h2>
+            <h2 className="text-xl font-semibold">Check-in complete</h2>
 
             <p className="mt-2 text-sm text-gray-600">
               The rental agreement has been generated and the reservation is
@@ -362,24 +403,55 @@ export default function FinalizeHandoverPage({ params }: Props) {
               </div>
             </Card>
 
-            {/* Step 2: Identity verification */}
+            {/* Step 2: Security deposit (only when deposits are on) */}
+            {depositRequired && (
+              <Card className={depositStatus === "locked" ? "opacity-50" : ""}>
+                <StepHeader index={2} title="Security Deposit" status={depositStatus} />
+
+                <div className="mt-5">
+                  {depositDone ? (
+                    <p className="text-sm text-gray-700">
+                      Deposit held (
+                      {handover.deposit_method === "CASH" ? "Cash" : "Card hold"}) —{" "}
+                      {handover.deposit_amount !== null &&
+                        `${handover.deposit_amount.toFixed(2)} ${handover.deposit_currency?.toUpperCase() ?? ""}`}
+                      .
+                    </p>
+                  ) : depositStatus === "active" ? (
+                    <DepositStep
+                      reservationId={reservation.id}
+                      amount={handover.deposit_amount ?? depositAmount}
+                      currency={handover.deposit_currency}
+                      onHeld={handlePaid}
+                    />
+                  ) : (
+                    <p className="text-sm text-ink-muted">Complete payment first.</p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Identity verification */}
             <Card className={identityStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
-                index={2}
-                title="Identity Verification"
+                index={identityIndex}
+                title="Identity & Driving Licence"
                 status={identityStatus}
               />
 
               <div className="mt-5">
-                {identityStatus === "active" || identityStatus === "done" ? (
-                  <IdentityVerificationStep
+                {(identityStatus === "active" || identityStatus === "done") &&
+                identityDetails ? (
+                  <IdentityDetailsForm
                     customerId={reservation.customer.id}
-                    identityVerification={identityVerification}
-                    onUpdate={setIdentityVerification}
+                    reservationId={reservation.id}
+                    nationality={reservation.customer.nationality}
+                    details={identityDetails}
+                    onSaved={setIdentityDetails}
                   />
                 ) : (
                   <p className="text-sm text-ink-muted">
-                    Complete payment first.
+                    Complete payment{depositRequired ? " and the deposit" : ""} first.
                   </p>
                 )}
               </div>
@@ -388,7 +460,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
             {/* Step 3: Signature */}
             <Card className={signatureStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
-                index={3}
+                index={identityIndex + 1}
                 title="Customer Signature"
                 status={signatureStatus}
               />
@@ -431,10 +503,68 @@ export default function FinalizeHandoverPage({ params }: Props) {
               </div>
             </Card>
 
-            {/* Step 4: Generate agreement */}
+            {/* Step 4: Employee signature */}
+            <Card
+              className={employeeSignatureStatus === "locked" ? "opacity-50" : ""}
+            >
+              <StepHeader
+                index={identityIndex + 2}
+                title="Employee Signature"
+                status={employeeSignatureStatus}
+              />
+
+              <div className="mt-5">
+                {employeeSignatureDone ? (
+                  <p className="text-sm text-gray-700">
+                    Signed by {handover.employee_signed_by_email ?? "an employee"}
+                    {handover.employee_signed_at &&
+                      ` on ${formatDateTime(handover.employee_signed_at)}`}
+                    .
+                  </p>
+                ) : employeeSignatureStatus === "active" ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      The approving employee signs below to confirm the
+                      handover.
+                    </p>
+
+                    <SignaturePad ref={employeeSignaturePadRef} />
+
+                    {employeeSignatureError && (
+                      <p className="text-sm text-red-600">
+                        {employeeSignatureError}
+                      </p>
+                    )}
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        onClick={() => employeeSignaturePadRef.current?.clear()}
+                      >
+                        Clear
+                      </Button>
+
+                      <Button
+                        onClick={handleSaveEmployeeSignature}
+                        disabled={employeeSigning}
+                      >
+                        {employeeSigning ? "Saving..." : "Save Signature"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-ink-muted">
+                    Capture the customer&apos;s signature and verify their
+                    identity first.
+                  </p>
+                )}
+              </div>
+            </Card>
+
+            {/* Step 5: Generate agreement */}
             <Card className={agreementStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
-                index={4}
+                index={identityIndex + 3}
                 title="Generate Agreement"
                 status={agreementStatus}
               />
@@ -460,8 +590,8 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   </div>
                 ) : (
                   <p className="text-sm text-ink-muted">
-                    Capture the customer&apos;s signature and verify their
-                    identity first.
+                    Complete the customer and employee signatures and verify
+                    the customer&apos;s identity first.
                   </p>
                 )}
               </div>

@@ -12,6 +12,7 @@ import {
 import {
   createReservation,
   getAvailableCars,
+  getDailyRates,
   getExtras,
   getLocations,
   quoteReservation,
@@ -38,7 +39,6 @@ import {
   type BookingStep,
 } from "@/components/booking/Stepper";
 import { DateRangeCalendar, toDateKey } from "@/components/booking/DateRangeCalendar";
-import { IdentityVerificationStep } from "@/components/identity/IdentityVerificationStep";
 import { CarImage } from "@/components/cars/CarImage";
 import { categoryLabel } from "@/lib/carDisplay";
 import {
@@ -114,9 +114,6 @@ export default function NewReservationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [created, setCreated] = useState<Reservation | null>(null);
-  const [identityVerification, setIdentityVerification] = useState<
-    Reservation["customer"]["identity_verification"]
-  >(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -162,6 +159,54 @@ export default function NewReservationPage() {
 
     contentRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
+
+  // --- Calendar day rates -------------------------------------------------
+  //
+  // The calendar is shown before a car is chosen, so it displays the
+  // average day rate at the pickup location. Kept with the location it was
+  // fetched for, so a stale set is never shown after the location changes.
+  // A failed fetch just leaves the calendar without prices.
+
+  const [dayRates, setDayRates] = useState<{
+    locationId: string;
+    prices: Record<string, number>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!pickupLocationId) return;
+
+    let cancelled = false;
+
+    async function loadDayRates() {
+      const end = new Date();
+      end.setDate(end.getDate() + 365);
+
+      try {
+        const prices = await getDailyRates(
+          pickupLocationId,
+          toDateKey(new Date()),
+          toDateKey(end),
+        );
+
+        if (!cancelled) {
+          setDayRates({ locationId: pickupLocationId, prices });
+        }
+      } catch {
+        // Prices are informational only.
+      }
+    }
+
+    loadDayRates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pickupLocationId]);
+
+  const dayPrices =
+    dayRates && dayRates.locationId === pickupLocationId
+      ? dayRates.prices
+      : undefined;
 
   // --- Search -------------------------------------------------------------
 
@@ -326,6 +371,8 @@ export default function NewReservationPage() {
       "date_of_birth",
       "address",
       "postal_code",
+      "phone_number",
+      "email",
     ];
 
     const errors: Partial<Record<keyof CustomerDetails, string>> = {};
@@ -336,7 +383,7 @@ export default function NewReservationPage() {
       }
     }
 
-    if (customer.email && !customer.email.includes("@")) {
+    if (!errors.email && !customer.email.includes("@")) {
       errors.email = "Enter a valid email address.";
     }
 
@@ -372,7 +419,6 @@ export default function NewReservationPage() {
       });
 
       setCreated(reservation);
-      setIdentityVerification(reservation.customer.identity_verification);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Failed to create reservation.",
@@ -429,24 +475,6 @@ export default function NewReservationPage() {
               </div>
             )}
           </dl>
-
-          <div className="mt-6 rounded-lg bg-surface-sunken p-4 text-left">
-            <h2 className="text-sm font-semibold text-ink">
-              Verify your identity now (optional)
-            </h2>
-            <p className="mt-1 text-sm text-ink-secondary">
-              Speed up pickup by verifying your driving licence ahead of
-              time. You can also do this in person when you collect the
-              car.
-            </p>
-            <div className="mt-3">
-              <IdentityVerificationStep
-                customerId={created.customer.id}
-                identityVerification={identityVerification}
-                onUpdate={setIdentityVerification}
-              />
-            </div>
-          </div>
 
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button
@@ -556,6 +584,7 @@ export default function NewReservationPage() {
                   pickupDate={pickupDate}
                   returnDate={returnDate}
                   dayCount={days}
+                  dayPrices={dayPrices}
                   onChange={(next) => {
                     setPickupDate(next.pickupDate);
                     setReturnDate(next.returnDate);

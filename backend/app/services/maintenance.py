@@ -1,12 +1,26 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Car, MaintenanceTask
+from app.models import Car, MaintenanceTask, User
+from app.services.audit import audit_log
+from app.services.availability import (
+    has_conflicting_maintenance,
+    has_conflicting_reservation,
+)
 
 VALID_TASK_TYPES = {"MAINTENANCE", "CLEANING"}
+
+# Subcategories of MAINTENANCE — e.g. repairing damage is a different job
+# from a technical inspection coming due.
+VALID_CATEGORIES = {
+    "DAMAGE_REPAIR",
+    "TECHNICAL_INSPECTION",
+    "ROUTINE_SERVICE",
+    "OTHER",
+}
 
 
 def list_tasks(
@@ -47,8 +61,18 @@ def create_task(
     db: Session,
     car_id: UUID,
     task_type: str,
+    category: str | None,
     notes: str | None,
+    starts_at: datetime,
+    ends_at: datetime,
+    actor: User,
+    commit: bool = True,
 ) -> MaintenanceTask:
+    """
+    With commit=False the task and its audit row are only flushed, so the
+    caller can make them part of a larger transaction (check-out does).
+    """
+
     car = db.get(Car, car_id)
 
     if car is None:
@@ -57,33 +81,81 @@ def create_task(
     if task_type not in VALID_TASK_TYPES:
         raise ValueError("Invalid task type.")
 
-    existing_open = db.scalar(
-        select(MaintenanceTask.id).where(
-            MaintenanceTask.car_id == car_id,
-            MaintenanceTask.status == "OPEN",
-        )
-    )
+    if task_type == "MAINTENANCE":
+        if category not in VALID_CATEGORIES:
+            raise ValueError("Select a maintenance category.")
+    elif category is not None:
+        raise ValueError("Only maintenance tasks have a category.")
 
-    if existing_open is not None:
-        raise ValueError("This car already has an open maintenance task.")
+    if starts_at.tzinfo is None:
+        starts_at = starts_at.replace(tzinfo=timezone.utc)
+
+    if ends_at.tzinfo is None:
+        ends_at = ends_at.replace(tzinfo=timezone.utc)
+
+    if ends_at <= starts_at:
+        raise ValueError("End time must be after start time.")
+
+    if ends_at <= datetime.now(timezone.utc):
+        raise ValueError("The maintenance window must end in the future.")
+
+    if has_conflicting_maintenance(db, car_id, starts_at, ends_at):
+        raise ValueError(
+            "This car already has maintenance or cleaning scheduled during this period."
+        )
+
+    if has_conflicting_reservation(db, car_id, starts_at, ends_at):
+        raise ValueError(
+            "This car has a reservation during this period. "
+            "Cancel or move the reservation first."
+        )
 
     task = MaintenanceTask(
         car_id=car_id,
         task_type=task_type,
+        category=category,
         status="OPEN",
         notes=notes,
+        starts_at=starts_at,
+        ends_at=ends_at,
     )
 
-    car.status = task_type
-
     db.add(task)
-    db.commit()
-    db.refresh(task)
+    db.flush()
+
+    audit_log(
+        db,
+        user=actor,
+        action="maintenance_task.created",
+        entity_type="maintenance_task",
+        entity_id=task.id,
+        metadata={
+            "car_id": str(car.id),
+            "license_plate": car.license_plate,
+            "task_type": task_type,
+            "category": category,
+            "notes": notes,
+            "starts_at": starts_at.isoformat(),
+            "ends_at": ends_at.isoformat(),
+        },
+    )
+
+    if commit:
+        db.commit()
+        db.refresh(task)
+    else:
+        db.flush()
 
     return task
 
 
-def _close_task(db: Session, task_id: UUID, new_status: str) -> MaintenanceTask:
+def _close_task(
+    db: Session,
+    task_id: UUID,
+    new_status: str,
+    actor: User,
+    next_inspection_due: date | None = None,
+) -> MaintenanceTask:
     task = db.get(MaintenanceTask, task_id)
 
     if task is None:
@@ -92,11 +164,70 @@ def _close_task(db: Session, task_id: UUID, new_status: str) -> MaintenanceTask:
     if task.status != "OPEN":
         raise ValueError("Only an open task can be closed.")
 
+    is_inspection_done = (
+        new_status == "DONE" and task.category == "TECHNICAL_INSPECTION"
+    )
+
+    if is_inspection_done:
+        if next_inspection_due is None:
+            raise ValueError(
+                "Enter when the next technical inspection is due."
+            )
+
+        if next_inspection_due <= datetime.now(timezone.utc).date():
+            raise ValueError(
+                "The next inspection must be due after today."
+            )
+
     task.status = new_status
     task.completed_at = datetime.utcnow()
 
     car = db.get(Car, task.car_id)
-    car.status = "AVAILABLE"
+
+    # The inspection just happened: record it on the car, and when the
+    # next one is due (asked for at the moment of closing).
+    if is_inspection_done:
+        car.last_inspection_at = datetime.now(timezone.utc).date()
+        car.next_inspection_due = next_inspection_due
+
+    # Availability comes from the window, so closing early frees the car on
+    # its own. This only clears a status that was set directly (older
+    # tasks drove Car.status), and only if no other window is running now.
+    now = datetime.now(timezone.utc)
+
+    if car.status in ("MAINTENANCE", "CLEANING") and not has_conflicting_maintenance(
+        db, car.id, now, now + timedelta(seconds=1)
+    ):
+        car.status = "AVAILABLE"
+
+    audit_log(
+        db,
+        user=actor,
+        action=(
+            "maintenance_task.completed"
+            if new_status == "DONE"
+            else "maintenance_task.cancelled"
+        ),
+        entity_type="maintenance_task",
+        entity_id=task.id,
+        metadata={
+            "car_id": str(car.id),
+            "license_plate": car.license_plate,
+            "task_type": task.task_type,
+            "category": task.category,
+            "notes": task.notes,
+            "starts_at": task.starts_at.isoformat() if task.starts_at else None,
+            "ends_at": task.ends_at.isoformat() if task.ends_at else None,
+            **(
+                {
+                    "last_inspection_at": car.last_inspection_at.isoformat(),
+                    "next_inspection_due": car.next_inspection_due.isoformat(),
+                }
+                if is_inspection_done
+                else {}
+            ),
+        },
+    )
 
     db.commit()
     db.refresh(task)
@@ -104,9 +235,14 @@ def _close_task(db: Session, task_id: UUID, new_status: str) -> MaintenanceTask:
     return task
 
 
-def complete_task(db: Session, task_id: UUID) -> MaintenanceTask:
-    return _close_task(db, task_id, "DONE")
+def complete_task(
+    db: Session,
+    task_id: UUID,
+    actor: User,
+    next_inspection_due: date | None = None,
+) -> MaintenanceTask:
+    return _close_task(db, task_id, "DONE", actor, next_inspection_due)
 
 
-def cancel_task(db: Session, task_id: UUID) -> MaintenanceTask:
-    return _close_task(db, task_id, "CANCELLED")
+def cancel_task(db: Session, task_id: UUID, actor: User) -> MaintenanceTask:
+    return _close_task(db, task_id, "CANCELLED", actor)

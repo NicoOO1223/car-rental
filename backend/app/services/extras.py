@@ -1,7 +1,13 @@
-from sqlalchemy import select
+import re
+from decimal import Decimal
+from uuid import UUID
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Extra, Reservation, ReservationExtra
+from app.models import Extra, Reservation, ReservationExtra, User
+from app.schemas.extra import ExtraCreate, ExtraUpdate
+from app.services.audit import audit_log
 from app.services.pricing import ExtraSelection
 
 
@@ -14,7 +20,9 @@ def list_extras(db: Session, include_inactive: bool = False) -> list[Extra]:
     return list(db.scalars(query).all())
 
 
-def resolve_extra_selections(db: Session, requested) -> list[tuple[Extra, int]]:
+def resolve_extra_selections(
+    db: Session, requested, already_booked_ids=()
+) -> list[tuple[Extra, int]]:
     """
     Validate a client-supplied list of {extra_id, quantity} against the live
     catalog, returning (Extra, quantity) pairs.
@@ -23,6 +31,10 @@ def resolve_extra_selections(db: Session, requested) -> list[tuple[Extra, int]]:
     rather than letting a duplicate selection surface as a 500 from the
     unique_reservation_extra constraint, or an over-quantity selection get
     silently accepted.
+
+    `already_booked_ids` are extras the reservation being edited already
+    carries: those stay selectable even if the extra has since been retired,
+    since retiring only stops *new* sales.
     """
 
     if not requested:
@@ -48,7 +60,7 @@ def resolve_extra_selections(db: Session, requested) -> list[tuple[Extra, int]]:
         if extra is None:
             raise ValueError("Unknown extra selected.")
 
-        if not extra.is_active:
+        if not extra.is_active and extra.id not in already_booked_ids:
             raise ValueError(f"{extra.name} is no longer available.")
 
         if item.quantity > extra.max_quantity:
@@ -110,3 +122,166 @@ def build_reservation_extras(resolved) -> list[ReservationExtra]:
         )
         for extra, quantity in resolved
     ]
+
+
+# --- Admin management ---------------------------------------------------
+
+_EDITABLE_FIELDS = ("name", "description", "price", "price_unit", "max_quantity")
+
+
+def _json_safe(value):
+    return str(value) if isinstance(value, Decimal) else value
+
+
+def _generate_code(db: Session, name: str) -> str:
+    """
+    A stable, unique symbolic code from the name, e.g. "Roof rack" ->
+    "ROOF_RACK". Fixed at creation: seed data, tests and the frontend's
+    icon map reference it, so renaming an extra never changes it.
+    """
+
+    base = re.sub(r"[^A-Z0-9]+", "_", name.upper()).strip("_")[:44] or "EXTRA"
+    code = base
+    suffix = 2
+
+    while db.scalar(select(Extra.id).where(Extra.code == code)) is not None:
+        code = f"{base}_{suffix}"
+        suffix += 1
+
+    return code
+
+
+def get_extra(db: Session, extra_id: UUID) -> Extra:
+    extra = db.get(Extra, extra_id)
+
+    if extra is None:
+        raise ValueError("Extra not found.")
+
+    return extra
+
+
+def create_extra(db: Session, data: ExtraCreate, actor: User) -> Extra:
+    next_order = (db.scalar(select(func.max(Extra.sort_order))) or 0) + 10
+
+    extra = Extra(
+        code=_generate_code(db, data.name),
+        name=data.name.strip(),
+        description=(data.description or "").strip() or None,
+        price=data.price,
+        price_unit=data.price_unit,
+        max_quantity=data.max_quantity,
+        is_active=True,
+        sort_order=next_order,
+    )
+
+    db.add(extra)
+    db.flush()
+
+    audit_log(
+        db,
+        user=actor,
+        action="extra.created",
+        entity_type="extra",
+        entity_id=extra.id,
+        metadata={
+            "code": extra.code,
+            "name": extra.name,
+            "price": _json_safe(extra.price),
+            "price_unit": extra.price_unit,
+            "max_quantity": extra.max_quantity,
+        },
+    )
+
+    db.commit()
+    db.refresh(extra)
+
+    return extra
+
+
+def update_extra(db: Session, extra_id: UUID, data: ExtraUpdate, actor: User) -> Extra:
+    """
+    Edits an add-on. Existing bookings are unaffected: they carry their own
+    snapshot of name, price and unit (see build_reservation_extras).
+    """
+
+    extra = get_extra(db, extra_id)
+    fields = data.model_dump(exclude_unset=True)
+
+    changes = {}
+
+    for field in _EDITABLE_FIELDS:
+        if field not in fields:
+            continue
+
+        value = fields[field]
+
+        if field == "name":
+            value = (value or "").strip()
+
+            if not value:
+                raise ValueError("The name cannot be empty.")
+
+        if field == "description":
+            value = (value or "").strip() or None
+
+        if field == "price" and value is None:
+            raise ValueError("The price cannot be empty.")
+
+        current = getattr(extra, field)
+
+        if value != current:
+            changes[field] = {"old": _json_safe(current), "new": _json_safe(value)}
+            setattr(extra, field, value)
+
+    if changes:
+        audit_log(
+            db,
+            user=actor,
+            action="extra.updated",
+            entity_type="extra",
+            entity_id=extra.id,
+            metadata={"code": extra.code, **changes},
+        )
+
+    if "is_active" in fields and fields["is_active"] is not None:
+        if fields["is_active"] != extra.is_active:
+            extra.is_active = fields["is_active"]
+
+            audit_log(
+                db,
+                user=actor,
+                action="extra.reactivated" if extra.is_active else "extra.retired",
+                entity_type="extra",
+                entity_id=extra.id,
+                metadata={"code": extra.code},
+            )
+
+    db.commit()
+    db.refresh(extra)
+
+    return extra
+
+
+def reorder_extras(db: Session, ordered_ids: list[UUID], actor: User) -> list[Extra]:
+    """`ordered_ids` must list every extra exactly once."""
+
+    extras = {extra.id: extra for extra in db.scalars(select(Extra)).all()}
+
+    if len(set(ordered_ids)) != len(ordered_ids) or set(ordered_ids) != set(extras):
+        raise ValueError("The new order must list every extra exactly once.")
+
+    for position, extra_id in enumerate(ordered_ids):
+        extras[extra_id].sort_order = (position + 1) * 10
+
+    audit_log(
+        db,
+        user=actor,
+        action="extra.reordered",
+        entity_type="extra",
+        entity_id=None,
+        metadata={"order": [extras[i].code for i in ordered_ids]},
+    )
+
+    db.commit()
+
+    return list_extras(db, include_inactive=True)

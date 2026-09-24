@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from pydantic import BaseModel
-
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
 from app.models import Customer, Reservation, User
@@ -14,14 +12,16 @@ from app.schemas.customer import (
     CustomerListItem,
     CustomerResponse,
     CustomerUpdate,
+    IdentityDetailsResponse,
+    IdentityDetailsUpdate,
 )
 from app.schemas.reservation import CustomerReservationResponse
 from app.services.audit import audit_log
 from app.services.customers import update_customer
 from app.services.data_privacy import anonymize_customer, export_customer_data
-from app.services.identity_verification import (
-    create_verification_session,
-    refresh_verification_status,
+from app.services.identity_details import (
+    get_identity_details,
+    save_identity_details,
 )
 
 
@@ -170,57 +170,50 @@ def update_customer_endpoint(
     return customer
 
 
-class VerificationSessionResponse(BaseModel):
-    client_secret: str | None
-
-
-def _raise_for_identity_verification_error(exc: ValueError):
-    if str(exc) == "Customer not found.":
+def _raise_for_customer_error(exc: ValueError):
+    if str(exc) in ("Customer not found.", "Reservation not found for this customer."):
         raise HTTPException(status_code=404, detail=str(exc))
 
     raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.post(
-    "/{customer_id}/identity-verification",
-    response_model=VerificationSessionResponse,
+# Identity and driving licence, typed in by staff at the counter. Sensitive,
+# so it lives on its own endpoints (not in the customer detail response),
+# and every read and write is audited. `reservation_id` makes the response's
+# `problem` account for that rental's end date (licence validity).
+@router.get(
+    "/{customer_id}/identity-details",
+    response_model=IdentityDetailsResponse,
 )
-def create_identity_verification_session_endpoint(
+def get_identity_details_endpoint(
     customer_id: UUID,
+    reservation_id: UUID | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        _customer, client_secret = create_verification_session(
-            db=db,
-            customer_id=customer_id,
-            actor=current_user,
-        )
+        return get_identity_details(db, customer_id, current_user, reservation_id)
     except ValueError as exc:
-        _raise_for_identity_verification_error(exc)
-
-    return VerificationSessionResponse(client_secret=client_secret)
+        _raise_for_customer_error(exc)
 
 
-@router.post(
-    "/{customer_id}/identity-verification/refresh",
-    response_model=CustomerResponse,
+@router.put(
+    "/{customer_id}/identity-details",
+    response_model=IdentityDetailsResponse,
 )
-def refresh_identity_verification_status_endpoint(
+def save_identity_details_endpoint(
     customer_id: UUID,
+    data: IdentityDetailsUpdate,
+    reservation_id: UUID | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
     try:
-        customer = refresh_verification_status(
-            db=db,
-            customer_id=customer_id,
-            actor=current_user,
+        return save_identity_details(
+            db, customer_id, data, current_user, reservation_id
         )
     except ValueError as exc:
-        _raise_for_identity_verification_error(exc)
-
-    return customer
+        _raise_for_customer_error(exc)
 
 
 # Right to erasure / right to access (GDPR Art. 17, 15/20) — meaningfully
@@ -243,7 +236,7 @@ def erase_customer_endpoint(
             actor=current_user,
         )
     except ValueError as exc:
-        _raise_for_identity_verification_error(exc)
+        _raise_for_customer_error(exc)
 
     return customer
 
@@ -265,6 +258,6 @@ def export_customer_data_endpoint(
             actor=current_user,
         )
     except ValueError as exc:
-        _raise_for_identity_verification_error(exc)
+        _raise_for_customer_error(exc)
 
     return bundle

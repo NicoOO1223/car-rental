@@ -4,7 +4,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Car, Handover, Reservation
+from app.models import Car, CheckOut, Handover, Reservation
 from app.services.pricing import calculate_rental_price
 
 
@@ -78,7 +78,8 @@ def get_collected_revenue(
     end_date: date,
 ) -> CollectedRevenue:
     """
-    Money actually collected — Handover.payment_amount where
+    Money actually collected — Handover.payment_amount and, since the
+    return flow, CheckOut.payment_amount (late/fuel/damage charges) where
     payment_status == "SUCCEEDED", attributed to the day it was paid
     (paid_at), for every day in [start_date, end_date] inclusive. A
     refunded handover excludes itself automatically once its status
@@ -100,11 +101,41 @@ def get_collected_revenue(
         days=1
     )
 
-    paid_rows = db.execute(
-        select(Handover.paid_at, Handover.payment_amount, Handover.payment_method).where(
-            Handover.payment_status == "SUCCEEDED",
-            Handover.paid_at >= range_start,
-            Handover.paid_at < range_end,
+    paid_rows = list(
+        db.execute(
+            select(
+                Handover.paid_at, Handover.payment_amount, Handover.payment_method
+            ).where(
+                Handover.payment_status == "SUCCEEDED",
+                Handover.paid_at >= range_start,
+                Handover.paid_at < range_end,
+            )
+        ).all()
+    )
+
+    paid_rows += db.execute(
+        select(
+            CheckOut.paid_at, CheckOut.payment_amount, CheckOut.payment_method
+        ).where(
+            CheckOut.payment_status == "SUCCEEDED",
+            CheckOut.paid_at >= range_start,
+            CheckOut.paid_at < range_end,
+        )
+    ).all()
+
+    # The part of a security deposit taken for return charges is money
+    # collected, on the day it was settled and by the deposit's own method.
+    paid_rows += db.execute(
+        select(
+            CheckOut.deposit_settled_at,
+            CheckOut.deposit_applied,
+            Handover.deposit_method,
+        )
+        .join(Handover, Handover.reservation_id == CheckOut.reservation_id)
+        .where(
+            CheckOut.deposit_applied > 0,
+            CheckOut.deposit_settled_at >= range_start,
+            CheckOut.deposit_settled_at < range_end,
         )
     ).all()
 

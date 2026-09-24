@@ -18,7 +18,9 @@ import { Field, Select } from "@/components/ui/Field";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { Toolbar } from "@/components/ui/Toolbar";
+import { CompleteTaskModal } from "@/components/maintenance/CompleteTaskModal";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
+import { maintenanceCategoryLabel } from "@/lib/maintenance";
 import { formatDateTime } from "@/lib/format";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 
@@ -37,6 +39,9 @@ export default function MaintenancePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [showNewTask, setShowNewTask] = useState(false);
+  const [completingTask, setCompletingTask] = useState<MaintenanceTask | null>(
+    null,
+  );
 
   // This filter is genuinely server-side, unlike every other list page.
   //
@@ -136,7 +141,16 @@ export default function MaintenancePage() {
       id: "type",
       header: "Type",
       mobile: "trailing",
-      cell: (task) => <TaskTypeBadge taskType={task.task_type} />,
+      cell: (task) => (
+        <div className="flex flex-col items-start gap-1">
+          <TaskTypeBadge taskType={task.task_type} />
+          {task.category && (
+            <span className="text-xs text-ink-muted">
+              {maintenanceCategoryLabel(task.category)}
+            </span>
+          )}
+        </div>
+      ),
       sortable: true,
       sortAccessor: (task) => task.task_type,
     },
@@ -147,6 +161,25 @@ export default function MaintenancePage() {
       cell: (task) => (
         <span className="text-sm text-ink-secondary">{task.notes || "—"}</span>
       ),
+    },
+    {
+      id: "window",
+      header: "Out of service",
+      mobileLabel: "Out of service",
+      cell: (task) => (
+        <div className="text-sm text-ink-muted">
+          <div>{formatDateTime(task.starts_at ?? task.opened_at)}</div>
+          <div className="mt-0.5">
+            {task.ends_at ? `until ${formatDateTime(task.ends_at)}` : "until closed"}
+          </div>
+        </div>
+      ),
+      mobileCell: (task) =>
+        `${formatDateTime(task.starts_at ?? task.opened_at)} – ${
+          task.ends_at ? formatDateTime(task.ends_at) : "until closed"
+        }`,
+      sortable: true,
+      sortAccessor: (task) => new Date(task.starts_at ?? task.opened_at),
     },
     {
       id: "opened",
@@ -250,6 +283,13 @@ export default function MaintenancePage() {
           {
             label: "Mark complete",
             onClick: async (task) => {
+              // An inspection records itself on the car and needs its
+              // next due date, so it goes through a form first.
+              if (task.category === "TECHNICAL_INSPECTION") {
+                setCompletingTask(task);
+                return;
+              }
+
               await completeMaintenanceTask(task.id);
               refreshTasks();
             },
@@ -271,6 +311,14 @@ export default function MaintenancePage() {
           description: "Nothing matches this filter right now.",
         }}
       />
+
+      {completingTask && (
+        <CompleteTaskModal
+          task={completingTask}
+          onClose={() => setCompletingTask(null)}
+          onCompleted={refreshTasks}
+        />
+      )}
 
       {showNewTask && (
         <NewTaskModal

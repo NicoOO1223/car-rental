@@ -23,6 +23,12 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
   const [lastOilChangeAt, setLastOilChangeAt] = useState(
     car.last_oil_change_at ?? "",
   );
+  const [lastInspectionAt, setLastInspectionAt] = useState(
+    car.last_inspection_at ?? "",
+  );
+  const [nextInspectionDue, setNextInspectionDue] = useState(
+    car.next_inspection_due ?? "",
+  );
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +44,8 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
         mileage: mileage === "" ? null : Number(mileage),
         tire_condition: tireCondition || null,
         last_oil_change_at: lastOilChangeAt || null,
+        last_inspection_at: lastInspectionAt || null,
+        next_inspection_due: nextInspectionDue || null,
       });
 
       onSaved(updated);
@@ -100,6 +108,20 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
             className="sm:col-span-2"
             value={lastOilChangeAt}
             onChange={(event) => setLastOilChangeAt(event.target.value)}
+          />
+
+          <TextField
+            label="Last inspection"
+            type="date"
+            value={lastInspectionAt}
+            onChange={(event) => setLastInspectionAt(event.target.value)}
+          />
+
+          <TextField
+            label="Next inspection due"
+            type="date"
+            value={nextInspectionDue}
+            onChange={(event) => setNextInspectionDue(event.target.value)}
           />
         </div>
 

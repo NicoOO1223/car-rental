@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Pencil, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Pencil, Undo2 } from "lucide-react";
 
 import {
   getReservation,
   getLocations,
+  getCheckOut,
   getHandover,
   downloadAgreement,
   cancelReservation,
   updateReservationStatus,
   type Reservation,
   type Location,
+  type CheckOut,
   type Handover,
 } from "@/lib/api";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
@@ -37,6 +39,7 @@ export default function ReservationDetailsPage({
     useState<Reservation | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [handover, setHandover] = useState<Handover | null>(null);
+  const [checkOut, setCheckOut] = useState<CheckOut | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,6 +47,8 @@ export default function ReservationDetailsPage({
  const [cancelling, setCancelling] = useState(false);
  const [updatingStatus, setUpdatingStatus] = useState(false);
  const [editing, setEditing] = useState(false);
+ const [showApproval, setShowApproval] = useState(false);
+ const [showCheckOut, setShowCheckOut] = useState(false);
 
  const [actionError, setActionError] = useState("");
   useEffect(() => {
@@ -77,6 +82,15 @@ export default function ReservationDetailsPage({
           }
         } else {
           setHandover(null);
+        }
+
+        // Only a returned rental has a completed check-out to show.
+        if (data.status === "COMPLETED") {
+          try {
+            setCheckOut(await getCheckOut(id));
+          } catch {
+            setCheckOut(null);
+          }
         }
       } catch {
         setError("Failed to load reservation.");
@@ -537,6 +551,24 @@ export default function ReservationDetailsPage({
 
                 <div>
                   <p className="text-xs text-gray-500">
+                    Booked
+                  </p>
+
+                  <p className="mt-1 font-medium">
+                    {formatDate(
+                      reservation.created_at
+                    )}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    {formatTime(
+                      reservation.created_at
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500">
                     Pickup
                   </p>
 
@@ -694,11 +726,11 @@ export default function ReservationDetailsPage({
 
                   <button
                     onClick={() =>
-                      navigate(`/reservations/finalize/${reservation.id}`)
+                      navigate(`/handovers/${reservation.id}/check-in`)
                     }
                     className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                   >
-                    Start Handover (Payment &amp; Agreement)
+                    Start check-in (Payment &amp; Agreement)
                   </button>
 
                   <button
@@ -712,7 +744,7 @@ export default function ReservationDetailsPage({
                   </button>
 
                   <p className="pt-1 text-xs text-gray-500">
-                    Handover collects payment, a signature, and generates
+                    Check-in collects payment, signatures, and generates
                     the rental agreement before starting the rental.
                   </p>
 
@@ -735,14 +767,11 @@ export default function ReservationDetailsPage({
 
                   <button
                     onClick={() =>
-                      handleStatusChange("COMPLETED")
+                      navigate(`/handovers/${reservation.id}/check-out`)
                     }
-                    disabled={updatingStatus}
-                    className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                   >
-                    {updatingStatus
-                      ? "Completing rental..."
-                      : "Complete Rental"}
+                    Start check-out
                   </button>
 
                   {handover?.has_agreement && (
@@ -815,6 +844,113 @@ export default function ReservationDetailsPage({
                   )}
                 </div>
               )}
+
+              {/* Who approved the handover — a quiet line under the
+                  actions; expands to show when and their signature. */}
+              {handover?.has_agreement && handover.has_employee_signature && (
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowApproval((open) => !open)}
+                    aria-expanded={showApproval}
+                    className="flex w-full items-center justify-between gap-2 text-left text-sm text-gray-600 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                  >
+                    <span>
+                      Approved by{" "}
+                      <span className="font-medium text-gray-800">
+                        {handover.employee_signed_by_email ?? "a former employee"}
+                      </span>
+                    </span>
+
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 transition ${
+                        showApproval ? "rotate-180" : ""
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+
+                  {showApproval && (
+                    <div className="mt-3 space-y-3">
+                      {handover.employee_signed_at && (
+                        <p className="text-xs text-gray-500">
+                          Signed {formatDateTime(handover.employee_signed_at)}
+                        </p>
+                      )}
+
+                      {handover.employee_signature_image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={handover.employee_signature_image}
+                          alt="Employee signature"
+                          className="h-16 w-auto rounded-lg border border-gray-200 bg-white p-2"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* The return: who received the car and what was recorded. */}
+              {checkOut?.completed_at && (
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCheckOut((open) => !open)}
+                    aria-expanded={showCheckOut}
+                    className="flex w-full items-center justify-between gap-2 text-left text-sm text-gray-600 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                  >
+                    <span>
+                      Returned to{" "}
+                      <span className="font-medium text-gray-800">
+                        {checkOut.employee_signed_by_email ?? "a former employee"}
+                      </span>
+                    </span>
+
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 transition ${
+                        showCheckOut ? "rotate-180" : ""
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+
+                  {showCheckOut && (
+                    <div className="mt-3 space-y-2 text-sm text-gray-700">
+                      <p>Returned {formatDateTime(checkOut.returned_at)}</p>
+                      <p>
+                        {checkOut.return_mileage.toLocaleString()} km · fuel{" "}
+                        {checkOut.fuel_eighths}/8
+                      </p>
+                      <p>
+                        {checkOut.damage_reported
+                          ? `Damage: ${checkOut.damage_notes ?? "reported"}`
+                          : "No damage reported"}
+                      </p>
+                      <p>
+                        {checkOut.total_charge > 0
+                          ? `Charged ${formatCurrency(
+                              checkOut.total_charge,
+                              checkOut.payment_currency?.toUpperCase(),
+                            )} (${checkOut.payment_method === "CASH" ? "cash" : "card"})`
+                          : "No return charges"}
+                        {checkOut.waiver_reason &&
+                          ` — waived: ${checkOut.waiver_reason}`}
+                      </p>
+
+                      {checkOut.employee_signature_image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={checkOut.employee_signature_image}
+                          alt="Employee signature at check-out"
+                          className="h-16 w-auto rounded-lg border border-gray-200 bg-white p-2"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
 
             </section>
 

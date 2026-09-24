@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from typing import Literal
 
@@ -16,8 +16,8 @@ class CustomerCreate(BaseModel):
     date_of_birth: date
     address: str
     postal_code: str
-    phone_number: str
-    email: str
+    phone_number: str = Field(min_length=1)
+    email: str = Field(min_length=1)
     nationality: str | None = None
 
 
@@ -121,6 +121,8 @@ class ReservationResponse(BaseModel):
 
     status: str
 
+    created_at: datetime
+
     customer: CustomerSummary
     car: CarSummary
 
@@ -145,6 +147,8 @@ class ReservationListResponse(BaseModel):
     return_at: datetime
 
     status: str
+
+    created_at: datetime
 
     # Present here as well as on ReservationResponse because
     # GET /api/reservations/{id} — the detail page's endpoint — returns

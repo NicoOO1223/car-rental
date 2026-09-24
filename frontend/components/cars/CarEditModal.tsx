@@ -7,14 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { CarImage } from "@/components/cars/CarImage";
 import { updateCar, type Car, type Location } from "@/lib/api";
-
-const STATUS_OPTIONS = [
-  "AVAILABLE",
-  "RESERVED",
-  "RENTED",
-  "MAINTENANCE",
-  "CLEANING",
-];
+import { formatCurrency } from "@/lib/format";
 
 const CATEGORY_OPTIONS = [
   "ECONOMY",
@@ -45,10 +38,8 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
   const [transmission, setTransmission] = useState(car.transmission ?? "");
   const [fuelType, setFuelType] = useState(car.fuel_type ?? "");
   const [seats, setSeats] = useState(car.seats != null ? String(car.seats) : "");
-  const [pricePerDay, setPricePerDay] = useState(String(car.price_per_day));
   const [imageUrl, setImageUrl] = useState(car.image_url ?? "");
-  const [locationId, setLocationId] = useState(car.current_location.id);
-  const [status, setStatus] = useState(car.status);
+  const [homeLocationId, setHomeLocationId] = useState(car.home_location.id);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -69,10 +60,8 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         transmission: transmission || null,
         fuel_type: fuelType || null,
         seats: seats === "" ? null : Number(seats),
-        price_per_day: Number(pricePerDay),
         image_url: imageUrl.trim() || null,
-        current_location_id: locationId,
-        status,
+        home_location_id: homeLocationId,
       });
 
       onSaved(updated);
@@ -146,14 +135,14 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
             ))}
           </SelectField>
 
-          <TextField
-            label="Price per day (EUR)"
-            type="number"
-            step="0.01"
-            required
-            value={pricePerDay}
-            onChange={(event) => setPricePerDay(event.target.value)}
-          />
+          <div>
+            <p className="text-sm font-medium text-ink">Price per day</p>
+
+            <p className="mt-1.5 text-sm text-ink-secondary">
+              {formatCurrency(car.price_per_day)} — rates are managed by an
+              admin under Configuration → Vehicle rates.
+            </p>
+          </div>
 
           <SelectField
             label="Transmission"
@@ -189,22 +178,11 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
           />
 
           <SelectField
-            label="Status"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            label="Current location"
+            label="Home airport"
             className="sm:col-span-2"
-            value={locationId}
-            onChange={(event) => setLocationId(event.target.value)}
+            hint="Where this car belongs. Its current airport changes through check-out."
+            value={homeLocationId}
+            onChange={(event) => setHomeLocationId(event.target.value)}
           >
             {locations.map((location) => (
               <option key={location.id} value={location.id}>

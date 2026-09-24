@@ -24,6 +24,45 @@ class IdentityVerificationSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class IdentityDetailsUpdate(BaseModel):
+    """What staff type in at the counter."""
+
+    national_id_number: str
+    id_document_type: str | None = None
+    id_document_number: str | None = None
+    id_document_expires_at: date | None = None
+    driving_license_number: str
+    driving_license_country: str | None = None
+    driving_license_categories: str | None = None
+    driving_license_issued_at: date | None = None
+    driving_license_expires_at: date
+    # The employee attests they checked the original documents.
+    documents_checked: bool
+
+
+class IdentityDetailsResponse(BaseModel):
+    customer_id: UUID
+
+    national_id_number: str | None
+    id_document_type: str | None
+    id_document_number: str | None
+    id_document_expires_at: date | None
+    driving_license_number: str | None
+    driving_license_country: str | None
+    driving_license_categories: str | None
+    driving_license_issued_at: date | None
+    driving_license_expires_at: date | None
+
+    identity_checked_at: datetime | None
+    identity_checked_by_email: str | None
+
+    # Verified through the old Stripe Identity flow; still accepted.
+    legacy_stripe_verified: bool
+
+    # Why the recorded details can't yet back a rental; None when they can.
+    problem: str | None
+
+
 class CustomerResponse(BaseModel):
     id: UUID
     first_name: str
@@ -80,6 +119,16 @@ class CustomerExportReservation(BaseModel):
     has_signature: bool
     has_agreement: bool
 
+    # Return charges (late/fuel/damage), once the car was checked back in.
+    check_out_completed: bool
+    check_out_total_charge: float | None
+    check_out_payment_status: str | None
+
+    # Security deposit (null when none was taken).
+    deposit_status: str | None
+    deposit_amount: float | None
+    deposit_captured_amount: float | None
+
 
 class CustomerDataExport(BaseModel):
     """
@@ -104,6 +153,7 @@ class CustomerDataExport(BaseModel):
     created_at: datetime
     anonymized_at: datetime | None
     identity_verification: IdentityVerificationSummary | None
+    identity_details: IdentityDetailsResponse | None
 
     reservations: list[CustomerExportReservation]
 

@@ -27,7 +27,7 @@ export function PriceBreakdownList({
   totalLabel?: string;
   className?: string;
 }) {
-  const currency = (breakdown.currency ?? "eur").toUpperCase();
+  const currency = breakdown.currency?.toUpperCase();
   const money = (amount: number) => formatCurrency(amount, currency);
 
   return (

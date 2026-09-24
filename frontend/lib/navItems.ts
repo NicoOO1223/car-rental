@@ -6,7 +6,7 @@
  */
 export const CONFIGURABLE_NAV_ITEMS = [
   { href: "/reservations/manage", label: "Reservations" },
-  { href: "/reservations/finalize", label: "Finalize Rentals" },
+  { href: "/handovers", label: "Handovers" },
   { href: "/customers", label: "Customers" },
   { href: "/cars", label: "Vehicles" },
   { href: "/maintenance", label: "Maintenance" },

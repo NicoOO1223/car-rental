@@ -4,13 +4,14 @@ from uuid import UUID
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
 from app.models import Car, Reservation
 from app.schemas.dashboard import (
+    DashboardAwayCar,
     DashboardFleetStats,
     DashboardFleetStatusResponse,
     DashboardLocationStats,
@@ -22,7 +23,10 @@ from app.schemas.dashboard import (
     DashboardRevenueResponse,
     DashboardTodayStats,
 )
-from app.services.availability import get_fleet_status_counts
+from app.services.availability import (
+    get_current_maintenance_by_car,
+    get_fleet_status_counts,
+)
 from app.services.configuration import get_configuration
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
 from app.services.extras import selections_from_reservation
@@ -84,8 +88,12 @@ def _to_dashboard_reservation(reservation: Reservation, configuration) -> Dashbo
 def get_dashboard(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),
+    location_id: UUID | None = Query(None),
     db: Session = Depends(get_db),
 ):
+    # location_id narrows the pickups list to that pickup airport and the
+    # returns list to that return airport.
+    #
     # When set, these narrow the "upcoming pickups"/"upcoming returns"
     # lists below to a specific window (e.g. "today", or a staff-picked
     # range) instead of the default "everything from now on, capped at
@@ -115,31 +123,29 @@ def get_dashboard(
         select(Car)
         .options(
             joinedload(Car.current_location),
+            joinedload(Car.home_location),
         )
     ).all()
 
+    # A car inside an open maintenance/cleaning window counts as such now,
+    # unless it is already reserved/rented.
+    maintenance_now = get_current_maintenance_by_car(db)
+
+    def current_status(car: Car) -> str:
+        if car.status == "AVAILABLE" and car.id in maintenance_now:
+            return maintenance_now[car.id]
+
+        return car.status
+
+    fleet_statuses = [current_status(car) for car in cars]
+
     fleet = DashboardFleetStats(
         total=len(cars),
-        available=sum(
-            car.status == "AVAILABLE"
-            for car in cars
-        ),
-        reserved=sum(
-            car.status == "RESERVED"
-            for car in cars
-        ),
-        rented=sum(
-            car.status == "RENTED"
-            for car in cars
-        ),
-        maintenance=sum(
-            car.status == "MAINTENANCE"
-            for car in cars
-        ),
-        cleaning=sum(
-            car.status == "CLEANING"
-            for car in cars
-        ),
+        available=fleet_statuses.count("AVAILABLE"),
+        reserved=fleet_statuses.count("RESERVED"),
+        rented=fleet_statuses.count("RENTED"),
+        maintenance=fleet_statuses.count("MAINTENANCE"),
+        cleaning=fleet_statuses.count("CLEANING"),
     )
 
     # ---------------------------------------------------------
@@ -233,6 +239,9 @@ def get_dashboard(
             Reservation.status != "CANCELLED",
         ]
 
+    if location_id is not None:
+        pickup_filters.append(Reservation.pickup_location_id == location_id)
+
     pickup_query = (
         select(Reservation)
         .where(*pickup_filters)
@@ -287,11 +296,25 @@ def get_dashboard(
             Reservation.status != "CANCELLED",
         ]
     else:
+        # Rentals in progress and due back, plus ACTIVE ones already past
+        # their return time: an overdue car is the most urgent return, so
+        # it must not drop off the list. Ordered by return_at, they lead it.
         return_filters = [
-            Reservation.pickup_at <= now,
-            Reservation.return_at >= now,
-            Reservation.status != "CANCELLED",
+            or_(
+                and_(
+                    Reservation.pickup_at <= now,
+                    Reservation.return_at >= now,
+                    Reservation.status != "CANCELLED",
+                ),
+                and_(
+                    Reservation.status == "ACTIVE",
+                    Reservation.return_at < now,
+                ),
+            )
         ]
+
+    if location_id is not None:
+        return_filters.append(Reservation.return_location_id == location_id)
 
     return_query = (
         select(Reservation)
@@ -358,6 +381,23 @@ def get_dashboard(
         upcoming_pickups=upcoming_pickups,
         upcoming_returns=upcoming_returns,
         locations=locations,
+        cars_away_from_home=[
+            DashboardAwayCar(
+                id=car.id,
+                make=car.make,
+                model=car.model,
+                license_plate=car.license_plate,
+                year=car.year,
+                category=car.category,
+                status=current_status(car),
+                current_airport_code=car.current_location.airport_code,
+                home_airport_code=car.home_location.airport_code,
+                current_airport_name=car.current_location.name,
+                home_airport_name=car.home_location.name,
+            )
+            for car in sorted(cars, key=lambda c: c.license_plate)
+            if car.is_away_from_home
+        ],
     )
 
 

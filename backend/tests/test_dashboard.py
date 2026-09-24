@@ -9,7 +9,10 @@ from tests.test_reservations import (
     ensure_car_available,
     force_reservation_status,
     get_car_by_plate,
+    get_car_status_raw,
     get_location_id,
+    set_car_location,
+    set_car_status,
 )
 
 
@@ -39,10 +42,7 @@ def snapshot_and_set_location(plate: str, airport_code: str) -> str:
     car = get_car_by_plate(plate)
     original_airport_code = car["current_location"]["airport_code"]
 
-    client.patch(
-        f"/api/cars/{car['id']}",
-        json={"current_location_id": get_location_id(airport_code)},
-    )
+    set_car_location(car["id"], get_location_id(airport_code))
 
     return original_airport_code
 
@@ -50,10 +50,7 @@ def snapshot_and_set_location(plate: str, airport_code: str) -> str:
 def restore_location(plate: str, airport_code: str) -> None:
     car = get_car_by_plate(plate)
 
-    client.patch(
-        f"/api/cars/{car['id']}",
-        json={"current_location_id": get_location_id(airport_code)},
-    )
+    set_car_location(car["id"], get_location_id(airport_code))
 
 
 def snapshot_and_set_statuses(overrides: dict) -> dict:
@@ -69,12 +66,12 @@ def snapshot_and_set_statuses(overrides: dict) -> dict:
 
     for plate in ALL_PLATES:
         car = get_car_by_plate(plate)
-        originals[plate] = car["status"]
-        client.patch(f"/api/cars/{car['id']}", json={"status": "AVAILABLE"})
+        originals[plate] = get_car_status_raw(car["id"])
+        set_car_status(car["id"], "AVAILABLE")
 
     for plate, status in overrides.items():
         car = get_car_by_plate(plate)
-        client.patch(f"/api/cars/{car['id']}", json={"status": status})
+        set_car_status(car["id"], status)
 
     return originals
 
@@ -82,7 +79,7 @@ def snapshot_and_set_statuses(overrides: dict) -> dict:
 def restore_statuses(originals: dict):
     for plate, status in originals.items():
         car = get_car_by_plate(plate)
-        client.patch(f"/api/cars/{car['id']}", json={"status": status})
+        set_car_status(car["id"], status)
 
 
 def test_fleet_status_olb_2026_08_22():
@@ -583,3 +580,71 @@ def test_upcoming_pickups_ordered_ascending():
             force_reservation_status(later["id"], "CANCELLED")
     finally:
         force_reservation_status(earlier["id"], "CANCELLED")
+
+
+def test_dashboard_location_filter_splits_pickups_and_returns_by_airport():
+    """
+    A one-way rental appears under its pickup airport in the pickups list
+    and under its return airport in the returns list.
+    """
+
+    car = ensure_car_available("SA-006-AA")
+    pickup_location_id = car["current_location"]["id"]
+    return_location_id = get_location_id("AHO")
+    other_location_id = get_location_id("OLB")
+    now = datetime.now(timezone.utc)
+
+    response = client.post(
+        "/api/reservations",
+        json={
+            "customer": {
+                "first_name": "Filter",
+                "last_name": f"Test{uuid4().hex[:6]}",
+                "date_of_birth": "1990-01-01",
+                "address": "Filter Street 1",
+                "postal_code": "1000AA",
+                "phone_number": f"+3163{uuid4().int % 10**7:07d}",
+                "email": f"filter.{uuid4().hex[:6]}@example.com",
+            },
+            "car_id": car["id"],
+            "pickup_location_id": pickup_location_id,
+            "return_location_id": return_location_id,
+            "pickup_at": (now + timedelta(days=2)).isoformat(),
+            "return_at": (now + timedelta(days=4)).isoformat(),
+        },
+    )
+    assert response.status_code == 201
+    reservation = response.json()
+
+    window = {
+        "start_date": (now + timedelta(days=1)).date().isoformat(),
+        "end_date": (now + timedelta(days=5)).date().isoformat(),
+    }
+
+    def lists_for(location_id):
+        body = client.get(
+            "/api/dashboard", params={**window, "location_id": location_id}
+        ).json()
+
+        return (
+            {r["id"] for r in body["upcoming_pickups"]},
+            {r["id"] for r in body["upcoming_returns"]},
+        )
+
+    try:
+        pickups, returns = lists_for(pickup_location_id)
+        assert reservation["id"] in pickups
+        assert reservation["id"] not in returns
+
+        pickups, returns = lists_for(return_location_id)
+        assert reservation["id"] not in pickups
+        assert reservation["id"] in returns
+
+        pickups, returns = lists_for(other_location_id)
+        assert reservation["id"] not in pickups
+        assert reservation["id"] not in returns
+
+        unfiltered = client.get("/api/dashboard", params=window).json()
+        assert reservation["id"] in {r["id"] for r in unfiltered["upcoming_pickups"]}
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")

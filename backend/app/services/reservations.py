@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from app.models import Car, Customer, Handover, Reservation, User
 from app.schemas.reservation import ReservationUpdate
 from app.services.audit import audit_log
-from app.services.availability import has_conflicting_reservation
+from app.services.availability import (
+    has_conflicting_maintenance,
+    has_conflicting_reservation,
+)
 from app.services.customers import find_matching_customer
+from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
 from app.services.extras import (
     build_reservation_extras,
@@ -74,6 +78,11 @@ def create_reservation(
     if has_conflicting_reservation(db, car_id, pickup_at, return_at):
         raise ValueError(
             "Car is already reserved for part of this period."
+        )
+
+    if has_conflicting_maintenance(db, car_id, pickup_at, return_at):
+        raise ValueError(
+            "Car is scheduled for maintenance or cleaning during this period."
         )
 
     # ---------------------------------------------------------
@@ -197,6 +206,9 @@ def quote_reservation(
     elif has_conflicting_reservation(db, car.id, data.pickup_at, data.return_at):
         available = False
         message = "Car is already reserved for part of this period."
+    elif has_conflicting_maintenance(db, car.id, data.pickup_at, data.return_at):
+        available = False
+        message = "Car is scheduled for maintenance or cleaning during this period."
     else:
         available = True
         message = None
@@ -231,6 +243,7 @@ def cancel_reservation(
     # refund failure (e.g. a Stripe error) leaves the reservation
     # un-cancelled rather than cancelled with the money never returned.
     refund_handover_if_paid(db, reservation_id, actor)
+    release_deposit_for_cancellation(db, reservation_id, actor)
 
     reservation.status = "CANCELLED"
     reservation.updated_by = actor.id
@@ -390,6 +403,24 @@ def update_reservation(
             "Car is already reserved for part of this period."
         )
 
+    # Only when the car or the dates actually change — editing something
+    # unrelated (e.g. the customer's details) on a booking that already
+    # overlaps a maintenance window shouldn't start failing.
+    window_changed = (
+        effective_pickup_at != reservation.pickup_at
+        or effective_return_at != reservation.return_at
+    )
+
+    if (is_reassignment or window_changed) and has_conflicting_maintenance(
+        db,
+        target_car_id,
+        effective_pickup_at,
+        effective_return_at,
+    ):
+        raise ValueError(
+            "Car is scheduled for maintenance or cleaning during this period."
+        )
+
     # ---------------------------------------------------------
     # 4. Apply changes
     # ---------------------------------------------------------
@@ -426,7 +457,11 @@ def update_reservation(
                 "Extras cannot be changed after payment has been taken."
             )
 
-        resolved = resolve_extra_selections(db, data.extras)
+        resolved = resolve_extra_selections(
+            db,
+            data.extras,
+            already_booked_ids={line.extra_id for line in reservation.extras},
+        )
 
         # Re-snapshot only genuinely new lines. A line whose extra is
         # unchanged keeps the price it was booked at, even if the catalog

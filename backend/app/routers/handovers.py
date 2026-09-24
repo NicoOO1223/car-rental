@@ -8,9 +8,15 @@ from app.dependencies import require_authenticated_user
 from app.models import User
 from app.schemas.pricing import PriceBreakdownExtraLine
 from app.schemas.handover import (
+    DepositIntentResponse,
     HandoverResponse,
     PaymentIntentResponse,
     SignatureSubmit,
+)
+from app.services.deposits import (
+    confirm_cash_deposit,
+    confirm_deposit_hold,
+    create_or_reuse_deposit_intent,
 )
 from app.services.handovers import (
     confirm_cash_payment,
@@ -18,6 +24,7 @@ from app.services.handovers import (
     create_or_reuse_payment_intent,
     generate_agreement,
     get_or_create_handover,
+    submit_employee_signature,
     submit_signature,
 )
 
@@ -126,6 +133,76 @@ def submit_signature_endpoint(
 ):
     try:
         handover = submit_signature(
+            db, reservation_id, data.signature_image, actor=current_user
+        )
+    except ValueError as exc:
+        _raise_for_value_error(exc)
+
+    return HandoverResponse.from_model(handover)
+
+
+@router.post("/deposit/intent", response_model=DepositIntentResponse)
+def create_deposit_intent_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    try:
+        handover, intent = create_or_reuse_deposit_intent(
+            db, reservation_id, current_user
+        )
+    except ValueError as exc:
+        _raise_for_value_error(exc)
+
+    return DepositIntentResponse(
+        client_secret=intent.client_secret,
+        deposit_status=handover.deposit_status,
+        deposit_amount=(
+            float(handover.deposit_amount)
+            if handover.deposit_amount is not None
+            else None
+        ),
+        deposit_currency=handover.deposit_currency,
+    )
+
+
+@router.post("/deposit/confirm", response_model=HandoverResponse)
+def confirm_deposit_hold_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    try:
+        handover = confirm_deposit_hold(db, reservation_id, current_user)
+    except ValueError as exc:
+        _raise_for_value_error(exc)
+
+    return HandoverResponse.from_model(handover)
+
+
+@router.post("/deposit/confirm-cash", response_model=HandoverResponse)
+def confirm_cash_deposit_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    try:
+        handover = confirm_cash_deposit(db, reservation_id, current_user)
+    except ValueError as exc:
+        _raise_for_value_error(exc)
+
+    return HandoverResponse.from_model(handover)
+
+
+@router.post("/employee-signature", response_model=HandoverResponse)
+def submit_employee_signature_endpoint(
+    reservation_id: UUID,
+    data: SignatureSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    try:
+        handover = submit_employee_signature(
             db, reservation_id, data.signature_image, actor=current_user
         )
     except ValueError as exc:

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronRight, MapPinned, Wrench, X } from "lucide-react";
 
 import {
   getDashboard,
@@ -11,6 +12,7 @@ import {
   type FleetStatus,
 } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
+import { CarStatusBadge } from "@/components/ui/Badge";
 import { UpcomingCard } from "@/components/dashboard/UpcomingCard";
 import { getCarStatusHex } from "@/lib/status";
 import { PieChart, type PieChartDatum } from "@/components/charts/PieChart";
@@ -61,6 +63,9 @@ export default function DashboardPage() {
   const [airportFilter, setAirportFilter] = useState("");
   const [dateFilter, setDateFilter] = useState(todayDateString());
 
+  // The relocation list opens at the very top of the overview.
+  const [showRelocation, setShowRelocation] = useState(false);
+
   const [fleetStatus, setFleetStatus] = useState<FleetStatus | null>(null);
   const [fleetStatusLoading, setFleetStatusLoading] = useState(true);
   const [fleetStatusError, setFleetStatusError] = useState("");
@@ -70,13 +75,19 @@ export default function DashboardPage() {
   // via its own button below.
   const [upcomingStartDate, setUpcomingStartDate] = useState(todayDateString());
   const [upcomingEndDate, setUpcomingEndDate] = useState(todayDateString());
+  // Pickups are matched on their pickup airport, returns on their return
+  // airport. "" means all airports.
+  const [upcomingLocationId, setUpcomingLocationId] = useState("");
   const [upcomingLoading, setUpcomingLoading] = useState(false);
+  const [upcomingError, setUpcomingError] = useState("");
   const hasLoadedDashboardRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadDashboard() {
+      setUpcomingError("");
+
       if (hasLoadedDashboardRef.current) {
         // Not the first load — a range filter changed. Only dim the
         // pickups/returns section instead of re-showing the full-page
@@ -90,6 +101,7 @@ export default function DashboardPage() {
         const data = await getDashboard({
           startDate: upcomingStartDate || undefined,
           endDate: upcomingEndDate || undefined,
+          locationId: upcomingLocationId || undefined,
         });
 
         if (!cancelled) {
@@ -98,7 +110,13 @@ export default function DashboardPage() {
         }
       } catch {
         if (!cancelled) {
-          setError("Failed to load dashboard.");
+          // A failed range filter shouldn't blank the whole dashboard —
+          // only the very first load has nothing else to fall back on.
+          if (hasLoadedDashboardRef.current) {
+            setUpcomingError("Failed to load pickups & returns for this range.");
+          } else {
+            setError("Failed to load dashboard.");
+          }
         }
       } finally {
         if (!cancelled) {
@@ -113,7 +131,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [upcomingStartDate, upcomingEndDate]);
+  }, [upcomingStartDate, upcomingEndDate, upcomingLocationId]);
 
   useEffect(() => {
     async function loadLocations() {
@@ -216,45 +234,129 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Today's activity */}
+        {/* Opened from the "Need relocation" tile; sits on top of the overview. */}
+        {showRelocation && dashboard.cars_away_from_home.length > 0 && (
+          <Card className="mb-8 border border-amber-300">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Vehicles that need relocation
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  These cars ended a one-way rental at another airport. Once one
+                  has been driven back, record it on its page.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowRelocation(false)}
+                aria-label="Close"
+                className="rounded-md p-1 text-gray-500 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="mt-4 divide-y divide-border-subtle">
+              {dashboard.cars_away_from_home.map((car) => (
+                <button
+                  key={car.id}
+                  type="button"
+                  onClick={() => navigate(`/cars/${car.id}`)}
+                  className="flex w-full flex-col gap-2 py-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900 md:flex-row md:items-center md:justify-between"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-medium">
+                      {car.make} {car.model}
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        {car.year}
+                        {car.category ? ` · ${car.category}` : ""}
+                      </span>
+                    </span>
+
+                    <span className="mt-0.5 block text-sm text-gray-500">
+                      {car.license_plate}
+                    </span>
+                  </span>
+
+                  <span className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                    <span>
+                      At <strong>{car.current_airport_code}</strong>{" "}
+                      <span className="text-gray-500">
+                        ({car.current_airport_name})
+                      </span>
+                    </span>
+
+                    <span className="text-gray-400" aria-hidden="true">
+                      →
+                    </span>
+
+                    <span>
+                      Home <strong>{car.home_airport_code}</strong>{" "}
+                      <span className="text-gray-500">
+                        ({car.home_airport_name})
+                      </span>
+                    </span>
+
+                    <CarStatusBadge status={car.status} />
+
+                    <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Cars needing attention: in maintenance, and away from home. */}
         <section className="mb-8">
-
-          <h2 className="mb-4 text-lg font-semibold">
-            Today
-          </h2>
-
           <div className="grid gap-4 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => navigate("/maintenance")}
+              className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+            >
+              <div>
+                <p className="text-sm text-gray-500">In maintenance</p>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <p className="text-sm text-gray-500">
-                Pickups today
-              </p>
+                <p className="mt-2 text-3xl font-bold">
+                  {dashboard.fleet.maintenance}
+                </p>
 
-              <p className="mt-2 text-3xl font-bold">
-                {dashboard.today.pickups}
-              </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Vehicles out of service right now
+                </p>
+              </div>
 
-              <p className="mt-2 text-sm text-gray-500">
-                Vehicles scheduled for pickup
-              </p>
-            </div>
+              <Wrench className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+            </button>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <p className="text-sm text-gray-500">
-                Returns today
-              </p>
+            <button
+              type="button"
+              onClick={() => setShowRelocation((open) => !open)}
+              disabled={dashboard.cars_away_from_home.length === 0}
+              aria-expanded={showRelocation}
+              className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 disabled:cursor-default disabled:hover:shadow-sm"
+            >
+              <div>
+                <p className="text-sm text-gray-500">Need relocation</p>
 
-              <p className="mt-2 text-3xl font-bold">
-                {dashboard.today.returns}
-              </p>
+                <p className="mt-2 text-3xl font-bold">
+                  {dashboard.cars_away_from_home.length}
+                </p>
 
-              <p className="mt-2 text-sm text-gray-500">
-                Vehicles scheduled for return
-              </p>
-            </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  {dashboard.cars_away_from_home.length === 0
+                    ? "Every vehicle is at its home airport"
+                    : "Vehicles away from their home airport"}
+                </p>
+              </div>
 
+              <MapPinned className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+            </button>
           </div>
-
         </section>
 
         {/* Next pickups + Next returns */}
@@ -311,7 +413,16 @@ export default function DashboardPage() {
               type="date"
               aria-label="From date"
               value={upcomingStartDate}
-              onChange={(event) => setUpcomingStartDate(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setUpcomingStartDate(value);
+
+                // The backend rejects start > end, so pushing the end
+                // date forward keeps the range valid.
+                if (value && upcomingEndDate && value > upcomingEndDate) {
+                  setUpcomingEndDate(value);
+                }
+              }}
               className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
 
@@ -323,9 +434,37 @@ export default function DashboardPage() {
               type="date"
               aria-label="To date"
               value={upcomingEndDate}
-              onChange={(event) => setUpcomingEndDate(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setUpcomingEndDate(value);
+
+                if (value && upcomingStartDate && value < upcomingStartDate) {
+                  setUpcomingStartDate(value);
+                }
+              }}
               className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
+
+            <select
+              aria-label="Filter pickups and returns by airport"
+              value={upcomingLocationId}
+              onChange={(event) => setUpcomingLocationId(event.target.value)}
+              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            >
+              <option value="">All airports</option>
+
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.airport_code}
+                </option>
+              ))}
+            </select>
+
+            {upcomingError && (
+              <p className="text-sm text-red-600" role="alert">
+                {upcomingError}
+              </p>
+            )}
           </div>
 
           <div className={`transition-opacity ${upcomingLoading ? "opacity-50" : ""}`}>

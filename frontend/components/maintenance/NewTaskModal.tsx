@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Field, SelectField, Textarea } from "@/components/ui/Field";
+import { Field, SelectField, Textarea, TextField } from "@/components/ui/Field";
+import { MAINTENANCE_CATEGORIES } from "@/lib/maintenance";
 import {
   createMaintenanceTask,
   type Car,
@@ -25,7 +26,10 @@ type Props = {
 export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
   const [carId, setCarId] = useState(car?.id ?? cars?.[0]?.id ?? "");
   const [taskType, setTaskType] = useState("MAINTENANCE");
+  const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +42,25 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
       return;
     }
 
+    if (taskType === "MAINTENANCE" && !category) {
+      setError("Select a maintenance category.");
+      return;
+    }
+
+    if (!startsAt || !endsAt) {
+      setError("Select when the vehicle is out of service.");
+      return;
+    }
+
+    // datetime-local values are local time; the API wants an instant.
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+
+    if (end <= start) {
+      setError("The end must be after the start.");
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -45,7 +68,10 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
       const task = await createMaintenanceTask({
         car_id: carId,
         task_type: taskType,
+        category: taskType === "MAINTENANCE" ? category : null,
         notes: notes || null,
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
       });
 
       onCreated(task);
@@ -61,7 +87,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
     <Modal
       isOpen
       title="Log a task"
-      description="Opening a task takes the vehicle out of new bookings until it is closed."
+      description="The vehicle is unavailable for new bookings during this period and shows on its calendar."
       onClose={onClose}
       footer={
         <>
@@ -112,6 +138,41 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
             </option>
           ))}
         </SelectField>
+
+        {taskType === "MAINTENANCE" && (
+          <SelectField
+            label="Category"
+            required
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
+            <option value="">Select a category...</option>
+            {MAINTENANCE_CATEGORIES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </SelectField>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Out of service from"
+            type="datetime-local"
+            required
+            value={startsAt}
+            onChange={(event) => setStartsAt(event.target.value)}
+          />
+
+          <TextField
+            label="Back in service at"
+            type="datetime-local"
+            required
+            min={startsAt || undefined}
+            value={endsAt}
+            onChange={(event) => setEndsAt(event.target.value)}
+          />
+        </div>
 
         <Field label="Notes">
           {(fieldProps) => (

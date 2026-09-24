@@ -11,7 +11,15 @@ CONFIGURATION_ID = 1
 # rest of the pricing schemas' float convention) but the column is
 # Numeric(10,2) — routed through str() first so e.g. 29.9 doesn't pick up
 # binary-float rounding noise before it reaches the Decimal column.
-_DECIMAL_FIELDS = {"short_term_fee", "airport_change_fee"}
+_DECIMAL_FIELDS = {
+    "short_term_fee",
+    "airport_change_fee",
+    "late_fee_per_hour",
+    "fuel_fee_per_eighth",
+    "refuel_service_fee",
+    "max_damage_charge",
+    "security_deposit_amount",
+}
 
 
 def get_configuration(db: Session) -> Configuration:

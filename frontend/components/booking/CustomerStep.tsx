@@ -244,6 +244,7 @@ export function CustomerStep({
           <TextField
             label="Phone number"
             type="tel"
+            required
             autoComplete="tel"
             value={value.phone_number}
             onChange={set("phone_number")}
@@ -253,6 +254,7 @@ export function CustomerStep({
           <TextField
             label="Email"
             type="email"
+            required
             autoComplete="email"
             value={value.email}
             onChange={set("email")}

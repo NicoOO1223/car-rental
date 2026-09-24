@@ -6,9 +6,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import STRIPE_SECRET_KEY
-from app.models import Customer, Handover, Reservation, User
+from app.models import CheckOut, Customer, Handover, Reservation, User
 from app.schemas.customer import CustomerDataExport, CustomerExportReservation
 from app.services.audit import audit_log
+from app.services.identity_details import build_identity_details_for_export
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -82,6 +83,18 @@ def anonymize_customer(db: Session, customer_id: UUID, actor: User) -> Customer:
     customer.email = None
     customer.nationality = None
 
+    customer.national_id_number = None
+    customer.id_document_type = None
+    customer.id_document_number = None
+    customer.id_document_expires_at = None
+    customer.driving_license_number = None
+    customer.driving_license_country = None
+    customer.driving_license_categories = None
+    customer.driving_license_issued_at = None
+    customer.driving_license_expires_at = None
+    customer.identity_checked_at = None
+    customer.identity_checked_by = None
+
     customer.identity_verification_session_id = None
     customer.identity_verification_status = None
     customer.identity_document_type = None
@@ -151,10 +164,20 @@ def export_customer_data(
         ).all()
     }
 
+    check_outs_by_reservation_id = {
+        check_out.reservation_id: check_out
+        for check_out in db.scalars(
+            select(CheckOut).where(
+                CheckOut.reservation_id.in_([r.id for r in reservations])
+            )
+        ).all()
+    }
+
     export_reservations = []
 
     for reservation in reservations:
         handover = handovers_by_reservation_id.get(reservation.id)
+        check_out = check_outs_by_reservation_id.get(reservation.id)
 
         export_reservations.append(
             CustomerExportReservation(
@@ -177,6 +200,24 @@ def export_customer_data(
                 payment_currency=handover.payment_currency if handover else None,
                 has_signature=bool(handover and handover.signature_image is not None),
                 has_agreement=bool(handover and handover.agreement_pdf is not None),
+                check_out_completed=bool(check_out and check_out.completed_at is not None),
+                check_out_total_charge=(
+                    float(check_out.total_charge) if check_out else None
+                ),
+                check_out_payment_status=(
+                    check_out.payment_status if check_out else None
+                ),
+                deposit_status=handover.deposit_status if handover else None,
+                deposit_amount=(
+                    float(handover.deposit_amount)
+                    if handover and handover.deposit_amount is not None
+                    else None
+                ),
+                deposit_captured_amount=(
+                    float(handover.deposit_captured_amount)
+                    if handover and handover.deposit_captured_amount is not None
+                    else None
+                ),
             )
         )
 
@@ -193,6 +234,7 @@ def export_customer_data(
         created_at=customer.created_at,
         anonymized_at=customer.anonymized_at,
         identity_verification=customer.identity_verification,
+        identity_details=build_identity_details_for_export(customer),
         reservations=export_reservations,
         exported_at=datetime.utcnow(),
     )

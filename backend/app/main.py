@@ -21,16 +21,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.auth import router as auth_router
+from app.routers.admin_cars import router as admin_cars_router
 from app.routers.cars import router as cars_router
+from app.routers.admin_extras import router as admin_extras_router
 from app.routers.extras import router as extras_router
 from app.routers.locations import router as locations_router
 from app.routers.reservations import router as reservations_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.customers import router as customers_router
 from app.routers.handovers import router as handovers_router
+from app.routers.check_outs import router as check_outs_router
 from app.routers.maintenance import router as maintenance_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.users import router as users_router
+from app.routers.configuration import public_router as public_configuration_router
 from app.routers.configuration import router as configuration_router
 
 app = FastAPI(
@@ -59,14 +63,18 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(locations_router)
 app.include_router(extras_router)
+app.include_router(admin_extras_router)
 app.include_router(cars_router)
+app.include_router(admin_cars_router)
 app.include_router(reservations_router)
 app.include_router(dashboard_router)
 app.include_router(customers_router)
 app.include_router(handovers_router)
+app.include_router(check_outs_router)
 app.include_router(maintenance_router)
 app.include_router(audit_logs_router)
 app.include_router(users_router)
+app.include_router(public_configuration_router)
 app.include_router(configuration_router)
 
 @app.get("/health")

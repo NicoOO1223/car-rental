@@ -67,7 +67,26 @@ class Car(Base):
         nullable=False,
     )
 
-    current_location: Mapped["Location"] = relationship()
+    current_location: Mapped["Location"] = relationship(
+        foreign_keys=[current_location_id]
+    )
+
+    # The airport this car belongs to. current_location moves with
+    # one-way rentals (see app/services/check_outs.py); when the two differ
+    # the car is "away from home" and staff are alerted.
+    home_location_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("locations.id"),
+        nullable=False,
+    )
+
+    home_location: Mapped["Location"] = relationship(
+        foreign_keys=[home_location_id]
+    )
+
+    @property
+    def is_away_from_home(self) -> bool:
+        return self.current_location_id != self.home_location_id
 
     # Customer-facing photo, shown in the booking wizard's vehicle step.
     # Nullable on purpose: the frontend falls back to a category
@@ -91,6 +110,10 @@ class Car(Base):
     )  # GOOD | FAIR | WORN | NEEDS_REPLACEMENT
 
     last_oil_change_at: Mapped[date | None] = mapped_column(Date)
+
+    # Technical inspection (the legally required periodic check).
+    last_inspection_at: Mapped[date | None] = mapped_column(Date)
+    next_inspection_due: Mapped[date | None] = mapped_column(Date)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

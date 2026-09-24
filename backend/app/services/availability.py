@@ -1,10 +1,10 @@
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Car, Reservation
+from app.models import Car, MaintenanceTask, Reservation
 
 
 ACTIVE_RESERVATION_STATUSES = {
@@ -50,6 +50,84 @@ def has_conflicting_reservation(
     return db.scalar(query) is not None
 
 
+def _open_maintenance_overlapping(start: datetime, end: datetime):
+    """
+    OPEN maintenance/cleaning tasks whose window overlaps [start, end).
+
+    A task with no ends_at predates windows: it was carried entirely by
+    Car.status, so it only counts while the car is still marked
+    MAINTENANCE/CLEANING — setting the car back to AVAILABLE releases it,
+    as it always did. A task with no starts_at is treated as starting when
+    it was opened.
+    """
+
+    window_start = func.coalesce(
+        MaintenanceTask.starts_at, MaintenanceTask.opened_at
+    )
+
+    return (
+        select(MaintenanceTask)
+        .join(Car, Car.id == MaintenanceTask.car_id)
+        .where(
+            MaintenanceTask.status == "OPEN",
+            window_start < end,
+            or_(
+                MaintenanceTask.ends_at > start,
+                and_(
+                    MaintenanceTask.ends_at.is_(None),
+                    Car.status.in_(("MAINTENANCE", "CLEANING")),
+                ),
+            ),
+        )
+    )
+
+
+def has_conflicting_maintenance(
+    db: Session,
+    car_id: UUID,
+    start: datetime,
+    end: datetime,
+    exclude_task_id: UUID | None = None,
+) -> bool:
+    """
+    Return True if the car has an OPEN maintenance/cleaning window
+    overlapping the given period.
+    """
+
+    query = _open_maintenance_overlapping(start, end).where(
+        MaintenanceTask.car_id == car_id
+    )
+
+    if exclude_task_id is not None:
+        query = query.where(MaintenanceTask.id != exclude_task_id)
+
+    return db.scalars(query).first() is not None
+
+
+def get_cars_in_maintenance(
+    db: Session,
+    start: datetime,
+    end: datetime,
+) -> dict[UUID, str]:
+    """
+    car_id -> task_type (MAINTENANCE | CLEANING) for every car with an OPEN
+    task overlapping [start, end).
+    """
+
+    return {
+        task.car_id: task.task_type
+        for task in db.scalars(_open_maintenance_overlapping(start, end)).all()
+    }
+
+
+def get_current_maintenance_by_car(db: Session) -> dict[UUID, str]:
+    """Cars whose maintenance window contains this very moment."""
+
+    now = datetime.now(timezone.utc)
+
+    return get_cars_in_maintenance(db, now, now + timedelta(seconds=1))
+
+
 def get_available_cars(
     db: Session,
     pickup_location_id: UUID,
@@ -79,8 +157,13 @@ def get_available_cars(
     available_cars = []
 
     for car in cars:
-        if not has_conflicting_reservation(db, car.id, pickup_at, return_at):
-            available_cars.append(car)
+        if has_conflicting_reservation(db, car.id, pickup_at, return_at):
+            continue
+
+        if has_conflicting_maintenance(db, car.id, pickup_at, return_at):
+            continue
+
+        available_cars.append(car)
 
     return available_cars
 
@@ -99,9 +182,11 @@ def _compute_car_statuses_for_date(
       day whose own status is ACTIVE counts as RENTED.
     - A car with a matching reservation overlapping that day that isn't
       ACTIVE (e.g. CONFIRMED, or PENDING if included) counts as RESERVED.
+    - Otherwise, if an OPEN maintenance/cleaning window overlaps that day,
+      the task's type is used.
     - Otherwise, if the car's live status is MAINTENANCE or CLEANING, that
-      is carried through as-is (these aren't reservation-driven and there's
-      no historical record of them, so they aren't date-sensitive).
+      is carried through as-is (a status set directly, with no window
+      behind it, isn't date-sensitive).
     - Otherwise the car counts as AVAILABLE.
 
     This intentionally does not read Car.status for the RENTED/RESERVED
@@ -138,6 +223,8 @@ def _compute_car_statuses_for_date(
         if car_bucket.get(car_id) != "RENTED":
             car_bucket[car_id] = bucket
 
+    maintenance_by_car = get_cars_in_maintenance(db, day_start, day_end)
+
     cars_query = select(Car.id, Car.status)
 
     if location_id is not None:
@@ -148,6 +235,8 @@ def _compute_car_statuses_for_date(
     for car_id, live_status in db.execute(cars_query).all():
         if car_id in car_bucket:
             statuses[car_id] = car_bucket[car_id]
+        elif car_id in maintenance_by_car:
+            statuses[car_id] = maintenance_by_car[car_id]
         elif live_status in ("MAINTENANCE", "CLEANING"):
             statuses[car_id] = live_status
         else:

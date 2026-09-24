@@ -2,9 +2,9 @@ import uuid
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from sqlalchemy import CheckConstraint, Date, DateTime, String
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -65,10 +65,40 @@ class Customer(Base):
         nullable=False,
     )
 
-    # --- Identity verification (Stripe Identity) ---
-    # Minimal tier only: status + non-sensitive fields readable with the
-    # plain Stripe secret key. No document number, DOB, or images are
-    # ever stored here — see app/services/identity_verification.py.
+    # --- Identity & driving licence, entered by staff at the counter ---
+    # Sensitive personal data: never returned by list endpoints, only by
+    # the audited identity-details endpoint, and cleared on erasure (see
+    # app/services/data_privacy.py). national_id_number is the PESEL for
+    # Polish customers, otherwise whatever national ID the customer has.
+    national_id_number: Mapped[str | None] = mapped_column(String(30))
+
+    id_document_type: Mapped[str | None] = mapped_column(String(20))  # ID_CARD | PASSPORT | RESIDENCE_PERMIT
+    id_document_number: Mapped[str | None] = mapped_column(String(50))
+    id_document_expires_at: Mapped[date | None] = mapped_column(Date)
+
+    driving_license_number: Mapped[str | None] = mapped_column(String(50))
+    driving_license_country: Mapped[str | None] = mapped_column(String(2))
+    driving_license_categories: Mapped[str | None] = mapped_column(String(30))
+    driving_license_issued_at: Mapped[date | None] = mapped_column(Date)
+    driving_license_expires_at: Mapped[date | None] = mapped_column(Date)
+
+    # The employee attests they checked the original documents when the
+    # details were last saved.
+    identity_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    identity_checked_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    identity_checker: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[identity_checked_by]
+    )
+
+    # --- Legacy: Stripe Identity (no longer offered) ---
+    # Customers verified through Stripe Identity before manual entry
+    # replaced it keep this record and still count as verified. Only a
+    # status and non-sensitive fields were ever stored.
     identity_verification_session_id: Mapped[str | None] = mapped_column(String(255))
     identity_verification_status: Mapped[str | None] = mapped_column(String(20))
     identity_document_type: Mapped[str | None] = mapped_column(String(50))
@@ -89,6 +119,10 @@ class Customer(Base):
             "identity_verification_status IN "
             "('requires_input','processing','verified','canceled')",
             name="valid_customer_identity_verification_status",
+        ),
+        CheckConstraint(
+            "id_document_type IN ('ID_CARD','PASSPORT','RESIDENCE_PERMIT')",
+            name="valid_customer_id_document_type",
         ),
     )
 

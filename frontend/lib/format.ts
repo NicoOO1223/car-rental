@@ -34,9 +34,23 @@ export function formatDateShort(value: string | Date): string {
   });
 }
 
+// The business currency (configuration.default_currency), set once after
+// login by components/CurrencyProvider.tsx. Money shown without an explicit
+// currency uses it, so changing it in the Configuration panel changes what
+// every screen displays.
+let defaultCurrency = "EUR";
+
+export function setDefaultCurrency(currency: string): void {
+  defaultCurrency = currency.toUpperCase();
+}
+
+export function getDefaultCurrency(): string {
+  return defaultCurrency;
+}
+
 export function formatCurrency(
   amount: number | string,
-  currency = "EUR",
+  currency: string = defaultCurrency,
 ): string {
   const value = typeof amount === "string" ? Number(amount) : amount;
 
@@ -45,6 +59,21 @@ export function formatCurrency(
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+/** "€45" — whole-unit price for tight spaces such as calendar cells. */
+export function formatCurrencyCompact(
+  amount: number | string,
+  currency: string = defaultCurrency,
+): string {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(Number.isFinite(value) ? value : 0);
 }
 

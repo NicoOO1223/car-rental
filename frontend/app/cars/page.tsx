@@ -387,6 +387,11 @@ export default function FleetPage() {
                           <p className="mt-0.5 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                             {car.license_plate}
                           </p>
+                          {car.is_away_from_home && (
+                            <p className="ml-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                              Away · home {car.home_location.airport_code}
+                            </p>
+                          )}
                           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
                             <span>{car.year}</span>
                             <span className="h-1 w-1 rounded-full bg-gray-300" />

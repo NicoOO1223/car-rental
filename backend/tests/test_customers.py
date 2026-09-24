@@ -367,12 +367,12 @@ def test_get_customer_detail_records_audit_log():
         "2028-07-03T10:00:00Z",
         {
             "first_name": "Audited",
-            "last_name": "Lookup",
+            "last_name": f"Lookup{uuid4().hex[:8]}",
             "date_of_birth": "1993-04-04",
             "address": "Audit Street 1",
             "postal_code": "AUD01",
-            "phone_number": "+31600000000",
-            "email": "audited.lookup@example.com",
+            "phone_number": f"+3160{uuid4().int % 10**7:07d}",
+            "email": f"audited.{uuid4().hex[:8]}@example.com",
         },
     )
     customer_id = reservation["customer_id"]

@@ -22,17 +22,32 @@ const PAGE_SIZE = 25;
 // No backend endpoint enumerates these — they're the fixed set of
 // entity types and actions app/services/audit.py currently writes.
 // Update this list by hand if a future layer adds a new audited action.
-const ENTITY_TYPES = ["reservation", "customer", "handover", "user", "configuration"];
+const ENTITY_TYPES = ["reservation", "customer", "handover", "check_out", "car", "extra", "user", "configuration", "maintenance_task"];
 const ACTIONS = [
   "reservation.cancelled",
   "reservation.status_changed",
   "customer.updated",
   "customer.viewed",
   "customer.identity_verification_updated",
+  "customer.identity_details_updated",
+  "customer.identity_details_viewed",
   "customer.anonymized",
   "customer.data_exported",
   "handover.payment_confirmed",
   "handover.agreement_generated",
+  "handover.employee_signed",
+  "check_out.condition_recorded",
+  "check_out.charge_waived",
+  "check_out.payment_confirmed",
+  "check_out.employee_signed",
+  "check_out.completed",
+  "car.relocated",
+  "car.price_updated",
+  "extra.created",
+  "extra.updated",
+  "extra.retired",
+  "extra.reactivated",
+  "extra.reordered",
   "handover.refund_issued",
   "user.created",
   "user.role_changed",
@@ -42,6 +57,9 @@ const ACTIONS = [
   "user.password_reset",
   "user.visibility_changed",
   "configuration.updated",
+  "maintenance_task.created",
+  "maintenance_task.completed",
+  "maintenance_task.cancelled",
 ];
 
 const FILTER_DEFAULTS = {

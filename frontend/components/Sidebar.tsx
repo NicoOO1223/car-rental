@@ -4,11 +4,11 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowLeftRight,
   Car,
   CalendarClock,
   ChevronsLeft,
   ChevronsRight,
-  FileSignature,
   History,
   LayoutDashboard,
   LogOut,
@@ -43,11 +43,7 @@ const BASE_NAV_SECTIONS: NavSection[] = [
     label: "Bookings",
     items: [
       { name: "Reservations", href: "/reservations/manage", icon: CalendarClock },
-      {
-        name: "Finalize Rentals",
-        href: "/reservations/finalize",
-        icon: FileSignature,
-      },
+      { name: "Handovers", href: "/handovers", icon: ArrowLeftRight },
       { name: "Customers", href: "/customers", icon: Users },
     ],
   },

@@ -30,6 +30,21 @@ class Configuration(Base):
     short_term_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     airport_change_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
+    # Charges applied when a rental is checked back in (see
+    # app/services/return_charges.py). A return later than the scheduled
+    # time by more than the grace period is charged per started hour;
+    # fuel per missing eighth of a tank plus a flat service fee once any is
+    # missing; a damage charge is typed in by the employee, up to the cap.
+    late_return_grace_minutes: Mapped[int] = mapped_column(nullable=False)
+    late_fee_per_hour: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    fuel_fee_per_eighth: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    refuel_service_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    max_damage_charge: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+
+    # Held at check-in (card authorization or cash) and settled at check-out
+    # against any return charges. 0 turns deposits off.
+    security_deposit_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+
     default_currency: Mapped[str] = mapped_column(String(3), nullable=False)
 
     # Only affects tokens issued after the change — a token's exp claim is

@@ -262,23 +262,47 @@ def test_export_customer_data_rejects_staff_role():
     client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 
-@requires_stripe
-def test_erase_customer_clears_identity_verification_fields():
-    stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
-
+def test_erase_customer_clears_identity_details_and_export_includes_them():
     reservation = _create_customer(
         "EraseIdentity", "2028-09-01T10:00:00Z", "2028-09-03T10:00:00Z"
     )
     customer_id = reservation["customer_id"]
 
-    session_response = client.post(
-        f"/api/customers/{customer_id}/identity-verification"
+    saved = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json={
+            "national_id_number": "ID-ERASE-1",
+            "driving_license_number": "DL-ERASE-1",
+            "driving_license_expires_at": "2099-01-01",
+            "documents_checked": True,
+        },
     )
-    assert session_response.status_code == 200
+    assert saved.status_code == 200
+
+    exported = client.get(f"/api/customers/{customer_id}/export")
+    assert exported.status_code == 200
+    assert exported.json()["identity_details"]["driving_license_number"] == "DL-ERASE-1"
 
     client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
     response = client.post(f"/api/customers/{customer_id}/erase")
-
     assert response.status_code == 200
-    assert response.json()["identity_verification"] is None
+
+    after = client.get(f"/api/customers/{customer_id}/identity-details")
+    assert after.status_code == 200
+    body = after.json()
+    assert body["national_id_number"] is None
+    assert body["driving_license_number"] is None
+    assert body["driving_license_expires_at"] is None
+    assert body["identity_checked_at"] is None
+
+    resave = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json={
+            "national_id_number": "ID-ERASE-2",
+            "driving_license_number": "DL-ERASE-2",
+            "driving_license_expires_at": "2099-01-01",
+            "documents_checked": True,
+        },
+    )
+    assert resave.status_code == 400

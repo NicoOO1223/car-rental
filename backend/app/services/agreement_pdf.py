@@ -117,26 +117,51 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         line(terms_line, size=8, gap=4.5 * mm)
     y -= 4 * mm
 
-    heading("Customer Signature")
+    def ensure_space(needed) -> None:
+        nonlocal y
 
-    if handover.signature_image:
-        raw = handover.signature_image
-        if "," in raw:
-            _, raw = raw.split(",", 1)
-        image_bytes = base64.b64decode(raw)
-        image = ImageReader(BytesIO(image_bytes))
-        doc.drawImage(
-            image,
-            left,
-            y - 25 * mm,
-            width=60 * mm,
-            height=25 * mm,
-            preserveAspectRatio=True,
-            mask="auto",
-        )
-        y -= 30 * mm
-    else:
-        line("(no signature on file)")
+        if y < needed:
+            doc.showPage()
+            y = height - 20 * mm
+
+    def signature_block(image_data: str | None, missing_text: str) -> None:
+        nonlocal y
+
+        if image_data:
+            raw = image_data
+            if "," in raw:
+                _, raw = raw.split(",", 1)
+            image_bytes = base64.b64decode(raw)
+            image = ImageReader(BytesIO(image_bytes))
+            doc.drawImage(
+                image,
+                left,
+                y - 25 * mm,
+                width=60 * mm,
+                height=25 * mm,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
+            y -= 30 * mm
+        else:
+            line(missing_text)
+
+    ensure_space(50 * mm)
+    heading("Customer Signature")
+    signature_block(handover.signature_image, "(no signature on file)")
+
+    ensure_space(65 * mm)
+    heading("Approved by (employee)")
+
+    if handover.employee_signer is not None:
+        line(f"Employee: {handover.employee_signer.email}")
+
+    if handover.employee_signed_at:
+        line(f"Signed at: {handover.employee_signed_at.isoformat()}")
+
+    signature_block(
+        handover.employee_signature_image, "(no employee signature on file)"
+    )
 
     doc.showPage()
     doc.save()

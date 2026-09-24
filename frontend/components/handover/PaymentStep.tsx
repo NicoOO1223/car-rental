@@ -35,10 +35,19 @@ type Props = {
   onPaid: () => void;
 };
 
-function PaymentForm({
+type ConfirmFn = (reservationId: string) => Promise<unknown>;
+
+// `confirm` defaults to the check-in payment; the check-out flow passes its
+// own.
+export function PaymentForm({
   reservationId,
   onPaid,
-}: Pick<Props, "reservationId" | "onPaid">) {
+  confirm = confirmHandoverPayment,
+  submitLabel = "Charge Card",
+}: Pick<Props, "reservationId" | "onPaid"> & {
+  confirm?: ConfirmFn;
+  submitLabel?: string;
+}) {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -67,7 +76,7 @@ function PaymentForm({
 
       // Never trust the client-side result alone — the server re-verifies
       // the PaymentIntent directly against Stripe before we advance.
-      await confirmHandoverPayment(reservationId);
+      await confirm(reservationId);
 
       onPaid();
     } catch (err) {
@@ -87,7 +96,7 @@ function PaymentForm({
 
       <Button type="submit" disabled={!stripe || submitting} fullWidth>
         <CreditCard className="h-4 w-4" aria-hidden="true" />
-        {submitting ? "Processing payment..." : "Charge Card"}
+        {submitting ? "Processing..." : submitLabel}
       </Button>
     </form>
   );
@@ -96,7 +105,14 @@ function PaymentForm({
 export function CashPaymentForm({
   reservationId,
   onPaid,
-}: Pick<Props, "reservationId" | "onPaid">) {
+  confirm = confirmCashPayment,
+  description = "Confirm only once the full amount has been received in cash from the customer.",
+  buttonLabel = "Confirm Cash Payment",
+}: Pick<Props, "reservationId" | "onPaid"> & {
+  confirm?: ConfirmFn;
+  description?: string;
+  buttonLabel?: string;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
 
@@ -105,7 +121,7 @@ export function CashPaymentForm({
     setError("");
 
     try {
-      await confirmCashPayment(reservationId);
+      await confirm(reservationId);
       onPaid();
     } catch (err) {
       setError(
@@ -118,16 +134,13 @@ export function CashPaymentForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Confirm only once the full amount has been received in cash from the
-        customer.
-      </p>
+      <p className="text-sm text-gray-600">{description}</p>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button onClick={handleConfirm} disabled={confirming} fullWidth>
         <Banknote className="h-4 w-4" aria-hidden="true" />
-        {confirming ? "Confirming..." : "Confirm Cash Payment"}
+        {confirming ? "Confirming..." : buttonLabel}
       </Button>
     </div>
   );
@@ -159,7 +172,7 @@ export function PaymentStep({
             airport_change_fee: airportChangeFee,
             extras,
             total_amount: amount,
-            currency: currency ?? "eur",
+            currency: currency ?? undefined,
           }}
           totalLabel="Amount due"
         />

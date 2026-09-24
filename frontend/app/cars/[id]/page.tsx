@@ -9,6 +9,7 @@ import {
   getCar,
   getCarMaintenanceTasks,
   getCarReservations,
+  returnCarToHome,
   getLocations,
   type Car,
   type CarReservation,
@@ -20,8 +21,11 @@ import { CarStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CarEditModal } from "@/components/cars/CarEditModal";
 import { VehicleConditionModal } from "@/components/cars/VehicleConditionModal";
+import { CompleteTaskModal } from "@/components/maintenance/CompleteTaskModal";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
+import { inspectionStatus, maintenanceCategoryLabel } from "@/lib/maintenance";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
+import { formatCurrency } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -30,8 +34,15 @@ type Props = {
   }>;
 };
 
-const DAY_WIDTH = 90;
-const TIMELINE_DAYS = 30;
+// Longer ranges get narrower day columns so they stay scannable; at the
+// narrowest widths the date header collapses to just the day number.
+const TIMELINE_RANGES = [
+  { days: 30, label: "30 days", dayWidth: 90 },
+  { days: 60, label: "60 days", dayWidth: 60 },
+  { days: 90, label: "90 days", dayWidth: 40 },
+  { days: 180, label: "6 months", dayWidth: 24 },
+  { days: 365, label: "1 year", dayWidth: 16 },
+] as const;
 
 export default function CarDetailsPage({ params }: Props) {
   const navigate = useNavigate();
@@ -47,6 +58,12 @@ export default function CarDetailsPage({ params }: Props) {
   const [editing, setEditing] = useState(false);
   const [editingCondition, setEditingCondition] = useState(false);
   const [loggingTask, setLoggingTask] = useState(false);
+  const [timelineRangeDays, setTimelineRangeDays] = useState<number>(30);
+  const [relocating, setRelocating] = useState(false);
+  const [relocateError, setRelocateError] = useState("");
+  const [completingTask, setCompletingTask] = useState<MaintenanceTask | null>(
+    null,
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -75,17 +92,48 @@ export default function CarDetailsPage({ params }: Props) {
     loadData();
   }, [params]);
 
-  const openTask = maintenanceTasks.find((task) => task.status === "OPEN");
 
-  async function handleCompleteTask(taskId: string) {
-    const updated = await completeMaintenanceTask(taskId);
+  async function handleCompleteTask(task: MaintenanceTask) {
+    // An inspection records itself on the car and needs its next due
+    // date, so it goes through a form first.
+    if (task.category === "TECHNICAL_INSPECTION") {
+      setCompletingTask(task);
+      return;
+    }
 
+    await handleTaskCompleted(await completeMaintenanceTask(task.id));
+  }
+
+  async function handleTaskCompleted(updated: MaintenanceTask) {
     setMaintenanceTasks((tasks) =>
       tasks.map((task) => (task.id === updated.id ? updated : task)),
     );
 
-    if (car) {
-      setCar({ ...car, status: "AVAILABLE" });
+    // Refetch: closing an inspection also updates the car's inspection
+    // dates, not just its status.
+    setCar(await getCar(updated.car.id));
+  }
+
+  async function handleReturnToHome() {
+    if (!car) return;
+
+    const confirmed = window.confirm(
+      `Confirm the car is now at its home airport, ${car.home_location.airport_code}?`,
+    );
+
+    if (!confirmed) return;
+
+    setRelocating(true);
+    setRelocateError("");
+
+    try {
+      setCar(await returnCarToHome(car.id));
+    } catch (err) {
+      setRelocateError(
+        err instanceof Error ? err.message : "Failed to move the car.",
+      );
+    } finally {
+      setRelocating(false);
     }
   }
 
@@ -113,8 +161,16 @@ export default function CarDetailsPage({ params }: Props) {
     return getReservationStatusStyle(status, "solid");
   }
 
+  const timelineRange =
+    TIMELINE_RANGES.find((range) => range.days === timelineRangeDays) ??
+    TIMELINE_RANGES[0];
+  const TIMELINE_DAYS: number = timelineRange.days;
+  const DAY_WIDTH: number = timelineRange.dayWidth;
+  const compactHeader = DAY_WIDTH < 40;
+
   /*
-   * Timeline starts today and covers the next 30 days.
+   * Timeline starts today and covers the selected range (30 days by
+   * default).
    */
   const timelineStart = useMemo(() => {
     const date = new Date();
@@ -137,7 +193,7 @@ export default function CarDetailsPage({ params }: Props) {
         return date;
       }
     );
-  }, [timelineStart]);
+  }, [timelineStart, TIMELINE_DAYS]);
 
   function getDayDifference(
     start: Date,
@@ -218,6 +274,43 @@ export default function CarDetailsPage({ params }: Props) {
     }
   );
 
+  /*
+   * Maintenance windows share the schedule. Cancelled tasks never took the
+   * car out of service; a task closed early stops where it was closed; an
+   * open-ended (older) task runs to the end of the timeline.
+   */
+  const timelineEnd = new Date(timelineStart);
+  timelineEnd.setDate(timelineStart.getDate() + TIMELINE_DAYS);
+
+  const visibleTasks = maintenanceTasks
+    .filter((task) => task.status !== "CANCELLED")
+    .map((task) => {
+      const start = new Date(task.starts_at ?? task.opened_at);
+      let end = task.ends_at ? new Date(task.ends_at) : timelineEnd;
+
+      if (task.completed_at && new Date(task.completed_at) < end) {
+        end = new Date(task.completed_at);
+      }
+
+      return { task, start, end };
+    })
+    .filter(({ start, end }) => start < timelineEnd && end > timelineStart);
+
+  function getTaskPosition(start: Date, end: Date) {
+    const startOffset = Math.max(0, getDayDifference(timelineStart, start));
+    const endOffset = Math.min(
+      TIMELINE_DAYS,
+      getDayDifference(timelineStart, end),
+    );
+
+    return {
+      left: startOffset * DAY_WIDTH,
+      width: Math.max(0.5, endOffset - startOffset) * DAY_WIDTH,
+    };
+  }
+
+  const timelineRowCount = visibleReservations.length + visibleTasks.length;
+
   if (loading) {
     return (
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
@@ -279,6 +372,39 @@ export default function CarDetailsPage({ params }: Props) {
           </div>
         </div>
 
+        {car.is_away_from_home && (
+          <div
+            className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 sm:flex-row sm:items-center sm:justify-between"
+            role="alert"
+          >
+            <div>
+              <p className="font-medium">
+                Away from home airport
+              </p>
+
+              <p className="mt-1 text-sm">
+                This car is at {car.current_location.airport_code} but belongs
+                at {car.home_location.airport_code}. Once it has been driven
+                back, record it here.
+              </p>
+
+              {relocateError && (
+                <p className="mt-2 text-sm text-red-700">{relocateError}</p>
+              )}
+            </div>
+
+            <Button
+              variant="secondary"
+              onClick={handleReturnToHome}
+              disabled={relocating}
+            >
+              {relocating
+                ? "Saving..."
+                : `Return to ${car.home_location.airport_code}`}
+            </Button>
+          </div>
+        )}
+
         {/* Vehicle information */}
         <section className="rounded-xl bg-surface p-6 shadow-sm">
 
@@ -324,7 +450,7 @@ export default function CarDetailsPage({ params }: Props) {
               </p>
 
               <p className="mt-1 font-medium">
-                €{Number(car.price_per_day).toFixed(2)}
+                {formatCurrency(car.price_per_day)}
               </p>
             </div>
 
@@ -369,6 +495,20 @@ export default function CarDetailsPage({ params }: Props) {
 
               <p className="text-sm text-gray-500">
                 {car.current_location.name}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Home Airport
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.home_location.airport_code}
+              </p>
+
+              <p className="text-sm text-gray-500">
+                {car.home_location.name}
               </p>
             </div>
 
@@ -421,6 +561,36 @@ export default function CarDetailsPage({ params }: Props) {
               </p>
             </div>
 
+            <div>
+              <p className="text-sm text-gray-500">
+                Last Inspection
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.last_inspection_at ? formatDate(car.last_inspection_at) : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">
+                Next Inspection Due
+              </p>
+
+              <p className="mt-1 font-medium">
+                {car.next_inspection_due ? formatDate(car.next_inspection_due) : "—"}
+                {inspectionStatus(car.next_inspection_due) === "overdue" && (
+                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                    Overdue
+                  </span>
+                )}
+                {inspectionStatus(car.next_inspection_due) === "soon" && (
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                    Due soon
+                  </span>
+                )}
+              </p>
+            </div>
+
           </div>
         </section>
 
@@ -439,16 +609,10 @@ export default function CarDetailsPage({ params }: Props) {
               </p>
             </div>
 
-            {openTask ? (
-              <span className="text-sm font-medium text-gray-500">
-                Task already open below
-              </span>
-            ) : (
-              <Button variant="secondary" onClick={() => setLoggingTask(true)}>
-                <Wrench className="h-4 w-4" />
-                Log Task
-              </Button>
-            )}
+            <Button variant="secondary" onClick={() => setLoggingTask(true)}>
+              <Wrench className="h-4 w-4" />
+              Log Task
+            </Button>
 
           </div>
 
@@ -474,11 +638,22 @@ export default function CarDetailsPage({ params }: Props) {
 
                     <div>
                       <p className="text-sm font-medium">
+                        {task.category && (
+                          <span className="mr-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-secondary">
+                            {maintenanceCategoryLabel(task.category)}
+                          </span>
+                        )}
                         {task.notes || "No notes"}
                       </p>
 
                       <p className="mt-0.5 text-xs text-gray-500">
-                        Opened {formatDateTime(task.opened_at)}
+                        Out of service{" "}
+                        {formatDateTime(task.starts_at ?? task.opened_at)}
+                        {task.ends_at ? (
+                          <> → {formatDateTime(task.ends_at)}</>
+                        ) : (
+                          <> until closed</>
+                        )}
                         {task.completed_at && (
                           <> · Closed {formatDateTime(task.completed_at)}</>
                         )}
@@ -494,7 +669,7 @@ export default function CarDetailsPage({ params }: Props) {
                     {task.status === "OPEN" && (
                       <>
                         <button
-                          onClick={() => handleCompleteTask(task.id)}
+                          onClick={() => handleCompleteTask(task)}
                           className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                         >
                           Mark Complete
@@ -526,8 +701,26 @@ export default function CarDetailsPage({ params }: Props) {
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Next 30 days
+                Next {timelineRange.label}
               </p>
+            </div>
+
+            <div className="flex items-center gap-1 rounded-lg bg-surface-sunken p-1 text-sm">
+              {TIMELINE_RANGES.map((range) => (
+                <button
+                  key={range.days}
+                  type="button"
+                  onClick={() => setTimelineRangeDays(range.days)}
+                  aria-pressed={range.days === timelineRangeDays}
+                  className={`rounded-md px-3 py-1 font-medium transition ${
+                    range.days === timelineRangeDays
+                      ? "bg-white text-ink shadow-sm"
+                      : "text-ink-secondary hover:text-ink"
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
             </div>
 
             <div className="flex gap-4 text-sm">
@@ -551,6 +744,11 @@ export default function CarDetailsPage({ params }: Props) {
                   className={`h-3 w-3 rounded-full ${getReservationStatusStyle("COMPLETED", "dot")}`}
                 />
                 Completed
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-amber-400" />
+                Out of service
               </div>
 
             </div>
@@ -577,30 +775,50 @@ export default function CarDetailsPage({ params }: Props) {
                       style={{
                         width: DAY_WIDTH,
                       }}
-                      className="shrink-0 border-r px-2 pb-3"
+                      className={`shrink-0 border-r pb-3 ${
+                        compactHeader ? "px-0 text-center" : "px-2"
+                      }`}
                     >
 
-                      <p className="text-xs text-ink-muted">
-                        {date.toLocaleDateString(
-                          undefined,
-                          {
-                            weekday: "short",
-                          }
-                        )}
-                      </p>
+                      {compactHeader ? (
+                        <>
+                          <p className="h-4 overflow-visible whitespace-nowrap text-left text-[10px] font-medium text-ink-muted">
+                            {index === 0 || date.getDate() === 1
+                              ? date.toLocaleDateString(undefined, {
+                                  month: "short",
+                                })
+                              : ""}
+                          </p>
 
-                      <p className="mt-1 font-medium">
-                        {date.getDate()}
-                      </p>
+                          <p className="mt-1 text-[10px] font-medium">
+                            {date.getDate()}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-ink-muted">
+                            {date.toLocaleDateString(
+                              undefined,
+                              {
+                                weekday: "short",
+                              }
+                            )}
+                          </p>
 
-                      <p className="text-xs text-ink-muted">
-                        {date.toLocaleDateString(
-                          undefined,
-                          {
-                            month: "short",
-                          }
-                        )}
-                      </p>
+                          <p className="mt-1 font-medium">
+                            {date.getDate()}
+                          </p>
+
+                          <p className="text-xs text-ink-muted">
+                            {date.toLocaleDateString(
+                              undefined,
+                              {
+                                month: "short",
+                              }
+                            )}
+                          </p>
+                        </>
+                      )}
 
                     </div>
                   )
@@ -615,7 +833,7 @@ export default function CarDetailsPage({ params }: Props) {
                   height:
                     Math.max(
                       90,
-                      visibleReservations.length *
+                      timelineRowCount *
                         70 +
                         20
                     ),
@@ -713,13 +931,48 @@ export default function CarDetailsPage({ params }: Props) {
                   }
                 )}
 
+                {/* Maintenance / cleaning windows */}
+                {visibleTasks.map(({ task, start, end }, taskIndex) => {
+                  const position = getTaskPosition(start, end);
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="absolute flex items-center overflow-hidden rounded-lg border border-amber-300 bg-amber-100 px-3 text-amber-900 shadow-sm"
+                      style={{
+                        left: position.left,
+                        width: position.width,
+                        top: (visibleReservations.length + taskIndex) * 70 + 10,
+                        height: 50,
+                      }}
+                      title={`${task.task_type} — ${formatDateTime(
+                        start.toISOString()
+                      )} → ${
+                        task.ends_at
+                          ? formatDateTime(end.toISOString())
+                          : "until closed"
+                      }${task.notes ? ` — ${task.notes}` : ""}`}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {task.task_type === "CLEANING" ? "Cleaning" : "Maintenance"}
+                        </p>
+
+                        <p className="truncate text-xs opacity-90">
+                          {task.notes || "Out of service"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+
                 {/* Available indicator */}
-                {visibleReservations.length ===
+                {timelineRowCount ===
                   0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700">
                       Vehicle available — no
-                      reservations in this period
+                      reservations or maintenance in this period
                     </div>
                   </div>
                 )}
@@ -876,6 +1129,14 @@ export default function CarDetailsPage({ params }: Props) {
           car={car}
           onClose={() => setEditingCondition(false)}
           onSaved={(updated) => setCar(updated)}
+        />
+      )}
+
+      {completingTask && (
+        <CompleteTaskModal
+          task={completingTask}
+          onClose={() => setCompletingTask(null)}
+          onCompleted={handleTaskCompleted}
         />
       )}
 

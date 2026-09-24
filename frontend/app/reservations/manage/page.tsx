@@ -291,6 +291,19 @@ export default function ManageReservationsPage() {
       sortAccessor: (reservation) => new Date(reservation.return_at),
     },
     {
+      id: "booked",
+      header: "Booked",
+      mobile: "hidden",
+      cell: (reservation) => (
+        <TwoLine
+          primary={formatDate(reservation.created_at)}
+          secondary={formatTime(reservation.created_at)}
+        />
+      ),
+      sortable: true,
+      sortAccessor: (reservation) => new Date(reservation.created_at),
+    },
+    {
       id: "route",
       header: "Route",
       mobile: "hidden",

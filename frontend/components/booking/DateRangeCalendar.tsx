@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { formatDate } from "@/lib/format";
+import { formatCurrencyCompact, formatDate } from "@/lib/format";
 
 /**
  * A single-month range calendar for picking the rental period.
@@ -69,6 +69,7 @@ export function DateRangeCalendar({
   returnDate,
   onChange,
   dayCount = 0,
+  dayPrices,
 }: {
   pickupDate: string;
   returnDate: string;
@@ -80,6 +81,12 @@ export function DateRangeCalendar({
    * disagree with the invoice whenever the drop-off is later in the day.
    */
   dayCount?: number;
+  /**
+   * Day rate per date key, shown under each day. Optional: without it the
+   * calendar is unchanged. Comes from the server so date-specific pricing
+   * shows up here without any change to this component.
+   */
+  dayPrices?: Record<string, number>;
 }) {
   const today = useMemo(() => startOfToday(), []);
 
@@ -239,7 +246,7 @@ export function DateRangeCalendar({
                   month: "long",
                   year: "numeric",
                 })}
-                className={`relative h-11 text-sm transition focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900 ${
+                className={`relative ${dayPrices ? "h-12" : "h-11"} text-sm transition focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900 ${
                   isPast ? "cursor-not-allowed text-gray-300" : "cursor-pointer"
                 } ${
                   isEnd
@@ -251,7 +258,23 @@ export function DateRangeCalendar({
                         : ""
                 }`}
               >
-                {date.getDate()}
+                {dayPrices ? (
+                  <span className="flex flex-col items-center leading-tight">
+                    <span>{date.getDate()}</span>
+
+                    {!isPast && dayPrices[key] !== undefined && (
+                      <span
+                        className={`text-[10px] font-normal ${
+                          isEnd ? "text-white/70" : "text-ink-muted"
+                        }`}
+                      >
+                        {formatCurrencyCompact(dayPrices[key])}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  date.getDate()
+                )}
 
                 {isToday && !isEnd && (
                   <span

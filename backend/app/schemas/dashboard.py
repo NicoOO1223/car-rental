@@ -68,6 +68,22 @@ class DashboardLocationStats(BaseModel):
     cleaning: int
 
 
+class DashboardAwayCar(BaseModel):
+    """A car currently at an airport other than its home airport."""
+
+    id: UUID
+    make: str
+    model: str
+    license_plate: str
+    year: int
+    category: str | None
+    status: str
+    current_airport_code: str
+    home_airport_code: str
+    current_airport_name: str
+    home_airport_name: str
+
+
 class DashboardResponse(BaseModel):
     fleet: DashboardFleetStats
     reservations: DashboardReservationStats
@@ -80,6 +96,8 @@ class DashboardResponse(BaseModel):
     upcoming_returns: list[DashboardReservation]
 
     locations: list[DashboardLocationStats]
+
+    cars_away_from_home: list[DashboardAwayCar] = []
 
 
 class DashboardFleetStatusResponse(BaseModel):

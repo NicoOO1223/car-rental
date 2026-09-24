@@ -10,12 +10,15 @@ from app.database import Base
 
 class MaintenanceTask(Base):
     """
-    A work order against a car — either MAINTENANCE or CLEANING. Opening
-    one drives Car.status to match (so the existing availability filter
-    in app/services/availability.py::get_available_cars automatically
-    excludes the car from new bookings); completing or cancelling it
-    resets Car.status back to AVAILABLE. Unlike Handover, this is 1:many
-    — a car accumulates a history of tasks over its lifetime.
+    A work order against a car — either MAINTENANCE or CLEANING — that
+    takes the car out of service for the window [starts_at, ends_at).
+    Availability is derived from that window (see
+    app/services/availability.py), not from Car.status: a future window
+    doesn't block the car today, and the car frees itself once the window
+    ends. A NULL ends_at marks a task created before windows existed; it
+    is still carried by Car.status, as it always was.
+    Unlike Handover, this is 1:many — a car accumulates a history of tasks
+    over its lifetime.
     """
 
     __tablename__ = "maintenance_tasks"
@@ -45,7 +48,15 @@ class MaintenanceTask(Base):
         default="OPEN",
     )  # OPEN | DONE | CANCELLED
 
+    # What kind of MAINTENANCE this is (CLEANING tasks have none). NULL
+    # also covers tasks logged before categories existed.
+    category: Mapped[str | None] = mapped_column(String(30))
+
     notes: Mapped[str | None] = mapped_column(Text)
+
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -72,6 +83,11 @@ class MaintenanceTask(Base):
         CheckConstraint(
             "task_type IN ('MAINTENANCE','CLEANING')",
             name="valid_maintenance_task_type",
+        ),
+        CheckConstraint(
+            "category IS NULL OR category IN "
+            "('DAMAGE_REPAIR','TECHNICAL_INSPECTION','ROUTINE_SERVICE','OTHER')",
+            name="valid_maintenance_task_category",
         ),
         CheckConstraint(
             "status IN ('OPEN','DONE','CANCELLED')",

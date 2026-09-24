@@ -85,6 +85,11 @@ def test_get_configuration_returns_all_fields():
         "airport_change_fee",
         "default_currency",
         "access_token_expire_days",
+        "late_return_grace_minutes",
+        "late_fee_per_hour",
+        "fuel_fee_per_eighth",
+        "refuel_service_fee",
+        "max_damage_charge",
     ):
         assert field in body
 
@@ -184,3 +189,22 @@ def test_update_configuration_affects_new_quote():
         assert quote_response.json()["airport_change_fee"] == 99.0
     finally:
         _restore(original)
+
+
+# --- public (currency) ---------------------------------------------------
+
+
+def test_staff_can_read_the_default_currency():
+    expected = _current_configuration()["default_currency"]
+
+    _as_staff()
+
+    try:
+        response = client.get("/api/configuration/public")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["default_currency"] == expected
+        assert "security_deposit_amount" in body
+    finally:
+        _restore_admin_override()

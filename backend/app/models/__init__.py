@@ -1,5 +1,6 @@
 from app.models.audit_log import AuditLog
 from app.models.car import Car
+from app.models.check_out import CheckOut
 from app.models.customer import Customer
 from app.models.extra import Extra
 from app.models.handover import Handover
@@ -13,6 +14,7 @@ from app.models.user import User
 __all__ = [
     "AuditLog",
     "Car",
+    "CheckOut",
     "Configuration",
     "Customer",
     "Extra",

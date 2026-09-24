@@ -44,19 +44,55 @@ def get_car_by_plate(plate: str) -> dict:
     )
 
 
+def set_car_status(car_id: str, status: str) -> None:
+    """
+    Test-only backdoor: writes Car.status directly. The API deliberately
+    has no way to set it (reservations, handovers and maintenance windows
+    drive it), but tests need to start from a known state.
+    """
+    db = SessionLocal()
+
+    try:
+        db.get(Car, car_id).status = status
+        db.commit()
+    finally:
+        db.close()
+
+
+def set_car_location(car_id: str, location_id: str) -> None:
+    """
+    Test-only backdoor: moves a car by writing Car.current_location_id
+    directly. The API has no manual way to do this any more; cars move
+    through check-out and the return-to-home action.
+    """
+    db = SessionLocal()
+
+    try:
+        db.get(Car, car_id).current_location_id = location_id
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_car_status_raw(car_id: str) -> str:
+    """The stored Car.status, without the maintenance-window overlay the API applies."""
+    db = SessionLocal()
+
+    try:
+        return db.get(Car, car_id).status
+    finally:
+        db.close()
+
+
 def ensure_car_available(plate: str) -> dict:
     """
-    The dev database is shared with manual/UI testing, and car status
-    is directly editable there. Reservation-creation tests need their
-    target car to be AVAILABLE regardless of whatever state it was
-    last left in — force it before relying on it.
+    The dev database is shared with manual/UI testing, so a car may have
+    been left in any state. Reservation-creation tests need their target
+    car to be AVAILABLE regardless — force it before relying on it.
     """
     car = get_car_by_plate(plate)
 
-    client.patch(
-        f"/api/cars/{car['id']}",
-        json={"status": "AVAILABLE"},
-    )
+    set_car_status(car["id"], "AVAILABLE")
 
     return car
 
@@ -196,8 +232,8 @@ def test_update_reservation_date_conflict_rejected():
     # enough to create the reservation below, then restore it, rather
     # than permanently clobbering that state.
     other_car = get_car_by_plate("SA-007-AA")
-    original_other_car_status = other_car["status"]
-    client.patch(f"/api/cars/{other_car['id']}", json={"status": "AVAILABLE"})
+    original_other_car_status = get_car_status_raw(other_car["id"])
+    set_car_status(other_car["id"], "AVAILABLE")
 
     blocking = create_reservation(
         car["id"],
@@ -227,10 +263,7 @@ def test_update_reservation_date_conflict_rejected():
 
     client.patch(f"/api/reservations/{blocking['id']}/cancel")
     client.patch(f"/api/reservations/{other['id']}/cancel")
-    client.patch(
-        f"/api/cars/{other_car['id']}",
-        json={"status": original_other_car_status},
-    )
+    set_car_status(other_car["id"], original_other_car_status)
 
 
 def test_update_reservation_cancelled_rejected():

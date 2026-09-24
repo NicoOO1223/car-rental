@@ -143,6 +143,8 @@ export type Reservation = {
   return_at: string;
   status: string;
 
+  created_at: string;
+
   extras: ReservationExtra[];
 };
 
@@ -162,6 +164,82 @@ export type Extra = {
   max_quantity: number;
   sort_order: number;
 };
+
+/** An add-on as the admin sees it: retired ones included. */
+export type AdminExtra = Extra & {
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExtraInput = {
+  name: string;
+  description: string | null;
+  /** Sent as a string so a Decimal never passes through a float. */
+  price: string;
+  price_unit: PriceUnit;
+  max_quantity: number;
+};
+
+async function adminExtrasRequest<T>(
+  path: string,
+  init: RequestInit | undefined,
+  failure: string,
+): Promise<T> {
+  const response = await apiFetch(`/api/admin/extras${path}`, init);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const detail = errorData?.detail;
+
+    throw new Error(typeof detail === "string" ? detail : failure);
+  }
+
+  return response.json();
+}
+
+export function getAdminExtras(): Promise<AdminExtra[]> {
+  return adminExtrasRequest("", undefined, "Failed to load extras.");
+}
+
+export function createExtra(data: ExtraInput): Promise<AdminExtra> {
+  return adminExtrasRequest(
+    "",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    "Failed to add the extra.",
+  );
+}
+
+export function updateExtra(
+  extraId: string,
+  data: Partial<ExtraInput> & { is_active?: boolean },
+): Promise<AdminExtra> {
+  return adminExtrasRequest(
+    `/${extraId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    "Failed to update the extra.",
+  );
+}
+
+export function reorderExtras(ids: string[]): Promise<AdminExtra[]> {
+  return adminExtrasRequest(
+    "/order",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    },
+    "Failed to reorder the extras.",
+  );
+}
 
 /** An add-on as booked, at the price it was booked at. */
 export type ReservationExtra = {
@@ -274,6 +352,32 @@ export async function getAvailableCars(
   }
 
   return response.json();
+}
+
+/** date (yyyy-mm-dd) -> day rate shown for a pickup location. */
+export async function getDailyRates(
+  locationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Record<string, number>> {
+  const params = new URLSearchParams({
+    location_id: locationId,
+    start_date: startDate,
+    end_date: endDate,
+  });
+
+  const response = await apiFetch(`/api/cars/daily-rates?${params}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch daily rates");
+  }
+
+  const rates: { date: string; price: string | number }[] =
+    await response.json();
+
+  return Object.fromEntries(
+    rates.map((rate) => [rate.date, Number(rate.price)]),
+  );
 }
 
 export async function createReservation(data: {
@@ -423,11 +527,56 @@ export type Car = {
     name: string;
     airport_code: string;
   };
+  /** The airport this car belongs to; it can be elsewhere after a one-way rental. */
+  home_location: {
+    id: string;
+    name: string;
+    airport_code: string;
+  };
+  is_away_from_home: boolean;
   status: string;
   mileage: number | null;
   tire_condition: string | null;
   last_oil_change_at: string | null;
+  last_inspection_at: string | null;
+  next_inspection_due: string | null;
 };
+
+/** Admin only: sets a vehicle's daily rate (audited). */
+export async function updateCarPrice(
+  carId: string,
+  pricePerDay: string,
+): Promise<Car> {
+  const response = await apiFetch(`/api/admin/cars/${carId}/price`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ price_per_day: pricePerDay }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const detail = errorData?.detail;
+
+    throw new Error(typeof detail === "string" ? detail : "Failed to update the rate.");
+  }
+
+  return response.json();
+}
+
+/** Records that the car was moved back to its home airport. */
+export async function returnCarToHome(carId: string): Promise<Car> {
+  const response = await apiFetch(`/api/cars/${carId}/return-to-home`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to move the car.");
+  }
+
+  return response.json();
+}
 
 export async function getCars(): Promise<Car[]> {
   const response = await apiFetch("/api/cars");
@@ -462,13 +611,13 @@ export async function updateCar(
     transmission: string | null;
     fuel_type: string | null;
     seats: number | null;
-    price_per_day: number;
     image_url: string | null;
-    current_location_id: string;
-    status: string;
+    home_location_id: string;
     mileage: number | null;
     tire_condition: string | null;
     last_oil_change_at: string | null;
+    last_inspection_at: string | null;
+    next_inspection_due: string | null;
   }>,
 ): Promise<Car> {
   const response = await apiFetch(`/api/cars/${carId}`, {
@@ -555,8 +704,13 @@ export type MaintenanceTask = {
     license_plate: string;
   };
   task_type: string;
+  // Subcategory of MAINTENANCE; null for cleaning and for older tasks.
+  category: string | null;
   status: string;
   notes: string | null;
+  // Null only for tasks created before time ranges were required.
+  starts_at: string | null;
+  ends_at: string | null;
   opened_at: string;
   completed_at: string | null;
 };
@@ -598,7 +752,10 @@ export async function getCarMaintenanceTasks(
 export async function createMaintenanceTask(data: {
   car_id: string;
   task_type: string;
+  category?: string | null;
   notes?: string | null;
+  starts_at: string;
+  ends_at: string;
 }): Promise<MaintenanceTask> {
   const response = await apiFetch("/api/maintenance/tasks", {
     method: "POST",
@@ -620,10 +777,17 @@ export async function createMaintenanceTask(data: {
 
 export async function completeMaintenanceTask(
   taskId: string,
+  nextInspectionDue?: string,
 ): Promise<MaintenanceTask> {
   const response = await apiFetch(
     `/api/maintenance/tasks/${taskId}/complete`,
-    { method: "PATCH" },
+    nextInspectionDue
+      ? {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ next_inspection_due: nextInspectionDue }),
+        }
+      : { method: "PATCH" },
   );
 
   if (!response.ok) {
@@ -751,16 +915,32 @@ export type Dashboard = {
     maintenance: number;
     cleaning: number;
   }[];
+
+  cars_away_from_home: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    year: number;
+    category: string | null;
+    status: string;
+    current_airport_code: string;
+    home_airport_code: string;
+    current_airport_name: string;
+    home_airport_name: string;
+  }[];
 };
 
 
 export async function getDashboard(range?: {
   startDate?: string;
   endDate?: string;
+  locationId?: string;
 }): Promise<Dashboard> {
   const params = new URLSearchParams();
   if (range?.startDate) params.set("start_date", range.startDate);
   if (range?.endDate) params.set("end_date", range.endDate);
+  if (range?.locationId) params.set("location_id", range.locationId);
 
   const query = params.toString();
   const response = await apiFetch(`/api/dashboard${query ? `?${query}` : ""}`);
@@ -1113,49 +1293,251 @@ export async function downloadCustomerDataExport(
   URL.revokeObjectURL(url);
 }
 
-// Starts (or resumes) a Stripe Identity VerificationSession for the
-// customer. The returned client_secret is handed to
-// stripe.verifyIdentity() to launch Stripe's hosted document + selfie
-// capture flow — no document data is ever collected by this app itself.
-export async function createIdentityVerificationSession(
+// Identity and driving licence details, typed in by staff at the counter.
+export type IdentityDetails = {
+  customer_id: string;
+
+  national_id_number: string | null;
+  id_document_type: string | null;
+  id_document_number: string | null;
+  id_document_expires_at: string | null;
+  driving_license_number: string | null;
+  driving_license_country: string | null;
+  driving_license_categories: string | null;
+  driving_license_issued_at: string | null;
+  driving_license_expires_at: string | null;
+
+  identity_checked_at: string | null;
+  identity_checked_by_email: string | null;
+
+  // Verified through the old Stripe Identity flow; still accepted.
+  legacy_stripe_verified: boolean;
+
+  // Why the recorded details can't yet back the rental; null when they can.
+  problem: string | null;
+};
+
+export type IdentityDetailsInput = {
+  national_id_number: string;
+  id_document_type: string | null;
+  id_document_number: string | null;
+  id_document_expires_at: string | null;
+  driving_license_number: string;
+  driving_license_country: string | null;
+  driving_license_categories: string | null;
+  driving_license_issued_at: string | null;
+  driving_license_expires_at: string;
+  documents_checked: boolean;
+};
+
+// `reservationId` makes `problem` account for that rental's end date
+// (the licence must be valid until then).
+export async function getIdentityDetails(
   customerId: string,
-): Promise<{ client_secret: string | null }> {
+  reservationId?: string,
+): Promise<IdentityDetails> {
+  const query = reservationId ? `?reservation_id=${reservationId}` : "";
+
   const response = await apiFetch(
-    `/api/customers/${customerId}/identity-verification`,
-    { method: "POST" },
+    `/api/customers/${customerId}/identity-details${query}`,
   );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
 
-    throw new Error(
-      errorData?.detail || "Failed to start identity verification.",
-    );
+    throw new Error(errorData?.detail || "Failed to load identity details.");
   }
 
   return response.json();
 }
 
-// Re-checks the verification session against Stripe. Call this after
-// stripe.verifyIdentity() resolves, and via a manual "check status"
-// action while Stripe is still processing.
-export async function refreshIdentityVerificationStatus(
+export async function saveIdentityDetails(
   customerId: string,
-): Promise<Customer> {
+  data: IdentityDetailsInput,
+  reservationId?: string,
+): Promise<IdentityDetails> {
+  const query = reservationId ? `?reservation_id=${reservationId}` : "";
+
   const response = await apiFetch(
-    `/api/customers/${customerId}/identity-verification/refresh`,
-    { method: "POST" },
+    `/api/customers/${customerId}/identity-details${query}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
   );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
 
-    throw new Error(
-      errorData?.detail || "Failed to check identity verification status.",
-    );
+    throw new Error(errorData?.detail || "Failed to save identity details.");
   }
 
   return response.json();
+}
+
+// --- Check-out (the return of a rented car) ------------------------------
+
+export type CheckOut = {
+  id: string;
+  reservation_id: string;
+
+  returned_at: string;
+  return_mileage: number;
+  // Eighths of a tank: 0 (empty) to 8 (full).
+  fuel_eighths: number;
+
+  damage_reported: boolean;
+  damage_notes: string | null;
+  damage_charge: number;
+  damage_task_starts_at: string | null;
+  damage_task_ends_at: string | null;
+
+  late_hours: number;
+  late_fee: number;
+  fuel_fee: number;
+  late_fee_waived: boolean;
+  fuel_fee_waived: boolean;
+  waiver_reason: string | null;
+  total_charge: number;
+
+  // Security deposit taken at check-in, used first for these charges.
+  deposit_held: boolean;
+  deposit_amount: number | null;
+  deposit_method: "CARD" | "CASH" | null;
+  deposit_status: string | null;
+  // A held deposit this check-out hasn't settled yet.
+  deposit_pending: boolean;
+  deposit_applied: number;
+  deposit_returned: number;
+  deposit_settled_at: string | null;
+  // What is left to pay after the deposit.
+  amount_due: number;
+
+  payment_amount: number | null;
+  payment_currency: string | null;
+  payment_status: string;
+  payment_method: "CARD" | "CASH" | null;
+  paid_at: string | null;
+
+  employee_signed_at: string | null;
+  has_employee_signature: boolean;
+  employee_signed_by_email: string | null;
+  employee_signature_image: string | null;
+
+  completed_at: string | null;
+};
+
+export type CheckOutConditionInput = {
+  return_mileage: number;
+  fuel_eighths: number;
+  damage_reported: boolean;
+  damage_notes: string | null;
+  damage_charge: number;
+  damage_task_starts_at: string | null;
+  damage_task_ends_at: string | null;
+};
+
+export type CheckOutPaymentIntent = {
+  client_secret: string | null;
+  payment_status: string;
+  payment_amount: number | null;
+  payment_currency: string | null;
+  late_fee: number;
+  fuel_fee: number;
+  damage_charge: number;
+};
+
+export type CheckOutResult = {
+  check_out: CheckOut;
+  car_away_from_home: boolean;
+  car_current_airport_code: string;
+  car_home_airport_code: string;
+  maintenance_task_id: string | null;
+};
+
+async function checkOutRequest<T>(
+  reservationId: string,
+  path: string,
+  init: RequestInit | undefined,
+  failure: string,
+): Promise<T> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/check-out${path}`,
+    init,
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || failure);
+  }
+
+  return response.json();
+}
+
+function jsonPost(body?: unknown): RequestInit {
+  return body === undefined
+    ? { method: "POST" }
+    : {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      };
+}
+
+/** The check-out so far, or null when none has been started. */
+export function getCheckOut(reservationId: string): Promise<CheckOut | null> {
+  return checkOutRequest(reservationId, "", undefined, "Failed to load check-out.");
+}
+
+export function saveCheckOutCondition(
+  reservationId: string,
+  data: CheckOutConditionInput,
+): Promise<CheckOut> {
+  return checkOutRequest(reservationId, "/condition", jsonPost(data), "Failed to save the vehicle condition.");
+}
+
+export function waiveCheckOutCharges(
+  reservationId: string,
+  data: { waive_late_fee: boolean; waive_fuel_fee: boolean; reason: string | null },
+): Promise<CheckOut> {
+  return checkOutRequest(reservationId, "/waive", jsonPost(data), "Failed to update the charges.");
+}
+
+/** Takes the charges from the held deposit and releases the rest. */
+export function settleCheckOutDeposit(reservationId: string): Promise<CheckOut> {
+  return checkOutRequest(reservationId, "/settle-deposit", jsonPost(), "Failed to settle the deposit.");
+}
+
+export function createCheckOutPaymentIntent(
+  reservationId: string,
+): Promise<CheckOutPaymentIntent> {
+  return checkOutRequest(reservationId, "/payment-intent", jsonPost(), "Failed to start payment.");
+}
+
+export function confirmCheckOutPayment(reservationId: string): Promise<CheckOut> {
+  return checkOutRequest(reservationId, "/confirm-payment", jsonPost(), "Failed to confirm payment.");
+}
+
+export function confirmCheckOutCashPayment(reservationId: string): Promise<CheckOut> {
+  return checkOutRequest(reservationId, "/confirm-cash-payment", jsonPost(), "Failed to confirm cash payment.");
+}
+
+export function submitCheckOutEmployeeSignature(
+  reservationId: string,
+  signatureImage: string,
+): Promise<CheckOut> {
+  return checkOutRequest(
+    reservationId,
+    "/employee-signature",
+    jsonPost({ signature_image: signatureImage }),
+    "Failed to save the employee signature.",
+  );
+}
+
+export function completeCheckOut(reservationId: string): Promise<CheckOutResult> {
+  return checkOutRequest(reservationId, "/complete", jsonPost(), "Failed to complete the check-out.");
 }
 
 export type Handover = {
@@ -1173,8 +1555,23 @@ export type Handover = {
   refunded_at: string | null;
   stripe_refund_id: string | null;
 
+  // Security deposit; deposit_status is null when none was involved.
+  deposit_amount: number | null;
+  deposit_currency: string | null;
+  deposit_method: "CARD" | "CASH" | null;
+  deposit_status: string | null;
+  deposit_held_at: string | null;
+  deposit_settled_at: string | null;
+  deposit_captured_amount: number | null;
+
   signed_at: string | null;
   has_signature: boolean;
+
+  // The employee who approved the handover, with their signature.
+  employee_signed_at: string | null;
+  has_employee_signature: boolean;
+  employee_signed_by_email: string | null;
+  employee_signature_image: string | null;
 
   generated_at: string | null;
   has_agreement: boolean;
@@ -1255,6 +1652,46 @@ export async function confirmCashPayment(
   return response.json();
 }
 
+export type DepositIntent = {
+  client_secret: string | null;
+  deposit_status: string | null;
+  deposit_amount: number | null;
+  deposit_currency: string | null;
+};
+
+async function depositRequest<T>(
+  reservationId: string,
+  path: string,
+  failure: string,
+): Promise<T> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/deposit/${path}`,
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || failure);
+  }
+
+  return response.json();
+}
+
+/** Starts the card authorization for the security deposit. */
+export function createDepositIntent(reservationId: string): Promise<DepositIntent> {
+  return depositRequest(reservationId, "intent", "Failed to start the deposit.");
+}
+
+/** Verifies with the server that the card hold succeeded. */
+export function confirmDepositHold(reservationId: string): Promise<Handover> {
+  return depositRequest(reservationId, "confirm", "Failed to confirm the deposit.");
+}
+
+export function confirmCashDeposit(reservationId: string): Promise<Handover> {
+  return depositRequest(reservationId, "confirm-cash", "Failed to confirm the cash deposit.");
+}
+
 export async function submitSignature(
   reservationId: string,
   signatureImage: string,
@@ -1272,6 +1709,28 @@ export async function submitSignature(
     const errorData = await response.json().catch(() => null);
 
     throw new Error(errorData?.detail || "Failed to submit signature.");
+  }
+
+  return response.json();
+}
+
+export async function submitEmployeeSignature(
+  reservationId: string,
+  signatureImage: string,
+): Promise<Handover> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/handover/employee-signature`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signature_image: signatureImage }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(errorData?.detail || "Failed to submit employee signature.");
   }
 
   return response.json();
@@ -1440,9 +1899,30 @@ export type Configuration = {
   short_term_threshold_days: number;
   short_term_fee: number;
   airport_change_fee: number;
+  late_return_grace_minutes: number;
+  late_fee_per_hour: number;
+  fuel_fee_per_eighth: number;
+  refuel_service_fee: number;
+  max_damage_charge: number;
+  security_deposit_amount: number;
   default_currency: string;
   access_token_expire_days: number;
 };
+
+/** The currency every price is shown in; readable by any signed-in staff. */
+export async function getPublicConfiguration(): Promise<{
+  default_currency: string;
+  /** Deposit taken at check-in; 0 means deposits are off. */
+  security_deposit_amount: number;
+}> {
+  const response = await apiFetch("/api/configuration/public");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch configuration.");
+  }
+
+  return response.json();
+}
 
 export async function getConfiguration(): Promise<Configuration> {
   const response = await apiFetch("/api/configuration");

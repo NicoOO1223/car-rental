@@ -60,9 +60,37 @@ def _reset_identity_verification(customer_id: str) -> None:
     try:
         customer = db.get(Customer, UUID(customer_id))
         customer.identity_verification_status = None
+        customer.national_id_number = None
+        customer.id_document_type = None
+        customer.id_document_number = None
+        customer.id_document_expires_at = None
+        customer.driving_license_number = None
+        customer.driving_license_country = None
+        customer.driving_license_categories = None
+        customer.driving_license_issued_at = None
+        customer.driving_license_expires_at = None
+        customer.identity_checked_at = None
+        customer.identity_checked_by = None
         db.commit()
     finally:
         db.close()
+
+
+TINY_SIGNATURE = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAA"
+    "C0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
+def _employee_sign(reservation_id: str):
+    """The approving employee's signature, after the customer's."""
+    response = client.post(
+        f"/api/reservations/{reservation_id}/handover/employee-signature",
+        json={"signature_image": TINY_SIGNATURE},
+    )
+    assert response.status_code == 200
+
+    return response
 
 
 def create_confirmed_reservation(plate: str, pickup_at: str, return_at: str) -> dict:
@@ -129,6 +157,7 @@ def test_generate_agreement_full_flow():
         f"/api/reservations/{reservation['id']}/handover/signature",
         json={"signature_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="},
     )
+    _employee_sign(reservation["id"])
     assert signature_response.status_code == 200
     assert signature_response.json()["has_signature"] is True
 
@@ -221,6 +250,7 @@ def test_generate_agreement_rejected_without_identity_verification():
         f"/api/reservations/{reservation['id']}/handover/signature",
         json={"signature_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="},
     )
+    _employee_sign(reservation["id"])
 
     response = client.post(f"/api/reservations/{reservation['id']}/handover/agreement")
 
@@ -299,6 +329,7 @@ def test_generate_agreement_records_audit_log():
         f"/api/reservations/{reservation['id']}/handover/signature",
         json={"signature_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="},
     )
+    _employee_sign(reservation["id"])
 
     _mark_identity_verified(reservation["customer"]["id"])
 
@@ -435,6 +466,7 @@ def test_cash_payment_full_flow():
         f"/api/reservations/{reservation['id']}/handover/signature",
         json={"signature_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="},
     )
+    _employee_sign(reservation["id"])
     assert signature_response.status_code == 200
 
     _mark_identity_verified(reservation["customer"]["id"])
@@ -453,3 +485,116 @@ def test_cash_payment_full_flow():
         json={"status": "COMPLETED"},
     )
     _reset_identity_verification(reservation["customer"]["id"])
+
+
+def _cash_paid_and_customer_signed(plate: str, pickup_at: str, return_at: str) -> dict:
+    reservation = create_confirmed_reservation(plate, pickup_at, return_at)
+
+    client.post(
+        f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment"
+    )
+    client.post(
+        f"/api/reservations/{reservation['id']}/handover/signature",
+        json={"signature_image": TINY_SIGNATURE},
+    )
+
+    return reservation
+
+
+def test_employee_signature_requires_customer_signature_first():
+    reservation = create_confirmed_reservation(
+        "SA-008-AA", "2027-04-01T10:00:00Z", "2027-04-02T10:00:00Z"
+    )
+
+    try:
+        response = client.post(
+            f"/api/reservations/{reservation['id']}/handover/employee-signature",
+            json={"signature_image": TINY_SIGNATURE},
+        )
+
+        assert response.status_code == 400
+        assert "customer must sign" in response.json()["detail"].lower()
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_generate_agreement_rejected_without_employee_signature():
+    reservation = _cash_paid_and_customer_signed(
+        "SA-008-AA", "2027-04-03T10:00:00Z", "2027-04-04T10:00:00Z"
+    )
+    _mark_identity_verified(reservation["customer"]["id"])
+
+    try:
+        response = client.post(
+            f"/api/reservations/{reservation['id']}/handover/agreement"
+        )
+
+        assert response.status_code == 400
+        assert "employee signature" in response.json()["detail"].lower()
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+        _reset_identity_verification(reservation["customer"]["id"])
+
+
+def test_employee_signature_records_who_approved_and_is_audited():
+    reservation = _cash_paid_and_customer_signed(
+        "SA-008-AA", "2027-04-05T10:00:00Z", "2027-04-06T10:00:00Z"
+    )
+
+    try:
+        signed = _employee_sign(reservation["id"]).json()
+
+        assert signed["has_employee_signature"] is True
+        assert signed["employee_signed_by_email"] == "test-suite@example.com"
+        assert signed["employee_signed_at"] is not None
+        assert signed["employee_signature_image"] == TINY_SIGNATURE
+
+        fetched = client.get(
+            f"/api/reservations/{reservation['id']}/handover"
+        ).json()
+        assert fetched["employee_signed_by_email"] == "test-suite@example.com"
+
+        db = SessionLocal()
+        try:
+            rows = (
+                db.query(AuditLog)
+                .filter(
+                    AuditLog.entity_type == "handover",
+                    AuditLog.entity_id == UUID(signed["id"]),
+                    AuditLog.action == "handover.employee_signed",
+                )
+                .all()
+            )
+            assert len(rows) == 1
+            assert rows[0].user_id == TEST_SUITE_USER_ID
+        finally:
+            db.close()
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_agreement_with_employee_signature_carries_approver():
+    reservation = _cash_paid_and_customer_signed(
+        "SA-008-AA", "2027-04-07T10:00:00Z", "2027-04-08T10:00:00Z"
+    )
+    _employee_sign(reservation["id"])
+    _mark_identity_verified(reservation["customer"]["id"])
+
+    try:
+        agreement = client.post(
+            f"/api/reservations/{reservation['id']}/handover/agreement"
+        )
+        assert agreement.status_code == 200
+        assert agreement.json()["employee_signed_by_email"] == "test-suite@example.com"
+
+        download = client.get(
+            f"/api/reservations/{reservation['id']}/handover/agreement/download"
+        )
+        assert download.status_code == 200
+        assert download.content.startswith(b"%PDF")
+    finally:
+        client.patch(
+            f"/api/reservations/{reservation['id']}/status",
+            json={"status": "COMPLETED"},
+        )
+        _reset_identity_verification(reservation["customer"]["id"])

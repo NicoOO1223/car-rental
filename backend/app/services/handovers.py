@@ -12,6 +12,7 @@ from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 from app.services.configuration import get_configuration
+from app.services.identity_details import identity_problem
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -335,6 +336,46 @@ def submit_signature(
     return handover
 
 
+def submit_employee_signature(
+    db: Session, reservation_id, signature_image: str, actor: User
+) -> Handover:
+    """
+    The approving employee signs after the customer. The signer is the
+    authenticated user making the request.
+    """
+
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
+
+    if not handover.signature_image:
+        raise ValueError("The customer must sign before the employee.")
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation.status != "CONFIRMED":
+        raise ValueError(
+            f"Cannot sign for a {reservation.status.lower()} reservation."
+        )
+
+    handover.employee_signature_image = signature_image
+    handover.employee_signed_at = datetime.utcnow()
+    handover.employee_signed_by = actor.id
+    handover.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.employee_signed",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={"reservation_id": str(reservation_id)},
+    )
+
+    db.commit()
+    db.refresh(handover)
+
+    return handover
+
+
 def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
     """
     Validates payment SUCCEEDED + signature present, generates the PDF,
@@ -348,15 +389,26 @@ def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
     if handover.payment_status != "SUCCEEDED":
         raise ValueError("Payment must be completed before generating the agreement.")
 
+    if (
+        get_configuration(db).security_deposit_amount > 0
+        and handover.deposit_status != "HELD"
+    ):
+        raise ValueError(
+            "A security deposit is required before generating the agreement."
+        )
+
     if not handover.signature_image:
         raise ValueError("Customer signature is required before generating the agreement.")
 
+    if not handover.employee_signature_image:
+        raise ValueError("Employee signature is required before generating the agreement.")
+
     reservation = db.get(Reservation, reservation_id)
 
-    if reservation.customer.identity_verification_status != "verified":
-        raise ValueError(
-            "Identity verification is required before generating the agreement."
-        )
+    problem = identity_problem(reservation.customer, reservation.return_at)
+
+    if problem is not None:
+        raise ValueError(f"Identity check incomplete: {problem}")
 
     if reservation.status != "CONFIRMED":
         raise ValueError(
