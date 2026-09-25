@@ -439,12 +439,12 @@ export default function NewReservationPage() {
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Reservation confirmed
+            Reservation created
           </h1>
 
           <p className="mx-auto mt-2 max-w-sm text-ink-secondary">
-            {created.customer.first_name} {created.customer.last_name} is booked
-            into the {created.car.make} {created.car.model}.
+            {created.customer.first_name} {created.customer.last_name} has a pending
+            reservation for the {created.car.make} {created.car.model}.
           </p>
 
           <dl className="mt-6 space-y-2.5 rounded-lg bg-surface-sunken p-4 text-left text-sm">
