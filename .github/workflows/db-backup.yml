@@ -22,6 +22,22 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # The database only accepts Azure services, so this runner's address is
+      # let in for the length of the job and removed again at the end.
+      - name: Open database firewall for this runner
+        env:
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+        run: |
+          runner_ip=$(curl -fsS https://api.ipify.org)
+          echo "Allowing runner IP $runner_ip"
+          az postgres flexible-server firewall-rule create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "${POSTGRES_HOST%%.*}" \
+            --rule-name "gha-backup-${{ github.run_id }}" \
+            --start-ip-address "$runner_ip" \
+            --end-ip-address "$runner_ip"
+
       - name: Dump and upload backup
         env:
           POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
@@ -31,6 +47,18 @@ jobs:
           BACKUP_STORAGE_ACCOUNT: ${{ vars.BACKUP_STORAGE_ACCOUNT }}
           BACKUP_CONTAINER_NAME: ${{ vars.BACKUP_CONTAINER_NAME }}
         run: bash deploy/backup/backup.sh
+
+      - name: Close database firewall for this runner
+        if: always()
+        env:
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+        run: |
+          az postgres flexible-server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "${POSTGRES_HOST%%.*}" \
+            --rule-name "gha-backup-${{ github.run_id }}" \
+            --yes || true
 
   # Proves the backup that's actually sitting in storage right now is
   # restorable — restores into a throwaway container on the runner, never
@@ -67,7 +95,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements-dev.txt
 
       - name: Install postgresql-client-16
         run: |

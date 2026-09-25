@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.pricing import PriceBreakdownExtraLine
 
@@ -96,7 +96,9 @@ class HandoverResponse(BaseModel):
 
 
 class SignatureSubmit(BaseModel):
-    signature_image: str
+    # A data URI of a small canvas drawing. The cap stops anyone posting
+    # megabytes into a text column.
+    signature_image: str = Field(max_length=500_000)
 
 
 class PaymentIntentResponse(BaseModel):

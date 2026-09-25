@@ -37,9 +37,17 @@ from app.routers.users import router as users_router
 from app.routers.configuration import public_router as public_configuration_router
 from app.routers.configuration import router as configuration_router
 
+from app.config import IS_PRODUCTION
+from app.security_headers import SecurityHeadersMiddleware
+
+# The interactive docs list every endpoint and payload, which is a free map
+# for an attacker, so they only exist outside production.
 app = FastAPI(
     title="Car Rental API",
     version="0.1.0",
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
 )
 
 # Comma-separated list of allowed frontend origins, e.g.
@@ -51,13 +59,17 @@ cors_origins = [
     if origin.strip()
 ]
 
+# Auth is a Bearer token in a header, not a cookie, so credentialed CORS is
+# not needed. Methods and headers are limited to what the frontend sends.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+# Added last so it wraps CORS and also covers its preflight responses.
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 app.include_router(auth_router)

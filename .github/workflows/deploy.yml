@@ -43,7 +43,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements-dev.txt
 
       - name: Apply database migrations
         working-directory: backend

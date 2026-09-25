@@ -7,6 +7,20 @@
 # installed, docker logged in / running, this script run from the repo's
 # deploy/ folder or with $repoRoot pointed at the repo root.
 
+param(
+    # 0 keeps scale-to-zero (cheapest, cold starts). Set to 1 for a paying
+    # customer so the backend is always warm (roughly 10-15 USD a month).
+    [int]$BackendMinReplicas = 0,
+    # Object ID of the GitHub OIDC service principal that runs db-backup.yml.
+    # When given, it is allowed to add and remove its own database firewall
+    # rule (and nothing else on the server).
+    [string]$BackupPrincipalObjectId = "",
+    # Switch the running app to the DML-only database role. Only use this
+    # after running backend/create_app_role.py once (see the end of this
+    # script for the exact command).
+    [switch]$UseAppRole
+)
+
 function Invoke-Checked {
     # Runs a native command and stops the script on a non-zero exit code.
     # Needed because $ErrorActionPreference doesn't apply to native exe
@@ -39,6 +53,28 @@ if (Test-Path $pgPasswordFile) {
     Set-Content -Path $pgPasswordFile -Value $pgPassword -NoNewline
 }
 
+# Signs staff login JWTs. Generated once and cached like the other secrets,
+# so re-running never logs everyone out by rotating it.
+$secretKeyFile = "$PSScriptRoot\.secretkey"
+if (Test-Path $secretKeyFile) {
+    $secretKey = Get-Content $secretKeyFile -Raw
+} else {
+    $bytes = New-Object byte[] 48
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $secretKey = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
+    Set-Content -Path $secretKeyFile -Value $secretKey -NoNewline
+}
+
+# Password for the runtime database role that can read and write rows but
+# not change the schema.
+$appPasswordFile = "$PSScriptRoot\.apppassword"
+if (Test-Path $appPasswordFile) {
+    $appPassword = Get-Content $appPasswordFile -Raw
+} else {
+    $appPassword = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
+    Set-Content -Path $appPasswordFile -Value $appPassword -NoNewline
+}
+
 # --- pull secrets already sitting in local dev env files ---
 function Get-EnvValue($path, $key) {
     if (-not (Test-Path $path)) { return "" }
@@ -59,7 +95,7 @@ Write-Host "== Deploying static infrastructure (ACR, Log Analytics, Container Ap
 $deployJson = az deployment group create `
     --resource-group $rg `
     --template-file "$PSScriptRoot\main.bicep" `
-    --parameters uniqueSuffix=$suffix postgresAdminPassword=$pgPassword `
+    --parameters uniqueSuffix=$suffix postgresAdminPassword=$pgPassword backupPrincipalObjectId=$BackupPrincipalObjectId `
     --query properties.outputs `
     --output json
 if ($LASTEXITCODE -ne 0) { throw "FAILED: bicep deployment" }
@@ -72,7 +108,15 @@ $postgresFqdn = $deployOutput.postgresServerFqdn.value
 $postgresDbName = $deployOutput.postgresDbName.value
 $backupStorageAccountName = $deployOutput.backupStorageAccountName.value
 
-$databaseUrl = "postgresql+psycopg://carrentaladmin:${pgPassword}@${postgresFqdn}:5432/${postgresDbName}?sslmode=require"
+# The admin login owns the schema, so it is the migrator. The running app
+# uses the DML-only role once it exists (-UseAppRole), otherwise it falls
+# back to the admin login so a fresh stack can boot and create that role.
+$migrationDatabaseUrl = "postgresql+psycopg://carrentaladmin:${pgPassword}@${postgresFqdn}:5432/${postgresDbName}?sslmode=require"
+if ($UseAppRole) {
+    $databaseUrl = "postgresql+psycopg://carrental_app:${appPassword}@${postgresFqdn}:5432/${postgresDbName}?sslmode=require"
+} else {
+    $databaseUrl = $migrationDatabaseUrl
+}
 
 Write-Host "ACR: $acrLoginServer"
 Write-Host "Postgres: $postgresFqdn"
@@ -106,7 +150,7 @@ if (-not $backendExisted) {
             --image "$acrLoginServer/backend:latest" `
             --target-port 8000 `
             --ingress external `
-            --min-replicas 0 --max-replicas 1 `
+            --min-replicas $BackendMinReplicas --max-replicas 1 `
             --cpu 0.25 --memory 0.5Gi `
             --system-assigned `
             --registry-server $acrLoginServer `
@@ -114,7 +158,7 @@ if (-not $backendExisted) {
             --output none
     } "create backend container app"
 } else {
-    Invoke-Checked { az containerapp update --name car-rental-backend --resource-group $rg --image "$acrLoginServer/backend:latest" --output none } "update backend image"
+    Invoke-Checked { az containerapp update --name car-rental-backend --resource-group $rg --image "$acrLoginServer/backend:latest" --min-replicas $BackendMinReplicas --output none } "update backend image"
 }
 
 # Idempotent safety net in case the create-time role assignment above
@@ -126,12 +170,12 @@ Invoke-Checked { az containerapp registry set --name car-rental-backend --resour
 
 Invoke-Checked {
     az containerapp secret set --name car-rental-backend --resource-group $rg `
-        --secrets database-url="$databaseUrl" stripe-secret-key="$stripeSecretKey" sentry-dsn="$backendSentryDsn" --output none
+        --secrets database-url="$databaseUrl" migration-database-url="$migrationDatabaseUrl" secret-key="$secretKey" stripe-secret-key="$stripeSecretKey" sentry-dsn="$backendSentryDsn" --output none
 } "set backend secrets"
 
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
+        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
         --output none
 } "set backend env vars"
 
@@ -182,7 +226,7 @@ Write-Host "Frontend URL: https://$frontendFqdn"
 Write-Host "== Pointing backend's CORS at the real frontend URL ==" -ForegroundColor Cyan
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="https://$frontendFqdn" `
+        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="https://$frontendFqdn" `
         --output none
 } "update backend CORS"
 
@@ -194,6 +238,11 @@ Write-Host ""
 Write-Host "Next: wake the backend and seed demo data with:"
 Write-Host "  curl https://$backendFqdn/health"
 Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python seed.py`""
+Write-Host ""
+Write-Host "Least-privilege database role (once per stack, after the backend is up):" -ForegroundColor Yellow
+Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python create_app_role.py $appPassword`""
+Write-Host "  (the password argument is the value in deploy/.apppassword)"
+Write-Host "Then re-run this script with -UseAppRole so the running app stops using the admin login."
 Write-Host ""
 Write-Host "One-time manual step for scheduled DB backups (bicep can't grant" -ForegroundColor Yellow
 Write-Host "this since the GitHub OIDC service principal isn't bicep-managed)." -ForegroundColor Yellow

@@ -19,8 +19,22 @@ COPY docker-entrypoint.sh .
 # can seed demo data or create a staff login on a deployed instance.
 COPY seed.py .
 COPY create_staff_user.py .
+COPY create_app_role.py .
 RUN chmod +x docker-entrypoint.sh
 
+# Run as an unprivileged user so a compromised process cannot modify the
+# image filesystem or reach root-only resources.
+RUN useradd --system --uid 10001 --no-create-home appuser \
+    && chown -R appuser /app
+USER appuser
+
+ENV ENVIRONMENT=production
+
 EXPOSE 8000
+
+# Liveness only. The readiness check (/ready) is configured on the Container
+# App probes, since it needs the database.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

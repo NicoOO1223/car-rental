@@ -13,3 +13,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY is not set")
+
+# "production" turns off the interactive API docs and adds HSTS. Anything
+# else (including unset) behaves like local development.
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+IS_PRODUCTION = ENVIRONMENT == "production"

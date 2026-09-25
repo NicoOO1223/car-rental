@@ -252,7 +252,7 @@ def test_on_time_full_tank_check_out_has_no_charges_and_completes():
 
     try:
         recorded = condition(reservation["id"], return_mileage=51_234)
-        assert recorded.status_code == 200
+        assert recorded.status_code == 200, recorded.text
         body = recorded.json()
         assert body["late_hours"] == 0
         assert body["total_charge"] == 0
@@ -431,7 +431,7 @@ def test_reported_damage_opens_a_repair_task_on_completion():
             damage_task_starts_at=starts.isoformat(),
             damage_task_ends_at=ends.isoformat(),
         )
-        assert recorded.status_code == 200
+        assert recorded.status_code == 200, recorded.text
         assert recorded.json()["total_charge"] == 120
 
         assert pay_cash(reservation["id"]).status_code == 200

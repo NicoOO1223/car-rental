@@ -98,10 +98,16 @@ resource postgresDb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08
   name: postgresDbName
 }
 
-// Lets Container Apps (which don't have stable outbound IPs without a
-// VNet) reach the server. Broad for a prototype — fine here since the
-// server also requires SSL and a real login; tighten with VNet
-// integration if this ever needs to be more production-hardened.
+// Lets Container Apps reach the server. The 0.0.0.0 rule is Azure's special
+// "any Azure service" marker: it admits traffic from every Azure customer's
+// resources, not just ours, so the login and SSL still matter. Container
+// Apps on the Consumption plan have a pool of 100+ outbound IPs, which makes
+// a per-IP allowlist impractical; closing this fully needs a VNet with a
+// private endpoint (a bigger change, deferred).
+//
+// There is deliberately NO rule for the internet at large. The daily
+// db-backup.yml workflow opens a rule for its own runner IP for the length
+// of the job and deletes it afterwards.
 resource postgresFirewallAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
   parent: postgres
   name: 'AllowAllAzureServices'
@@ -111,18 +117,40 @@ resource postgresFirewallAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewa
   }
 }
 
-// GitHub-hosted Actions runners aren't covered by the rule above (they're
-// not an Azure service) and publish no small, stable IP range worth
-// allowlisting here. Opened wide for the same reason AllowAllAzureServices
-// is: SSL + password auth is the real access boundary, not the firewall.
-// Needed so the scheduled db-backup.yml workflow can reach this server to
-// run pg_dump. Do not narrow this back down without also breaking backups.
-resource postgresFirewallGithubActions 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
-  parent: postgres
-  name: 'AllowGithubActionsRunners'
+@description('Object ID of the GitHub OIDC service principal that runs db-backup.yml. Leave empty to skip the role assignment.')
+param backupPrincipalObjectId string = ''
+
+// The backup job only needs to add and remove its own firewall rule, so it
+// gets exactly those actions on this one server rather than Contributor.
+resource firewallRuleManagerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+  name: guid(resourceGroup().id, 'postgres-firewall-rule-manager')
   properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '255.255.255.255'
+    roleName: 'Postgres firewall rule manager (${uniqueSuffix})'
+    description: 'Create, read and delete firewall rules on a Postgres flexible server.'
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: [
+          'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/read'
+          'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/write'
+          'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/delete'
+          'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/operationResults/read'
+        ]
+      }
+    ]
+    assignableScopes: [
+      resourceGroup().id
+    ]
+  }
+}
+
+resource backupFirewallRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(backupPrincipalObjectId)) {
+  scope: postgres
+  name: guid(postgres.id, backupPrincipalObjectId, 'postgres-firewall-rule-manager')
+  properties: {
+    roleDefinitionId: firewallRuleManagerRole.id
+    principalId: backupPrincipalObjectId
+    principalType: 'ServicePrincipal'
   }
 }
 

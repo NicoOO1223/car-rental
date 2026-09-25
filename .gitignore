@@ -20,5 +20,7 @@ Thumbs.db
 # Local Azure bootstrap state — generated secrets/suffix, not for git
 deploy/.suffix
 deploy/.pgpassword
+deploy/.apppassword
+deploy/.secretkey
 deploy/outputs.json
 deploy/*.log
