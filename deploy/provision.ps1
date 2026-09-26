@@ -202,7 +202,9 @@ function Set-BackendProbes {
     )
     $container | Add-Member -NotePropertyName probes -NotePropertyValue $probes -Force
     $yamlPath = Join-Path $env:TEMP "backend-probes-$Stack.yaml"
-    @{ properties = @{ template = @{ containers = @($container) } } } | ConvertTo-Json -Depth 20 | Set-Content -Path $yamlPath -Encoding utf8
+    $json = @{ properties = @{ template = @{ containers = @($container) } } } | ConvertTo-Json -Depth 20
+    # No byte-order mark: the YAML parser in the CLI rejects one.
+    [System.IO.File]::WriteAllText($yamlPath, $json, (New-Object System.Text.UTF8Encoding($false)))
     az containerapp update --name car-rental-backend --resource-group $rg --yaml $yamlPath --output none
     if ($LASTEXITCODE -ne 0) { throw "FAILED: set backend probes" }
 }
@@ -242,8 +244,21 @@ $isNew = -not $exists
 # (-UseAppRole): it may already be on the DML-only role.
 $secretArgs = @("migration-database-url=$migrationDatabaseUrl", "secret-key=$secretKey")
 if ($isNew -or $UseAppRole) { $secretArgs += "database-url=$databaseUrl" }
-foreach ($pair in @(@("stripe-secret-key", $StripeSecretKey), @("stripe-webhook-secret", $webhookSecret), @("sentry-dsn", $SentryDsn))) {
-    if ($isNew -or $pair[1]) { $secretArgs += "$($pair[0])=$($pair[1])" }
+$existingSecrets = @()
+if ($exists -and -not $DryRun) { $existingSecrets = @(az containerapp secret list --name car-rental-backend --resource-group $rg --query "[].name" -o tsv) }
+
+# Container Apps refuses an empty secret, so an optional secret with no value
+# simply does not exist, and the setting that would refer to it is left out.
+# An existing one is kept as it is unless a new value is given.
+$optionalSecrets = @(
+    @{ Name = "stripe-secret-key";     Value = $StripeSecretKey; Env = "STRIPE_SECRET_KEY" },
+    @{ Name = "stripe-webhook-secret"; Value = $webhookSecret;   Env = "STRIPE_WEBHOOK_SECRET" },
+    @{ Name = "sentry-dsn";            Value = $SentryDsn;       Env = "SENTRY_DSN" }
+)
+$optionalEnv = @()
+foreach ($secret in $optionalSecrets) {
+    if ($secret.Value) { $secretArgs += "$($secret.Name)=$($secret.Value)" }
+    if ($secret.Value -or ($existingSecrets -contains $secret.Name)) { $optionalEnv += "$($secret.Env)=secretref:$($secret.Name)" }
 }
 if ($firstAdmin) { $secretArgs += "initial-admin-password=$adminPassword" }
 Invoke-Checked { az containerapp secret set --name car-rental-backend --resource-group $rg --secrets @secretArgs --output none } "set backend secrets"
@@ -255,10 +270,9 @@ if ($manifest.business) {
 
 $backendEnv = @(
     "DATABASE_URL=secretref:database-url", "MIGRATION_DATABASE_URL=secretref:migration-database-url",
-    "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production",
-    "STRIPE_SECRET_KEY=secretref:stripe-secret-key", "STRIPE_WEBHOOK_SECRET=secretref:stripe-webhook-secret",
-    "SENTRY_DSN=secretref:sentry-dsn"
+    "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production"
 )
+$backendEnv += $optionalEnv
 if ($firstAdmin) {
     $backendEnv += @("INITIAL_ADMIN_EMAIL=$AdminEmail", "INITIAL_ADMIN_PASSWORD=secretref:initial-admin-password", "STACK_BUSINESS_B64=$businessB64")
 }
@@ -362,6 +376,8 @@ $vars = @{
     SENTRY_DSN = $SentryDsn; BUSINESS_NAME = [string]$manifest.business.name
 }
 foreach ($name in $vars.Keys) {
+    # GitHub refuses an empty value; a variable that is not set reads as empty anyway.
+    if (-not "$($vars[$name])") { continue }
     Invoke-Checked { gh variable set $name --env $envName --body "$($vars[$name])" } "set variable $name"
 }
 $envSecrets = @{
