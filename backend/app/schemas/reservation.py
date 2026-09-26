@@ -158,6 +158,22 @@ class ReservationListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReservationPage(BaseModel):
+    items: list[ReservationListResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class ReservationSummary(BaseModel):
+    total: int
+    pickup_today: int
+    return_today: int
+    active: int
+    upcoming: int
+    overdue_returns: int
+
+
 class CarReservationResponse(BaseModel):
     id: UUID
 

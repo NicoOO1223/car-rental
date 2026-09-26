@@ -154,7 +154,7 @@ def test_get_customers_sorted_by_most_recent_reservation():
         },
     )
 
-    customers = client.get("/api/customers").json()
+    customers = client.get("/api/customers", params={"limit": 100}).json()["items"]
     ids = [c["id"] for c in customers]
 
     assert ids.index(newer["customer_id"]) < ids.index(older["customer_id"])
@@ -221,7 +221,7 @@ def test_update_customer_endpoint():
     )
     customer_id = reservation["customer_id"]
 
-    customers_before = client.get("/api/customers").json()
+    customers_before = client.get("/api/customers").json()["total"]
 
     response = client.patch(
         f"/api/customers/{customer_id}",
@@ -230,8 +230,8 @@ def test_update_customer_endpoint():
     assert response.status_code == 200
     assert response.json()["address"] == "New Address"
 
-    customers_after = client.get("/api/customers").json()
-    assert len(customers_before) == len(customers_after)
+    customers_after = client.get("/api/customers").json()["total"]
+    assert customers_before == customers_after
 
     client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
@@ -299,7 +299,9 @@ def test_create_reservation_stores_phone_and_email():
     assert detail["email"] == "contact.info@example.com"
 
     list_item = next(
-        c for c in client.get("/api/customers").json() if c["id"] == customer_id
+        c
+        for c in client.get("/api/customers", params={"limit": 100}).json()["items"]
+        if c["id"] == customer_id
     )
     assert list_item["phone_number"] == "+31612345678"
     assert list_item["email"] == "contact.info@example.com"

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw, Users } from "lucide-react";
 
-import { getCustomers, type CustomerListItem } from "@/lib/api";
+import {
+  getCustomers,
+  getCustomerSummary,
+  type CustomerListItem,
+  type CustomerSummaryStats,
+} from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,23 +16,21 @@ import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
+import { Pagination } from "@/components/ui/Pagination";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { formatDate } from "@/lib/format";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 
 const FILTER_DEFAULTS = {
   q: "",
   segment: "ALL",
+  sort: "recent",
+  page: "1",
 };
 
-function isWithinLastWeek(date: string) {
-  const created = new Date(date);
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-
-  return created >= weekAgo;
-}
+const PAGE_SIZE = 25;
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -35,89 +38,68 @@ export default function CustomersPage() {
     useUrlFilters(FILTER_DEFAULTS);
 
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<CustomerSummaryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  // Bumped by "Refresh" and "Try again" to re-run the loader effect.
+  const [reloadKey, setReloadKey] = useState(0);
 
-  async function refreshCustomers() {
-    setRefreshing(true);
-    setError("");
-
-    try {
-      setCustomers(await getCustomers());
-    } catch {
-      setError("Failed to load customers.");
-    } finally {
-      setRefreshing(false);
-    }
-  }
+  const page = Number(filters.page) || 1;
+  // The URL updates on every keystroke; the server is only asked once
+  // typing pauses.
+  const search = useDebouncedValue(filters.q);
 
   useEffect(() => {
-    async function loadCustomers() {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
       try {
-        setCustomers(await getCustomers());
+        const [list, stats] = await Promise.all([
+          getCustomers({
+            q: search,
+            segment: filters.segment === "ALL" ? undefined : filters.segment,
+            sort: filters.sort,
+            limit: PAGE_SIZE,
+            offset: (page - 1) * PAGE_SIZE,
+          }),
+          getCustomerSummary(),
+        ]);
+
+        if (cancelled) return;
+        setCustomers(list.items);
+        setTotal(list.total);
+        setSummary(stats);
       } catch {
-        setError("Failed to load customers.");
+        if (!cancelled) setError("Failed to load customers.");
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     }
 
-    loadCustomers();
-  }, []);
+    load();
 
-  const statistics = useMemo(() => {
-    const total = customers.length;
-    const totalReservations = customers.reduce(
-      (sum, customer) => sum + customer.reservation_count,
-      0,
-    );
-
-    return {
-      total,
-      newThisWeek: customers.filter((customer) =>
-        isWithinLastWeek(customer.created_at),
-      ).length,
-      repeatCustomers: customers.filter(
-        (customer) => customer.reservation_count >= 2,
-      ).length,
-      totalReservations,
-      avgReservations: total === 0 ? 0 : totalReservations / total,
+    return () => {
+      cancelled = true;
     };
-  }, [customers]);
+  }, [search, filters.segment, filters.sort, page, reloadKey]);
 
-  // The backend already sorts by most recent booking. This only filters;
-  // any re-ordering is the table's own sort, which starts unsorted.
-  const filteredCustomers = useMemo(() => {
-    const searchValue = filters.q.toLowerCase().trim();
+  function refreshCustomers() {
+    setRefreshing(true);
+    setReloadKey((key) => key + 1);
+  }
 
-    return customers.filter((customer) => {
-      if (searchValue) {
-        const name =
-          `${customer.first_name} ${customer.last_name}`.toLowerCase();
-
-        const matches =
-          name.includes(searchValue) ||
-          customer.address.toLowerCase().includes(searchValue) ||
-          customer.postal_code.toLowerCase().includes(searchValue);
-
-        if (!matches) return false;
-      }
-
-      if (
-        filters.segment === "NEW_THIS_WEEK" &&
-        !isWithinLastWeek(customer.created_at)
-      ) {
-        return false;
-      }
-
-      if (filters.segment === "REPEAT" && customer.reservation_count < 2) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [customers, filters.q, filters.segment]);
+  // Any filter change goes back to the first page.
+  function updateFilters(patch: Partial<typeof filters>) {
+    setFilters({ ...patch, page: "1" });
+  }
 
   const columns: Column<CustomerListItem>[] = [
     {
@@ -137,9 +119,6 @@ export default function CustomersPage() {
       ),
       mobileCell: (customer) =>
         `${customer.first_name} ${customer.last_name}`,
-      sortable: true,
-      sortAccessor: (customer) =>
-        `${customer.last_name} ${customer.first_name}`,
     },
     {
       id: "reservations",
@@ -159,9 +138,6 @@ export default function CustomersPage() {
           </span>
         </span>
       ),
-      sortable: true,
-      sortAccessor: (customer) => customer.reservation_count,
-      defaultSortDirection: "desc",
     },
     {
       id: "last_booking",
@@ -171,12 +147,10 @@ export default function CustomersPage() {
         customer.last_reservation_at
           ? formatDate(customer.last_reservation_at)
           : "—",
-      sortable: true,
       sortAccessor: (customer) =>
         customer.last_reservation_at
           ? new Date(customer.last_reservation_at)
           : null,
-      defaultSortDirection: "desc",
     },
     {
       id: "created",
@@ -187,9 +161,6 @@ export default function CustomersPage() {
           {formatDate(customer.created_at)}
         </span>
       ),
-      sortable: true,
-      sortAccessor: (customer) => new Date(customer.created_at),
-      defaultSortDirection: "desc",
     },
   ];
 
@@ -230,16 +201,19 @@ export default function CustomersPage() {
       />
 
       <StatTileGrid columns={5} className="mb-8">
-        <StatTile label="Total customers" value={statistics.total} />
-        <StatTile label="New this week" value={statistics.newThisWeek} />
-        <StatTile label="Repeat customers" value={statistics.repeatCustomers} />
+        <StatTile label="Total customers" value={summary?.total ?? "–"} />
+        <StatTile label="New this week" value={summary?.new_this_week ?? "–"} />
+        <StatTile
+          label="Repeat customers"
+          value={summary?.repeat_customers ?? "–"}
+        />
         <StatTile
           label="Total reservations"
-          value={statistics.totalReservations}
+          value={summary?.total_reservations ?? "–"}
         />
         <StatTile
           label="Avg. reservations"
-          value={statistics.avgReservations.toFixed(1)}
+          value={summary ? summary.avg_reservations.toFixed(1) : "–"}
         />
       </StatTileGrid>
 
@@ -247,13 +221,8 @@ export default function CustomersPage() {
         footer={
           <>
             <p>
-              Showing{" "}
-              <span className="font-medium text-ink">
-                {filteredCustomers.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-ink">{customers.length}</span>{" "}
-              customers
+              <span className="font-medium text-ink">{total}</span>{" "}
+              {isFiltered ? "matching customers" : "customers"}
             </p>
 
             {isFiltered && (
@@ -264,14 +233,14 @@ export default function CustomersPage() {
           </>
         }
       >
-        <Field label="Search" className="sm:col-span-2 lg:col-span-3">
+        <Field label="Search" className="sm:col-span-2">
           {(fieldProps) => (
             <Input
               {...fieldProps}
               type="search"
               value={filters.q}
-              onChange={(event) => setFilters({ q: event.target.value })}
-              placeholder="Name, address or postal code..."
+              onChange={(event) => updateFilters({ q: event.target.value })}
+              placeholder="Name, email, phone or address..."
             />
           )}
         </Field>
@@ -281,7 +250,7 @@ export default function CustomersPage() {
             <Select
               {...fieldProps}
               value={filters.segment}
-              onChange={(event) => setFilters({ segment: event.target.value })}
+              onChange={(event) => updateFilters({ segment: event.target.value })}
             >
               <option value="ALL">All customers</option>
               <option value="NEW_THIS_WEEK">New this week</option>
@@ -289,10 +258,23 @@ export default function CustomersPage() {
             </Select>
           )}
         </Field>
+
+        <Field label="Sort by">
+          {(fieldProps) => (
+            <Select
+              {...fieldProps}
+              value={filters.sort}
+              onChange={(event) => updateFilters({ sort: event.target.value })}
+            >
+              <option value="recent">Most recent booking</option>
+              <option value="name">Name, A to Z</option>
+            </Select>
+          )}
+        </Field>
       </Toolbar>
 
       <DataTable
-        rows={filteredCustomers}
+        rows={customers}
         columns={columns}
         rowKey={(customer) => customer.id}
         loading={loading}
@@ -309,6 +291,13 @@ export default function CustomersPage() {
             </Button>
           ) : undefined,
         }}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={(next) => setFilters({ page: String(next) })}
       />
     </PageShell>
   );

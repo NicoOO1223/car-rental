@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeftRight, RefreshCw } from "lucide-react";
 
-import { getReservations, type Reservation } from "@/lib/api";
+import {
+  getReservations,
+  getReservationSummary,
+  localDayBounds,
+  type Reservation,
+} from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
@@ -18,6 +23,8 @@ const FILTER_DEFAULTS = {
 };
 
 type Tab = "check-in" | "check-out";
+
+const QUEUE_LIMIT = 100;
 
 /** "Late by 3h 20m" for an ACTIVE rental past its scheduled return. */
 function lateLabel(returnAt: string, now: number): string | null {
@@ -39,7 +46,14 @@ export default function HandoversPage() {
   const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS);
   const tab: Tab = filters.tab === "check-out" ? "check-out" : "check-in";
 
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  // The two work queues, fetched by status. The server caps a page at
+  // QUEUE_LIMIT rows, far more than a counter can work through; if a queue
+  // ever exceeds it, the page says so rather than silently hiding rows.
+  const [awaitingCheckIn, setAwaitingCheckIn] = useState<Reservation[]>([]);
+  const [awaitingCheckOut, setAwaitingCheckOut] = useState<Reservation[]>([]);
+  const [checkInTotal, setCheckInTotal] = useState(0);
+  const [checkOutTotal, setCheckOutTotal] = useState(0);
+  const [overdueCount, setOverdueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -48,13 +62,37 @@ export default function HandoversPage() {
   // labels don't change under the table between renders.
   const [now, setNow] = useState(() => Date.now());
 
+  const loadQueues = useCallback(async () => {
+    const { dayStart, dayEnd } = localDayBounds();
+
+    const [checkIn, checkOut, summary] = await Promise.all([
+      getReservations({
+        status: "CONFIRMED",
+        sort: "pickup_asc",
+        limit: QUEUE_LIMIT,
+      }),
+      getReservations({
+        status: "ACTIVE",
+        sort: "return_asc",
+        limit: QUEUE_LIMIT,
+      }),
+      getReservationSummary(dayStart, dayEnd),
+    ]);
+
+    setAwaitingCheckIn(checkIn.items);
+    setCheckInTotal(checkIn.total);
+    setAwaitingCheckOut(checkOut.items);
+    setCheckOutTotal(checkOut.total);
+    setOverdueCount(summary.overdue_returns);
+    setNow(Date.now());
+  }, []);
+
   async function refreshReservations() {
     setRefreshing(true);
     setError("");
 
     try {
-      setReservations(await getReservations());
-      setNow(Date.now());
+      await loadQueues();
     } catch {
       setError("Failed to load reservations.");
     } finally {
@@ -63,10 +101,9 @@ export default function HandoversPage() {
   }
 
   useEffect(() => {
-    async function loadReservations() {
+    async function load() {
       try {
-        setReservations(await getReservations());
-        setNow(Date.now());
+        await loadQueues();
       } catch {
         setError("Failed to load reservations.");
       } finally {
@@ -74,34 +111,8 @@ export default function HandoversPage() {
       }
     }
 
-    loadReservations();
-  }, []);
-
-  const awaitingCheckIn = useMemo(
-    () =>
-      reservations
-        .filter((reservation) => reservation.status === "CONFIRMED")
-        .sort(
-          (a, b) =>
-            new Date(a.pickup_at).getTime() - new Date(b.pickup_at).getTime(),
-        ),
-    [reservations],
-  );
-
-  const awaitingCheckOut = useMemo(
-    () =>
-      reservations
-        .filter((reservation) => reservation.status === "ACTIVE")
-        .sort(
-          (a, b) =>
-            new Date(a.return_at).getTime() - new Date(b.return_at).getTime(),
-        ),
-    [reservations],
-  );
-
-  const overdueCount = awaitingCheckOut.filter(
-    (reservation) => lateLabel(reservation.return_at, now) !== null,
-  ).length;
+    load();
+  }, [loadQueues]);
 
   const customerColumn: Column<Reservation> = {
     id: "customer",
@@ -269,12 +280,12 @@ export default function HandoversPage() {
       <StatTileGrid columns={3} className="mb-6">
         <StatTile
           label="Awaiting check-in"
-          value={awaitingCheckIn.length}
+          value={checkInTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
           label="Awaiting check-out"
-          value={awaitingCheckOut.length}
+          value={checkOutTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
@@ -289,10 +300,18 @@ export default function HandoversPage() {
         activeId={tab}
         onSelect={(id) => setFilters({ tab: id })}
         items={[
-          { id: "check-in", label: "Check-in", count: awaitingCheckIn.length },
-          { id: "check-out", label: "Check-out", count: awaitingCheckOut.length },
+          { id: "check-in", label: "Check-in", count: checkInTotal },
+          { id: "check-out", label: "Check-out", count: checkOutTotal },
         ]}
       />
+
+      {(tab === "check-in" ? checkInTotal : checkOutTotal) > QUEUE_LIMIT && (
+        <p className="mb-3 text-sm text-ink-muted">
+          Showing the first {QUEUE_LIMIT} of{" "}
+          {tab === "check-in" ? checkInTotal : checkOutTotal}. Work through
+          these and refresh to see the rest.
+        </p>
+      )}
 
       <DataTable
         key={tab}

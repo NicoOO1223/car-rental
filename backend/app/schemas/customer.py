@@ -97,6 +97,21 @@ class CustomerListItem(BaseModel):
     last_reservation_at: datetime | None
 
 
+class CustomerPage(BaseModel):
+    items: list[CustomerListItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class CustomerSummaryStats(BaseModel):
+    total: int
+    new_this_week: int
+    repeat_customers: int
+    total_reservations: int
+    avg_reservations: float
+
+
 class CustomerExportReservation(BaseModel):
     id: UUID
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, UserRound, X } from "lucide-react";
 
 import { Field, Input, SelectField, TextField } from "@/components/ui/Field";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { getCustomers, type CustomerListItem } from "@/lib/api";
 import { COUNTRIES } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 export type CustomerDetails = {
   first_name: string;
@@ -49,18 +50,32 @@ export function CustomerStep({
   onChange: (next: CustomerDetails) => void;
   errors: Partial<Record<keyof CustomerDetails, string>>;
 }) {
-  const [customers, setCustomers] = useState<CustomerListItem[]>([]);
+  const [results, setResults] = useState<CustomerListItem[]>([]);
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Kept as the record itself, not an id into a list: there is no full
+  // customer list to look it up in any more.
+  const [selected, setSelected] = useState<CustomerListItem | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
 
+  const term = useDebouncedValue(query.trim());
+
+  // Results for a term that has since been shortened or cleared are stale.
+  const matches = term.length < 2 ? [] : results;
+
+  // Search on the server, six suggestions at a time, instead of
+  // downloading every customer's personal details up front.
   useEffect(() => {
+    if (term.length < 2) return;
+
     let cancelled = false;
 
-    async function load() {
+    async function search() {
       try {
-        const data = await getCustomers();
-        if (!cancelled) setCustomers(data);
+        const page = await getCustomers({ q: term, limit: 6 });
+
+        if (cancelled) return;
+        setResults(page.items);
+        setLoadFailed(false);
       } catch {
         // A failure here only costs the shortcut — the form below still
         // works, so this is not surfaced as a blocking error.
@@ -68,28 +83,16 @@ export function CustomerStep({
       }
     }
 
-    load();
+    search();
 
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const matches = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (term.length < 2) return [];
-
-    return customers
-      .filter((customer) =>
-        `${customer.first_name} ${customer.last_name} ${customer.email ?? ""} ${customer.phone_number ?? ""}`
-          .toLowerCase()
-          .includes(term),
-      )
-      .slice(0, 6);
-  }, [customers, query]);
+  }, [term]);
 
   function selectCustomer(customer: CustomerListItem) {
-    setSelectedId(customer.id);
+    setSelected(customer);
+    setResults([]);
     setQuery("");
     onChange({
       first_name: customer.first_name,
@@ -104,14 +107,12 @@ export function CustomerStep({
   }
 
   function clearSelection() {
-    setSelectedId(null);
+    setSelected(null);
     onChange(EMPTY_CUSTOMER);
   }
 
   const set = (key: keyof CustomerDetails) => (event: { target: { value: string } }) =>
     onChange({ ...value, [key]: event.target.value });
-
-  const selected = customers.find((customer) => customer.id === selectedId);
 
   return (
     <div className="space-y-6">

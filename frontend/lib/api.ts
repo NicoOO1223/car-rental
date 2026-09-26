@@ -418,14 +418,98 @@ export async function createReservation(data: {
   return response.json();
 }
 
-export async function getReservations(): Promise<Reservation[]> {
-  const response = await apiFetch("/api/reservations");
+/** The envelope every server-paged list returns. */
+export type Page<T> = {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+function queryString(params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+
+  const text = query.toString();
+
+  return text ? `?${text}` : "";
+}
+
+export type ReservationQuery = {
+  q?: string;
+  status?: string;
+  location?: string;
+  window?: string;
+  sort?: string;
+  /** The browser's own "today", as instants (the server only knows UTC). */
+  dayStart?: string;
+  dayEnd?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getReservations(
+  query: ReservationQuery = {},
+): Promise<Page<Reservation>> {
+  const response = await apiFetch(
+    `/api/reservations${queryString({
+      q: query.q,
+      status: query.status,
+      location: query.location,
+      window: query.window,
+      sort: query.sort,
+      day_start: query.dayStart,
+      day_end: query.dayEnd,
+      limit: query.limit,
+      offset: query.offset,
+    })}`,
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch reservations.");
   }
 
   return response.json();
+}
+
+export type ReservationSummary = {
+  total: number;
+  pickup_today: number;
+  return_today: number;
+  active: number;
+  upcoming: number;
+  overdue_returns: number;
+};
+
+export async function getReservationSummary(
+  dayStart?: string,
+  dayEnd?: string,
+): Promise<ReservationSummary> {
+  const response = await apiFetch(
+    `/api/reservations/summary${queryString({
+      day_start: dayStart,
+      day_end: dayEnd,
+    })}`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch reservation summary.");
+  }
+
+  return response.json();
+}
+
+/** Midnight to midnight of the browser's current day, as ISO instants. */
+export function localDayBounds(now = new Date()) {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+
+  return { dayStart: start.toISOString(), dayEnd: end.toISOString() };
 }
 
 export async function getReservation(
@@ -1177,11 +1261,39 @@ export type CustomerReservation = {
   status: string;
 };
 
-export async function getCustomers(): Promise<CustomerListItem[]> {
-  const response = await apiFetch("/api/customers");
+export type CustomerQuery = {
+  q?: string;
+  segment?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getCustomers(
+  query: CustomerQuery = {},
+): Promise<Page<CustomerListItem>> {
+  const response = await apiFetch(`/api/customers${queryString(query)}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch customers");
+  }
+
+  return response.json();
+}
+
+export type CustomerSummaryStats = {
+  total: number;
+  new_this_week: number;
+  repeat_customers: number;
+  total_reservations: number;
+  avg_reservations: number;
+};
+
+export async function getCustomerSummary(): Promise<CustomerSummaryStats> {
+  const response = await apiFetch("/api/customers/summary");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch customer summary");
   }
 
   return response.json();

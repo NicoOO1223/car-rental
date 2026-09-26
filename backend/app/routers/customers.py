@@ -1,6 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -10,13 +12,16 @@ from app.models import Customer, Reservation, User
 from app.schemas.customer import (
     CustomerDataExport,
     CustomerListItem,
+    CustomerPage,
     CustomerResponse,
+    CustomerSummaryStats,
     CustomerUpdate,
     IdentityDetailsResponse,
     IdentityDetailsUpdate,
 )
 from app.schemas.reservation import CustomerReservationResponse
 from app.services.audit import audit_log
+from app.services.customer_search import customer_summary, search_customers
 from app.services.customers import update_customer
 from app.services.data_privacy import anonymize_customer, export_customer_data
 from app.services.identity_details import (
@@ -34,28 +39,21 @@ router = APIRouter(
 
 @router.get(
     "",
-    response_model=list[CustomerListItem],
+    response_model=CustomerPage,
 )
 def get_customers(
+    q: str | None = Query(default=None, max_length=100),
+    segment: Literal["NEW_THIS_WEEK", "REPEAT"] | None = Query(default=None),
+    sort: Literal["recent", "name"] = Query(default="recent"),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    rows = db.execute(
-        select(
-            Customer,
-            func.count(Reservation.id).label("reservation_count"),
-            func.max(Reservation.created_at).label("last_reservation_at"),
-        )
-        .outerjoin(
-            Reservation,
-            Reservation.customer_id == Customer.id,
-        )
-        .group_by(Customer.id)
-        .order_by(
-            func.max(Reservation.created_at).desc().nulls_last()
-        )
-    ).all()
+    rows, total = search_customers(
+        db, q=q, segment=segment, sort=sort, limit=limit, offset=offset
+    )
 
-    return [
+    items = [
         CustomerListItem(
             id=row.Customer.id,
             first_name=row.Customer.first_name,
@@ -73,6 +71,17 @@ def get_customers(
         )
         for row in rows
     ]
+
+    return CustomerPage(items=items, total=total, limit=limit, offset=offset)
+
+
+# Declared before "/{customer_id}" so "summary" is not read as an id.
+@router.get(
+    "/summary",
+    response_model=CustomerSummaryStats,
+)
+def get_customer_summary(db: Session = Depends(get_db)):
+    return customer_summary(db)
 
 
 @router.get(

@@ -1,17 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarClock, Plus, RefreshCw } from "lucide-react";
 
-import { getReservations, type Reservation } from "@/lib/api";
+import {
+  getLocations,
+  getReservations,
+  getReservationSummary,
+  localDayBounds,
+  type Location,
+  type Reservation,
+  type ReservationSummary,
+} from "@/lib/api";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
+import { Pagination } from "@/components/ui/Pagination";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { bookingReference, formatDate, formatTime } from "@/lib/format";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 
@@ -20,15 +30,11 @@ const FILTER_DEFAULTS = {
   status: "ALL",
   location: "ALL",
   window: "ALL",
+  sort: "pickup_asc",
+  page: "1",
 };
 
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
+const PAGE_SIZE = 25;
 
 export default function ManageReservationsPage() {
   const navigate = useNavigate();
@@ -36,173 +42,94 @@ export default function ManageReservationsPage() {
     useUrlFilters(FILTER_DEFAULTS);
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<ReservationSummary | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  // Bumped by "Refresh" and "Try again" to re-run the loader effect.
+  const [reloadKey, setReloadKey] = useState(0);
 
-  async function loadReservations(showRefreshing = false) {
-    if (showRefreshing) setRefreshing(true);
-    setError("");
-
-    try {
-      setReservations(await getReservations());
-    } catch {
-      setError("Failed to load reservations.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+  const page = Number(filters.page) || 1;
+  // The URL updates on every keystroke; the server is only asked once
+  // typing pauses.
+  const search = useDebouncedValue(filters.q);
 
   useEffect(() => {
+    getLocations()
+      .then(setLocations)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     async function load() {
+      setLoading(true);
+      setError("");
+
       try {
-        setReservations(await getReservations());
+        const { dayStart, dayEnd } = localDayBounds();
+
+        const [list, counts] = await Promise.all([
+          getReservations({
+            q: search,
+            status: filters.status === "ALL" ? undefined : filters.status,
+            location: filters.location === "ALL" ? undefined : filters.location,
+            window: filters.window === "ALL" ? undefined : filters.window,
+            sort: filters.sort,
+            dayStart,
+            dayEnd,
+            limit: PAGE_SIZE,
+            offset: (page - 1) * PAGE_SIZE,
+          }),
+          getReservationSummary(dayStart, dayEnd),
+        ]);
+
+        if (cancelled) return;
+        setReservations(list.items);
+        setTotal(list.total);
+        setSummary(counts);
       } catch {
-        setError("Failed to load reservations.");
+        if (!cancelled) setError("Failed to load reservations.");
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     }
 
     load();
-  }, []);
 
-  const locations = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          reservations.flatMap((reservation) => [
-            reservation.pickup_location.airport_code,
-            reservation.return_location.airport_code,
-          ]),
-        ),
-      ).sort(),
-    [reservations],
-  );
-
-  const statistics = useMemo(() => {
-    const now = new Date();
-
-    let pickupToday = 0;
-    let returnToday = 0;
-    let active = 0;
-    let upcoming = 0;
-
-    for (const reservation of reservations) {
-      if (reservation.status === "CANCELLED") continue;
-
-      const pickup = new Date(reservation.pickup_at);
-      const rentalReturn = new Date(reservation.return_at);
-
-      if (isSameDay(pickup, now)) pickupToday++;
-      if (isSameDay(rentalReturn, now)) returnToday++;
-
-      if (
-        pickup <= now &&
-        rentalReturn >= now &&
-        reservation.status !== "COMPLETED"
-      ) {
-        active++;
-      }
-
-      if (pickup > now && reservation.status === "CONFIRMED") upcoming++;
-    }
-
-    return {
-      total: reservations.length,
-      pickupToday,
-      returnToday,
-      active,
-      upcoming,
+    return () => {
+      cancelled = true;
     };
-  }, [reservations]);
-
-  const filteredReservations = useMemo(() => {
-    const now = new Date();
-    const searchValue = filters.q.toLowerCase().trim();
-
-    const filtered = reservations.filter((reservation) => {
-      if (searchValue) {
-        const haystack = [
-          `${reservation.customer.first_name} ${reservation.customer.last_name}`,
-          reservation.car.license_plate,
-          reservation.id,
-          `${reservation.car.make} ${reservation.car.model}`,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        if (!haystack.includes(searchValue)) return false;
-      }
-
-      if (filters.status !== "ALL" && reservation.status !== filters.status) {
-        return false;
-      }
-
-      if (filters.location !== "ALL") {
-        const matches =
-          reservation.pickup_location.airport_code === filters.location ||
-          reservation.return_location.airport_code === filters.location;
-
-        if (!matches) return false;
-      }
-
-      if (filters.window !== "ALL") {
-        const pickup = new Date(reservation.pickup_at);
-        const rentalReturn = new Date(reservation.return_at);
-
-        if (
-          filters.window === "TODAY" &&
-          !isSameDay(pickup, now) &&
-          !isSameDay(rentalReturn, now)
-        ) {
-          return false;
-        }
-
-        if (
-          filters.window === "UPCOMING" &&
-          (reservation.status !== "CONFIRMED" || pickup <= now)
-        ) {
-          return false;
-        }
-
-        if (filters.window === "NEXT_7_DAYS") {
-          const nextWeek = new Date(now);
-          nextWeek.setDate(nextWeek.getDate() + 7);
-
-          if (pickup < now || pickup > nextWeek) return false;
-        }
-
-        if (
-          filters.window === "ACTIVE" &&
-          (pickup > now || rentalReturn < now)
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // Operationally relevant first: earliest pickup at the top. The table's
-    // own sort starts unsorted, so this is the default the user sees.
-    return filtered.sort(
-      (a, b) =>
-        new Date(a.pickup_at).getTime() - new Date(b.pickup_at).getTime(),
-    );
   }, [
-    reservations,
-    filters.q,
+    search,
     filters.status,
     filters.location,
     filters.window,
+    filters.sort,
+    page,
+    reloadKey,
   ]);
+
+  function reload() {
+    setRefreshing(true);
+    setReloadKey((key) => key + 1);
+  }
+
+  // Any filter change goes back to the first page.
+  function updateFilters(patch: Partial<typeof filters>) {
+    setFilters({ ...patch, page: "1" });
+  }
 
   // The quick-filter tiles reset every other filter, so a tile is either
   // the whole current view or it is not active at all.
   function applyQuickFilter(window: string) {
-    setFilters({ q: "", status: "ALL", location: "ALL", window });
+    updateFilters({ q: "", status: "ALL", location: "ALL", window });
   }
 
   const quickFilterActive = (window: string) =>
@@ -228,9 +155,6 @@ export default function ManageReservationsPage() {
       ),
       mobileCell: (reservation) =>
         `${reservation.customer.first_name} ${reservation.customer.last_name}`,
-      sortable: true,
-      sortAccessor: (reservation) =>
-        `${reservation.customer.last_name} ${reservation.customer.first_name}`,
     },
     {
       id: "vehicle",
@@ -244,9 +168,6 @@ export default function ManageReservationsPage() {
       ),
       mobileCell: (reservation) =>
         `${reservation.car.make} ${reservation.car.model} · ${reservation.car.license_plate}`,
-      sortable: true,
-      sortAccessor: (reservation) =>
-        `${reservation.car.make} ${reservation.car.model}`,
     },
     {
       id: "pickup",
@@ -266,8 +187,6 @@ export default function ManageReservationsPage() {
           </div>
         </>
       ),
-      sortable: true,
-      sortAccessor: (reservation) => new Date(reservation.pickup_at),
     },
     {
       id: "return",
@@ -287,8 +206,6 @@ export default function ManageReservationsPage() {
           </div>
         </>
       ),
-      sortable: true,
-      sortAccessor: (reservation) => new Date(reservation.return_at),
     },
     {
       id: "booked",
@@ -300,8 +217,6 @@ export default function ManageReservationsPage() {
           secondary={formatTime(reservation.created_at)}
         />
       ),
-      sortable: true,
-      sortAccessor: (reservation) => new Date(reservation.created_at),
     },
     {
       id: "route",
@@ -324,8 +239,6 @@ export default function ManageReservationsPage() {
       cell: (reservation) => (
         <ReservationStatusBadge status={reservation.status} />
       ),
-      sortable: true,
-      sortAccessor: (reservation) => reservation.status,
     },
   ];
 
@@ -337,7 +250,7 @@ export default function ManageReservationsPage() {
             {error}
           </p>
 
-          <Button className="mt-4" onClick={() => loadReservations(true)}>
+          <Button className="mt-4" onClick={reload}>
             Try again
           </Button>
         </div>
@@ -354,7 +267,7 @@ export default function ManageReservationsPage() {
           <>
             <Button
               variant="secondary"
-              onClick={() => loadReservations(true)}
+              onClick={reload}
               disabled={refreshing}
             >
               <RefreshCw
@@ -375,26 +288,30 @@ export default function ManageReservationsPage() {
       <StatTileGrid columns={4} className="mb-8">
         <StatTile
           label="All reservations"
-          value={statistics.total}
+          value={summary?.total ?? "–"}
           onClick={() => applyQuickFilter("ALL")}
           active={quickFilterActive("ALL")}
         />
         <StatTile
           label={"Today’s activity"}
-          value={statistics.pickupToday + statistics.returnToday}
-          hint={`${statistics.pickupToday} out, ${statistics.returnToday} back`}
+          value={summary ? summary.pickup_today + summary.return_today : "–"}
+          hint={
+            summary
+              ? `${summary.pickup_today} out, ${summary.return_today} back`
+              : undefined
+          }
           onClick={() => applyQuickFilter("TODAY")}
           active={quickFilterActive("TODAY")}
         />
         <StatTile
           label="On the road"
-          value={statistics.active}
+          value={summary?.active ?? "–"}
           onClick={() => applyQuickFilter("ACTIVE")}
           active={quickFilterActive("ACTIVE")}
         />
         <StatTile
           label="Upcoming"
-          value={statistics.upcoming}
+          value={summary?.upcoming ?? "–"}
           onClick={() => applyQuickFilter("UPCOMING")}
           active={quickFilterActive("UPCOMING")}
         />
@@ -404,15 +321,8 @@ export default function ManageReservationsPage() {
         footer={
           <>
             <p>
-              Showing{" "}
-              <span className="font-medium text-ink">
-                {filteredReservations.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-medium text-ink">
-                {reservations.length}
-              </span>{" "}
-              reservations
+              <span className="font-medium text-ink">{total}</span>{" "}
+              {isFiltered ? "matching reservations" : "reservations"}
             </p>
 
             {isFiltered && (
@@ -429,7 +339,7 @@ export default function ManageReservationsPage() {
               {...fieldProps}
               type="search"
               value={filters.q}
-              onChange={(event) => setFilters({ q: event.target.value })}
+              onChange={(event) => updateFilters({ q: event.target.value })}
               placeholder="Customer, plate or vehicle..."
             />
           )}
@@ -440,7 +350,7 @@ export default function ManageReservationsPage() {
             <Select
               {...fieldProps}
               value={filters.status}
-              onChange={(event) => setFilters({ status: event.target.value })}
+              onChange={(event) => updateFilters({ status: event.target.value })}
             >
               <option value="ALL">All statuses</option>
               <option value="PENDING">Pending</option>
@@ -457,12 +367,12 @@ export default function ManageReservationsPage() {
             <Select
               {...fieldProps}
               value={filters.location}
-              onChange={(event) => setFilters({ location: event.target.value })}
+              onChange={(event) => updateFilters({ location: event.target.value })}
             >
               <option value="ALL">All locations</option>
-              {locations.map((code) => (
-                <option key={code} value={code}>
-                  {code}
+              {locations.map((location) => (
+                <option key={location.id} value={location.airport_code}>
+                  {location.airport_code}
                 </option>
               ))}
             </Select>
@@ -474,7 +384,7 @@ export default function ManageReservationsPage() {
             <Select
               {...fieldProps}
               value={filters.window}
-              onChange={(event) => setFilters({ window: event.target.value })}
+              onChange={(event) => updateFilters({ window: event.target.value })}
             >
               <option value="ALL">Any time</option>
               <option value="TODAY">Today</option>
@@ -484,10 +394,25 @@ export default function ManageReservationsPage() {
             </Select>
           )}
         </Field>
+
+        <Field label="Sort by">
+          {(fieldProps) => (
+            <Select
+              {...fieldProps}
+              value={filters.sort}
+              onChange={(event) => updateFilters({ sort: event.target.value })}
+            >
+              <option value="pickup_asc">Pickup, soonest first</option>
+              <option value="pickup_desc">Pickup, latest first</option>
+              <option value="return_asc">Return, soonest first</option>
+              <option value="created_desc">Recently booked</option>
+            </Select>
+          )}
+        </Field>
       </Toolbar>
 
       <DataTable
-        rows={filteredReservations}
+        rows={reservations}
         columns={columns}
         rowKey={(reservation) => reservation.id}
         loading={loading}
@@ -510,6 +435,13 @@ export default function ManageReservationsPage() {
             </Button>
           ),
         }}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={(next) => setFilters({ page: String(next) })}
       />
     </PageShell>
   );

@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
@@ -11,8 +14,14 @@ from app.schemas.reservation import (
     ReservationQuoteResponse,
     ReservationResponse,
     ReservationListResponse,
+    ReservationPage,
     ReservationStatusUpdate,
+    ReservationSummary,
     ReservationUpdate,
+)
+from app.services.reservation_search import (
+    reservation_summary,
+    search_reservations,
 )
 from app.services.reservations import (
     create_reservation,
@@ -131,26 +140,54 @@ def cancel_reservation_endpoint(
 
 @router.get(
     "",
-    response_model=list[ReservationListResponse],
+    response_model=ReservationPage,
 )
 def get_reservations(
+    q: str | None = Query(default=None, max_length=100),
+    status: Literal["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"]
+    | None = Query(default=None),
+    location: str | None = Query(default=None, max_length=10),
+    window: Literal["TODAY", "ACTIVE", "UPCOMING", "NEXT_7_DAYS"] | None = Query(
+        default=None
+    ),
+    sort: Literal[
+        "pickup_asc", "pickup_desc", "return_asc", "return_desc", "created_desc"
+    ] = Query(default="pickup_asc"),
+    # The caller's own "today", as instants. The browser knows its
+    # timezone; the server would otherwise assume UTC.
+    day_start: datetime | None = Query(default=None),
+    day_end: datetime | None = Query(default=None),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    reservations = db.scalars(
-        select(Reservation)
-        .options(
-            joinedload(Reservation.customer),
-            joinedload(Reservation.car),
-            joinedload(Reservation.pickup_location),
-            joinedload(Reservation.return_location),
-            # selectinload, not joinedload: extras is a collection, and
-            # joining it would fan out parent rows and break .all().
-            selectinload(Reservation.extras),
-        )
-        .order_by(Reservation.pickup_at.desc())
-    ).all()
+    items, total = search_reservations(
+        db,
+        q=q,
+        status=status,
+        location=location,
+        window=window,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+        day_start=day_start,
+        day_end=day_end,
+    )
 
-    return reservations
+    return ReservationPage(items=items, total=total, limit=limit, offset=offset)
+
+
+# Declared before "/{reservation_id}" so "summary" is not read as an id.
+@router.get(
+    "/summary",
+    response_model=ReservationSummary,
+)
+def get_reservation_summary(
+    day_start: datetime | None = Query(default=None),
+    day_end: datetime | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return reservation_summary(db, day_start=day_start, day_end=day_end)
 
 @router.get(
     "/{reservation_id}",
