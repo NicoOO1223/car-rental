@@ -2,10 +2,16 @@ import uuid
 
 import pytest
 
-from app.database import SessionLocal
-from app.dependencies import get_current_user
-from app.main import app
-from app.models import User
+# Must run before anything from `app` is imported: it switches DATABASE_URL to
+# the isolated test database (see tests/_test_database.py).
+from tests import _test_database
+
+_test_database.prepare()
+
+from app.database import SessionLocal  # noqa: E402
+from app.dependencies import get_current_user  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import User  # noqa: E402
 
 # Every other test file in this suite predates authentication and
 # exercises the API with no concept of a logged-in user. Rather than

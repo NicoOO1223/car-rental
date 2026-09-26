@@ -282,7 +282,8 @@ Write-Host "Backend:  https://$backendFqdn"
 Write-Host ""
 Write-Host "Next: wake the backend and seed demo data with:"
 Write-Host "  curl https://$backendFqdn/health"
-Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python seed.py`""
+Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python seed.py --allow-production`""
+Write-Host "  (demo stacks only: seed.py deletes all reservations, cars, customers and locations)" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Least-privilege database role (once per stack, after the backend is up):" -ForegroundColor Yellow
 Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python create_app_role.py $appPassword`""

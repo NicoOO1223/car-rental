@@ -23,9 +23,16 @@ After running `deploy/bootstrap.ps1` for the first time following this change:
    - **Variables**: `POSTGRES_HOST` (the Flexible Server FQDN, from `deploy/outputs.json` → `postgresServerFqdn`), `POSTGRES_ADMIN_USER` (`carrentaladmin`), `POSTGRES_DB_NAME` (`car_rental`), `BACKUP_STORAGE_ACCOUNT` (from `outputs.json` → `backupStorageAccountName`), `BACKUP_CONTAINER_NAME` (`pg-backups`).
    - **Secret**: `POSTGRES_ADMIN_PASSWORD` — the same value already cached at `deploy/.pgpassword`.
 
-## Why the Postgres firewall is wide open to the internet
+## How the backup job reaches the database
 
-`deploy/main.bicep` has an `AllowGithubActionsRunners` firewall rule spanning `0.0.0.0`–`255.255.255.255`, alongside the pre-existing `AllowAllAzureServices` rule. GitHub-hosted runners have no small, stable IP range worth hand-maintaining as an allowlist, and there was already precedent in this file for the same trade-off (`AllowAllAzureServices`'s own comment): SSL (`sslmode=require`) plus a real password is the actual access boundary here, not the firewall. **Don't narrow this rule** without first replacing the backup workflow's connectivity another way (e.g. self-hosted runner, VNet integration) — narrowing it will silently break the daily backup and restore drill.
+The database does **not** accept connections from the internet. `deploy/main.bicep` has one firewall rule, `AllowAllAzureServices` (`0.0.0.0`), which is what lets the Container Apps in. GitHub-hosted runners are not an Azure service, so the `backup` job opens a rule for its own public IP right before `pg_dump` and deletes it in an `if: always()` step afterwards. The rule is named `gha-backup-<run id>`, so a leftover from a killed run is easy to spot with `az postgres flexible-server firewall-rule list`.
+
+This needs two things, both one-time:
+
+1. The GitHub OIDC identity may create and delete firewall rules on this one server and nothing else. `deploy/main.bicep` defines a custom role for that; pass the identity's object ID to the bootstrap script to assign it: `./bootstrap.ps1 -BackupPrincipalObjectId <objectId>` (or set `backupPrincipalObjectId` when deploying the Bicep file directly).
+2. A repository **variable** `RESOURCE_GROUP` (already used by the deploy workflow) so the job knows where the server lives.
+
+`AllowAllAzureServices` still admits resources belonging to other Azure customers, so the password and SSL remain a real boundary. Closing that fully means a VNet with a private endpoint and moving the backup job inside it, which is a larger change that has not been made.
 
 ## Restoring in a real emergency (against production — not the drill)
 
@@ -37,7 +44,7 @@ The drill above never touches production on purpose. If you actually need to res
 4. Run `alembic upgrade head` against that scratch database (`DATABASE_URL` pointed at it) to confirm it's compatible with the currently-deployed backend before doing anything else.
 5. Only once that's verified, decide how to cut over (e.g. rename databases, or point the backend's `DATABASE_URL` Container App secret at the verified restore) — this is a judgment call specific to the incident, not something to script blindly.
 
-Note: restoring from an operator's own machine (rather than from a GitHub Actions job) means your own IP isn't covered by either existing firewall rule — you'll need a temporary firewall rule for your IP (`az postgres flexible-server firewall-rule create`), which you should remove again afterward.
+Note: restoring from an operator's own machine (rather than from a GitHub Actions job) means your own IP isn't covered by the firewall rule — you'll need a temporary firewall rule for your IP (`az postgres flexible-server firewall-rule create`), which you should remove again afterward.
 
 ## Changing the retention numbers
 

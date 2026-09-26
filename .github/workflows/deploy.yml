@@ -21,9 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        # Production runs Postgres 16, so test against the same major.
+        image: postgres:16
         env:
-          POSTGRES_DB: car_rental
+          # The suite refuses to run on a database whose name does not end
+          # in _test (see backend/tests/_test_database.py).
+          POSTGRES_DB: car_rental_test
           POSTGRES_USER: car_rental
           POSTGRES_PASSWORD: car_rental_dev
         ports:
@@ -32,7 +35,7 @@ jobs:
           --health-cmd "pg_isready -U car_rental"
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental
+      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental_test
       SECRET_KEY: ci-placeholder-secret-key-not-for-production
       CORS_ORIGINS: http://localhost:3000
     steps:
@@ -158,3 +161,66 @@ jobs:
             --name car-rental-frontend \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --image ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+  # Proves what was just deployed is actually serving, instead of trusting
+  # that `az containerapp update` returning means the app works. Container
+  # Apps also keeps a revision that fails its readiness probe out of traffic,
+  # so a bad deploy leaves the previous revision serving; this job makes that
+  # visible as a red run instead of a silent stale site.
+  smoke-test:
+    needs: [deploy-backend, deploy-frontend]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Check the deployed backend and frontend
+        env:
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+
+          frontend_fqdn=$(az containerapp show \
+            --name car-rental-frontend \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          frontend_url="https://${frontend_fqdn}"
+
+          # A scaled-to-zero app needs time to start, and a new revision
+          # needs time to become ready.
+          wait_for() {
+            local url="$1"
+            for attempt in $(seq 1 30); do
+              if curl -fsS -o /dev/null --max-time 20 "$url"; then
+                echo "OK: $url"
+                return 0
+              fi
+              echo "Waiting for $url (attempt $attempt)..."
+              sleep 10
+            done
+            echo "FAILED: $url never became healthy"
+            return 1
+          }
+
+          wait_for "$API_URL/ready"
+          wait_for "$frontend_url/login"
+
+          # The API must not expose its docs in production.
+          docs_status=$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/docs")
+          if [ "$docs_status" != "404" ]; then
+            echo "FAILED: $API_URL/docs returned $docs_status, expected 404"
+            exit 1
+          fi
+
+          # Security headers are present on both sides.
+          curl -fsSI "$API_URL/health" | grep -qi '^x-content-type-options: nosniff' \
+            || { echo "FAILED: backend is missing security headers"; exit 1; }
+          curl -fsSI "$frontend_url/login" | grep -qi '^content-security-policy-report-only' \
+            || { echo "FAILED: frontend is missing its CSP header"; exit 1; }
+
+          echo "Smoke test passed."

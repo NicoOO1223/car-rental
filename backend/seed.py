@@ -1,3 +1,5 @@
+import os
+import sys
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -7,6 +9,7 @@ from sqlalchemy import delete, select
 from app.database import SessionLocal
 from app.models import (
     Car,
+    CheckOut,
     Customer,
     Extra,
     Handover,
@@ -17,7 +20,28 @@ from app.models import (
 )
 
 
+def _refuse_to_wipe_production() -> None:
+    """seed() deletes every reservation, car, customer and location. That is
+    what a demo or dev database wants and exactly what a customer's live
+    database must never get, so on a production deployment it only runs when
+    explicitly told to."""
+
+    if os.getenv("ENVIRONMENT", "").strip().lower() != "production":
+        return
+
+    if "--allow-production" in sys.argv:
+        return
+
+    sys.exit(
+        "Refusing to run: ENVIRONMENT=production and seed.py deletes all "
+        "reservations, cars, customers and locations. If this really is a "
+        "demo stack, run it again with --allow-production."
+    )
+
+
 def seed():
+    _refuse_to_wipe_production()
+
     db = SessionLocal()
 
     try:
@@ -29,6 +53,7 @@ def seed():
         # The `extras` catalog itself is deliberately NOT cleared — it is
         # migration-owned reference data, like a lookup table, and is
         # present in deployed environments where this script never runs.
+        db.execute(delete(CheckOut))
         db.execute(delete(Handover))
         db.execute(delete(ReservationExtra))
         db.execute(delete(Reservation))

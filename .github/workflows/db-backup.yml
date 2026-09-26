@@ -71,7 +71,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: car_rental
+          POSTGRES_DB: car_rental_test
           POSTGRES_USER: car_rental
           POSTGRES_PASSWORD: car_rental_dev
         ports:
@@ -80,7 +80,7 @@ jobs:
           --health-cmd "pg_isready -U car_rental"
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental
+      DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental_test
     steps:
       - uses: actions/checkout@v4
 
@@ -127,7 +127,7 @@ jobs:
       - name: Restore into throwaway database
         run: |
           pg_restore --no-owner --no-privileges \
-            -d "postgresql://car_rental:car_rental_dev@localhost:5432/car_rental" \
+            -d "postgresql://car_rental:car_rental_dev@localhost:5432/car_rental_test" \
             restore.dump
 
       - name: Apply migrations to restored database
