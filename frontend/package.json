@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check:messages": "node scripts/check-messages.mjs --strict"
+    "check:messages": "node scripts/check-messages.mjs --strict",
+    "test": "vitest run"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.75.0",
@@ -29,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.3.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

@@ -429,7 +429,10 @@ $expectedName = [string]$manifest.business.name
 if ($DryRun) {
     Write-Host "[dry-run] bash deploy/smoke-test.sh $apiUrl $frontendUrl '$expectedName'" -ForegroundColor DarkGray
 } else {
-    bash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedName
+    # Git's bash, not the bash.exe Windows ships (which starts WSL).
+    $gitBash = @("$env:ProgramFiles\Git\bin\bash.exe", "${env:ProgramFiles(x86)}\Git\bin\bash.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $gitBash) { throw "Git Bash was not found. Install Git for Windows to run the smoke test." }
+    & $gitBash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedName
     if ($LASTEXITCODE -ne 0) { throw "FAILED: smoke test" }
 }
 

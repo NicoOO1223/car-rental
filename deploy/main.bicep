@@ -124,7 +124,9 @@ resource firewallRuleManagerRole 'Microsoft.Authorization/roleDefinitions@2022-0
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/read'
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/write'
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/delete'
-          'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/operationResults/read'
+          // The CLI waits for each change to finish by polling these.
+          'Microsoft.DBforPostgreSQL/locations/azureAsyncOperation/read'
+          'Microsoft.DBforPostgreSQL/locations/operationResults/read'
         ]
       }
     ]
