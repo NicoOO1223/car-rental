@@ -219,7 +219,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Development pseudo-language is not an account setting.
+      // Development pseudo-language is not an account setting. It sticks to
+      // the device instead, so choosing it, and choosing anything else
+      // afterwards, both have to update what the device remembers.
+      if (language === PSEUDO || readStored() === PSEUDO) writeStored(language);
       if (language !== PSEUDO) await updateMyLanguage(language);
 
       setUserLanguageState(language);
