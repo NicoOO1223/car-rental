@@ -25,3 +25,7 @@ deploy/.apppassword
 deploy/.secretkey
 deploy/outputs.json
 deploy/*.log
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
