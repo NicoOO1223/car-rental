@@ -68,7 +68,9 @@
       "CONFIRMED": "Confirmed",
       "ACTIVE": "Active",
       "COMPLETED": "Completed",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "AWAITING_PAYMENT": "Awaiting payment",
+      "EXPIRED": "Expired"
     },
     "taskType": {
       "MAINTENANCE": "Maintenance",
@@ -520,7 +522,11 @@
         "shownCustomersBookingFlow": "Shown to customers in the booking flow. Leave empty to use the category illustration.",
         "vehiclePreview": "Vehicle preview",
         "saving": "Saving",
-        "saveChanges": "Save changes"
+        "saveChanges": "Save changes",
+        "onlineBooking": "Online booking",
+        "onlineBookingHint": "Whether renters can book this car on the website. Staff can always book it.",
+        "offeredOnline": "Offered on the website",
+        "notOfferedOnline": "Not offered on the website"
       },
       "CarImage": {
         "vehicleIllustration": "Vehicle illustration"
@@ -604,7 +610,13 @@
         "confirmOnlyOnceFull": "Confirm only once the full amount has been received in cash from the customer.",
         "confirmCashPayment": "Confirm Cash Payment",
         "confirming": "Confirming...",
-        "stripeNotConfigured": "Stripe is not configured yet. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in frontend/.env.local to enable card payment."
+        "stripeNotConfigured": "Stripe is not configured yet. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in frontend/.env.local to enable card payment.",
+        "total": "Total",
+        "paidOnline": "Paid online when booking",
+        "dueNow": "Due now",
+        "paidInFullOnline": "This rental was paid in full online ({amount}). Nothing is due at the counter.",
+        "continueNothingDue": "Continue: nothing due",
+        "failedSettle": "Failed to record the payment."
       }
     },
     "identity": {
@@ -726,6 +738,31 @@
         "address": "Address",
         "saving": "Saving...",
         "saveChanges": "Save changes"
+      },
+      "OnlineBookingCard": {
+        "bookedOnline": "Booked online",
+        "reference": "Reference",
+        "agreedPrice": "Price agreed",
+        "priceWithShare": "{total} ({percent}% paid online)",
+        "paidOnline": "Paid online",
+        "refundedAmount": "{amount} (refunded)",
+        "keptAmount": "{amount} (kept)",
+        "notPaid": "{amount} (not paid yet)",
+        "holdUntil": "Car held until",
+        "refundableUntil": "Refundable until",
+        "cancelledBy": "Cancelled by",
+        "reason": "{reason, select, RENTER {The renter, on the website} NO_SHOW {No-show} other {Staff}}"
+      },
+      "CancelWithRefundModal": {
+        "title": "Cancel this booking",
+        "withinPolicy": "Cancelling up to {date} at {time} gives the online payment back.",
+        "afterPolicy": "The free cancellation period ended on {date} at {time}, so by default the online payment is kept.",
+        "question": "What should happen to the {amount} the renter paid online?",
+        "refund": "Refund {amount} to the renter",
+        "keep": "Keep {amount}",
+        "keepBooking": "Keep booking",
+        "cancelBooking": "Cancel booking",
+        "failed": "Failed to cancel the booking."
       }
     },
     "users": {
@@ -871,7 +908,8 @@
           "vehicleRates": "Vehicle rates",
           "returnCharges": "Return charges",
           "securityDeposit": "Security deposit",
-          "system": "System"
+          "system": "System",
+          "storefront": "Online booking"
         },
         "locations": {
           "failedLoadLocations": "Failed to load locations.",
@@ -931,6 +969,38 @@
           "saving": "Saving",
           "saved": "Saved",
           "save": "Save"
+        },
+        "storefront": {
+          "failedLoad": "Failed to load the online booking settings.",
+          "failedSave": "Failed to save the online booking configuration.",
+          "loading": "Loading configuration…",
+          "title": "Online booking",
+          "description": "Let renters book and pay a share online on your website. Nothing is shown to the public until you turn it on.",
+          "onlineBooking": "Online booking",
+          "onlineBookingHint": "When it is off, the website tells visitors that online booking is not available.",
+          "off": "Off",
+          "on": "On",
+          "missingTerms": "No terms are set below. Renters must accept terms before paying, so add the text or a link to them first.",
+          "rulesTitle": "Payment and cancellation",
+          "rulesDescription": "What renters pay when booking, and the rules for getting it back.",
+          "onlineShare": "Paid online when booking (%)",
+          "onlineShareHint": "The rest is paid at the counter at pickup. 100 means renters pay everything online.",
+          "freeCancellation": "Free cancellation until (hours before pickup)",
+          "freeCancellationHint": "Up to this point the online payment is refunded in full. After it, and for no-shows, it is kept.",
+          "holdMinutes": "Time to pay (minutes)",
+          "holdMinutesHint": "How long a car is held while the renter pays. After that it is free again. Between 5 and 60.",
+          "leadTime": "Earliest pickup (hours from now)",
+          "leadTimeHint": "Gives you time to prepare the car. Renters cannot book a pickup sooner than this.",
+          "legalTitle": "Terms and privacy",
+          "legalDescription": "Renters accept these before paying. Changing the text starts a new version (now version {version}), which is recorded on each booking.",
+          "termsText": "Terms and conditions",
+          "termsUrl": "Link to the terms",
+          "privacyText": "Privacy notice",
+          "privacyUrl": "Link to the privacy notice",
+          "urlHint": "Optional. A full address starting with https://",
+          "saved": "Saved.",
+          "saving": "Saving…",
+          "save": "Save changes"
         }
       },
       "revenue": {
@@ -1194,7 +1264,8 @@
           "saving": "Saving...",
           "saveSignature": "Save Signature",
           "generating": "Generating...",
-          "generateAgreementStartRental": "Generate Agreement & Start Rental"
+          "generateAgreementStartRental": "Generate Agreement & Start Rental",
+          "paidInFullOnline": "Paid in full online ({amount})."
         },
         "checkOut": {
           "full88": "Full (8/8)",
@@ -1421,13 +1492,29 @@
           "waived": "waived: {reason}",
           "damageReported": "Damage reported",
           "confirmApprove": "Are you sure you want to approve this reservation?",
-          "confirmComplete": "Are you sure you want to complete this rental?"
+          "confirmComplete": "Are you sure you want to complete this rental?",
+          "markNoShow": "Mark as no-show",
+          "markingNoShow": "Marking…",
+          "confirmNoShow": "The customer did not come. This cancels the reservation. Continue?",
+          "confirmNoShowKeep": "The customer did not come. This cancels the reservation and keeps the {amount} they paid online. Continue?",
+          "failedNoShow": "Failed to mark the reservation as a no-show.",
+          "waitingForPayment": "Waiting for payment",
+          "waitingForPaymentBody": "The renter is paying online. The car is held until the time shown, then the booking expires by itself.",
+          "holdExpired": "Payment never came",
+          "holdExpiredBody": "The hold ran out and the car was released. Nothing was charged."
         },
         "refreshing": "Refreshing",
         "refresh": "Refresh",
         "todaySActivity": "Today’s activity",
         "matchingCount": "{count, plural, one {# matching reservation} other {# matching reservations}}",
-        "totalCount": "{count, plural, one {# reservation} other {# reservations}}"
+        "totalCount": "{count, plural, one {# reservation} other {# reservations}}",
+        "online": "online",
+        "awaitingPayment": "Awaiting payment",
+        "expired": "Expired",
+        "bookedVia": "Booked",
+        "anySource": "Anywhere",
+        "onlineWebsite": "On the website",
+        "byStaff": "By staff"
       },
       "new": {
         "failedLoadBookingOptions": "Failed to load booking options. Please refresh.",
@@ -1625,7 +1712,7 @@
   },
   "notifications": {
     "title": "Notifications",
-    "description": "What needs attention: vehicles to move back, inspections and insurance. Checked when you open the app and every few minutes.",
+    "description": "What needs attention: new online bookings, vehicles to move back, inspections and insurance. Checked when you open the app and every few minutes.",
     "emptyTitle": "Nothing needs attention",
     "emptyDescription": "Vehicles to move back, inspections and insurance appear here when they need action.",
     "urgent": "Urgent",
@@ -1636,7 +1723,10 @@
     "inspectionDue": "{vehicle}: technical inspection due {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
     "inspectionOverdue": "{vehicle}: technical inspection was due {date}, {days, plural, one {# day} other {# days}} ago.",
     "insuranceEnding": "{vehicle}: insurance ends {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
-    "insuranceExpired": "{vehicle}: insurance ended {date}, {days, plural, one {# day} other {# days}} ago."
+    "insuranceExpired": "{vehicle}: insurance ended {date}, {days, plural, one {# day} other {# days}} ago.",
+    "new": "New",
+    "viewReservation": "View reservation",
+    "onlineBooking": "{customer} booked {vehicle} on the website ({reference}) for pickup on {date}. Look it over and get the car ready."
   },
   "errorPages": {
     "notFoundTitle": "Page not found",

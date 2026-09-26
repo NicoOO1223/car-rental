@@ -41,6 +41,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
   const [seats, setSeats] = useState(car.seats != null ? String(car.seats) : "");
   const [imageUrl, setImageUrl] = useState(car.image_url ?? "");
   const [homeLocationId, setHomeLocationId] = useState(car.home_location.id);
+  const [offeredOnline, setOfferedOnline] = useState(car.offered_online);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -63,6 +64,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         seats: seats === "" ? null : Number(seats),
         image_url: imageUrl.trim() || null,
         home_location_id: homeLocationId,
+        offered_online: offeredOnline,
       });
 
       onSaved(updated);
@@ -185,6 +187,17 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
                 {location.airport_code} — {location.name}
               </option>
             ))}
+          </SelectField>
+
+          <SelectField
+            label={t("c.cars.CarEditModal.onlineBooking")}
+            className="sm:col-span-2"
+            hint={t("c.cars.CarEditModal.onlineBookingHint")}
+            value={offeredOnline ? "yes" : "no"}
+            onChange={(event) => setOfferedOnline(event.target.value === "yes")}
+          >
+            <option value="yes">{t("c.cars.CarEditModal.offeredOnline")}</option>
+            <option value="no">{t("c.cars.CarEditModal.notOfferedOnline")}</option>
           </SelectField>
         </div>
 

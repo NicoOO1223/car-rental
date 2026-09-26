@@ -82,6 +82,29 @@ def amount_due(db: Session, reservation_id, breakdown) -> Decimal:
     return due
 
 
+def payment_summary(db: Session, reservation_id) -> dict:
+    """What the counter screen needs to say about money: the whole price, what
+    the renter already paid online, and what is left to take now."""
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    car = db.get(Car, reservation.car_id)
+    configuration = get_configuration(db)
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
+    total = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    online = prepaid_amount(db, reservation_id)
+
+    return {
+        "currency": configuration.default_currency,
+        "total_amount": total,
+        "paid_online": online,
+        "amount_due": max(total - online, Decimal("0.00")),
+    }
+
+
 def settle_prepaid_handover(db: Session, reservation_id, actor: User) -> Handover:
     """
     Records that a rental paid in full online needs no payment at the counter,

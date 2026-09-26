@@ -181,6 +181,29 @@ export type Reservation = {
   created_at: string;
 
   extras: ReservationExtra[];
+
+  // Bookings made on the public website carry more; a booking made by staff
+  // has source "STAFF" and the rest empty.
+  source: "STAFF" | "STOREFRONT";
+  /** What the renter quotes ("ABCD-2345"). */
+  public_reference: string | null;
+  hold_expires_at: string | null;
+  cancellation_reason: "STAFF" | "RENTER" | "NO_SHOW" | null;
+  cancelled_at: string | null;
+  /** Until when cancelling gives the online share back. */
+  cancellation_deadline_at: string | null;
+  prepayment_percent: number | null;
+  /** The price agreed when the booking was made, as a decimal string. */
+  agreed_total_amount: string | null;
+  /** The share paid online when booking. */
+  prepayment: {
+    payment_status: string;
+    amount: string | null;
+    currency: string | null;
+    paid_at: string | null;
+    refund_amount: string | null;
+    refunded_at: string | null;
+  } | null;
 };
 
 // --- Add-ons -------------------------------------------------------------
@@ -538,6 +561,8 @@ export type ReservationQuery = {
   q?: string;
   status?: string;
   location?: string;
+  /** STAFF or STOREFRONT: where the booking was made. */
+  source?: string;
   window?: string;
   sort?: string;
   /** The browser's own "today", as instants (the server only knows UTC). */
@@ -555,6 +580,7 @@ export async function getReservations(
       q: query.q,
       status: query.status,
       location: query.location,
+      source: query.source,
       window: query.window,
       sort: query.sort,
       day_start: query.dayStart,
@@ -648,14 +674,24 @@ export async function updateReservation(
   return response.json();
 }
 
-export async function cancelReservation(reservationId: string) {
+/**
+ * Cancels a booking. `refundPrepayment` decides the share the renter paid
+ * online: leave it out to follow the admin's policy (refunded up to the
+ * deadline, kept after it), or say true or false for this cancellation.
+ */
+export async function cancelReservation(
+  reservationId: string,
+  options: { refundPrepayment?: boolean } = {},
+) {
   const response = await apiFetch(
     `/api/reservations/${reservationId}/cancel`,
     {
       method: "PATCH",
       headers: {
+        "Content-Type": "application/json",
         Accept: "application/json",
       },
+      body: JSON.stringify({ refund_prepayment: options.refundPrepayment ?? null }),
     },
   );
 
@@ -707,6 +743,8 @@ export type Car = {
   insured_until: string | null;
   /** The premium for the insured period, as a decimal string. */
   insurance_cost: string | null;
+  /** Whether the public storefront may offer this car. */
+  offered_online: boolean;
 };
 
 export type Notification = {
@@ -715,14 +753,19 @@ export type Notification = {
     | "inspection_due"
     | "inspection_overdue"
     | "insurance_ending"
-    | "insurance_expired";
-  severity: "warning" | "critical";
+    | "insurance_expired"
+    | "online_booking";
+  severity: "info" | "warning" | "critical";
   car: { id: string; make: string; model: string; license_plate: string };
   airport: string | null;
   home_airport: string | null;
   date: string | null;
   /** Days until the date; negative once it has passed. */
   days: number | null;
+  /** online_booking: the booking, its reference and who made it (date is the pickup). */
+  reservation_id?: string | null;
+  reference?: string | null;
+  customer?: string | null;
 };
 
 /** What needs attention: vehicles to move back, inspections, insurance. */
@@ -813,6 +856,7 @@ export async function updateCar(
     insured_from: string | null;
     insured_until: string | null;
     insurance_cost: string | null;
+    offered_online: boolean;
   }>,
 ): Promise<Car> {
   const response = await apiFetch(`/api/cars/${carId}`, {
@@ -1784,7 +1828,7 @@ export type Handover = {
   payment_amount: number | null;
   payment_currency: string | null;
   payment_status: string;
-  payment_method: "CARD" | "CASH" | null;
+  payment_method: "CARD" | "CASH" | "PREPAID" | null;
   paid_at: string | null;
 
   refund_amount: number | null;
@@ -1828,6 +1872,54 @@ export type PaymentIntent = {
   net_amount: number;
   prices_include_vat: boolean;
 };
+
+/** What the counter needs to say about money for a rental. */
+export type PaymentSummary = {
+  currency: string;
+  total_amount: number;
+  /** Paid on the website when booking; 0 for a booking made by staff. */
+  paid_online: number;
+  /** What is left to take now; 0 when the rental was paid in full online. */
+  amount_due: number;
+};
+
+export async function getPaymentSummary(reservationId: string): Promise<PaymentSummary> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/handover/payment-summary`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
+/** A rental paid in full online needs no payment at the counter. */
+export async function settlePrepaidHandover(reservationId: string): Promise<Handover> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/handover/settle-prepaid`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** The renter never came: cancels the booking and keeps what they paid online. */
+export async function markReservationNoShow(reservationId: string): Promise<Reservation> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/no-show`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
 
 export async function getHandover(reservationId: string): Promise<Handover> {
   const response = await apiFetch(`/api/reservations/${reservationId}/handover`);
@@ -2187,6 +2279,22 @@ export type Configuration = {
   default_language: string;
   /** Language the agreement and invoices are printed in. */
   document_language: string;
+  /** The public booking site: on or off, and its rules. */
+  storefront_enabled: boolean;
+  /** Percent of the rental a renter pays online when booking. */
+  online_share_percent: number;
+  /** Hours before pickup up to which cancelling refunds the online share. */
+  free_cancellation_hours: number;
+  /** Minutes an unpaid booking holds its car. */
+  hold_minutes: number;
+  /** The earliest pickup a renter can book, in hours from now. */
+  min_booking_lead_hours: number;
+  terms_text: string;
+  terms_url: string;
+  privacy_text: string;
+  privacy_url: string;
+  /** Goes up whenever the terms or privacy text changes. */
+  legal_version: number;
 };
 
 /** The currency every price is shown in; readable by any signed-in staff. */

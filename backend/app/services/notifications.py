@@ -11,12 +11,12 @@ The interface words each one from its kind and values, in the reader's
 language.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Car
+from app.models import Car, Customer, Reservation
 from app.services.configuration import get_configuration
 from app.services.timezones import business_zone, local_today
 
@@ -27,7 +27,11 @@ KIND_ORDER = (
     "relocation",
     "inspection_due",
     "insurance_ending",
+    "online_booking",
 )
+
+# How long a booking made on the website is announced as new.
+NEW_ONLINE_BOOKING_DAYS = 3
 
 
 def _car(car: Car) -> dict:
@@ -97,6 +101,37 @@ def list_notifications(db: Session) -> dict:
                     "days": (car.insured_until - today).days,
                 }
             )
+
+    now = datetime.now(timezone.utc)
+
+    # Bookings renters made and paid for on the website, to look at and
+    # prepare. They go away once they are old, started or cancelled.
+    online = db.execute(
+        select(Reservation, Car, Customer)
+        .join(Car, Car.id == Reservation.car_id)
+        .join(Customer, Customer.id == Reservation.customer_id)
+        .where(
+            Reservation.source == "STOREFRONT",
+            Reservation.status == "CONFIRMED",
+            Reservation.pickup_at >= now,
+            Reservation.created_at >= now - timedelta(days=NEW_ONLINE_BOOKING_DAYS),
+        )
+        .order_by(Reservation.pickup_at)
+    ).all()
+
+    for reservation, car, customer in online:
+        items.append(
+            {
+                "car": _car(car),
+                "kind": "online_booking",
+                "severity": "info",
+                "reservation_id": str(reservation.id),
+                "reference": reservation.public_reference,
+                "customer": f"{customer.first_name} {customer.last_name}",
+                "date": reservation.pickup_at.isoformat(),
+                "days": (reservation.pickup_at - now).days,
+            }
+        )
 
     items.sort(
         key=lambda item: (

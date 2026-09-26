@@ -68,7 +68,9 @@
       "CONFIRMED": "Potwierdzona",
       "ACTIVE": "W trakcie",
       "COMPLETED": "Zakończona",
-      "CANCELLED": "Anulowana"
+      "CANCELLED": "Anulowana",
+      "AWAITING_PAYMENT": "Oczekuje na płatność",
+      "EXPIRED": "Wygasła"
     },
     "taskType": {
       "MAINTENANCE": "Serwis",
@@ -520,7 +522,11 @@
         "shownCustomersBookingFlow": "Wyświetlane klientom podczas rezerwacji. Pozostaw puste, aby użyć ilustracji kategorii.",
         "vehiclePreview": "Podgląd pojazdu",
         "saving": "Zapisywanie",
-        "saveChanges": "Zapisz zmiany"
+        "saveChanges": "Zapisz zmiany",
+        "onlineBooking": "Rezerwacja online",
+        "onlineBookingHint": "Czy klienci mogą rezerwować to auto na stronie. Pracownicy mogą je rezerwować zawsze.",
+        "offeredOnline": "Oferowane na stronie",
+        "notOfferedOnline": "Nieoferowane na stronie"
       },
       "CarImage": {
         "vehicleIllustration": "Ilustracja pojazdu"
@@ -604,7 +610,13 @@
         "confirmOnlyOnceFull": "Potwierdź dopiero po otrzymaniu od klienta całej kwoty w gotówce.",
         "confirmCashPayment": "Potwierdź płatność gotówką",
         "confirming": "Potwierdzanie...",
-        "stripeNotConfigured": "Stripe nie jest jeszcze skonfigurowany. Ustaw NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY w pliku frontend/.env.local, aby włączyć płatności kartą."
+        "stripeNotConfigured": "Stripe nie jest jeszcze skonfigurowany. Ustaw NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY w pliku frontend/.env.local, aby włączyć płatności kartą.",
+        "total": "Razem",
+        "paidOnline": "Zapłacono online przy rezerwacji",
+        "dueNow": "Do zapłaty teraz",
+        "paidInFullOnline": "Ten wynajem został w całości opłacony online ({amount}). Na miejscu nie ma nic do zapłaty.",
+        "continueNothingDue": "Dalej: nic do zapłaty",
+        "failedSettle": "Nie udało się zapisać płatności."
       }
     },
     "identity": {
@@ -726,6 +738,31 @@
         "address": "Adres",
         "saving": "Zapisywanie...",
         "saveChanges": "Zapisz zmiany"
+      },
+      "OnlineBookingCard": {
+        "bookedOnline": "Zarezerwowano online",
+        "reference": "Numer rezerwacji",
+        "agreedPrice": "Uzgodniona cena",
+        "priceWithShare": "{total} ({percent}% płatne online)",
+        "paidOnline": "Zapłacono online",
+        "refundedAmount": "{amount} (zwrócono)",
+        "keptAmount": "{amount} (zatrzymano)",
+        "notPaid": "{amount} (jeszcze nie zapłacono)",
+        "holdUntil": "Auto zarezerwowane do",
+        "refundableUntil": "Zwrot możliwy do",
+        "cancelledBy": "Anulowane przez",
+        "reason": "{reason, select, RENTER {Klient, na stronie} NO_SHOW {Niestawienie się} other {Pracownik}}"
+      },
+      "CancelWithRefundModal": {
+        "title": "Anuluj tę rezerwację",
+        "withinPolicy": "Anulowanie do {date}, godz. {time}, zwraca płatność online.",
+        "afterPolicy": "Bezpłatna rezygnacja kończyła się {date}, godz. {time}, więc domyślnie płatność online zostaje zatrzymana.",
+        "question": "Co zrobić z kwotą {amount} zapłaconą online przez klienta?",
+        "refund": "Zwróć {amount} klientowi",
+        "keep": "Zatrzymaj {amount}",
+        "keepBooking": "Zostaw rezerwację",
+        "cancelBooking": "Anuluj rezerwację",
+        "failed": "Nie udało się anulować rezerwacji."
       }
     },
     "users": {
@@ -871,7 +908,8 @@
           "vehicleRates": "Stawki pojazdów",
           "returnCharges": "Opłaty za zwrot",
           "securityDeposit": "Kaucja",
-          "system": "System"
+          "system": "System",
+          "storefront": "Rezerwacja online"
         },
         "locations": {
           "failedLoadLocations": "Nie udało się wczytać lokalizacji.",
@@ -931,6 +969,38 @@
           "saving": "Zapisywanie",
           "saved": "Zapisano",
           "save": "Zapisz"
+        },
+        "storefront": {
+          "failedLoad": "Nie udało się wczytać ustawień rezerwacji online.",
+          "failedSave": "Nie udało się zapisać konfiguracji rezerwacji online.",
+          "loading": "Wczytywanie konfiguracji…",
+          "title": "Rezerwacja online",
+          "description": "Pozwól klientom rezerwować i płacić część online na Twojej stronie. Nic nie jest widoczne publicznie, dopóki tego nie włączysz.",
+          "onlineBooking": "Rezerwacja online",
+          "onlineBookingHint": "Gdy jest wyłączona, strona informuje odwiedzających, że rezerwacja online jest niedostępna.",
+          "off": "Wyłączona",
+          "on": "Włączona",
+          "missingTerms": "Poniżej nie ustawiono regulaminu. Klienci muszą go zaakceptować przed płatnością, więc najpierw dodaj tekst lub link.",
+          "rulesTitle": "Płatność i anulowanie",
+          "rulesDescription": "Ile klienci płacą przy rezerwacji i zasady zwrotu.",
+          "onlineShare": "Płatne online przy rezerwacji (%)",
+          "onlineShareHint": "Resztę płaci się na miejscu przy odbiorze. 100 oznacza, że klienci płacą wszystko online.",
+          "freeCancellation": "Bezpłatne anulowanie do (godzin przed odbiorem)",
+          "freeCancellationHint": "Do tego momentu płatność online jest zwracana w całości. Po nim, oraz w razie niestawienia się, zostaje zatrzymana.",
+          "holdMinutes": "Czas na płatność (minuty)",
+          "holdMinutesHint": "Jak długo auto jest zarezerwowane, gdy klient płaci. Potem znów jest wolne. Od 5 do 60.",
+          "leadTime": "Najwcześniejszy odbiór (godziny od teraz)",
+          "leadTimeHint": "Daje czas na przygotowanie auta. Klienci nie mogą zarezerwować odbioru wcześniej.",
+          "legalTitle": "Regulamin i prywatność",
+          "legalDescription": "Klienci akceptują je przed płatnością. Zmiana tekstu rozpoczyna nową wersję (teraz wersja {version}), zapisywaną przy każdej rezerwacji.",
+          "termsText": "Regulamin",
+          "termsUrl": "Link do regulaminu",
+          "privacyText": "Informacja o prywatności",
+          "privacyUrl": "Link do informacji o prywatności",
+          "urlHint": "Opcjonalne. Pełny adres zaczynający się od https://",
+          "saved": "Zapisano.",
+          "saving": "Zapisywanie…",
+          "save": "Zapisz zmiany"
         }
       },
       "revenue": {
@@ -1194,7 +1264,8 @@
           "saving": "Zapisywanie...",
           "saveSignature": "Zapisz podpis",
           "generating": "Generowanie...",
-          "generateAgreementStartRental": "Wygeneruj umowę i rozpocznij wynajem"
+          "generateAgreementStartRental": "Wygeneruj umowę i rozpocznij wynajem",
+          "paidInFullOnline": "Opłacono w całości online ({amount})."
         },
         "checkOut": {
           "full88": "Pełny (8/8)",
@@ -1421,13 +1492,29 @@
           "waived": "zrezygnowano: {reason}",
           "damageReported": "Zgłoszono uszkodzenie",
           "confirmApprove": "Czy na pewno chcesz zatwierdzić tę rezerwację?",
-          "confirmComplete": "Czy na pewno chcesz zakończyć ten wynajem?"
+          "confirmComplete": "Czy na pewno chcesz zakończyć ten wynajem?",
+          "markNoShow": "Oznacz jako niestawienie się",
+          "markingNoShow": "Zapisywanie…",
+          "confirmNoShow": "Klient się nie stawił. Rezerwacja zostanie anulowana. Kontynuować?",
+          "confirmNoShowKeep": "Klient się nie stawił. Rezerwacja zostanie anulowana, a zapłacone online {amount} zostanie zatrzymane. Kontynuować?",
+          "failedNoShow": "Nie udało się oznaczyć rezerwacji jako niestawienie się.",
+          "waitingForPayment": "Oczekiwanie na płatność",
+          "waitingForPaymentBody": "Klient płaci online. Auto jest zarezerwowane do wskazanej godziny, potem rezerwacja wygasa samoczynnie.",
+          "holdExpired": "Płatność nie nadeszła",
+          "holdExpiredBody": "Rezerwacja wygasła, a auto zostało zwolnione. Nic nie pobrano."
         },
         "refreshing": "Odświeżanie",
         "refresh": "Odśwież",
         "todaySActivity": "Dzisiejsza aktywność",
         "matchingCount": "{count, plural, one {# pasująca rezerwacja} few {# pasujące rezerwacje} many {# pasujących rezerwacji} other {# pasującej rezerwacji}}",
-        "totalCount": "{count, plural, one {# rezerwacja} few {# rezerwacje} many {# rezerwacji} other {# rezerwacji}}"
+        "totalCount": "{count, plural, one {# rezerwacja} few {# rezerwacje} many {# rezerwacji} other {# rezerwacji}}",
+        "online": "online",
+        "awaitingPayment": "Oczekuje na płatność",
+        "expired": "Wygasłe",
+        "bookedVia": "Zarezerwowano",
+        "anySource": "Wszędzie",
+        "onlineWebsite": "Na stronie",
+        "byStaff": "Przez pracownika"
       },
       "new": {
         "failedLoadBookingOptions": "Nie udało się wczytać opcji rezerwacji. Odśwież stronę.",
@@ -1625,7 +1712,7 @@
   },
   "notifications": {
     "title": "Powiadomienia",
-    "description": "Co wymaga uwagi: pojazdy do odprowadzenia, przeglądy i ubezpieczenia. Sprawdzane po otwarciu aplikacji i co kilka minut.",
+    "description": "Co wymaga uwagi: nowe rezerwacje online, pojazdy do odstawienia, przeglądy i ubezpieczenia. Sprawdzane przy otwarciu aplikacji i co kilka minut.",
     "emptyTitle": "Nic nie wymaga uwagi",
     "emptyDescription": "Pojazdy do odprowadzenia, przeglądy i ubezpieczenia pojawią się tutaj, gdy trzeba działać.",
     "urgent": "Pilne",
@@ -1636,7 +1723,10 @@
     "inspectionDue": "{vehicle}: przegląd techniczny do {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
     "inspectionOverdue": "{vehicle}: przegląd techniczny był do {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
     "insuranceEnding": "{vehicle}: ubezpieczenie kończy się {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
-    "insuranceExpired": "{vehicle}: ubezpieczenie skończyło się {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}."
+    "insuranceExpired": "{vehicle}: ubezpieczenie skończyło się {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
+    "new": "Nowa",
+    "viewReservation": "Zobacz rezerwację",
+    "onlineBooking": "{customer} zarezerwował(a) {vehicle} na stronie ({reference}), odbiór {date}. Sprawdź rezerwację i przygotuj auto."
   },
   "errorPages": {
     "notFoundTitle": "Nie znaleziono strony",

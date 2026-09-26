@@ -145,6 +145,7 @@ def get_reservations(
     status: Literal["PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED", "EXPIRED"]
     | None = Query(default=None),
     location: str | None = Query(default=None, max_length=10),
+    source: Literal["STAFF", "STOREFRONT"] | None = Query(default=None),
     window: Literal["TODAY", "ACTIVE", "UPCOMING", "NEXT_7_DAYS"] | None = Query(
         default=None
     ),
@@ -164,6 +165,7 @@ def get_reservations(
         q=q,
         status=status,
         location=location,
+        source=source,
         window=window,
         sort=sort,
         limit=limit,

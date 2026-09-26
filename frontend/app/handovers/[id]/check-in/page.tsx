@@ -9,6 +9,7 @@ import {
   downloadAgreement,
   getHandover,
   getIdentityDetails,
+  getPaymentSummary,
   getPublicConfiguration,
   getReservation,
   submitEmployeeSignature,
@@ -16,12 +17,13 @@ import {
   type Handover,
   type IdentityDetails,
   type PaymentIntent,
+  type PaymentSummary,
   type Reservation,
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
-import { CashPaymentForm, PaymentStep } from "@/components/handover/PaymentStep";
+import { CashPaymentForm, PaymentStep, PrepaidSettleForm } from "@/components/handover/PaymentStep";
 import { DepositStep } from "@/components/handover/DepositStep";
 import {
   SignaturePad,
@@ -50,6 +52,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [paymentIntentError, setPaymentIntentError] = useState("");
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
 
   const [signing, setSigning] = useState(false);
   const [signatureError, setSignatureError] = useState("");
@@ -88,7 +91,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
           (await getPublicConfiguration()).security_deposit_amount,
         );
 
-        if (handoverData.payment_status !== "SUCCEEDED") {
+        const summaryData = await getPaymentSummary(id);
+        setSummary(summaryData);
+
+        // A rental paid in full online has nothing to charge, so no card
+        // payment is prepared for it.
+        if (handoverData.payment_status !== "SUCCEEDED" && summaryData.amount_due > 0) {
           // A payment-intent failure (e.g. Stripe not configured yet)
           // shouldn't take down the whole page — show it inline on the
           // payment step instead.
@@ -343,7 +351,14 @@ export default function FinalizeHandoverPage({ params }: Props) {
               <StepHeader index={1} title={t("s.handovers.id.checkIn.payment")} status={paymentStatus} />
 
               <div className="mt-5">
-                {paymentDone ? (
+                {paymentDone && handover.payment_method === "PREPAID" ? (
+                  <p className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t("s.handovers.id.checkIn.paidInFullOnline", {
+                      amount: `${(summary?.paid_online ?? 0).toFixed(2)} ${summary?.currency.toUpperCase() ?? ""}`,
+                    })}
+                  </p>
+                ) : paymentDone ? (
                   <p className="flex items-center gap-1.5 text-sm text-gray-700">
                     {handover.payment_method === "CASH" ? (
                       <Banknote className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -355,6 +370,13 @@ export default function FinalizeHandoverPage({ params }: Props) {
                           amount: `${handover.payment_amount.toFixed(2)} ${handover.payment_currency?.toUpperCase() ?? ""}`,
                         })
                       : t("s.handovers.id.checkIn.paymentReceived")}</p>
+                ) : summary && summary.amount_due === 0 && summary.paid_online > 0 ? (
+                  <PrepaidSettleForm
+                    reservationId={reservation.id}
+                    paidOnline={summary.paid_online}
+                    currency={summary.currency}
+                    onPaid={handlePaid}
+                  />
                 ) : paymentIntentError ? (
                   <div className="space-y-4">
                     <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("s.handovers.id.checkIn.cardPaymentUnavailableBut", { paymentIntentError })}</div>
@@ -380,6 +402,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       net: paymentIntent.net_amount,
                       includedInPrices: paymentIntent.prices_include_vat,
                     }}
+                    paidOnline={summary?.paid_online ?? 0}
                     onPaid={handlePaid}
                   />
                 ) : (

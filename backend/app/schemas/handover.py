@@ -95,6 +95,15 @@ class HandoverResponse(BaseModel):
         )
 
 
+class PaymentSummaryResponse(BaseModel):
+    currency: str
+    total_amount: float
+    # Paid on the website when booking; zero for a booking made by staff.
+    paid_online: float
+    # What is left to take now. Zero when the rental was paid in full online.
+    amount_due: float
+
+
 class SignatureSubmit(BaseModel):
     # A data URI of a small canvas drawing. The cap stops anyone posting
     # megabytes into a text column.

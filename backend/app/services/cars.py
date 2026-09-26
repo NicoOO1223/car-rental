@@ -31,6 +31,10 @@ def update_car(
 
     updates = data.model_dump(exclude_unset=True)
 
+    # A yes/no that cannot be empty: leaving it out is how it stays as it is.
+    if updates.get("offered_online", True) is None:
+        del updates["offered_online"]
+
     if "license_plate" in updates:
         conflict = db.scalar(
             select(Car.id).where(

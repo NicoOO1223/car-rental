@@ -54,6 +54,7 @@ def _conditions(
     q: str | None,
     status: str | None,
     location: str | None,
+    source: str | None,
     window: str | None,
     now: datetime,
     day_start: datetime | None,
@@ -73,12 +74,16 @@ def _conditions(
                 ),
                 Car.license_plate.ilike(pattern, escape="\\"),
                 cast(Reservation.id, String).ilike(pattern, escape="\\"),
+                Reservation.public_reference.ilike(pattern, escape="\\"),
                 func.concat(Car.make, " ", Car.model).ilike(pattern, escape="\\"),
             )
         )
 
     if status:
         conditions.append(Reservation.status == status)
+
+    if source:
+        conditions.append(Reservation.source == source)
 
     if location:
         conditions.append(
@@ -115,6 +120,7 @@ def search_reservations(
     q: str | None = None,
     status: str | None = None,
     location: str | None = None,
+    source: str | None = None,
     window: str | None = None,
     sort: str = "pickup_asc",
     limit: int = 25,
@@ -135,6 +141,7 @@ def search_reservations(
         q=q,
         status=status,
         location=location,
+        source=source,
         window=window,
         now=now,
         day_start=day_start,
@@ -164,6 +171,7 @@ def search_reservations(
             # selectinload, not joinedload: extras is a collection, and
             # joining it would fan out parent rows and break LIMIT.
             selectinload(Reservation.extras),
+            joinedload(Reservation.prepayment),
         )
         .order_by(*SORTS.get(sort, SORTS["pickup_asc"]))
         .limit(limit)
@@ -184,7 +192,9 @@ def reservation_summary(
     now = datetime.now(timezone.utc)
     start, end = _day_bounds(db, now, day_start, day_end)
 
-    not_cancelled = Reservation.status != "CANCELLED"
+    # A hold waiting for payment and an expired one are not reservations yet,
+    # so they do not count towards today's work.
+    not_cancelled = Reservation.status.not_in(("CANCELLED", "EXPIRED", "AWAITING_PAYMENT"))
 
     def count_where(*criteria):
         return func.count(Reservation.id).filter(*criteria)

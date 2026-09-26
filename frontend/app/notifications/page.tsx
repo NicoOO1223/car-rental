@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarClock, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Bell, CalendarClock, Globe, ShieldCheck, Truck } from "lucide-react";
 
 import { useNotifications } from "@/components/NotificationsProvider";
 import { Card } from "@/components/ui/Card";
@@ -17,6 +17,7 @@ const ICONS = {
   inspection_overdue: CalendarClock,
   insurance_ending: ShieldCheck,
   insurance_expired: ShieldCheck,
+  online_booking: Globe,
 } as const;
 
 /** One sentence for a notification, in the language showing. */
@@ -33,6 +34,15 @@ function sentence(item: Notification): string {
 
   const days = item.days ?? 0;
   const date = item.date ? formatDate(item.date) : "";
+
+  if (item.kind === "online_booking") {
+    return t("notifications.onlineBooking", {
+      customer: item.customer ?? "",
+      vehicle,
+      reference: item.reference ?? "",
+      date,
+    });
+  }
 
   switch (item.kind) {
     case "inspection_due":
@@ -67,14 +77,18 @@ export default function NotificationsPage() {
           {items.map((item) => {
             const Icon = ICONS[item.kind as keyof typeof ICONS] ?? Bell;
             const urgent = item.severity === "critical";
+            const info = item.severity === "info";
+            const tone = urgent
+              ? "bg-red-100 text-red-700"
+              : info
+                ? "bg-gray-100 text-gray-700"
+                : "bg-amber-100 text-amber-800";
 
             return (
-              <li key={`${item.kind}-${item.car.id}`}>
+              <li key={`${item.kind}-${item.reservation_id ?? item.car.id}`}>
                 <Card className="flex items-start gap-4 p-4">
                   <span
-                    className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                      urgent ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"
-                    }`}
+                    className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone}`}
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
@@ -82,20 +96,26 @@ export default function NotificationsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-ink">
                       <span
-                        className={`mr-2 rounded px-1.5 py-0.5 text-xs font-medium ${
-                          urgent ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"
-                        }`}
+                        className={`mr-2 rounded px-1.5 py-0.5 text-xs font-medium ${tone}`}
                       >
-                        {urgent ? t("notifications.urgent") : t("notifications.soon")}
+                        {urgent
+                          ? t("notifications.urgent")
+                          : info
+                            ? t("notifications.new")
+                            : t("notifications.soon")}
                       </span>
                       {sentence(item)}
                     </p>
 
                     <Link
-                      href={`/cars/${item.car.id}`}
+                      href={
+                        item.reservation_id
+                          ? `/reservations/manage/${item.reservation_id}`
+                          : `/cars/${item.car.id}`
+                      }
                       className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-ink"
                     >
-                      {t("notifications.viewVehicle")}
+                      {item.reservation_id ? t("notifications.viewReservation") : t("notifications.viewVehicle")}
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </div>

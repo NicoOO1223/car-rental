@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, CreditCard } from "lucide-react";
+import { Banknote, CircleCheck, CreditCard } from "lucide-react";
 import {
   Elements,
   PaymentElement,
@@ -12,10 +12,12 @@ import {
 import {
   confirmCashPayment,
   confirmHandoverPayment,
+  settlePrepaidHandover,
   type PriceBreakdownExtraLine,
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { PriceBreakdownList } from "@/components/pricing/PriceBreakdownList";
+import { formatCurrency } from "@/lib/format";
 import { getStripePromise } from "@/lib/stripe";
 import { t } from "@/lib/i18n";
 
@@ -32,6 +34,8 @@ type Props = {
   extrasAmount: number;
   /** VAT on the amount due, so it is shown as it was in the quote. */
   vat?: { rate: number; amount: number; net: number; includedInPrices: boolean };
+  /** What the renter already paid on the website; the amount above is what is left. */
+  paidOnline?: number;
   onPaid: () => void;
 };
 
@@ -146,6 +150,51 @@ export function CashPaymentForm({
   );
 }
 
+/**
+ * A rental paid in full on the website: nothing to take at the counter, only
+ * to record that so check-in can go on.
+ */
+export function PrepaidSettleForm({
+  reservationId,
+  paidOnline,
+  currency,
+  onPaid,
+}: Pick<Props, "reservationId" | "onPaid"> & { paidOnline: number; currency: string }) {
+  const [settling, setSettling] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSettle() {
+    setSettling(true);
+    setError("");
+
+    try {
+      await settlePrepaidHandover(reservationId);
+      onPaid();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("c.handover.PaymentStep.failedSettle"));
+    } finally {
+      setSettling(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="flex items-center gap-2 text-sm text-gray-700">
+        <CircleCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+        {t("c.handover.PaymentStep.paidInFullOnline", {
+          amount: formatCurrency(paidOnline, currency.toUpperCase()),
+        })}
+      </p>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <Button onClick={handleSettle} loading={settling} fullWidth>
+        {t("c.handover.PaymentStep.continueNothingDue")}
+      </Button>
+    </div>
+  );
+}
+
 export function PaymentStep({
   reservationId,
   clientSecret,
@@ -156,6 +205,7 @@ export function PaymentStep({
   airportChangeFee,
   extras,
   vat,
+  paidOnline = 0,
   onPaid,
 }: Props) {
   const [method, setMethod] = useState<"card" | "cash">("card");
@@ -172,15 +222,36 @@ export function PaymentStep({
             short_term_fee: shortTermFee,
             airport_change_fee: airportChangeFee,
             extras,
-            total_amount: amount,
+            // With an online share, the lines add up to the whole price and the
+            // part still to pay is shown under them.
+            total_amount: amount + paidOnline,
             currency: currency ?? undefined,
             vat_rate: vat?.rate,
             vat_amount: vat?.amount,
             net_amount: vat?.net,
             prices_include_vat: vat?.includedInPrices,
           }}
-          totalLabel={t("c.handover.PaymentStep.amountDue")}
+          totalLabel={
+            paidOnline > 0 ? t("c.handover.PaymentStep.total") : t("c.handover.PaymentStep.amountDue")
+          }
         />
+      )}
+
+      {amount !== null && paidOnline > 0 && (
+        <dl className="space-y-2.5 rounded-lg bg-gray-50 p-4 text-sm">
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-secondary">{t("c.handover.PaymentStep.paidOnline")}</dt>
+            <dd className="font-medium text-ink tabular-nums">
+              −{formatCurrency(paidOnline, currency?.toUpperCase())}
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-4 border-t border-border-subtle pt-2.5">
+            <dt className="font-semibold text-ink">{t("c.handover.PaymentStep.dueNow")}</dt>
+            <dd className="text-lg font-bold text-ink tabular-nums">
+              {formatCurrency(amount, currency?.toUpperCase())}
+            </dd>
+          </div>
+        </dl>
       )}
 
       <div className="flex gap-2 border-b border-border-strong">

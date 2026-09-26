@@ -98,6 +98,14 @@ class Reservation(Base):
         cascade="all, delete-orphan",
     )
 
+    # The share paid online at booking, for a storefront booking. Read only:
+    # it is created and changed through services/public_booking.py.
+    prepayment: Mapped["ReservationPayment | None"] = relationship(
+        "ReservationPayment",
+        uselist=False,
+        viewonly=True,
+    )
+
     pickup_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -13,9 +13,11 @@ import {
   CircleCheck,
   CircleDot,
   Clock,
+  Hourglass,
   KeyRound,
   PlayCircle,
   Sparkles,
+  TimerOff,
   Wrench,
   XCircle,
   type LucideIcon,
@@ -94,18 +96,22 @@ export function getCarStatusHex(status: string): string {
 
 const RESERVATION_STATUS_WEIGHT: Record<string, StatusWeight> = {
   PENDING: "neutral",
+  AWAITING_PAYMENT: "neutral",
   CONFIRMED: "neutral",
   ACTIVE: "active",
   COMPLETED: "neutral",
   CANCELLED: "muted",
+  EXPIRED: "muted",
 };
 
 export const RESERVATION_STATUS_ICONS: Record<string, LucideIcon> = {
   PENDING: Clock,
+  AWAITING_PAYMENT: Hourglass,
   CONFIRMED: CircleCheck,
   ACTIVE: PlayCircle,
   COMPLETED: CheckCheck,
   CANCELLED: XCircle,
+  EXPIRED: TimerOff,
 };
 
 const DEFAULT_RESERVATION_STATUS_STYLE: Record<ReservationStatusVariant, string> = {

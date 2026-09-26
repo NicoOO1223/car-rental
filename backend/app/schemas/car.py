@@ -37,6 +37,7 @@ class CarResponse(BaseModel):
     insured_from: date | None
     insured_until: date | None
     insurance_cost: Decimal | None
+    offered_online: bool
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +66,8 @@ class CarUpdate(BaseModel):
     insured_from: date | None = None
     insured_until: date | None = None
     insurance_cost: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
+    # Whether the public storefront may offer this car.
+    offered_online: bool | None = None
 
 
 class DailyRateResponse(BaseModel):

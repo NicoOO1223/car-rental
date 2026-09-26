@@ -12,6 +12,7 @@ from app.schemas.handover import (
     DepositIntentResponse,
     HandoverResponse,
     PaymentIntentResponse,
+    PaymentSummaryResponse,
     SignatureSubmit,
 )
 from app.services.deposits import (
@@ -25,6 +26,7 @@ from app.services.handovers import (
     create_or_reuse_payment_intent,
     generate_agreement,
     get_or_create_handover,
+    payment_summary,
     settle_prepaid_handover,
     submit_employee_signature,
     submit_signature,
@@ -46,6 +48,14 @@ def get_handover_state(
     handover = get_or_create_handover(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
+
+
+@router.get("/payment-summary", response_model=PaymentSummaryResponse)
+def get_payment_summary(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+):
+    return PaymentSummaryResponse(**{k: (float(v) if k != "currency" else v) for k, v in payment_summary(db, reservation_id).items()})
 
 
 @router.post("/payment-intent", response_model=PaymentIntentResponse)

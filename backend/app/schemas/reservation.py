@@ -110,7 +110,35 @@ class ReservationQuoteResponse(PriceBreakdownFields):
     availability_message: str | None
 
 
-class ReservationResponse(BaseModel):
+class OnlinePaymentSummary(BaseModel):
+    """The share a renter paid online when booking."""
+
+    payment_status: str
+    amount: Decimal | None = Field(validation_alias="payment_amount")
+    currency: str | None = Field(validation_alias="payment_currency")
+    paid_at: datetime | None
+    refund_amount: Decimal | None
+    refunded_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class OnlineBookingFields(BaseModel):
+    """What only a booking made on the storefront carries. All neutral (STAFF,
+    empty) for one made by staff."""
+
+    source: str = "STAFF"
+    public_reference: str | None = None
+    hold_expires_at: datetime | None = None
+    cancellation_reason: str | None = None
+    cancelled_at: datetime | None = None
+    cancellation_deadline_at: datetime | None = None
+    prepayment_percent: int | None = None
+    agreed_total_amount: Decimal | None = None
+    prepayment: OnlinePaymentSummary | None = None
+
+
+class ReservationResponse(OnlineBookingFields):
     id: UUID
 
     customer_id: UUID
@@ -137,7 +165,7 @@ class ReservationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ReservationListResponse(BaseModel):
+class ReservationListResponse(OnlineBookingFields):
     id: UUID
 
     customer: CustomerSummary

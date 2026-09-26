@@ -10,6 +10,7 @@ import {
   getHandover,
   downloadAgreement,
   cancelReservation,
+  markReservationNoShow,
   updateReservationStatus,
   type Reservation,
   type Location,
@@ -20,6 +21,8 @@ import { InvoicesCard } from "@/components/invoices/InvoicesCard";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
+import { CancelWithRefundModal } from "@/components/reservations/CancelWithRefundModal";
+import { OnlineBookingCard } from "@/components/reservations/OnlineBookingCard";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
 import {
   bookingReference,
@@ -38,7 +41,7 @@ type Props = {
   }>;
 };
 
-const EDITABLE_STATUSES = new Set(["PENDING", "CONFIRMED", "ACTIVE"]);
+const EDITABLE_STATUSES = new Set(["PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE"]);
 
 export default function ReservationDetailsPage({
   params,
@@ -57,6 +60,8 @@ export default function ReservationDetailsPage({
  const [updatingStatus, setUpdatingStatus] = useState(false);
  const [editing, setEditing] = useState(false);
  const [showApproval, setShowApproval] = useState(false);
+ const [choosingRefund, setChoosingRefund] = useState(false);
+ const [markingNoShow, setMarkingNoShow] = useState(false);
  const [showCheckOut, setShowCheckOut] = useState(false);
 
  const [actionError, setActionError] = useState("");
@@ -137,6 +142,12 @@ export default function ReservationDetailsPage({
       return;
     }
 
+    // A renter who paid a share online: staff decide whether it goes back.
+    if (reservation.prepayment?.payment_status === "SUCCEEDED") {
+      setChoosingRefund(true);
+      return;
+    }
+
     const willRefund = handover?.payment_status === "SUCCEEDED";
     const confirmationMessage = willRefund
       ? t("s.reservations.manage.id.youSureYouWant", { amount: formatCurrency(
@@ -174,6 +185,39 @@ export default function ReservationDetailsPage({
     }
   }
   
+  async function handleNoShow() {
+    if (!reservation) {
+      return;
+    }
+
+    const paid = reservation.prepayment?.payment_status === "SUCCEEDED";
+    const message = paid
+      ? t("s.reservations.manage.id.confirmNoShowKeep", {
+          amount: formatCurrency(
+            Number(reservation.prepayment?.amount ?? 0),
+            reservation.prepayment?.currency ?? undefined,
+          ),
+        })
+      : t("s.reservations.manage.id.confirmNoShow");
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    setMarkingNoShow(true);
+    setActionError("");
+
+    try {
+      setReservation(await markReservationNoShow(reservation.id));
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : t("s.reservations.manage.id.failedNoShow"),
+      );
+    } finally {
+      setMarkingNoShow(false);
+    }
+  }
+
   async function handleStatusChange(
   newStatus: "CONFIRMED" | "COMPLETED",
 ) {
@@ -270,7 +314,7 @@ export default function ReservationDetailsPage({
               </div>
 
               <p className="mt-2 text-sm text-ink-muted">{t("s.reservations.manage.id.booking")}{" "}<span className="font-mono text-ink-secondary">
-                  {bookingReference(reservation.id)}
+                  {reservation.public_reference ?? bookingReference(reservation.id)}
                 </span>
               </p>
             </div>
@@ -616,6 +660,8 @@ export default function ReservationDetailsPage({
               </div>
             </section>
 
+            <OnlineBookingCard reservation={reservation} />
+
             {/* Actions */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
@@ -658,6 +704,36 @@ export default function ReservationDetailsPage({
                 </div>
               )}
 
+              {/* AWAITING_PAYMENT: an online booking still being paid for */}
+              {reservation.status === "AWAITING_PAYMENT" && (
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-lg bg-gray-100 p-4">
+                    <p className="font-medium text-gray-700">{t("s.reservations.manage.id.waitingForPayment")}</p>
+
+                    <p className="mt-1 text-sm text-gray-500">{t("s.reservations.manage.id.waitingForPaymentBody")}</p>
+                  </div>
+
+                  <button
+                    onClick={handleCancelReservation}
+                    disabled={updatingStatus || cancelling}
+                    className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {cancelling
+                      ? t("s.reservations.manage.id.cancelling")
+                      : t("s.reservations.manage.id.cancelReservation")}
+                  </button>
+                </div>
+              )}
+
+              {/* EXPIRED: the payment never came */}
+              {reservation.status === "EXPIRED" && (
+                <div className="mt-4 rounded-lg bg-gray-100 p-4">
+                  <p className="font-medium text-gray-700">{t("s.reservations.manage.id.holdExpired")}</p>
+
+                  <p className="mt-1 text-sm text-gray-500">{t("s.reservations.manage.id.holdExpiredBody")}</p>
+                </div>
+              )}
+
               {/* CONFIRMED */}
               {reservation.status === "CONFIRMED" && (
                 <div className="mt-5 space-y-3">
@@ -678,6 +754,18 @@ export default function ReservationDetailsPage({
                       ? t("s.reservations.manage.id.cancelling")
                       : t("s.reservations.manage.id.cancelReservation")}
                   </button>
+
+                  {new Date(reservation.pickup_at) <= new Date() && (
+                    <button
+                      onClick={handleNoShow}
+                      disabled={updatingStatus || cancelling || markingNoShow}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {markingNoShow
+                        ? t("s.reservations.manage.id.markingNoShow")
+                        : t("s.reservations.manage.id.markNoShow")}
+                    </button>
+                  )}
 
                   <p className="pt-1 text-xs text-gray-500">{t("s.reservations.manage.id.checkCollectsPaymentSignatures")}</p>
 
@@ -861,6 +949,14 @@ export default function ReservationDetailsPage({
         </div>
 
       </div>
+
+      {choosingRefund && (
+        <CancelWithRefundModal
+          reservation={reservation}
+          onClose={() => setChoosingRefund(false)}
+          onCancelled={(updated) => setReservation(updated)}
+        />
+      )}
 
       {editing && (
         <ReservationEditModal

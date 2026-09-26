@@ -29,6 +29,7 @@ const FILTER_DEFAULTS = {
   q: "",
   status: "ALL",
   location: "ALL",
+  source: "ALL",
   window: "ALL",
   sort: "pickup_asc",
   page: "1",
@@ -75,6 +76,7 @@ export default function ManageReservationsPage() {
             q: search,
             status: filters.status === "ALL" ? undefined : filters.status,
             location: filters.location === "ALL" ? undefined : filters.location,
+            source: filters.source === "ALL" ? undefined : filters.source,
             window: filters.window === "ALL" ? undefined : filters.window,
             sort: filters.sort,
             limit: PAGE_SIZE,
@@ -106,6 +108,7 @@ export default function ManageReservationsPage() {
     search,
     filters.status,
     filters.location,
+    filters.source,
     filters.window,
     filters.sort,
     page,
@@ -125,14 +128,15 @@ export default function ManageReservationsPage() {
   // The quick-filter tiles reset every other filter, so a tile is either
   // the whole current view or it is not active at all.
   function applyQuickFilter(window: string) {
-    updateFilters({ q: "", status: "ALL", location: "ALL", window });
+    updateFilters({ q: "", status: "ALL", location: "ALL", source: "ALL", window });
   }
 
   const quickFilterActive = (window: string) =>
     filters.window === window &&
     filters.q === "" &&
     filters.status === "ALL" &&
-    filters.location === "ALL";
+    filters.location === "ALL" &&
+    filters.source === "ALL";
 
   const columns: Column<Reservation>[] = [
     {
@@ -144,7 +148,10 @@ export default function ManageReservationsPage() {
           primary={`${reservation.customer.first_name} ${reservation.customer.last_name}`}
           secondary={
             <span className="font-mono text-xs">
-              {bookingReference(reservation.id)}
+              {reservation.public_reference ?? bookingReference(reservation.id)}
+              {reservation.source === "STOREFRONT" && (
+                <span className="ml-1.5 font-sans text-ink-muted">· {t("s.reservations.manage.online")}</span>
+              )}
             </span>
           }
         />
@@ -343,10 +350,26 @@ export default function ManageReservationsPage() {
             >
               <option value="ALL">{t("s.reservations.manage.allStatuses")}</option>
               <option value="PENDING">{t("s.reservations.manage.pending")}</option>
+              <option value="AWAITING_PAYMENT">{t("s.reservations.manage.awaitingPayment")}</option>
               <option value="CONFIRMED">{t("s.reservations.manage.confirmed")}</option>
               <option value="ACTIVE">{t("s.reservations.manage.active")}</option>
               <option value="COMPLETED">{t("s.reservations.manage.completed")}</option>
               <option value="CANCELLED">{t("s.reservations.manage.cancelled")}</option>
+              <option value="EXPIRED">{t("s.reservations.manage.expired")}</option>
+            </Select>
+          )}
+        </Field>
+
+        <Field label={t("s.reservations.manage.bookedVia")}>
+          {(fieldProps) => (
+            <Select
+              {...fieldProps}
+              value={filters.source}
+              onChange={(event) => updateFilters({ source: event.target.value })}
+            >
+              <option value="ALL">{t("s.reservations.manage.anySource")}</option>
+              <option value="STOREFRONT">{t("s.reservations.manage.onlineWebsite")}</option>
+              <option value="STAFF">{t("s.reservations.manage.byStaff")}</option>
             </Select>
           )}
         </Field>
