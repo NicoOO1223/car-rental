@@ -221,9 +221,9 @@ jobs:
           fi
 
           # Security headers are present on both sides.
-          curl -fsSI "$API_URL/health" | grep -qi '^x-content-type-options: nosniff' \
+          curl -fsS -D - -o /dev/null "$API_URL/health" | grep -qi '^x-content-type-options: nosniff' \
             || { echo "FAILED: backend is missing security headers"; exit 1; }
-          curl -fsSI "$frontend_url/login" | grep -qi '^content-security-policy-report-only' \
+          curl -fsS -D - -o /dev/null "$frontend_url/login" | grep -qi '^content-security-policy-report-only' \
             || { echo "FAILED: frontend is missing its CSP header"; exit 1; }
 
           echo "Smoke test passed."
