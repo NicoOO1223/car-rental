@@ -168,6 +168,19 @@ jobs:
           PYTHONPATH: .
         run: python ../deploy/backup/verify_restore.py
 
-      - name: Smoke test restored database with backend test suite
+      # The app itself must be able to serve the restored data. The backend
+      # test suite is deliberately not run here: it expects the seeded
+      # development data, not a real business's records, so it would fail on
+      # any restore of production and prove nothing about the backup.
+      - name: Serve the restored database with the backend
         working-directory: backend
-        run: pytest
+        env:
+          ENVIRONMENT: production
+        run: |
+          uvicorn app.main:app --port 8000 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/ready > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/ready
+          curl -fsS http://127.0.0.1:8000/api/branding
