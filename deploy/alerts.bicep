@@ -1,6 +1,6 @@
 // Monitoring alerts. Kept out of main.bicep because they point at the
-// backend Container App, which bootstrap.ps1 creates AFTER main.bicep runs.
-// Deployed by bootstrap.ps1 when -AlertEmail is supplied, or by hand:
+// backend Container App, which provision.ps1 creates AFTER main.bicep runs.
+// Deployed by provision.ps1 when the stack manifest has an alertEmail, or by hand:
 //   az deployment group create -g car-rental-rg -f alerts.bicep \
 //     -p alertEmail=<address> postgresServerName=<name>
 

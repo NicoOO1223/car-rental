@@ -9,9 +9,11 @@
 
 Both jobs can also be triggered manually (`workflow_dispatch`) from the Actions tab.
 
-## One-time manual setup (not automated — bicep can't do this)
+## Setup
 
-After running `deploy/bootstrap.ps1` for the first time following this change:
+Since stacks are provisioned from manifests, `deploy/provision.ps1` does everything below for you: it creates the GitHub Environment `stack-<slug>` with these variables and the password secret, and grants the CI login its roles. The steps are kept here so you can see what was set up and do it by hand if you have to.
+
+Per stack:
 
 1. Grant the GitHub OIDC identity write access to the backup storage account (this can't be expressed in bicep because the identity is the GitHub Actions federated service principal, which isn't itself a bicep-managed resource):
    ```
@@ -19,7 +21,7 @@ After running `deploy/bootstrap.ps1` for the first time following this change:
      --role "Storage Blob Data Contributor" --scope <backup storage account resource ID>
    ```
    This is why `backup.sh` and the drill use `az storage blob upload/download/list --auth-mode login` rather than a storage account key — no long-lived credential needed, consistent with how `deploy-backend`/`deploy-frontend` already authenticate.
-2. Add these to the repo's Actions settings:
+2. These are set on the stack's GitHub Environment (not on the repository):
    - **Variables**: `POSTGRES_HOST` (the Flexible Server FQDN, from `deploy/outputs.json` → `postgresServerFqdn`), `POSTGRES_ADMIN_USER` (`carrentaladmin`), `POSTGRES_DB_NAME` (`car_rental`), `BACKUP_STORAGE_ACCOUNT` (from `outputs.json` → `backupStorageAccountName`), `BACKUP_CONTAINER_NAME` (`pg-backups`).
    - **Secret**: `POSTGRES_ADMIN_PASSWORD` — the same value already cached at `deploy/.pgpassword`.
 
@@ -29,8 +31,8 @@ The database does **not** accept connections from the internet. `deploy/main.bic
 
 This needs two things, both one-time:
 
-1. The GitHub OIDC identity may create and delete firewall rules on this one server and nothing else. `deploy/main.bicep` defines a custom role for that; pass the identity's object ID to the bootstrap script to assign it: `./bootstrap.ps1 -BackupPrincipalObjectId <objectId>` (or set `backupPrincipalObjectId` when deploying the Bicep file directly).
-2. A repository **variable** `RESOURCE_GROUP` (already used by the deploy workflow) so the job knows where the server lives.
+1. The GitHub OIDC identity may create and delete firewall rules on this one server and nothing else. `deploy/main.bicep` defines a custom role for that; `provision.ps1` passes the CI identity's object ID to `main.bicep`, which assigns it (or set `backupPrincipalObjectId` when deploying the Bicep file directly).
+2. The environment variable `RESOURCE_GROUP` so the job knows where the server lives.
 
 `AllowAllAzureServices` still admits resources belonging to other Azure customers, so the password and SSL remain a real boundary. Closing that fully means a VNet with a private endpoint and moving the backup job inside it, which is a larger change that has not been made.
 

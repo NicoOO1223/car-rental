@@ -38,6 +38,12 @@ BUSINESS_FIELDS = {
 }
 
 
+class StackSetupError(Exception):
+    """A problem in the setup values. Raised at provisioning time and read by
+    the operator, never shown to a user of the app, so it carries no error
+    code."""
+
+
 @dataclass
 class SetupResult:
     # What was done, or why nothing was.
@@ -62,7 +68,7 @@ def business_updates(business: dict) -> dict:
     unknown = set(business) - set(BUSINESS_FIELDS)
 
     if unknown:
-        raise ValueError(f"Unknown business setting(s): {', '.join(sorted(unknown))}")
+        raise StackSetupError(f"Unknown business setting(s): {', '.join(sorted(unknown))}")
 
     mapped = {BUSINESS_FIELDS[name]: value for name, value in business.items()}
 

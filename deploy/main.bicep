@@ -1,9 +1,11 @@
-// Static, idempotent infrastructure for the car-rental prototype.
+// Static, idempotent infrastructure for ONE customer stack (deployed by
+// deploy/provision.ps1). The container registry is shared by every stack
+// and lives in deploy/shared.bicep.
 // Deliberately does NOT define the two Container Apps here — their
 // images depend on each other's FQDNs (backend's URL is baked into the
 // frontend's build, frontend's URL goes into the backend's CORS setting),
 // which is a one-time bootstrap ordering problem better handled as a
-// short sequential script (see bootstrap.ps1) than encoded in Bicep.
+// short sequential script (see provision.ps1) than encoded in Bicep.
 
 @description('Azure region for all resources.')
 param location string = 'swedencentral'
@@ -18,24 +20,12 @@ param postgresAdminUser string = 'carrentaladmin'
 @secure()
 param postgresAdminPassword string
 
-var acrName = 'carrentalacr${uniqueSuffix}'
 var postgresServerName = 'car-rental-pg-${uniqueSuffix}'
 var logAnalyticsName = 'car-rental-logs'
 var containerAppsEnvName = 'car-rental-env'
 var postgresDbName = 'car_rental'
 var backupStorageAccountName = 'carrentalbak${uniqueSuffix}'
 var backupContainerName = 'pg-backups'
-
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: acrName
-  location: location
-  sku: {
-    name: 'Basic'
-  }
-  properties: {
-    adminUserEnabled: false
-  }
-}
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsName
@@ -217,8 +207,6 @@ resource backupLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPoli
   }
 }
 
-output acrLoginServer string = acr.properties.loginServer
-output acrName string = acrName
 output containerAppsEnvId string = containerAppsEnv.id
 output postgresServerFqdn string = postgres.properties.fullyQualifiedDomainName
 output postgresDbName string = postgresDbName

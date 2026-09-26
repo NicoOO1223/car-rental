@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import engine
 from app.models import Configuration, Reservation, User
 from app.services.stack_setup import (
+    StackSetupError,
     apply_stack_setup,
     business_updates,
     generate_password,
@@ -101,7 +102,7 @@ def test_a_stack_with_reservations_gets_its_administrator_but_keeps_its_profile(
 
 
 def test_a_mistyped_setting_or_value_is_an_error_not_a_silent_skip():
-    with pytest.raises(ValueError, match="Unknown business setting"):
+    with pytest.raises(StackSetupError, match="Unknown business setting"):
         business_updates({"nmae": "x"})
 
     with pytest.raises(ValueError):

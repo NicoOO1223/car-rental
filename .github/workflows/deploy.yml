@@ -93,137 +93,77 @@ jobs:
       # every server error code has a message.
       - run: npm run check:messages
 
-  deploy-backend:
-    needs: backend-tests
-    if: github.event_name != 'pull_request'
+  # Which stacks exist comes from deploy/stacks/*.json. The canary goes first.
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      canary: ${{ steps.stacks.outputs.canary }}
+      others: ${{ steps.stacks.outputs.others }}
+      registry: ${{ steps.stacks.outputs.registry }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Install containerapp CLI extension
-        run: az extension add --name containerapp --upgrade -y
-
-      - name: Log in to ACR
-        run: az acr login --name ${{ vars.ACR_NAME }}
-
-      - name: Build and push backend image
-        run: |
-          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }} \
-            -f backend/Dockerfile backend
-          docker push ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
-
-      - name: Deploy backend
-        # Tagged with the commit SHA (not :latest) — Container Apps only
-        # creates a new revision when the image reference string itself
-        # changes, so a reused tag silently keeps serving the old image.
-        run: |
-          az containerapp update \
-            --name car-rental-backend \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image ${{ vars.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
-
-  deploy-frontend:
-    needs: frontend-checks
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Install containerapp CLI extension
-        run: az extension add --name containerapp --upgrade -y
-
-      - name: Log in to ACR
-        run: az acr login --name ${{ vars.ACR_NAME }}
-
-      - name: Build and push frontend image
-        # NEXT_PUBLIC_* vars are inlined into the client bundle at build
-        # time, so they're passed as build args here, not runtime env vars.
-        run: |
-          docker build -t ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} \
-            --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
-            --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }} \
-            --build-arg NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }} \
-            -f frontend/Dockerfile frontend
-          docker push ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
-
-      - name: Deploy frontend
-        run: |
-          az containerapp update \
-            --name car-rental-frontend \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image ${{ vars.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
-
-  # Proves what was just deployed is actually serving, instead of trusting
-  # that `az containerapp update` returning means the app works. Container
-  # Apps also keeps a revision that fails its readiness probe out of traffic,
-  # so a bad deploy leaves the previous revision serving; this job makes that
-  # visible as a red run instead of a silent stale site.
-  smoke-test:
-    needs: [deploy-backend, deploy-frontend]
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Check the deployed backend and frontend
-        env:
-          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
-          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      - id: stacks
         run: |
           set -euo pipefail
+          all=$(jq -s '.' deploy/stacks/*.json)
+          echo "canary=$(echo "$all" | jq -c '[.[] | select(.canary) | .slug]')" >> "$GITHUB_OUTPUT"
+          echo "others=$(echo "$all" | jq -c '[.[] | select(.canary | not) | .slug]')" >> "$GITHUB_OUTPUT"
+          echo "registry=$(jq -r .registryName deploy/shared.json)" >> "$GITHUB_OUTPUT"
 
-          frontend_fqdn=$(az containerapp show \
-            --name car-rental-frontend \
-            --resource-group "$RESOURCE_GROUP" \
-            --query properties.configuration.ingress.fqdn -o tsv)
-          frontend_url="https://${frontend_fqdn}"
+  # The images are built once and shared by every stack.
+  build:
+    needs: [backend-tests, frontend-checks, plan]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-          # A scaled-to-zero app needs time to start, and a new revision
-          # needs time to become ready.
-          wait_for() {
-            local url="$1"
-            for attempt in $(seq 1 30); do
-              if curl -fsS -o /dev/null --max-time 20 "$url"; then
-                echo "OK: $url"
-                return 0
-              fi
-              echo "Waiting for $url (attempt $attempt)..."
-              sleep 10
-            done
-            echo "FAILED: $url never became healthy"
-            return 1
-          }
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-          wait_for "$API_URL/ready"
-          wait_for "$frontend_url/login"
+      - name: Log in to the shared registry
+        run: az acr login --name ${{ needs.plan.outputs.registry }}
 
-          # The API must not expose its docs in production.
-          docs_status=$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/docs")
-          if [ "$docs_status" != "404" ]; then
-            echo "FAILED: $API_URL/docs returned $docs_status, expected 404"
-            exit 1
-          fi
+      - name: Build and push both images
+        run: |
+          registry=${{ needs.plan.outputs.registry }}.azurecr.io
+          docker build -t "$registry/backend:${{ github.sha }}" -f backend/Dockerfile backend
+          docker push "$registry/backend:${{ github.sha }}"
+          docker build -t "$registry/frontend:${{ github.sha }}" -f frontend/Dockerfile frontend
+          docker push "$registry/frontend:${{ github.sha }}"
 
-          # Security headers are present on both sides.
-          curl -fsS -D - -o /dev/null "$API_URL/health" | grep -qi '^x-content-type-options: nosniff' \
-            || { echo "FAILED: backend is missing security headers"; exit 1; }
-          curl -fsS -D - -o /dev/null "$frontend_url/login" | grep -qi '^content-security-policy-report-only' \
-            || { echo "FAILED: frontend is missing its CSP header"; exit 1; }
+  # The operator's own stack first: a bad migration or a broken build stops
+  # here, before any customer stack sees it.
+  deploy-canary:
+    needs: [plan, build]
+    strategy:
+      matrix:
+        stack: ${{ fromJson(needs.plan.outputs.canary) }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy-stack.yml
+    with:
+      stack: ${{ matrix.stack }}
+      image_tag: ${{ github.sha }}
 
-          echo "Smoke test passed."
+  # Then the rest, one at a time, stopping at the first failure.
+  deploy-others:
+    needs: [plan, deploy-canary]
+    if: needs.plan.outputs.others != '[]'
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+      matrix:
+        stack: ${{ fromJson(needs.plan.outputs.others) }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy-stack.yml
+    with:
+      stack: ${{ matrix.stack }}
+      image_tag: ${{ github.sha }}

@@ -11,8 +11,26 @@ permissions:
   contents: read
 
 jobs:
-  backup:
+  # Every stack has its own database, storage and login, so each is backed up
+  # and drilled inside its own GitHub Environment (stack-<slug>).
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      stacks: ${{ steps.stacks.outputs.stacks }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: stacks
+        run: echo "stacks=$(jq -s -c '[.[].slug]' deploy/stacks/*.json)" >> "$GITHUB_OUTPUT"
+
+  backup:
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: stack-${{ matrix.stack }}
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: ${{ fromJson(needs.plan.outputs.stacks) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,8 +83,13 @@ jobs:
   # into production. Runs the same day as the backup so a broken backup is
   # caught with zero lag.
   restore-drill:
-    needs: backup
+    needs: [plan, backup]
     runs-on: ubuntu-latest
+    environment: stack-${{ matrix.stack }}
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: ${{ fromJson(needs.plan.outputs.stacks) }}
     services:
       postgres:
         image: postgres:16

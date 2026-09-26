@@ -85,7 +85,7 @@ npm run build
 | `backend/tests` | The test suite. Real database, real Stripe test mode when a key is set. |
 | `frontend/app` | Pages. Most sit behind the login guard. |
 | `frontend/components/ui` | Shared building blocks: `DataTable`, `Field`, `Toolbar`, `Pagination`. |
-| `deploy` | Azure infrastructure (Bicep), the bootstrap script, backup docs. |
+| `deploy` | Azure infrastructure (Bicep), stack manifests, provisioning scripts, backup docs. See [deploy/PROVISIONING.md](deploy/PROVISIONING.md). |
 | `.github/workflows` | Deploy, daily backup with restore drill, weekly dependency audit. |
 
 A few conventions worth knowing:
@@ -123,17 +123,12 @@ Backend, in `backend/.env` locally and as Container App settings when deployed:
 | `ENVIRONMENT` | `production` turns off `/docs` and adds HSTS. The Docker image sets it. |
 | `SENTRY_DSN` | Error tracking. Optional. |
 
-Frontend values are baked in at build time, so a deployed build passes them as Docker build arguments: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SENTRY_DSN`.
+Frontend, read when the container runs (one image serves every stack): `API_URL`, `STRIPE_PUBLISHABLE_KEY`, `SENTRY_DSN`. For local development the old `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SENTRY_DSN` in `frontend/.env.local` still work.
 
 ## Deploying
 
-Pushing to `main` runs the tests, builds both images, deploys them to Azure, and then smoke-tests the live site. Pull requests run the tests only.
+Each customer has their own stack, described by a manifest in `deploy/stacks`. Pushing to `main` runs the tests, builds the two images once, deploys to the canary stack, smoke-tests it, then deploys to the other stacks one at a time. Pull requests run the tests only.
 
-Creating a stack from nothing is [deploy/bootstrap.ps1](deploy/bootstrap.ps1). It needs the Azure CLI, Docker, and an `az login`. Useful parameters:
-
-- `-BackendMinReplicas 1` keeps the backend always running, at a small monthly cost, so there are no cold starts.
-- `-AlertEmail you@example.com` sets up monitoring alerts to that address.
-- `-BackupPrincipalObjectId <id>` lets the backup workflow open its own database firewall rule.
-- `-UseAppRole` switches the running app to the database role that cannot change the schema. See the script's closing notes for the one-time step that creates it.
+Creating a stack is one command, `deploy/provision.ps1 -Stack <slug>`, which also creates its database, backups, CI login, Stripe webhook, first administrator and business profile. See [deploy/PROVISIONING.md](deploy/PROVISIONING.md). The manifest sets the backend's minimum replicas (1 keeps it always running, at a small monthly cost) and the alert email.
 
 Backups and the restore drill are described in [deploy/BACKUP_RESTORE.md](deploy/BACKUP_RESTORE.md).

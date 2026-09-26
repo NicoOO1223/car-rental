@@ -1,0 +1,9 @@
+{
+  "slug": "demo",
+  "resourceGroup": "car-rental-rg",
+  "region": "swedencentral",
+  "canary": true,
+  "backendMinReplicas": 0,
+  "legacySecrets": true,
+  "alertEmail": ""
+}

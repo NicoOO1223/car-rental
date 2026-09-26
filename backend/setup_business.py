@@ -6,8 +6,10 @@ provisioning script (deploy/provision.ps1) sets:
     INITIAL_ADMIN_EMAIL     the first administrator's login
     INITIAL_ADMIN_PASSWORD  their password (the script generated it and hands
                             it to the operator; the admin can change it)
-    STACK_BUSINESS_JSON     the business profile from the stack manifest:
-                            name, currency, timezone, locale, languages, VAT
+    STACK_BUSINESS_B64      the business profile from the stack manifest
+                            (name, currency, timezone, locale, languages, VAT)
+                            as base64 of a JSON object. Base64 so no quoting
+                            can mangle it on the way into the container.
 
 Nothing happens unless the first two are set, and nothing happens once the
 stack has an administrator, so it is safe to run on every start.
@@ -15,12 +17,15 @@ stack has an administrator, so it is safe to run on every start.
 Can also be run by hand:  python setup_business.py
 """
 
+import base64
 import json
 import os
 import sys
 
 from app.database import SessionLocal
-from app.services.stack_setup import apply_stack_setup
+from pydantic import ValidationError
+
+from app.services.stack_setup import StackSetupError, apply_stack_setup
 
 
 def main() -> int:
@@ -31,16 +36,17 @@ def main() -> int:
         return 0
 
     try:
-        business = json.loads(os.environ.get("STACK_BUSINESS_JSON") or "{}")
-    except json.JSONDecodeError as error:
-        print(f"Stack setup: STACK_BUSINESS_JSON is not valid JSON ({error}).")
+        encoded = os.environ.get("STACK_BUSINESS_B64", "")
+        business = json.loads(base64.b64decode(encoded).decode("utf-8")) if encoded else {}
+    except (ValueError, UnicodeDecodeError) as error:
+        print(f"Stack setup: STACK_BUSINESS_B64 is not valid base64 JSON ({error}).")
         return 1
 
     db = SessionLocal()
 
     try:
         result = apply_stack_setup(db, admin_email=email, admin_password=password, business=business)
-    except ValueError as error:
+    except (StackSetupError, ValidationError) as error:
         print(f"Stack setup failed: {error}")
         return 1
     finally:

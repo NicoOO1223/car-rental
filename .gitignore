@@ -18,6 +18,7 @@ node_modules/
 Thumbs.db
 
 # Local Azure bootstrap state — generated secrets/suffix, not for git
+deploy/.stacks/
 deploy/.suffix
 deploy/.pgpassword
 deploy/.apppassword
