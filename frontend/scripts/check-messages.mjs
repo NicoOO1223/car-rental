@@ -340,7 +340,7 @@ const hardcoded = [];
     ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken,
   ]);
   // Files whose English-looking strings are names, not interface text.
-  const IGNORED_FILES = new Set(["lib/i18n.ts", "lib/localization.ts", "lib/countries.ts"]);
+  const IGNORED_FILES = new Set(["lib/i18n.ts", "lib/localization.ts", "lib/countries.ts", "lib/csp.ts"]);
 
   const BARE_UTILITIES = new Set(["flex", "grid", "hidden", "block", "inline", "relative", "absolute", "fixed", "sticky", "uppercase", "lowercase", "capitalize", "truncate", "italic", "underline", "border", "rounded", "shadow", "transition", "container", "static", "contents"]);
 

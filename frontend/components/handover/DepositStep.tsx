@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Banknote, CreditCard } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
 import {
@@ -12,11 +11,9 @@ import {
 } from "@/lib/api";
 import { CashPaymentForm, PaymentForm } from "@/components/handover/PaymentStep";
 import { formatCurrency } from "@/lib/format";
+import { getStripePromise } from "@/lib/stripe";
 import { t } from "@/lib/i18n";
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
 
 type Props = {
   reservationId: string;
@@ -97,13 +94,13 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
             <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">{t("c.handover.DepositStep.cardHoldMayBe", { error })}</p>
           )}
 
-          {stripePromise && clientSecret ? (
+          {getStripePromise() && clientSecret ? (
             <>
               <p className="text-xs text-ink-muted">{t("c.handover.DepositStep.cardAuthorizedAmountBut")}</p>
 
               <Elements
                 key={clientSecret}
-                stripe={stripePromise}
+                stripe={getStripePromise()}
                 options={{ clientSecret }}
               >
                 <PaymentForm

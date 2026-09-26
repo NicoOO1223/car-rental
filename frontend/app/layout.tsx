@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -6,6 +7,7 @@ import { BrandProvider } from "@/components/BrandProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { NavigationProgressProvider } from "@/components/NavigationProgress";
 import { t } from "@/lib/i18n";
+import { runtimeConfigScript, serverRuntimeConfig } from "@/lib/runtimeConfig";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +24,7 @@ const geistMono = Geist_Mono({
 // reached (for instance while this page is built) it falls back to a
 // neutral title rather than failing.
 export async function generateMetadata(): Promise<Metadata> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+  const apiUrl = serverRuntimeConfig().apiUrl;
   let name = "";
 
   try {
@@ -44,14 +46,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: LayoutProps<"/">) {
+  // Render per request: this stack's addresses come from the container's
+  // environment, and must never be frozen into a page built beforehand.
+  await connection();
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Hands this stack's runtime values to the browser before any script runs. */}
+        <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript(serverRuntimeConfig()) }} />
+      </head>
       <body className="min-h-full bg-gray-50">
         <NavigationProgressProvider>
           <BrandProvider>

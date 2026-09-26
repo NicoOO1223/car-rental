@@ -10,15 +10,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js inlines NEXT_PUBLIC_* vars into the client bundle at build time,
-# so they have to be supplied here as build args, not as runtime env vars.
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_SENTRY_DSN
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
-
+# Nothing stack-specific is baked in: the API address, Stripe publishable key
+# and error-tracking address are read from the container's environment when
+# it runs (API_URL, STRIPE_PUBLISHABLE_KEY, SENTRY_DSN), so one image serves
+# every stack. See lib/runtimeConfig.ts.
 RUN npm run build
 
 # --- runner ---------------------------------------------------------------

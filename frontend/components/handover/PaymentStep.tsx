@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Banknote, CreditCard } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -17,11 +16,9 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { PriceBreakdownList } from "@/components/pricing/PriceBreakdownList";
+import { getStripePromise } from "@/lib/stripe";
 import { t } from "@/lib/i18n";
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
 
 type Props = {
   reservationId: string;
@@ -210,8 +207,8 @@ export function PaymentStep({
       </div>
 
       {method === "card" ? (
-        stripePromise ? (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
+        getStripePromise() ? (
+          <Elements stripe={getStripePromise()} options={{ clientSecret }}>
             <PaymentForm reservationId={reservationId} onPaid={onPaid} />
           </Elements>
         ) : (

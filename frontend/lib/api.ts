@@ -1,10 +1,13 @@
 import { rememberExtras, type ExtraWording } from "@/lib/extras";
 import { throwApiError } from "@/lib/apiErrors";
 import { t } from "@/lib/i18n";
-// Baked in at build time (Next.js inlines NEXT_PUBLIC_* vars into the
-// client bundle), so it must be passed as a Docker build arg for any
-// deployment that isn't talking to a local backend.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+import { getRuntimeConfig } from "@/lib/runtimeConfig";
+
+// This stack's API address, read when it is needed: it is a runtime value,
+// not baked into the build, so one image can serve every stack.
+function apiUrl(): string {
+  return getRuntimeConfig().apiUrl;
+}
 
 const TOKEN_KEY = "auth_token";
 
@@ -41,7 +44,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   let response: Response;
 
   try {
-    response = await fetch(`${API_URL}${path}`, { ...init, headers });
+    response = await fetch(`${apiUrl()}${path}`, { ...init, headers });
   } catch {
     // The server could not be reached at all (offline, restarting).
     throw new Error(t("errors.generic.network"));
@@ -2214,7 +2217,7 @@ export async function getBranding(): Promise<Branding> {
 }
 
 export function brandingLogoUrl(version: number | null): string {
-  return `${API_URL}/api/branding/logo${version ? `?v=${version}` : ""}`;
+  return `${apiUrl()}/api/branding/logo${version ? `?v=${version}` : ""}`;
 }
 
 export async function uploadLogo(dataUrl: string): Promise<void> {
