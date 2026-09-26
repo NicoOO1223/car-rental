@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Index,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -128,4 +129,10 @@ class Reservation(Base):
             "return_at > pickup_at",
             name="valid_reservation_period",
         ),
+        Index("ix_reservations_car_id_pickup_at", "car_id", "pickup_at"),
+        Index("ix_reservations_customer_id", "customer_id"),
+        Index("ix_reservations_status_pickup_at", "status", "pickup_at"),
+        Index("ix_reservations_status_return_at", "status", "return_at"),
+        Index("ix_reservations_pickup_location_id", "pickup_location_id"),
+        Index("ix_reservations_return_location_id", "return_location_id"),
     )

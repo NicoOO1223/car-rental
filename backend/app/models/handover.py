@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Index,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -170,4 +171,5 @@ class Handover(Base):
             "deposit_method IN ('CARD','CASH')",
             name="valid_handover_deposit_method",
         ),
+        Index("ix_handovers_paid_at", "paid_at"),
     )

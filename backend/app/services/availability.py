@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Car, MaintenanceTask, Reservation
@@ -50,7 +50,7 @@ def has_conflicting_reservation(
     return db.scalar(query) is not None
 
 
-def _open_maintenance_overlapping(start: datetime, end: datetime):
+def _maintenance_overlap_conditions(start: datetime, end: datetime):
     """
     OPEN maintenance/cleaning tasks whose window overlaps [start, end).
 
@@ -66,19 +66,23 @@ def _open_maintenance_overlapping(start: datetime, end: datetime):
     )
 
     return (
+        MaintenanceTask.status == "OPEN",
+        window_start < end,
+        or_(
+            MaintenanceTask.ends_at > start,
+            and_(
+                MaintenanceTask.ends_at.is_(None),
+                Car.status.in_(("MAINTENANCE", "CLEANING")),
+            ),
+        ),
+    )
+
+
+def _open_maintenance_overlapping(start: datetime, end: datetime):
+    return (
         select(MaintenanceTask)
         .join(Car, Car.id == MaintenanceTask.car_id)
-        .where(
-            MaintenanceTask.status == "OPEN",
-            window_start < end,
-            or_(
-                MaintenanceTask.ends_at > start,
-                and_(
-                    MaintenanceTask.ends_at.is_(None),
-                    Car.status.in_(("MAINTENANCE", "CLEANING")),
-                ),
-            ),
-        )
+        .where(*_maintenance_overlap_conditions(start, end))
     )
 
 
@@ -143,29 +147,35 @@ def get_available_cars(
     if return_at <= pickup_at:
         raise ValueError("Return time must be after pickup time.")
 
-    # Cars that are operational and located at the requested airport
-    cars_query = select(Car).where(
-        Car.current_location_id == pickup_location_id,
-        Car.status == "AVAILABLE",
+    # One query for the whole location, with the two conflict checks as
+    # correlated NOT EXISTS clauses. (This used to loop over the cars and
+    # issue two queries each.) The conditions are the same ones
+    # has_conflicting_reservation / has_conflicting_maintenance use for a
+    # single car.
+    reservation_conflict = exists().where(
+        Reservation.car_id == Car.id,
+        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+        Reservation.pickup_at < return_at,
+        Reservation.return_at > pickup_at,
     )
 
-    cars = db.scalars(cars_query).all()
+    maintenance_conflict = exists().where(
+        MaintenanceTask.car_id == Car.id,
+        *_maintenance_overlap_conditions(pickup_at, return_at),
+    )
 
-    if not cars:
-        return []
+    cars_query = (
+        select(Car)
+        .where(
+            Car.current_location_id == pickup_location_id,
+            Car.status == "AVAILABLE",
+            ~reservation_conflict,
+            ~maintenance_conflict,
+        )
+        .order_by(Car.license_plate)
+    )
 
-    available_cars = []
-
-    for car in cars:
-        if has_conflicting_reservation(db, car.id, pickup_at, return_at):
-            continue
-
-        if has_conflicting_maintenance(db, car.id, pickup_at, return_at):
-            continue
-
-        available_cars.append(car)
-
-    return available_cars
+    return list(db.scalars(cars_query).all())
 
 
 def _compute_car_statuses_for_date(
@@ -261,6 +271,37 @@ def get_fleet_status_counts(
         db, target_date, ACTIVE_RESERVATION_STATUSES, location_id
     )
 
+    return _counts_from_statuses(statuses.values())
+
+
+def get_fleet_status_counts_by_location(
+    db: Session,
+    target_date: date,
+    cars: list[Car],
+) -> dict[UUID, dict[str, int]]:
+    """
+    The same breakdown as get_fleet_status_counts, for every location at
+    once: statuses are derived a single time for the whole fleet and then
+    grouped by each car's current location. (Calling get_fleet_status_counts
+    per location repeated the same three queries for every location.)
+    """
+
+    statuses = _compute_car_statuses_for_date(
+        db, target_date, ACTIVE_RESERVATION_STATUSES
+    )
+
+    grouped: dict[UUID, list[str]] = {}
+
+    for car in cars:
+        grouped.setdefault(car.current_location_id, []).append(statuses[car.id])
+
+    return {
+        location_id: _counts_from_statuses(location_statuses)
+        for location_id, location_statuses in grouped.items()
+    }
+
+
+def _counts_from_statuses(statuses) -> dict[str, int]:
     counts = {
         "AVAILABLE": 0,
         "RESERVED": 0,
@@ -268,12 +309,14 @@ def get_fleet_status_counts(
         "MAINTENANCE": 0,
         "CLEANING": 0,
     }
+    total = 0
 
-    for status in statuses.values():
+    for status in statuses:
         counts[status] += 1
+        total += 1
 
     return {
-        "total": len(statuses),
+        "total": total,
         "available": counts["AVAILABLE"],
         "reserved": counts["RESERVED"],
         "rented": counts["RENTED"],

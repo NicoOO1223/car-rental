@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Integer, Numeric, String, ForeignKey
+from sqlalchemy import Index, Date, DateTime, Integer, Numeric, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -119,4 +119,8 @@ class Car(Base):
         DateTime(timezone=True),
         default=datetime.utcnow,
         nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_cars_current_location_id_status", "current_location_id", "status"),
     )

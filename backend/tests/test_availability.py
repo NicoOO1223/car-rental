@@ -69,3 +69,32 @@ def test_invalid_reservation_period():
     assert response.json()["detail"] == (
         "Return time must be after pickup time."
     )
+
+def test_availability_is_a_single_query_regardless_of_fleet_size():
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import event, select
+
+    from app.database import SessionLocal, engine
+    from app.models import Location
+    from app.services.availability import get_available_cars
+
+    db = SessionLocal()
+    statements = []
+
+    def count(conn, cursor, statement, parameters, context, executemany):
+        statements.append(statement)
+
+    try:
+        location_id = db.scalar(select(Location.id).limit(1))
+        pickup = datetime.now(timezone.utc) + timedelta(days=9000)
+
+        event.listen(engine, "before_cursor_execute", count)
+        try:
+            get_available_cars(db, location_id, pickup, pickup + timedelta(days=2))
+        finally:
+            event.remove(engine, "before_cursor_execute", count)
+    finally:
+        db.close()
+
+    assert len(statements) == 1

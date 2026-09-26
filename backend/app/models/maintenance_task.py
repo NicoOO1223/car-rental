@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
+from sqlalchemy import Index, CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -93,4 +93,6 @@ class MaintenanceTask(Base):
             "status IN ('OPEN','DONE','CANCELLED')",
             name="valid_maintenance_task_status",
         ),
+        Index("ix_maintenance_tasks_car_id_status", "car_id", "status"),
+        Index("ix_maintenance_tasks_status_opened_at", "status", "opened_at"),
     )

@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Index,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -166,4 +167,5 @@ class CheckOut(Base):
             "payment_method IN ('CARD','CASH')",
             name="valid_check_out_payment_method",
         ),
+        Index("ix_check_outs_paid_at", "paid_at"),
     )

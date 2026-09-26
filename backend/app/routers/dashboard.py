@@ -4,7 +4,7 @@ from uuid import UUID
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
@@ -26,6 +26,7 @@ from app.schemas.dashboard import (
 from app.services.availability import (
     get_current_maintenance_by_car,
     get_fleet_status_counts,
+    get_fleet_status_counts_by_location,
 )
 from app.services.configuration import get_configuration
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
@@ -152,28 +153,21 @@ def get_dashboard(
     # Reservation statistics
     # ---------------------------------------------------------
 
-    reservations = db.scalars(
-        select(Reservation)
-    ).all()
+    # Counted in the database rather than by loading every reservation.
+    status_counts = dict(
+        db.execute(
+            select(Reservation.status, func.count(Reservation.id)).group_by(
+                Reservation.status
+            )
+        ).all()
+    )
 
     reservation_stats = DashboardReservationStats(
-        total=len(reservations),
-        confirmed=sum(
-            reservation.status == "CONFIRMED"
-            for reservation in reservations
-        ),
-        active=sum(
-            reservation.status == "ACTIVE"
-            for reservation in reservations
-        ),
-        completed=sum(
-            reservation.status == "COMPLETED"
-            for reservation in reservations
-        ),
-        cancelled=sum(
-            reservation.status == "CANCELLED"
-            for reservation in reservations
-        ),
+        total=sum(status_counts.values()),
+        confirmed=status_counts.get("CONFIRMED", 0),
+        active=status_counts.get("ACTIVE", 0),
+        completed=status_counts.get("COMPLETED", 0),
+        cancelled=status_counts.get("CANCELLED", 0),
     )
 
     # ---------------------------------------------------------
@@ -191,11 +185,7 @@ def get_dashboard(
     tomorrow_start = today_start + timedelta(days=1)
 
     today_pickups = db.scalar(
-        select(
-            __import__("sqlalchemy").func.count(
-                Reservation.id
-            )
-        ).where(
+        select(func.count(Reservation.id)).where(
             Reservation.pickup_at >= today_start,
             Reservation.pickup_at < tomorrow_start,
             Reservation.status != "CANCELLED",
@@ -203,11 +193,7 @@ def get_dashboard(
     ) or 0
 
     today_returns = db.scalar(
-        select(
-            __import__("sqlalchemy").func.count(
-                Reservation.id
-            )
-        ).where(
+        select(func.count(Reservation.id)).where(
             Reservation.return_at >= today_start,
             Reservation.return_at < tomorrow_start,
             Reservation.status != "CANCELLED",
@@ -361,11 +347,15 @@ def get_dashboard(
         for car in cars
     }
 
+    counts_by_location = get_fleet_status_counts_by_location(
+        db, today_date, cars
+    )
+
     locations = [
         DashboardLocationStats(
             airport_code=location.airport_code,
             name=location.name,
-            **get_fleet_status_counts(db, today_date, location.id),
+            **counts_by_location[location.id],
         )
         for location in locations_by_id.values()
     ]
