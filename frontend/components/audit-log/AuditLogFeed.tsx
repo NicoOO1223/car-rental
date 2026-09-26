@@ -4,6 +4,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDateTime } from "@/lib/format";
 import type { AuditLogEntry } from "@/lib/api";
+import { t } from "@/lib/i18n";
+import { auditActionLabel, auditEntityLabel } from "@/lib/audit";
 
 /**
  * A dense, single-line-per-entry feed, in place of DataTable's card/table
@@ -13,8 +15,10 @@ import type { AuditLogEntry } from "@/lib/api";
  */
 
 function entityLabel(entry: AuditLogEntry): string {
-  if (!entry.entity_id) return entry.entity_type;
-  return `${entry.entity_type}·${entry.entity_id.slice(0, 8).toUpperCase()}`;
+  const type = auditEntityLabel(entry.entity_type);
+
+  if (!entry.entity_id) return type;
+  return `${type}·${entry.entity_id.slice(0, 8).toUpperCase()}`;
 }
 
 const LOADING_ROW_COUNT = 8;
@@ -32,11 +36,11 @@ export function AuditLogFeed({
     return (
       <EmptyState
         icon={History}
-        title="No audit log entries"
+        title={t("c.auditLog.AuditLogFeed.noAuditLogEntries")}
         description={
           isFiltered
-            ? "Try changing your filters."
-            : "Entries appear here as staff take audited actions."
+            ? t("c.auditLog.AuditLogFeed.tryChangingFilters")
+            : t("c.auditLog.AuditLogFeed.entriesAppearHereAs")
         }
       />
     );
@@ -61,11 +65,11 @@ export function AuditLogFeed({
                 </span>
 
                 <span className="min-w-0 max-w-[14rem] truncate text-ink-secondary">
-                  {entry.user_email ?? "System / deleted user"}
+                  {entry.user_email ?? t("c.auditLog.AuditLogFeed.systemDeletedUser")}
                 </span>
 
-                <span className="shrink-0 font-mono text-ink">
-                  {entry.action}
+                <span className="shrink-0 text-ink">
+                  {auditActionLabel(entry.action)}
                 </span>
 
                 <span className="shrink-0 text-ink-muted">

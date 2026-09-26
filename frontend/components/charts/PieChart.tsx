@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 
 export type PieChartDatum = {
   key: string;
@@ -75,7 +76,7 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
           width={size}
           height={size}
           role="img"
-          aria-label="Fleet status breakdown"
+          aria-label={t("c.charts.PieChart.fleetStatusBreakdown")}
         >
           {total === 0 ? (
             <circle
@@ -96,7 +97,7 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
               strokeWidth={hoveredKey === slices[0].key ? 0 : 1}
               tabIndex={0}
               role="img"
-              aria-label={`${slices[0].label}: ${slices[0].value} vehicles (100%)`}
+              aria-label={t("c.charts.PieChart.vehicles100", { label: slices[0].label, value: slices[0].value })}
               onMouseEnter={() => setHoveredKey(slices[0].key)}
               onMouseLeave={() => setHoveredKey(null)}
               onFocus={() => setHoveredKey(slices[0].key)}
@@ -123,7 +124,7 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
                   strokeWidth={1}
                   tabIndex={0}
                   role="img"
-                  aria-label={`${slice.label}: ${slice.value} vehicles (${percentage}%)`}
+                  aria-label={t("c.charts.PieChart.vehicles", { label: slice.label, value: slice.value, percentage })}
                   onMouseEnter={() => setHoveredKey(slice.key)}
                   onMouseLeave={() => setHoveredKey(null)}
                   onFocus={() => setHoveredKey(slice.key)}
@@ -145,10 +146,8 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
 
         <p className="text-center text-sm text-gray-600">
           {hovered
-            ? `${hovered.label} — ${hovered.value} vehicle${
-                hovered.value === 1 ? "" : "s"
-              } (${hoveredPercentage}%)`
-            : `${total} vehicle${total === 1 ? "" : "s"} total`}
+            ? t("c.charts.PieChart.vehicle", { label: hovered.label, value: hovered.value, hoveredPercentage: hoveredPercentage ?? 0 })
+            : t("c.charts.PieChart.vehicleTotal", { total })}
         </p>
       </div>
 

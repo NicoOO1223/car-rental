@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { CashPaymentForm, PaymentForm } from "@/components/handover/PaymentStep";
 import { formatCurrency } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -49,7 +50,7 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
       } catch (err) {
         if (!cancelled) {
           setClientSecret(null);
-          setError(err instanceof Error ? err.message : "Failed to start the deposit.");
+          setError(err instanceof Error ? err.message : t("c.handover.DepositStep.failedStartDeposit"));
         }
       }
     }
@@ -63,20 +64,15 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-700">
-        Deposit:{" "}
-        <span className="font-semibold">
+      <p className="text-sm text-gray-700">{t("c.handover.DepositStep.deposit")}{" "}<span className="font-semibold">
           {formatCurrency(amount, currency?.toUpperCase())}
-        </span>
-        . Any return charges are taken from it at check-out and the rest is
-        released or handed back.
-      </p>
+        </span>{t("c.handover.DepositStep.anyReturnChargesTaken")}</p>
 
       <div className="flex gap-2 border-b border-border-strong">
         {(
           [
-            { key: "card", label: "Card hold", Icon: CreditCard },
-            { key: "cash", label: "Cash", Icon: Banknote },
+            { key: "card", label: t("c.handover.DepositStep.cardHold"), Icon: CreditCard },
+            { key: "cash", label: t("c.handover.DepositStep.cash"), Icon: Banknote },
           ] as const
         ).map(({ key, label, Icon }) => (
           <button
@@ -98,18 +94,12 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
       {method === "card" ? (
         <div className="space-y-3">
           {error && (
-            <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">
-              {error} A card hold may be unavailable, but you can still take
-              cash.
-            </p>
+            <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">{t("c.handover.DepositStep.cardHoldMayBe", { error })}</p>
           )}
 
           {stripePromise && clientSecret ? (
             <>
-              <p className="text-xs text-ink-muted">
-                The card is authorized for this amount but not charged. Long
-                rentals may outlast the hold; use cash for those.
-              </p>
+              <p className="text-xs text-ink-muted">{t("c.handover.DepositStep.cardAuthorizedAmountBut")}</p>
 
               <Elements
                 key={clientSecret}
@@ -120,12 +110,12 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
                   reservationId={reservationId}
                   onPaid={onHeld}
                   confirm={confirmDepositHold}
-                  submitLabel="Hold deposit on card"
+                  submitLabel={t("c.handover.DepositStep.holdDepositCard")}
                 />
               </Elements>
             </>
           ) : (
-            !error && <p className="text-sm text-ink-muted">Preparing the card hold…</p>
+            !error && <p className="text-sm text-ink-muted">{t("c.handover.DepositStep.preparingCardHold")}</p>
           )}
         </div>
       ) : (
@@ -133,8 +123,8 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
           reservationId={reservationId}
           onPaid={onHeld}
           confirm={confirmCashDeposit}
-          description="Confirm only once the deposit has been received in cash. It is handed back at check-out, less any charges."
-          buttonLabel="Confirm Cash Deposit"
+          description={t("c.handover.DepositStep.confirmOnlyOnceDeposit")}
+          buttonLabel={t("c.handover.DepositStep.confirmCashDeposit")}
         />
       )}
     </div>

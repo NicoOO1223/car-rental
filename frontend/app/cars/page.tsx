@@ -16,6 +16,8 @@ import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
 import { toDateKey } from "@/components/booking/DateRangeCalendar";
 import { formatCalendarDate, formatDateTime as formatMoment, formatTime, todayInZone } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { t, enumLabel } from "@/lib/i18n";
+import { categoryLabel } from "@/lib/carDisplay";
 
 // Only bookings that are actually confirmed or currently underway are
 // operationally relevant to the fleet schedule — pending requests and
@@ -85,7 +87,7 @@ export default function FleetPage() {
           target?.scrollIntoView({ block: "start" });
         }
       } catch {
-        setError("Failed to load fleet data. Please try again later.");
+        setError(t("s.cars.failedLoadFleetData"));
       } finally {
         setLoading(false);
       }
@@ -266,7 +268,7 @@ export default function FleetPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
             <span className="text-red-600 text-xl">!</span>
           </div>
-          <p className="text-gray-900 font-semibold text-lg">Whoops!</p>
+          <p className="text-gray-900 font-semibold text-lg">{t("s.cars.whoops")}</p>
           <p className="text-gray-500 mt-2">{error}</p>
         </div>
       </main>
@@ -284,12 +286,8 @@ export default function FleetPage() {
         {/* Header & Controls */}
         <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-ink">
-              Fleet Overview
-            </h1>
-            <p className="mt-2 text-gray-500">
-              Each vehicle&apos;s status reflects the selected date, not just right now.
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.cars.fleetOverview")}</h1>
+            <p className="mt-2 text-gray-500">{t("s.cars.eachVehicleSStatus")}</p>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-4 sm:w-auto">
@@ -297,7 +295,7 @@ export default function FleetPage() {
             <div className="relative w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Search make, model, plate..."
+                placeholder={t("s.cars.searchMakeModelPlate")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-border-strong bg-white py-2.5 pl-10 pr-4 text-sm text-ink transition placeholder:text-ink-muted focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
@@ -323,10 +321,10 @@ export default function FleetPage() {
                 onChange={(e) => setTimelineDaysCount(Number(e.target.value))}
                 className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-gray-900"
               >
-                <option value={7}>1 Week</option>
-                <option value={14}>2 Weeks</option>
-                <option value={30}>1 Month</option>
-                <option value={60}>2 Months</option>
+                <option value={7}>{t("s.cars.1Week")}</option>
+                <option value={14}>{t("s.cars.2Weeks")}</option>
+                <option value={30}>{t("s.cars.1Month")}</option>
+                <option value={60}>{t("s.cars.2Months")}</option>
               </select>
             </div>
           </div>
@@ -335,16 +333,10 @@ export default function FleetPage() {
         {/* Legend */}
         <div className="mb-6 flex flex-wrap items-center gap-6 rounded-xl bg-surface px-6 py-3 text-sm font-medium text-ink-secondary shadow-sm">
           <div className="flex items-center gap-2.5">
-            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("CONFIRMED", "dot")}`} />
-            Confirmed
-          </div>
+            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("CONFIRMED", "dot")}`} />{t("s.cars.confirmed")}</div>
           <div className="flex items-center gap-2.5">
-            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("ACTIVE", "dot")}`} />
-            Active
-          </div>
-          <p className="text-xs text-gray-400">
-            Pending, completed, and cancelled reservations aren&apos;t shown here.
-          </p>
+            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("ACTIVE", "dot")}`} />{t("s.cars.active")}</div>
+          <p className="text-xs text-gray-400">{t("s.cars.pendingCompletedCancelledReservations")}</p>
         </div>
 
         {/* Fleet Locations */}
@@ -365,9 +357,7 @@ export default function FleetPage() {
                     <h2 className="text-base font-bold text-gray-900">
                       {location.name}
                     </h2>
-                    <p className="text-sm text-gray-500">
-                      {location.cars.length} vehicle{location.cars.length !== 1 && "s"}
-                    </p>
+                    <p className="text-sm text-gray-500">{t("common.vehicles", { count: location.cars.length })}</p>
                   </div>
                 </div>
               </div>
@@ -400,14 +390,12 @@ export default function FleetPage() {
                             {car.license_plate}
                           </p>
                           {car.is_away_from_home && (
-                            <p className="ml-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                              Away · home {car.home_location.airport_code}
-                            </p>
+                            <p className="ml-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.awayHome", { airport_code: car.home_location.airport_code })}</p>
                           )}
                           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
                             <span>{car.year}</span>
                             <span className="h-1 w-1 rounded-full bg-gray-300" />
-                            <span>{car.category || "Standard"}</span>
+                            <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
                           </p>
                         </div>
 
@@ -419,9 +407,7 @@ export default function FleetPage() {
 
                       <div className="mt-3 space-y-1.5">
                         {reservations.length === 0 ? (
-                          <p className="text-xs text-gray-400">
-                            No bookings in this range
-                          </p>
+                          <p className="text-xs text-gray-400">{t("s.cars.noBookingsRange")}</p>
                         ) : (
                           reservations.map((reservation) => (
                             <button
@@ -467,9 +453,7 @@ export default function FleetPage() {
                   {/* Timeline Dates Header */}
                   <div className="flex border-b border-gray-100 bg-gray-50/50">
                     <div className="w-[320px] shrink-0 border-r border-gray-100 px-6 py-4 sticky left-0 bg-gray-50/95 backdrop-blur z-30">
-                      <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                        Vehicle Details
-                      </p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{t("s.cars.vehicleDetails")}</p>
                     </div>
 
                     <div className="flex">
@@ -527,20 +511,20 @@ export default function FleetPage() {
                               <span
                                 title={
                                   displayStatus !== car.status
-                                    ? `Live status: ${car.status}`
+                                    ? t("s.cars.liveStatus", { status: enumLabel("carStatus", car.status) })
                                     : undefined
                                 }
                                 className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusClass(
                                   displayStatus
                                 )}`}
                               >
-                                {displayStatus}
+                                {enumLabel("carStatus", displayStatus)}
                               </span>
                             </div>
                             <p className="text-xs text-gray-400 flex items-center gap-1.5">
                               <span>{car.year}</span>
                               <span className="w-1 h-1 rounded-full bg-gray-300" />
-                              <span>{car.category || "Standard"}</span>
+                              <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
                             </p>
                           </div>
                         </button>
@@ -642,14 +626,14 @@ export default function FleetPage() {
                                       <Phone className="h-3 w-3 shrink-0" />
                                       <span className="truncate">
                                         {reservation.customer.phone_number ||
-                                          "No phone on file"}
+                                          t("s.cars.noPhoneFile")}
                                       </span>
                                     </p>
                                     <p className="flex items-center gap-2 text-gray-300">
                                       <Mail className="h-3 w-3 shrink-0" />
                                       <span className="truncate">
                                         {reservation.customer.email ||
-                                          "No email on file"}
+                                          t("s.cars.noEmailFile")}
                                       </span>
                                     </p>
                                   </div>
@@ -668,9 +652,7 @@ export default function FleetPage() {
                           {/* Free State Text (Optional) */}
                           {reservations.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span className="rounded-full bg-gray-50 px-4 py-1.5 text-xs font-medium text-gray-400">
-                                No bookings
-                              </span>
+                              <span className="rounded-full bg-gray-50 px-4 py-1.5 text-xs font-medium text-gray-400">{t("s.cars.noBookings")}</span>
                             </div>
                           )}
                         </div>
@@ -691,13 +673,11 @@ export default function FleetPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <p className="text-xl font-bold text-gray-900">
-              No vehicles found
-            </p>
+            <p className="text-xl font-bold text-gray-900">{t("s.cars.noVehiclesFound")}</p>
             <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
               {searchQuery
-                ? `No vehicles matched your search "${searchQuery}". Try adjusting your filters.`
-                : "There are currently no vehicles registered in the fleet."}
+                ? t("s.cars.noVehiclesMatchedSearch", { searchQuery })
+                : t("s.cars.thereCurrentlyNoVehicles")}
             </p>
           </div>
         )}

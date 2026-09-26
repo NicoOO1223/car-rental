@@ -32,22 +32,24 @@ import {
 import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { enumLabelLower, t } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-const FUEL_OPTIONS = Array.from({ length: 9 }, (_, index) => 8 - index).map(
-  (eighths) => ({
+// A function, not a constant: the labels must be read in the language showing when drawn.
+function fuelOptions() {
+  return Array.from({ length: 9 }, (_, index) => 8 - index).map((eighths) => ({
     value: String(eighths),
     label:
       eighths === 8
-        ? "Full (8/8)"
+        ? t("s.handovers.id.checkOut.full88")
         : eighths === 0
-          ? "Empty (0/8)"
+          ? t("s.handovers.id.checkOut.empty08")
           : `${eighths}/8`,
-  }),
-);
+  }));
+}
 
 /** A Date as the value of a datetime-local input (local time). */
 function toLocalInput(date: Date): string {
@@ -148,7 +150,7 @@ export default function CheckOutPage({ params }: Props) {
         }
       } catch (error) {
         setLoadError(
-          error instanceof Error ? error.message : "Failed to load check-out.",
+          error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedLoadCheckOut"),
         );
       } finally {
         setLoading(false);
@@ -188,7 +190,7 @@ export default function CheckOutPage({ params }: Props) {
         if (!cancelled) {
           setPaymentIntent(null);
           setPaymentIntentError(
-            error instanceof Error ? error.message : "Failed to start payment.",
+            error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedStartPayment"),
           );
         }
       }
@@ -229,7 +231,7 @@ export default function CheckOutPage({ params }: Props) {
       setWaiveReason("");
     } catch (error) {
       setConditionError(
-        error instanceof Error ? error.message : "Failed to save the condition.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedSaveCondition"),
       );
     } finally {
       setSavingCondition(false);
@@ -252,7 +254,7 @@ export default function CheckOutPage({ params }: Props) {
       );
     } catch (error) {
       setWaiveError(
-        error instanceof Error ? error.message : "Failed to update the charges.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedUpdateCharges"),
       );
     } finally {
       setWaiving(false);
@@ -272,7 +274,7 @@ export default function CheckOutPage({ params }: Props) {
       setCheckOut(await settleCheckOutDeposit(reservationId));
     } catch (error) {
       setDepositError(
-        error instanceof Error ? error.message : "Failed to settle the deposit.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedSettleDeposit"),
       );
     } finally {
       setSettlingDeposit(false);
@@ -289,7 +291,7 @@ export default function CheckOutPage({ params }: Props) {
     if (!reservationId || !signaturePadRef.current) return;
 
     if (signaturePadRef.current.isEmpty()) {
-      setSignatureError("Please sign before continuing.");
+      setSignatureError(t("s.handovers.id.checkOut.pleaseSignBeforeContinuing"));
       return;
     }
 
@@ -305,7 +307,7 @@ export default function CheckOutPage({ params }: Props) {
       );
     } catch (error) {
       setSignatureError(
-        error instanceof Error ? error.message : "Failed to save the signature.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedSaveSignature"),
       );
     } finally {
       setSigning(false);
@@ -326,7 +328,7 @@ export default function CheckOutPage({ params }: Props) {
       setReservation(await getReservation(reservationId));
     } catch (error) {
       setCompleteError(
-        error instanceof Error ? error.message : "Failed to complete the check-out.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkOut.failedCompleteCheckOut"),
       );
     } finally {
       setCompleting(false);
@@ -353,11 +355,9 @@ export default function CheckOutPage({ params }: Props) {
             onClick={() => navigate("/handovers?tab=check-out")}
             className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to handovers
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkOut.backHandovers")}</button>
 
-          <p className="text-red-600">{loadError || "Reservation not found."}</p>
+          <p className="text-red-600">{loadError || t("s.handovers.id.checkOut.reservationNotFound")}</p>
         </div>
       </main>
     );
@@ -407,31 +407,24 @@ export default function CheckOutPage({ params }: Props) {
             onClick={() => navigate("/handovers?tab=check-out")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to handovers
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkOut.backHandovers")}</button>
 
           <button
             onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
             className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
-          >
-            View/Change Reservation
-            <ArrowRight className="h-4 w-4" />
+          >{t("s.handovers.id.checkOut.viewChangeReservation")}<ArrowRight className="h-4 w-4" />
           </button>
         </div>
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Vehicle Check-out</h1>
+            <h1 className="text-3xl font-bold">{t("s.handovers.id.checkOut.vehicleCheckOut")}</h1>
             <p className="mt-2 text-gray-600">
               {reservation.customer.first_name} {reservation.customer.last_name}{" "}
               · {reservation.car.make} {reservation.car.model} ·{" "}
               {reservation.car.license_plate}
             </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Due back {formatDateTime(reservation.return_at, reservation.return_location.timezone)} at{" "}
-              {reservation.return_location.airport_code}
-            </p>
+            <p className="mt-1 text-sm text-gray-500">{t("s.handovers.id.checkOut.dueBackAt", { v1: formatDateTime(reservation.return_at, reservation.return_location.timezone), airport_code: reservation.return_location.airport_code })}</p>
           </div>
 
           <ReservationStatusBadge status={reservation.status} />
@@ -439,10 +432,7 @@ export default function CheckOutPage({ params }: Props) {
 
         {notOut ? (
           <Card>
-            <p className="text-sm text-gray-700">
-              This rental is {reservation.status.toLowerCase()}, so it can&apos;t
-              be checked out.
-            </p>
+            <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.rentalSoItCan", { status: enumLabelLower("reservationStatus", reservation.status) })}</p>
           </Card>
         ) : completed ? (
           <Card className="text-center">
@@ -450,11 +440,9 @@ export default function CheckOutPage({ params }: Props) {
               <Check className="h-6 w-6" />
             </div>
 
-            <h2 className="text-xl font-semibold">Check-out complete</h2>
+            <h2 className="text-xl font-semibold">{t("s.handovers.id.checkOut.checkOutComplete")}</h2>
 
-            <p className="mt-2 text-sm text-gray-600">
-              The rental is completed and the vehicle is back.
-            </p>
+            <p className="mt-2 text-sm text-gray-600">{t("s.handovers.id.checkOut.rentalCompletedVehicleBack")}</p>
 
             {result?.car_away_from_home && (
               <div
@@ -462,58 +450,44 @@ export default function CheckOutPage({ params }: Props) {
                 role="alert"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>
-                  This car is now at {result.car_current_airport_code} but
-                  belongs at {result.car_home_airport_code}. It is flagged on
-                  the dashboard until it has been moved back.
-                </span>
+                <span>{t("s.handovers.id.checkOut.carNowAtBut", { car_current_airport_code: result.car_current_airport_code, car_home_airport_code: result.car_home_airport_code })}</span>
               </div>
             )}
 
             {result?.maintenance_task_id && (
-              <p className="mt-4 text-sm text-gray-700">
-                Damage was reported, so a repair task was opened and the car is
-                out of service for the repair period.
-              </p>
+              <p className="mt-4 text-sm text-gray-700">{t("s.handovers.id.checkOut.damageWasReportedSo")}</p>
             )}
 
             <div className="mt-6 flex justify-center gap-3">
               <Button
                 variant="secondary"
                 onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
-              >
-                View Reservation
-              </Button>
+              >{t("s.handovers.id.checkOut.viewReservation")}</Button>
 
-              <Button onClick={() => navigate("/handovers?tab=check-out")}>
-                Back to handovers
-              </Button>
+              <Button onClick={() => navigate("/handovers?tab=check-out")}>{t("s.handovers.id.checkOut.backHandovers")}</Button>
             </div>
           </Card>
         ) : (
           <div className="space-y-6">
             {/* Step 1: Vehicle condition */}
             <Card>
-              <StepHeader index={1} title="Vehicle Condition" status={conditionStatus} />
+              <StepHeader index={1} title={t("s.handovers.id.checkOut.vehicleCondition")} status={conditionStatus} />
 
               <form onSubmit={handleSaveCondition} className="mt-5 space-y-4">
                 {pastScheduledReturn && !conditionSaved && (
-                  <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-                    This rental is past its scheduled return. Lateness is
-                    counted up to the moment you save the condition.
-                  </p>
+                  <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t("s.handovers.id.checkOut.rentalPastItsScheduled")}</p>
                 )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <TextField
-                    label="Mileage (km)"
+                    label={t("s.handovers.id.checkOut.mileageKm")}
                     type="number"
                     min={car.mileage ?? 0}
                     required
                     disabled={!editable}
                     hint={
                       car.mileage !== null
-                        ? `Currently recorded: ${formatNumber(car.mileage)} km`
+                        ? t("s.handovers.id.checkOut.currentlyRecordedKm", { v1: formatNumber(car.mileage) })
                         : undefined
                     }
                     value={mileage}
@@ -521,13 +495,13 @@ export default function CheckOutPage({ params }: Props) {
                   />
 
                   <SelectField
-                    label="Fuel level"
+                    label={t("s.handovers.id.checkOut.fuelLevel")}
                     disabled={!editable}
-                    hint="Cars go out with a full tank."
+                    hint={t("s.handovers.id.checkOut.carsGoOutWith")}
                     value={fuel}
                     onChange={(event) => setFuel(event.target.value)}
                   >
-                    {FUEL_OPTIONS.map((option) => (
+                    {fuelOptions().map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -542,13 +516,11 @@ export default function CheckOutPage({ params }: Props) {
                     disabled={!editable}
                     checked={damageReported}
                     onChange={(event) => setDamageReported(event.target.checked)}
-                  />
-                  The vehicle has damage
-                </label>
+                  />{t("s.handovers.id.checkOut.vehicleHasDamage")}</label>
 
                 {damageReported && (
                   <div className="space-y-4 rounded-lg border border-border-strong p-4">
-                    <Field label="Describe the damage">
+                    <Field label={t("s.handovers.id.checkOut.describeDamage")}>
                       {(fieldProps) => (
                         <Textarea
                           {...fieldProps}
@@ -562,19 +534,19 @@ export default function CheckOutPage({ params }: Props) {
                     </Field>
 
                     <TextField
-                      label="Damage charge"
+                      label={t("s.handovers.id.checkOut.damageCharge")}
                       type="number"
                       min={0}
                       step="0.01"
                       disabled={!editable}
-                      hint="Charged to the customer now. Leave at 0 for no charge."
+                      hint={t("s.handovers.id.checkOut.chargedCustomerNowLeave")}
                       value={damageCharge}
                       onChange={(event) => setDamageCharge(event.target.value)}
                     />
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <TextField
-                        label="Out of service from"
+                        label={t("s.handovers.id.checkOut.outServiceFrom")}
                         type="datetime-local"
                         required
                         disabled={!editable}
@@ -583,7 +555,7 @@ export default function CheckOutPage({ params }: Props) {
                       />
 
                       <TextField
-                        label="Back in service at"
+                        label={t("s.handovers.id.checkOut.backServiceAt")}
                         type="datetime-local"
                         required
                         disabled={!editable}
@@ -593,10 +565,7 @@ export default function CheckOutPage({ params }: Props) {
                       />
                     </div>
 
-                    <p className="text-xs text-ink-muted">
-                      A repair task is opened for this period when the
-                      check-out is completed.
-                    </p>
+                    <p className="text-xs text-ink-muted">{t("s.handovers.id.checkOut.repairTaskOpenedPeriod")}</p>
                   </div>
                 )}
 
@@ -609,10 +578,10 @@ export default function CheckOutPage({ params }: Props) {
                 {editable && (
                   <Button type="submit" disabled={savingCondition}>
                     {savingCondition
-                      ? "Saving..."
+                      ? t("s.handovers.id.checkOut.saving")
                       : conditionSaved
-                        ? "Update condition"
-                        : "Save condition"}
+                        ? t("s.handovers.id.checkOut.updateCondition")
+                        : t("s.handovers.id.checkOut.saveCondition")}
                   </Button>
                 )}
               </form>
@@ -620,50 +589,44 @@ export default function CheckOutPage({ params }: Props) {
 
             {/* Step 2: Charges & payment */}
             <Card className={paymentStatus === "locked" ? "opacity-50" : ""}>
-              <StepHeader index={2} title="Deposit & Charges" status={paymentStatus} />
+              <StepHeader index={2} title={t("s.handovers.id.checkOut.depositCharges")} status={paymentStatus} />
 
               <div className="mt-5">
                 {!checkOut ? (
-                  <p className="text-sm text-ink-muted">
-                    Record the vehicle&apos;s condition first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkOut.recordVehicleSCondition")}</p>
                 ) : (
                   <div className="space-y-5">
                     <dl className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
-                        <dt className="text-ink-muted">
-                          Returned {formatDateTime(checkOut.returned_at)}
-                          {checkOut.late_hours > 0 &&
-                            ` — ${checkOut.late_hours} started hour${checkOut.late_hours === 1 ? "" : "s"} late`}
-                        </dt>
+                        <dt className="text-ink-muted">{checkOut.late_hours > 0
+                          ? t("s.handovers.id.checkOut.returnedLate", { date: formatDateTime(checkOut.returned_at), hours: checkOut.late_hours })
+                          : t("s.handovers.id.checkOut.returned", { date: formatDateTime(checkOut.returned_at) })}</dt>
                         <dd className={checkOut.late_fee_waived ? "line-through" : ""}>
                           {money(checkOut.late_fee, checkOut.payment_currency)}
                         </dd>
                       </div>
 
                       <div className="flex justify-between gap-4">
-                        <dt className="text-ink-muted">
-                          Fuel ({checkOut.fuel_eighths}/8)
-                        </dt>
+                        <dt className="text-ink-muted">{t("s.handovers.id.checkOut.fuel8", { fuel_eighths: checkOut.fuel_eighths })}</dt>
                         <dd className={checkOut.fuel_fee_waived ? "line-through" : ""}>
                           {money(checkOut.fuel_fee, checkOut.payment_currency)}
                         </dd>
                       </div>
 
                       <div className="flex justify-between gap-4">
-                        <dt className="text-ink-muted">Damage</dt>
+                        <dt className="text-ink-muted">{t("s.handovers.id.checkOut.damage")}</dt>
                         <dd>{money(checkOut.damage_charge, checkOut.payment_currency)}</dd>
                       </div>
 
                       <div className="flex justify-between gap-4 border-t border-border-strong pt-2 font-semibold">
-                        <dt>Total due</dt>
+                        <dt>{t("s.handovers.id.checkOut.totalDue")}</dt>
                         <dd>{money(checkOut.total_charge, checkOut.payment_currency)}</dd>
                       </div>
                     </dl>
 
                     {editable && (checkOut.late_fee > 0 || checkOut.fuel_fee > 0) && (
                       <div className="space-y-3 rounded-lg bg-surface-sunken p-4">
-                        <p className="text-sm font-medium text-ink">Waive a charge</p>
+                        <p className="text-sm font-medium text-ink">{t("s.handovers.id.checkOut.waiveCharge")}</p>
 
                         {checkOut.late_fee > 0 && (
                           <label className="flex items-center gap-2 text-sm">
@@ -672,9 +635,7 @@ export default function CheckOutPage({ params }: Props) {
                               className="h-4 w-4"
                               checked={waiveLate}
                               onChange={(event) => setWaiveLate(event.target.checked)}
-                            />
-                            Waive the late fee
-                          </label>
+                            />{t("s.handovers.id.checkOut.waiveLateFee")}</label>
                         )}
 
                         {checkOut.fuel_fee > 0 && (
@@ -684,14 +645,12 @@ export default function CheckOutPage({ params }: Props) {
                               className="h-4 w-4"
                               checked={waiveFuel}
                               onChange={(event) => setWaiveFuel(event.target.checked)}
-                            />
-                            Waive the fuel fee
-                          </label>
+                            />{t("s.handovers.id.checkOut.waiveFuelFee")}</label>
                         )}
 
                         <TextField
-                          label="Reason"
-                          hint="Required when waiving. Recorded in the audit log."
+                          label={t("s.handovers.id.checkOut.reason")}
+                          hint={t("s.handovers.id.checkOut.requiredWhenWaivingRecorded")}
                           value={waiveReason}
                           onChange={(event) => setWaiveReason(event.target.value)}
                         />
@@ -707,51 +666,32 @@ export default function CheckOutPage({ params }: Props) {
                           onClick={handleWaive}
                           disabled={waiving}
                         >
-                          {waiving ? "Saving..." : "Apply"}
+                          {waiving ? t("s.handovers.id.checkOut.saving") : t("s.handovers.id.checkOut.apply")}
                         </Button>
                       </div>
                     )}
 
                     {checkOut.waiver_reason && !editable && (
-                      <p className="text-sm text-ink-muted">
-                        Waived: {checkOut.waiver_reason}
-                      </p>
+                      <p className="text-sm text-ink-muted">{t("s.handovers.id.checkOut.waived", { waiver_reason: checkOut.waiver_reason })}</p>
                     )}
 
                     {checkOut.deposit_pending && checkOut.deposit_amount !== null && (
                       <div className="space-y-3 rounded-lg border border-border-strong p-4">
-                        <p className="text-sm font-medium text-ink">Security deposit</p>
+                        <p className="text-sm font-medium text-ink">{t("s.handovers.id.checkOut.securityDeposit")}</p>
 
-                        <p className="text-sm text-gray-700">
-                          A {checkOut.deposit_method === "CASH" ? "cash" : "card"} deposit of{" "}
-                          {money(checkOut.deposit_amount, checkOut.payment_currency)} is held.
-                          The charges (
-                          {money(checkOut.total_charge, checkOut.payment_currency)}) are
-                          taken from it first:{" "}
-                          {money(
-                            Math.min(checkOut.total_charge, checkOut.deposit_amount),
-                            checkOut.payment_currency,
-                          )}{" "}
-                          kept,{" "}
-                          {money(
-                            Math.max(checkOut.deposit_amount - checkOut.total_charge, 0),
-                            checkOut.payment_currency,
-                          )}{" "}
-                          {checkOut.deposit_method === "CASH"
-                            ? "handed back in cash"
-                            : "released to the card"}
-                          {checkOut.total_charge > checkOut.deposit_amount &&
-                            `, and ${money(
-                              checkOut.total_charge - checkOut.deposit_amount,
-                              checkOut.payment_currency,
-                            )} still to collect`}
-                          .
-                        </p>
+                        <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.depositHeldChargesTaken", {
+                          method: checkOut.deposit_method === "CASH" ? "CASH" : "CARD",
+                          deposit: money(checkOut.deposit_amount, checkOut.payment_currency),
+                          charges: money(checkOut.total_charge, checkOut.payment_currency),
+                          kept: money(Math.min(checkOut.total_charge, checkOut.deposit_amount), checkOut.payment_currency),
+                          back: money(Math.max(checkOut.deposit_amount - checkOut.total_charge, 0), checkOut.payment_currency),
+                          owing:
+                            checkOut.total_charge > checkOut.deposit_amount
+                              ? money(checkOut.total_charge - checkOut.deposit_amount, checkOut.payment_currency)
+                              : "none",
+                        })}</p>
 
-                        <p className="text-xs text-ink-muted">
-                          Settling locks the figures above, so waive anything
-                          first.
-                        </p>
+                        <p className="text-xs text-ink-muted">{t("s.handovers.id.checkOut.settlingLocksFiguresAbove")}</p>
 
                         {depositError && (
                           <p className="text-sm text-red-600" role="alert">
@@ -760,7 +700,7 @@ export default function CheckOutPage({ params }: Props) {
                         )}
 
                         <Button onClick={handleSettleDeposit} disabled={settlingDeposit}>
-                          {settlingDeposit ? "Settling..." : "Settle deposit"}
+                          {settlingDeposit ? t("s.handovers.id.checkOut.settling") : t("s.handovers.id.checkOut.settleDeposit")}
                         </Button>
                       </div>
                     )}
@@ -768,38 +708,29 @@ export default function CheckOutPage({ params }: Props) {
                     {checkOut.deposit_settled_at && checkOut.deposit_held && (
                       <p className="text-sm text-gray-700">
                         {checkOut.deposit_status === "LAPSED"
-                          ? "The card hold had expired, so nothing could be taken from it."
-                          : `Deposit settled: ${money(
-                              checkOut.deposit_applied,
-                              checkOut.payment_currency,
-                            )} kept for the charges`}
-                        {checkOut.deposit_returned > 0 &&
-                          (checkOut.deposit_method === "CASH"
-                            ? ` — hand back ${money(checkOut.deposit_returned, checkOut.payment_currency)} in cash.`
-                            : `, ${money(checkOut.deposit_returned, checkOut.payment_currency)} released to the card.`)}
-                        {checkOut.deposit_returned <= 0 &&
-                          checkOut.deposit_status !== "LAPSED" &&
-                          "."}
+                          ? t("s.handovers.id.checkOut.cardHoldHadExpired")
+                          : t(
+                              checkOut.deposit_returned > 0
+                                ? checkOut.deposit_method === "CASH"
+                                  ? "s.handovers.id.checkOut.depositSettledHandBack"
+                                  : "s.handovers.id.checkOut.depositSettledReleased"
+                                : "s.handovers.id.checkOut.depositSettled",
+                              {
+                                kept: money(checkOut.deposit_applied, checkOut.payment_currency),
+                                returned: money(checkOut.deposit_returned, checkOut.payment_currency),
+                              },
+                            )}
                       </p>
                     )}
 
                     {checkOut.deposit_pending ? null : amountDue <= 0 ? (
-                      <p className="text-sm text-gray-700">
-                        No charges to collect.
-                      </p>
+                      <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.noChargesCollect")}</p>
                     ) : checkOut.payment_status === "SUCCEEDED" ? (
-                      <p className="text-sm text-gray-700">
-                        Payment received (
-                        {checkOut.payment_method === "CASH" ? "Cash" : "Card"}) —{" "}
-                        {money(checkOut.payment_amount ?? 0, checkOut.payment_currency)}.
-                      </p>
+                      <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.paymentReceived", { method: t(checkOut.payment_method === "CASH" ? "common.cash" : "common.card"), amount: money(checkOut.payment_amount ?? 0, checkOut.payment_currency) })}</p>
                     ) : (
                       <div className="space-y-3">
                         {paymentIntentError && (
-                          <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">
-                            {paymentIntentError} Card payment may be unavailable,
-                            but you can still take cash.
-                          </p>
+                          <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">{t("s.handovers.id.checkOut.cardPaymentMayBe", { paymentIntentError })}</p>
                         )}
 
                         <CheckOutPaymentStep
@@ -818,22 +749,21 @@ export default function CheckOutPage({ params }: Props) {
 
             {/* Step 3: Employee signature */}
             <Card className={signatureStatus === "locked" ? "opacity-50" : ""}>
-              <StepHeader index={3} title="Employee Signature" status={signatureStatus} />
+              <StepHeader index={3} title={t("s.handovers.id.checkOut.employeeSignature")} status={signatureStatus} />
 
               <div className="mt-5">
                 {signatureDone && checkOut ? (
-                  <p className="text-sm text-gray-700">
-                    Received by {checkOut.employee_signed_by_email ?? "an employee"}
-                    {checkOut.employee_signed_at &&
-                      ` on ${formatDateTime(checkOut.employee_signed_at)}`}
-                    .
-                  </p>
+                  <p className="text-sm text-gray-700">{checkOut.employee_signed_at
+                      ? t("s.handovers.id.checkOut.receivedByOn", {
+                          who: checkOut.employee_signed_by_email ?? t("common.anEmployee"),
+                          date: formatDateTime(checkOut.employee_signed_at),
+                        })
+                      : t("s.handovers.id.checkOut.receivedBy", {
+                          who: checkOut.employee_signed_by_email ?? t("common.anEmployee"),
+                        })}</p>
                 ) : signatureStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      The employee receiving the vehicle signs to confirm the
-                      condition recorded above.
-                    </p>
+                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkOut.employeeReceivingVehicleSigns")}</p>
 
                     <SignaturePad ref={signaturePadRef} />
 
@@ -845,38 +775,27 @@ export default function CheckOutPage({ params }: Props) {
                       <Button
                         variant="secondary"
                         onClick={() => signaturePadRef.current?.clear()}
-                      >
-                        Clear
-                      </Button>
+                      >{t("s.handovers.id.checkOut.clear")}</Button>
 
                       <Button onClick={handleSaveSignature} disabled={signing}>
-                        {signing ? "Saving..." : "Save Signature"}
+                        {signing ? t("s.handovers.id.checkOut.saving") : t("s.handovers.id.checkOut.saveSignature")}
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Record the condition and settle any charges first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkOut.recordConditionSettleAny")}</p>
                 )}
               </div>
             </Card>
 
             {/* Step 4: Complete */}
             <Card className={completeStatus === "locked" ? "opacity-50" : ""}>
-              <StepHeader index={4} title="Complete Check-out" status={completeStatus} />
+              <StepHeader index={4} title={t("s.handovers.id.checkOut.completeCheckOut")} status={completeStatus} />
 
               <div className="mt-5">
                 {completeStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      This completes the rental and moves the vehicle to{" "}
-                      {reservation.return_location.airport_code}
-                      {damageReported
-                        ? ", where a repair task will be opened"
-                        : " as available"}
-                      .
-                    </p>
+                    <p className="text-sm text-gray-600">{t(damageReported ? "s.handovers.id.checkOut.completesRepair" : "s.handovers.id.checkOut.completesAvailable", { airport_code: reservation.return_location.airport_code })}</p>
 
                     {completeError && (
                       <p className="text-sm text-red-600" role="alert">
@@ -885,13 +804,11 @@ export default function CheckOutPage({ params }: Props) {
                     )}
 
                     <Button onClick={handleComplete} disabled={completing} fullWidth>
-                      {completing ? "Completing..." : "Complete Check-out"}
+                      {completing ? t("s.handovers.id.checkOut.completing") : t("s.handovers.id.checkOut.completeCheckOut")}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Finish the steps above first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkOut.finishStepsAboveFirst")}</p>
                 )}
               </div>
             </Card>

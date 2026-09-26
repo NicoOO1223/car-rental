@@ -2,8 +2,8 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useTranslations } from "use-intl";
 import { X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 type ModalSize = "sm" | "md" | "lg" | "xl";
 
@@ -34,7 +34,6 @@ export function Modal({
   footer,
   size = "md",
 }: ModalProps) {
-  const t = useTranslations("ui");
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -147,7 +146,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label={t("close")}
+            aria-label={t("ui.close")}
             className="-mr-1 -mt-1 ml-auto shrink-0 rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
           >
             <X className="h-5 w-5" aria-hidden="true" />

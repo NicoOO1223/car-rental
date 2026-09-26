@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { useTranslations } from "use-intl";
 import {
   ChevronDown,
   ChevronUp,
@@ -12,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { t } from "@/lib/i18n";
 
 /**
  * One table, driven by column definitions, rendering both the desktop
@@ -189,7 +189,6 @@ export function DataTable<Row>({
   empty,
   className = "",
 }: DataTableProps<Row>) {
-  const t = useTranslations("ui");
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort ?? null,
   );
@@ -354,7 +353,7 @@ export function DataTable<Row>({
 
                 {rowActions && rowActions.length > 0 && (
                   <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-ink">
-                    {rowActionsHeader ?? <span className="sr-only">{t("actions")}</span>}
+                    {rowActionsHeader ?? <span className="sr-only">{t("ui.actions")}</span>}
                   </th>
                 )}
               </tr>

@@ -23,6 +23,7 @@ import {
   todayInZone,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { t } from "@/lib/i18n";
 
 type Direction = "pickup" | "return";
 
@@ -59,20 +60,20 @@ const DIRECTION_CONFIG: Record<
 > = {
   pickup: {
     icon: PlaneTakeoff,
-    title: "Next pickups",
-    subtitle: "Vehicles going out soon",
+    get title() { return t("c.dashboard.UpcomingCard.nextPickups"); },
+    get subtitle() { return t("c.dashboard.UpcomingCard.pickupsSubtitle"); },
     timestampKey: "pickup_at",
-    emptyTitle: "No upcoming pickups",
-    emptyDescription: "There are no future pickups scheduled.",
+    get emptyTitle() { return t("c.dashboard.UpcomingCard.noPickups"); },
+    get emptyDescription() { return t("c.dashboard.UpcomingCard.noPickupsDescription"); },
     detailHref: (id) => `/handovers/${id}/check-in`,
   },
   return: {
     icon: PlaneLanding,
-    title: "Next returns",
-    subtitle: "Vehicles due back soon",
+    get title() { return t("c.dashboard.UpcomingCard.nextReturns"); },
+    get subtitle() { return t("c.dashboard.UpcomingCard.returnsSubtitle"); },
     timestampKey: "return_at",
-    emptyTitle: "No upcoming returns",
-    emptyDescription: "There are no vehicles due back.",
+    get emptyTitle() { return t("c.dashboard.UpcomingCard.noReturns"); },
+    get emptyDescription() { return t("c.dashboard.UpcomingCard.noReturnsDescription"); },
     detailHref: (id) => `/handovers/${id}/check-out`,
   },
 };
@@ -113,9 +114,7 @@ export function UpcomingCard({
           type="button"
           onClick={() => navigate(viewAllHref)}
           className="flex shrink-0 items-center gap-1 text-sm font-medium text-ink-secondary transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 rounded-md"
-        >
-          View all
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        >{t("c.dashboard.UpcomingCard.viewAll")}<ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -154,9 +153,7 @@ export function UpcomingCard({
                 {direction === "return" &&
                   reservation.status === "ACTIVE" &&
                   new Date(reservation.return_at).getTime() < now && (
-                    <span className="mt-1 inline-block rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                      Overdue
-                    </span>
+                    <span className="mt-1 inline-block rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{t("c.dashboard.UpcomingCard.overdue")}</span>
                   )}
               </div>
 

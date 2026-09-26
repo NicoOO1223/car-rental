@@ -23,6 +23,7 @@ import { bookingReference, formatDate, formatTime } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   q: "",
@@ -87,7 +88,7 @@ export default function ManageReservationsPage() {
         setTotal(list.total);
         setSummary(counts);
       } catch {
-        if (!cancelled) setError("Failed to load reservations.");
+        if (!cancelled) setError(t("s.reservations.manage.failedLoadReservations"));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -136,7 +137,7 @@ export default function ManageReservationsPage() {
   const columns: Column<Reservation>[] = [
     {
       id: "customer",
-      header: "Customer",
+      header: t("s.reservations.manage.customer"),
       mobile: "primary",
       cell: (reservation) => (
         <TwoLine
@@ -153,7 +154,7 @@ export default function ManageReservationsPage() {
     },
     {
       id: "vehicle",
-      header: "Vehicle",
+      header: t("s.reservations.manage.vehicle"),
       mobile: "secondary",
       cell: (reservation) => (
         <TwoLine
@@ -166,8 +167,8 @@ export default function ManageReservationsPage() {
     },
     {
       id: "pickup",
-      header: "Pickup",
-      mobileLabel: "Pickup",
+      header: t("s.reservations.manage.pickup"),
+      mobileLabel: t("s.reservations.manage.pickup"),
       cell: (reservation) => (
         <TwoLine
           primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
@@ -185,8 +186,8 @@ export default function ManageReservationsPage() {
     },
     {
       id: "return",
-      header: "Return",
-      mobileLabel: "Return",
+      header: t("s.reservations.manage.return"),
+      mobileLabel: t("s.reservations.manage.return"),
       cell: (reservation) => (
         <TwoLine
           primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
@@ -204,7 +205,7 @@ export default function ManageReservationsPage() {
     },
     {
       id: "booked",
-      header: "Booked",
+      header: t("s.reservations.manage.booked"),
       mobile: "hidden",
       cell: (reservation) => (
         <TwoLine
@@ -215,7 +216,7 @@ export default function ManageReservationsPage() {
     },
     {
       id: "route",
-      header: "Route",
+      header: t("s.reservations.manage.route"),
       mobile: "hidden",
       cell: (reservation) => (
         <span className="text-sm font-medium text-ink">
@@ -229,7 +230,7 @@ export default function ManageReservationsPage() {
     },
     {
       id: "status",
-      header: "Status",
+      header: t("s.reservations.manage.status"),
       mobile: "trailing",
       cell: (reservation) => (
         <ReservationStatusBadge status={reservation.status} />
@@ -245,9 +246,7 @@ export default function ManageReservationsPage() {
             {error}
           </p>
 
-          <Button className="mt-4" onClick={reload}>
-            Try again
-          </Button>
+          <Button className="mt-4" onClick={reload}>{t("s.reservations.manage.tryAgain")}</Button>
         </div>
       </PageShell>
     );
@@ -256,8 +255,8 @@ export default function ManageReservationsPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Reservations"
-        description="Manage and monitor vehicle reservations."
+        title={t("s.reservations.manage.reservations")}
+        description={t("s.reservations.manage.manageMonitorVehicleReservations")}
         actions={
           <>
             <Button
@@ -269,43 +268,41 @@ export default function ManageReservationsPage() {
                 className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
                 aria-hidden="true"
               />
-              {refreshing ? "Refreshing" : "Refresh"}
+              {refreshing ? t("s.reservations.manage.refreshing") : t("s.reservations.manage.refresh")}
             </Button>
 
             <Button onClick={() => navigate("/reservations/new")}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New reservation
-            </Button>
+              <Plus className="h-4 w-4" aria-hidden="true" />{t("s.reservations.manage.newReservation")}</Button>
           </>
         }
       />
 
       <StatTileGrid columns={4} className="mb-8">
         <StatTile
-          label="All reservations"
+          label={t("s.reservations.manage.allReservations")}
           value={summary?.total ?? "–"}
           onClick={() => applyQuickFilter("ALL")}
           active={quickFilterActive("ALL")}
         />
         <StatTile
-          label={"Today’s activity"}
+          label={t("s.reservations.manage.todaySActivity")}
           value={summary ? summary.pickup_today + summary.return_today : "–"}
           hint={
             summary
-              ? `${summary.pickup_today} out, ${summary.return_today} back`
+              ? t("s.reservations.manage.outBack", { pickup_today: summary.pickup_today, return_today: summary.return_today })
               : undefined
           }
           onClick={() => applyQuickFilter("TODAY")}
           active={quickFilterActive("TODAY")}
         />
         <StatTile
-          label="On the road"
+          label={t("s.reservations.manage.road")}
           value={summary?.active ?? "–"}
           onClick={() => applyQuickFilter("ACTIVE")}
           active={quickFilterActive("ACTIVE")}
         />
         <StatTile
-          label="Upcoming"
+          label={t("s.reservations.manage.upcoming")}
           value={summary?.upcoming ?? "–"}
           onClick={() => applyQuickFilter("UPCOMING")}
           active={quickFilterActive("UPCOMING")}
@@ -316,55 +313,52 @@ export default function ManageReservationsPage() {
         footer={
           <>
             <p>
-              <span className="font-medium text-ink">{total}</span>{" "}
-              {isFiltered ? "matching reservations" : "reservations"}
+              {t(isFiltered ? "s.reservations.manage.matchingCount" : "s.reservations.manage.totalCount", { count: total })}
             </p>
 
             {isFiltered && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear filters
-              </Button>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>{t("s.reservations.manage.clearFilters")}</Button>
             )}
           </>
         }
       >
-        <Field label="Search">
+        <Field label={t("s.reservations.manage.search")}>
           {(fieldProps) => (
             <Input
               {...fieldProps}
               type="search"
               value={filters.q}
               onChange={(event) => updateFilters({ q: event.target.value })}
-              placeholder="Customer, plate or vehicle..."
+              placeholder={t("s.reservations.manage.customerPlateVehicle")}
             />
           )}
         </Field>
 
-        <Field label="Status">
+        <Field label={t("s.reservations.manage.status")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.status}
               onChange={(event) => updateFilters({ status: event.target.value })}
             >
-              <option value="ALL">All statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="ACTIVE">Active</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="ALL">{t("s.reservations.manage.allStatuses")}</option>
+              <option value="PENDING">{t("s.reservations.manage.pending")}</option>
+              <option value="CONFIRMED">{t("s.reservations.manage.confirmed")}</option>
+              <option value="ACTIVE">{t("s.reservations.manage.active")}</option>
+              <option value="COMPLETED">{t("s.reservations.manage.completed")}</option>
+              <option value="CANCELLED">{t("s.reservations.manage.cancelled")}</option>
             </Select>
           )}
         </Field>
 
-        <Field label="Location">
+        <Field label={t("s.reservations.manage.location")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.location}
               onChange={(event) => updateFilters({ location: event.target.value })}
             >
-              <option value="ALL">All locations</option>
+              <option value="ALL">{t("s.reservations.manage.allLocations")}</option>
               {locations.map((location) => (
                 <option key={location.id} value={location.airport_code}>
                   {location.airport_code}
@@ -374,33 +368,33 @@ export default function ManageReservationsPage() {
           )}
         </Field>
 
-        <Field label="Period">
+        <Field label={t("s.reservations.manage.period")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.window}
               onChange={(event) => updateFilters({ window: event.target.value })}
             >
-              <option value="ALL">Any time</option>
-              <option value="TODAY">Today</option>
-              <option value="ACTIVE">On the road</option>
-              <option value="UPCOMING">Upcoming</option>
-              <option value="NEXT_7_DAYS">Next 7 days</option>
+              <option value="ALL">{t("s.reservations.manage.anyTime")}</option>
+              <option value="TODAY">{t("s.reservations.manage.today")}</option>
+              <option value="ACTIVE">{t("s.reservations.manage.road")}</option>
+              <option value="UPCOMING">{t("s.reservations.manage.upcoming")}</option>
+              <option value="NEXT_7_DAYS">{t("s.reservations.manage.next7Days")}</option>
             </Select>
           )}
         </Field>
 
-        <Field label="Sort by">
+        <Field label={t("s.reservations.manage.sortBy")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.sort}
               onChange={(event) => updateFilters({ sort: event.target.value })}
             >
-              <option value="pickup_asc">Pickup, soonest first</option>
-              <option value="pickup_desc">Pickup, latest first</option>
-              <option value="return_asc">Return, soonest first</option>
-              <option value="created_desc">Recently booked</option>
+              <option value="pickup_asc">{t("s.reservations.manage.pickupSoonestFirst")}</option>
+              <option value="pickup_desc">{t("s.reservations.manage.pickupLatestFirst")}</option>
+              <option value="return_asc">{t("s.reservations.manage.returnSoonestFirst")}</option>
+              <option value="created_desc">{t("s.reservations.manage.recentlyBooked")}</option>
             </Select>
           )}
         </Field>
@@ -416,18 +410,14 @@ export default function ManageReservationsPage() {
         }
         empty={{
           icon: CalendarClock,
-          title: isFiltered ? "No reservations match" : "No reservations yet",
+          title: isFiltered ? t("s.reservations.manage.noReservationsMatch") : t("s.reservations.manage.noReservationsYet"),
           description: isFiltered
-            ? "Try changing your search or filters."
-            : "Bookings appear here as soon as they are created.",
+            ? t("s.reservations.manage.tryChangingSearchFilters")
+            : t("s.reservations.manage.bookingsAppearHereAs"),
           action: isFiltered ? (
-            <Button variant="secondary" onClick={clearFilters}>
-              Clear filters
-            </Button>
+            <Button variant="secondary" onClick={clearFilters}>{t("s.reservations.manage.clearFilters")}</Button>
           ) : (
-            <Button onClick={() => navigate("/reservations/new")}>
-              New reservation
-            </Button>
+            <Button onClick={() => navigate("/reservations/new")}>{t("s.reservations.manage.newReservation")}</Button>
           ),
         }}
       />

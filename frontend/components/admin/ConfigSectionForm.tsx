@@ -11,6 +11,7 @@ import { setDefaultCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { TextField } from "@/components/ui/Field";
+import { t } from "@/lib/i18n";
 
 export type ConfigField = {
   key: keyof Configuration;
@@ -51,7 +52,7 @@ export function ConfigSectionForm({
           ),
         ),
       )
-      .catch(() => setLoadError("Failed to load configuration."));
+      .catch(() => setLoadError(t("c.admin.ConfigSectionForm.failedLoadConfiguration")));
     // The field list is a constant of the calling page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -83,7 +84,7 @@ export function ConfigSectionForm({
       setSaved(true);
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Failed to update configuration.",
+        err instanceof Error ? err.message : t("c.admin.ConfigSectionForm.failedUpdateConfiguration"),
       );
     } finally {
       setSaving(false);
@@ -103,7 +104,7 @@ export function ConfigSectionForm({
   if (!values) {
     return (
       <Card>
-        <p className="text-ink-secondary">Loading configuration…</p>
+        <p className="text-ink-secondary">{t("c.admin.ConfigSectionForm.loadingConfiguration")}</p>
       </Card>
     );
   }
@@ -146,11 +147,11 @@ export function ConfigSectionForm({
         )}
 
         {saved && !saveError && (
-          <p className="text-sm text-ink-secondary">Saved.</p>
+          <p className="text-sm text-ink-secondary">{t("c.admin.ConfigSectionForm.saved")}</p>
         )}
 
         <Button type="submit" loading={saving}>
-          {saving ? "Saving" : "Save changes"}
+          {saving ? t("c.admin.ConfigSectionForm.saving") : t("c.admin.ConfigSectionForm.saveChanges")}
         </Button>
       </Card>
     </form>

@@ -16,6 +16,7 @@ import { SubNav } from "@/components/ui/SubNav";
 import { formatDate, formatTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   tab: "check-in",
@@ -34,10 +35,10 @@ function lateLabel(returnAt: string, now: number): string | null {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
 
-  if (hours >= 24) return `Late by ${Math.floor(hours / 24)}d ${hours % 24}h`;
-  if (hours > 0) return `Late by ${hours}h ${rest}m`;
+  if (hours >= 24) return t("s.handovers.lateByDH", { v1: Math.floor(hours / 24), v2: hours % 24 });
+  if (hours > 0) return t("s.handovers.lateByHM", { hours, rest });
 
-  return `Late by ${rest}m`;
+  return t("s.handovers.lateByM", { rest });
 }
 
 export default function HandoversPage() {
@@ -91,7 +92,7 @@ export default function HandoversPage() {
     try {
       await loadQueues();
     } catch {
-      setError("Failed to load reservations.");
+      setError(t("s.handovers.failedLoadReservations"));
     } finally {
       setRefreshing(false);
     }
@@ -102,7 +103,7 @@ export default function HandoversPage() {
       try {
         await loadQueues();
       } catch {
-        setError("Failed to load reservations.");
+        setError(t("s.handovers.failedLoadReservations"));
       } finally {
         setLoading(false);
       }
@@ -113,7 +114,7 @@ export default function HandoversPage() {
 
   const customerColumn: Column<Reservation> = {
     id: "customer",
-    header: "Customer",
+    header: t("s.handovers.customer"),
     mobile: "primary",
     cell: (reservation) =>
       `${reservation.customer.first_name} ${reservation.customer.last_name}`,
@@ -124,7 +125,7 @@ export default function HandoversPage() {
 
   const vehicleColumn: Column<Reservation> = {
     id: "vehicle",
-    header: "Vehicle",
+    header: t("s.handovers.vehicle"),
     mobile: "secondary",
     cell: (reservation) => (
       <TwoLine
@@ -141,8 +142,8 @@ export default function HandoversPage() {
 
   const pickupColumn: Column<Reservation> = {
     id: "pickup",
-    header: "Pickup",
-    mobileLabel: "Pickup",
+    header: t("s.handovers.pickup"),
+    mobileLabel: t("s.handovers.pickup"),
     cell: (reservation) => (
       <TwoLine
         primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
@@ -157,8 +158,8 @@ export default function HandoversPage() {
 
   const returnColumn: Column<Reservation> = {
     id: "return",
-    header: "Return",
-    mobileLabel: "Return",
+    header: t("s.handovers.return"),
+    mobileLabel: t("s.handovers.return"),
     cell: (reservation) => (
       <TwoLine
         primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
@@ -173,8 +174,8 @@ export default function HandoversPage() {
 
   const bookedColumn: Column<Reservation> = {
     id: "booked",
-    header: "Booked",
-    mobileLabel: "Booked",
+    header: t("s.handovers.booked"),
+    mobileLabel: t("s.handovers.booked"),
     cell: (reservation) => (
       <TwoLine
         primary={formatDate(reservation.created_at)}
@@ -189,8 +190,8 @@ export default function HandoversPage() {
 
   const routeColumn: Column<Reservation> = {
     id: "route",
-    header: "Route",
-    mobileLabel: "Route",
+    header: t("s.handovers.route"),
+    mobileLabel: t("s.handovers.route"),
     cell: (reservation) => (
       <span className="text-sm font-medium text-ink">
         {reservation.pickup_location.airport_code}
@@ -204,8 +205,8 @@ export default function HandoversPage() {
 
   const lateColumn: Column<Reservation> = {
     id: "late",
-    header: "Status",
-    mobileLabel: "Status",
+    header: t("s.handovers.status"),
+    mobileLabel: t("s.handovers.status"),
     cell: (reservation) => {
       const late = lateLabel(reservation.return_at, now);
 
@@ -214,11 +215,11 @@ export default function HandoversPage() {
           {late}
         </span>
       ) : (
-        <span className="text-sm text-ink-muted">On time</span>
+        <span className="text-sm text-ink-muted">{t("s.handovers.time")}</span>
       );
     },
     mobileCell: (reservation) =>
-      lateLabel(reservation.return_at, now) ?? "On time",
+      lateLabel(reservation.return_at, now) ?? t("s.handovers.time"),
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.return_at),
   };
@@ -246,9 +247,7 @@ export default function HandoversPage() {
             {error}
           </p>
 
-          <Button className="mt-4" onClick={refreshReservations}>
-            Try again
-          </Button>
+          <Button className="mt-4" onClick={refreshReservations}>{t("s.handovers.tryAgain")}</Button>
         </div>
       </PageShell>
     );
@@ -257,8 +256,8 @@ export default function HandoversPage() {
   return (
     <PageShell width="wide">
       <PageHeader
-        title="Handovers"
-        description="Check vehicles in when the customer arrives and out when they bring them back."
+        title={t("s.handovers.handovers")}
+        description={t("s.handovers.checkVehiclesWhenCustomer")}
         actions={
           <Button
             variant="secondary"
@@ -269,24 +268,24 @@ export default function HandoversPage() {
               className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
               aria-hidden="true"
             />
-            {refreshing ? "Refreshing" : "Refresh"}
+            {refreshing ? t("s.handovers.refreshing") : t("s.handovers.refresh")}
           </Button>
         }
       />
 
       <StatTileGrid columns={3} className="mb-6">
         <StatTile
-          label="Awaiting check-in"
+          label={t("s.handovers.awaitingCheck")}
           value={checkInTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
-          label="Awaiting check-out"
+          label={t("s.handovers.awaitingCheckOut")}
           value={checkOutTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
-          label="Overdue returns"
+          label={t("s.handovers.overdueReturns")}
           value={overdueCount}
           icon={ArrowLeftRight}
         />
@@ -297,17 +296,13 @@ export default function HandoversPage() {
         activeId={tab}
         onSelect={(id) => setFilters({ tab: id })}
         items={[
-          { id: "check-in", label: "Check-in", count: checkInTotal },
-          { id: "check-out", label: "Check-out", count: checkOutTotal },
+          { id: "check-in", label: t("s.handovers.check"), count: checkInTotal },
+          { id: "check-out", label: t("s.handovers.checkOut"), count: checkOutTotal },
         ]}
       />
 
       {(tab === "check-in" ? checkInTotal : checkOutTotal) > QUEUE_LIMIT && (
-        <p className="mb-3 text-sm text-ink-muted">
-          Showing the first {QUEUE_LIMIT} of{" "}
-          {tab === "check-in" ? checkInTotal : checkOutTotal}. Work through
-          these and refresh to see the rest.
-        </p>
+        <p className="mb-3 text-sm text-ink-muted">{t("s.handovers.showingFirstWorkThrough", { limit: QUEUE_LIMIT, total: tab === "check-in" ? checkInTotal : checkOutTotal })}</p>
       )}
 
       <DataTable
@@ -323,7 +318,7 @@ export default function HandoversPage() {
         onRowClick={openHandover}
         rowActions={[
           {
-            label: tab === "check-in" ? "Start check-in" : "Start check-out",
+            label: tab === "check-in" ? t("s.handovers.startCheck") : t("s.handovers.startCheckOut"),
             onClick: openHandover,
           },
         ]}
@@ -331,12 +326,12 @@ export default function HandoversPage() {
           icon: ArrowLeftRight,
           title:
             tab === "check-in"
-              ? "Nothing waiting for check-in"
-              : "Nothing waiting for check-out",
+              ? t("s.handovers.nothingWaitingCheck")
+              : t("s.handovers.nothingWaitingCheckOut"),
           description:
             tab === "check-in"
-              ? "Confirmed reservations show up here once they are approved."
-              : "Vehicles out with customers show up here until they are checked back in.",
+              ? t("s.handovers.confirmedReservationsShowUp")
+              : t("s.handovers.vehiclesOutWithCustomers"),
         }}
       />
     </PageShell>

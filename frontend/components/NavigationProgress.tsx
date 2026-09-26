@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useTransition, type ReactNode } from "react";
+import { t } from "@/lib/i18n";
 
 type NavigationProgressContextValue = {
   navigate: (action: () => void) => void;
@@ -32,7 +33,7 @@ export function NavigationProgressProvider({
         <div
           role="progressbar"
           aria-busy="true"
-          aria-label="Loading page"
+          aria-label={t("c.NavigationProgress.loadingPage")}
           className="fixed left-0 top-0 z-[100] h-0.5 w-full overflow-hidden bg-gray-200"
         >
           <div className="h-full w-1/3 animate-[progress-slide_0.9s_ease-in-out_infinite] bg-gray-900" />

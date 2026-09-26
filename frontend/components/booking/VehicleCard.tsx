@@ -7,6 +7,7 @@ import { CarImage } from "@/components/cars/CarImage";
 import { carSpecs } from "@/lib/carDisplay";
 import { formatCurrency } from "@/lib/format";
 import type { Car } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 /**
  * One bookable vehicle.
@@ -60,7 +61,7 @@ export function VehicleCard({
         <div className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-2 border-t border-black/5 bg-white/80 px-3 py-2 backdrop-blur-sm">
           <h3 className="min-w-0 truncate text-sm font-semibold text-ink">
             {car.make} {car.model}
-            <span className="font-normal text-ink-muted"> or similar</span>
+            <span className="font-normal text-ink-muted">{" "}{t("c.booking.VehicleCard.similar")}</span>
           </h3>
 
           <span className="shrink-0 text-xs text-ink-muted">{car.year}</span>
@@ -69,7 +70,7 @@ export function VehicleCard({
         {selected && (
           <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-white shadow-sm">
             <CheckIcon className="h-4 w-4" aria-hidden="true" />
-            <span className="sr-only">Selected</span>
+            <span className="sr-only">{t("c.booking.VehicleCard.selected")}</span>
           </span>
         )}
       </div>
@@ -106,15 +107,11 @@ export function VehicleCard({
             )}
 
             {rentalDays > 0 && (
-              <p className="shrink-0 text-xs text-ink-muted">
-                {rentalDays} day{rentalDays === 1 ? "" : "s"}
-              </p>
+              <p className="shrink-0 text-xs text-ink-muted">{t("duration.days", { count: rentalDays })}</p>
             )}
           </div>
 
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {formatCurrency(perDay)} per day
-          </p>
+          <p className="mt-0.5 text-xs text-ink-muted">{t("c.booking.VehicleCard.perDay", { price: formatCurrency(perDay) })}</p>
 
           <button
             type="button"
@@ -126,7 +123,7 @@ export function VehicleCard({
                 : "bg-gray-900 text-white hover:bg-gray-800"
             }`}
           >
-            {selected ? "Selected" : "Select"}
+            {selected ? t("c.booking.VehicleCard.selected") : t("c.booking.VehicleCard.select")}
           </button>
         </div>
       </div>

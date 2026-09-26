@@ -173,3 +173,10 @@ export function enumLabel(group: string, value: string | null | undefined): stri
 
   return translator?.has(key) ? translator(key) : humanize(value);
 }
+
+/** enumLabel for the middle of a sentence ("this rental is cancelled"). */
+export function enumLabelLower(group: string, value: string | null | undefined): string {
+  const language = getActiveLanguage();
+
+  return enumLabel(group, value).toLocaleLowerCase(language === PSEUDO ? "en" : language);
+}

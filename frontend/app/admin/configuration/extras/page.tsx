@@ -13,6 +13,7 @@ import { ExtraModal } from "@/components/admin/ExtraModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 export default function ExtrasConfigurationPage() {
   const [extras, setExtras] = useState<AdminExtra[] | null>(null);
@@ -24,7 +25,7 @@ export default function ExtrasConfigurationPage() {
     try {
       setExtras(await getAdminExtras());
     } catch {
-      setError("Failed to load extras.");
+      setError(t("s.admin.configuration.extras.failedLoadExtras"));
     }
   }, []);
 
@@ -36,7 +37,7 @@ export default function ExtrasConfigurationPage() {
         if (!cancelled) setExtras(data);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load extras.");
+        if (!cancelled) setError(t("s.admin.configuration.extras.failedLoadExtras"));
       });
 
     return () => {
@@ -52,7 +53,7 @@ export default function ExtrasConfigurationPage() {
       await updateExtra(extra.id, { is_active: !extra.is_active });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update the extra.");
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.extras.failedUpdateExtra"));
     } finally {
       setBusyId(null);
     }
@@ -74,7 +75,7 @@ export default function ExtrasConfigurationPage() {
     try {
       setExtras(await reorderExtras(ids));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reorder the extras.");
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.extras.failedReorderExtras"));
     } finally {
       setBusyId(null);
     }
@@ -85,18 +86,13 @@ export default function ExtrasConfigurationPage() {
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">Extras</h2>
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.extras.extras")}</h2>
 
-            <p className="mt-1 text-sm text-ink-secondary">
-              Add-ons customers can put on a booking. Changing a price only
-              affects new bookings; retire an extra to stop selling it.
-            </p>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.extras.addOnsCustomersCan")}</p>
           </div>
 
           <Button onClick={() => setEditing("new")}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add extra
-          </Button>
+            <Plus className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.extras.addExtra")}</Button>
         </div>
 
         {error && (
@@ -106,7 +102,7 @@ export default function ExtrasConfigurationPage() {
         )}
 
         {!extras ? (
-          !error && <p className="mt-6 text-ink-secondary">Loading extras…</p>
+          !error && <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.extras.loadingExtras")}</p>
         ) : (
           <ul className="mt-6 divide-y divide-border-subtle">
             {extras.map((extra, index) => (
@@ -120,9 +116,7 @@ export default function ExtrasConfigurationPage() {
                   <p className="font-medium text-ink">
                     {extra.name}
                     {!extra.is_active && (
-                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                        Retired
-                      </span>
+                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("s.admin.configuration.extras.retired")}</span>
                     )}
                   </p>
 
@@ -132,17 +126,13 @@ export default function ExtrasConfigurationPage() {
                     </p>
                   )}
 
-                  <p className="mt-1 text-sm text-ink-secondary">
-                    {formatCurrency(extra.price)}{" "}
-                    {extra.price_unit === "PER_DAY" ? "per day" : "once per rental"}{" "}
-                    · up to {extra.max_quantity}
-                  </p>
+                  <p className="mt-1 text-sm text-ink-secondary">{t(extra.price_unit === "PER_DAY" ? "s.admin.configuration.extras.pricePerDay" : "s.admin.configuration.extras.priceOnce", { price: formatCurrency(extra.price), max_quantity: extra.max_quantity })}</p>
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    aria-label={`Move ${extra.name} up`}
+                    aria-label={t("s.admin.configuration.extras.moveUp", { name: extra.name })}
                     disabled={index === 0 || busyId !== null}
                     onClick={() => move(index, -1)}
                     className="rounded-md p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:opacity-30"
@@ -152,7 +142,7 @@ export default function ExtrasConfigurationPage() {
 
                   <button
                     type="button"
-                    aria-label={`Move ${extra.name} down`}
+                    aria-label={t("s.admin.configuration.extras.moveDown", { name: extra.name })}
                     disabled={index === extras.length - 1 || busyId !== null}
                     onClick={() => move(index, 1)}
                     className="rounded-md p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:opacity-30"
@@ -160,16 +150,14 @@ export default function ExtrasConfigurationPage() {
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                   </button>
 
-                  <Button variant="secondary" onClick={() => setEditing(extra)}>
-                    Edit
-                  </Button>
+                  <Button variant="secondary" onClick={() => setEditing(extra)}>{t("s.admin.configuration.extras.edit")}</Button>
 
                   <Button
                     variant="ghost"
                     onClick={() => toggleActive(extra)}
                     disabled={busyId === extra.id}
                   >
-                    {extra.is_active ? "Retire" : "Reactivate"}
+                    {extra.is_active ? t("s.admin.configuration.extras.retire") : t("s.admin.configuration.extras.reactivate")}
                   </Button>
                 </div>
               </li>

@@ -15,6 +15,7 @@ import {
 
 import { formatCurrency } from "@/lib/format";
 import type { Extra, ExtraSelection } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 /**
  * Icons per catalog code. Falls back to a generic shield so an extra
@@ -33,7 +34,7 @@ function priceLabel(extra: Extra): string {
   const price = formatCurrency(extra.price);
 
   return extra.price_unit === "PER_DAY"
-    ? `${price} per day`
+    ? t("c.booking.ExtrasPicker.perDay", { price })
     : `${price} one-off`;
 }
 
@@ -120,7 +121,7 @@ export function ExtrasPicker({
                     <button
                       type="button"
                       onClick={() => setQuantity(extra.id, quantity - 1)}
-                      aria-label={`Remove one ${extra.name}`}
+                      aria-label={t("c.booking.ExtrasPicker.removeOne", { name: extra.name })}
                       className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                     >
                       <Minus className="h-4 w-4" aria-hidden="true" />
@@ -137,7 +138,7 @@ export function ExtrasPicker({
                       type="button"
                       disabled={quantity >= extra.max_quantity}
                       onClick={() => setQuantity(extra.id, quantity + 1)}
-                      aria-label={`Add one more ${extra.name}`}
+                      aria-label={t("c.booking.ExtrasPicker.addOneMore", { name: extra.name })}
                       className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
@@ -154,14 +155,12 @@ export function ExtrasPicker({
                         : "border border-border-strong bg-white text-ink-secondary hover:bg-surface-sunken hover:text-ink"
                     }`}
                   >
-                    {isSelected ? "Added" : "Add"}
+                    {isSelected ? t("c.booking.ExtrasPicker.added") : t("c.booking.ExtrasPicker.add")}
                   </button>
                 )}
 
                 {countable && !isSelected && (
-                  <p className="mt-1 text-center text-xs text-ink-muted">
-                    up to {extra.max_quantity}
-                  </p>
+                  <p className="mt-1 text-center text-xs text-ink-muted">{t("c.booking.ExtrasPicker.up", { max_quantity: extra.max_quantity })}</p>
                 )}
               </div>
             </div>

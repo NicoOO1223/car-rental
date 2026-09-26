@@ -16,13 +16,15 @@ import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { Button } from "@/components/ui/Button";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { t } from "@/lib/i18n";
+import { auditActionLabel, auditEntityLabel } from "@/lib/audit";
 
 const PAGE_SIZE = 25;
 
 // No backend endpoint enumerates these — they're the fixed set of
 // entity types and actions app/services/audit.py currently writes.
 // Update this list by hand if a future layer adds a new audited action.
-const ENTITY_TYPES = ["reservation", "customer", "handover", "check_out", "car", "extra", "user", "configuration", "maintenance_task"];
+const ENTITY_TYPES = ["reservation", "customer", "handover", "check_out", "car", "extra", "user", "configuration", "maintenance_task", "invoice", "location"];
 const ACTIONS = [
   "reservation.cancelled",
   "reservation.status_changed",
@@ -57,6 +59,15 @@ const ACTIONS = [
   "user.password_reset",
   "user.visibility_changed",
   "configuration.updated",
+  "configuration.logo_changed",
+  "invoice.issued",
+  "invoice.credit_note_issued",
+  "location.created",
+  "location.updated",
+  "handover.deposit_held",
+  "handover.deposit_released",
+  "check_out.deposit_settled",
+  "user.login_locked",
   "maintenance_task.created",
   "maintenance_task.completed",
   "maintenance_task.cancelled",
@@ -111,7 +122,7 @@ export default function AuditLogPage() {
         setEntries(response.items);
         setTotal(response.total);
       } catch {
-        if (!cancelled) setError("Failed to load audit log.");
+        if (!cancelled) setError(t("s.admin.auditLog.failedLoadAuditLog"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -150,61 +161,59 @@ export default function AuditLogPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Audit Log"
-        description="Every recorded action across the platform, most recent first."
+        title={t("s.admin.auditLog.auditLog")}
+        description={t("s.admin.auditLog.everyRecordedActionAcross")}
       />
 
       <Toolbar
         footer={
           isFiltered ? (
-            <Button variant="ghost" size="sm" onClick={() => clearFilters()}>
-              Clear filters
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => clearFilters()}>{t("s.admin.auditLog.clearFilters")}</Button>
           ) : undefined
         }
       >
-        <Field label="Entity type">
+        <Field label={t("s.admin.auditLog.entityType")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.entity_type}
               onChange={(event) => updateFilter({ entity_type: event.target.value })}
             >
-              <option value="ALL">All entities</option>
+              <option value="ALL">{t("s.admin.auditLog.allEntities")}</option>
               {ENTITY_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  {auditEntityLabel(type)}
                 </option>
               ))}
             </Select>
           )}
         </Field>
 
-        <Field label="Action">
+        <Field label={t("s.admin.auditLog.action")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.action}
               onChange={(event) => updateFilter({ action: event.target.value })}
             >
-              <option value="ALL">All actions</option>
+              <option value="ALL">{t("s.admin.auditLog.allActions")}</option>
               {ACTIONS.map((action) => (
                 <option key={action} value={action}>
-                  {action}
+                  {auditActionLabel(action)}
                 </option>
               ))}
             </Select>
           )}
         </Field>
 
-        <Field label="User">
+        <Field label={t("s.admin.auditLog.user")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.user_id}
               onChange={(event) => updateFilter({ user_id: event.target.value })}
             >
-              <option value="ALL">All users</option>
+              <option value="ALL">{t("s.admin.auditLog.allUsers")}</option>
               {actors.map((actor) => (
                 <option key={actor.id} value={actor.id}>
                   {actor.email}
@@ -215,7 +224,7 @@ export default function AuditLogPage() {
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="From">
+          <Field label={t("s.admin.auditLog.from")}>
             {(fieldProps) => (
               <Input
                 {...fieldProps}
@@ -226,7 +235,7 @@ export default function AuditLogPage() {
             )}
           </Field>
 
-          <Field label="To">
+          <Field label={t("s.admin.auditLog.text")}>
             {(fieldProps) => (
               <Input
                 {...fieldProps}

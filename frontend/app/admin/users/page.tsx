@@ -15,6 +15,7 @@ import { EditUserModal } from "@/components/users/EditUserModal";
 import { NewUserModal } from "@/components/users/NewUserModal";
 import { ResetPasswordModal } from "@/components/users/ResetPasswordModal";
 import { formatDateTime } from "@/lib/format";
+import { t, enumLabel } from "@/lib/i18n";
 
 export default function UsersPage() {
   const { user: currentUser } = useCurrentUser();
@@ -37,7 +38,7 @@ export default function UsersPage() {
     try {
       setUsers(await getUsers());
     } catch {
-      setError("Failed to load users.");
+      setError(t("s.admin.users.failedLoadUsers"));
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ export default function UsersPage() {
       try {
         setUsers(await getUsers());
       } catch {
-        setError("Failed to load users.");
+        setError(t("s.admin.users.failedLoadUsers"));
       } finally {
         setLoading(false);
       }
@@ -77,7 +78,7 @@ export default function UsersPage() {
 
   async function handleDeactivate(user: User) {
     const confirmed = window.confirm(
-      `Deactivate ${user.email}? They will be signed out immediately and unable to log in again until reactivated.`,
+      t("s.admin.users.deactivateTheyWillBe", { email: user.email }),
     );
 
     if (!confirmed) return;
@@ -86,7 +87,7 @@ export default function UsersPage() {
       await updateUser(user.id, { is_active: false });
       refreshUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to deactivate user.");
+      setError(err instanceof Error ? err.message : t("s.admin.users.failedDeactivateUser"));
     }
   }
 
@@ -95,14 +96,14 @@ export default function UsersPage() {
       await updateUser(user.id, { is_active: true });
       refreshUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reactivate user.");
+      setError(err instanceof Error ? err.message : t("s.admin.users.failedReactivateUser"));
     }
   }
 
   const columns: Column<User>[] = [
     {
       id: "email",
-      header: "Email",
+      header: t("s.admin.users.email"),
       mobile: "primary",
       cell: (user) => user.email,
       sortable: true,
@@ -110,7 +111,7 @@ export default function UsersPage() {
     },
     {
       id: "role",
-      header: "Role",
+      header: t("s.admin.users.role"),
       mobile: "trailing",
       cell: (user) => (
         <Badge
@@ -120,7 +121,7 @@ export default function UsersPage() {
               : "bg-surface-sunken text-ink-secondary"
           }
         >
-          {user.role}
+          {enumLabel("role", user.role)}
         </Badge>
       ),
       sortable: true,
@@ -128,7 +129,7 @@ export default function UsersPage() {
     },
     {
       id: "status",
-      header: "Status",
+      header: t("s.admin.users.status"),
       mobile: "secondary",
       cell: (user) => (
         <Badge
@@ -138,7 +139,7 @@ export default function UsersPage() {
               : "bg-red-100 text-red-800"
           }
         >
-          {user.is_active ? "Active" : "Inactive"}
+          {user.is_active ? t("s.admin.users.active") : t("s.admin.users.inactive")}
         </Badge>
       ),
       sortable: true,
@@ -146,8 +147,8 @@ export default function UsersPage() {
     },
     {
       id: "created",
-      header: "Created",
-      mobileLabel: "Created",
+      header: t("s.admin.users.created"),
+      mobileLabel: t("s.admin.users.created"),
       cell: (user) => (
         <span className="text-sm text-ink-muted">
           {formatDateTime(user.created_at)}
@@ -162,52 +163,50 @@ export default function UsersPage() {
   return (
     <PageShell width="medium">
       <PageHeader
-        title="Users"
-        description="Manage staff and admin accounts. Deactivating an account signs it out immediately."
+        title={t("s.admin.users.users")}
+        description={t("s.admin.users.manageStaffAdminAccounts")}
         actions={
           <Button onClick={() => setShowNewUser(true)}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            New user
-          </Button>
+            <Plus className="h-4 w-4" aria-hidden="true" />{t("s.admin.users.newUser")}</Button>
         }
       />
 
       <Toolbar>
-        <Field label="Search">
+        <Field label={t("s.admin.users.search")}>
           {(fieldProps) => (
             <Input
               {...fieldProps}
-              placeholder="Search by email..."
+              placeholder={t("s.admin.users.searchByEmail")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           )}
         </Field>
 
-        <Field label="Role">
+        <Field label={t("s.admin.users.role")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={roleFilter}
               onChange={(event) => setRoleFilter(event.target.value)}
             >
-              <option value="ALL">All roles</option>
-              <option value="admin">Admin</option>
-              <option value="staff">Staff</option>
+              <option value="ALL">{t("s.admin.users.allRoles")}</option>
+              <option value="admin">{t("s.admin.users.admin")}</option>
+              <option value="staff">{t("s.admin.users.staff")}</option>
             </Select>
           )}
         </Field>
 
-        <Field label="Status">
+        <Field label={t("s.admin.users.status")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
-              <option value="ALL">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="ALL">{t("s.admin.users.allStatuses")}</option>
+              <option value="ACTIVE">{t("s.admin.users.active")}</option>
+              <option value="INACTIVE">{t("s.admin.users.inactive")}</option>
             </Select>
           )}
         </Field>
@@ -228,29 +227,29 @@ export default function UsersPage() {
         loading={loading}
         rowActions={[
           {
-            label: "Edit",
+            label: t("s.admin.users.edit"),
             onClick: (user) => setEditingUser(user),
           },
           {
-            label: "Reset password",
+            label: t("s.admin.users.resetPassword"),
             onClick: (user) => setResettingUser(user),
           },
           {
-            label: "Deactivate",
+            label: t("s.admin.users.deactivate"),
             variant: "danger",
             onClick: handleDeactivate,
             hidden: (user) => !user.is_active || user.id === currentUser?.id,
           },
           {
-            label: "Reactivate",
+            label: t("s.admin.users.reactivate"),
             onClick: handleReactivate,
             hidden: (user) => user.is_active,
           },
         ]}
         empty={{
           icon: UserCog,
-          title: "No users found",
-          description: "Nothing matches this filter right now.",
+          title: t("s.admin.users.noUsersFound"),
+          description: t("s.admin.users.nothingMatchesFilterRight"),
         }}
       />
 

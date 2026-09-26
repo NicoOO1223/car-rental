@@ -13,6 +13,7 @@ import { LocationModal } from "@/components/admin/LocationModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { t } from "@/lib/i18n";
 
 export default function LocationsConfigurationPage() {
   const [locations, setLocations] = useState<Location[] | null>(null);
@@ -25,7 +26,7 @@ export default function LocationsConfigurationPage() {
     try {
       setLocations(await getLocations({ includeInactive: true }));
     } catch {
-      setError("Failed to load locations.");
+      setError(t("s.admin.configuration.locations.failedLoadLocations"));
     }
   }, []);
 
@@ -40,7 +41,7 @@ export default function LocationsConfigurationPage() {
         setBusinessTimezone(configuration.timezone);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load locations.");
+        if (!cancelled) setError(t("s.admin.configuration.locations.failedLoadLocations"));
       });
 
     return () => {
@@ -57,7 +58,7 @@ export default function LocationsConfigurationPage() {
       await refresh();
     } catch (err) {
       // The API explains why a location still in use cannot be retired.
-      setError(err instanceof Error ? err.message : "Failed to update the location.");
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.locations.failedUpdateLocation"));
     } finally {
       setBusyId(null);
     }
@@ -68,19 +69,13 @@ export default function LocationsConfigurationPage() {
       <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">Locations</h2>
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.locations.locations")}</h2>
 
-            <p className="mt-1 text-sm text-ink-secondary">
-              Where vehicles are based and picked up. Each has its own
-              timezone. A location can be retired once no vehicles or open
-              reservations are left there; past records keep showing it.
-            </p>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.locations.whereVehiclesBasedPicked")}</p>
           </div>
 
           <Button onClick={() => setEditing("new")}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add location
-          </Button>
+            <Plus className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.locations.addLocation")}</Button>
         </div>
 
         {error && (
@@ -90,15 +85,15 @@ export default function LocationsConfigurationPage() {
         )}
 
         {!locations ? (
-          !error && <p className="mt-6 text-ink-secondary">Loading locations…</p>
+          !error && <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.locations.loadingLocations")}</p>
         ) : locations.length === 0 ? (
           <EmptyState
             className="mt-6"
             icon={MapPin}
-            title="No locations yet"
-            description="Add the first location before adding vehicles or taking bookings."
+            title={t("s.admin.configuration.locations.noLocationsYet")}
+            description={t("s.admin.configuration.locations.addFirstLocationBefore")}
             action={
-              <Button onClick={() => setEditing("new")}>Add location</Button>
+              <Button onClick={() => setEditing("new")}>{t("s.admin.configuration.locations.addLocation")}</Button>
             }
           />
         ) : (
@@ -117,9 +112,7 @@ export default function LocationsConfigurationPage() {
                     </span>
                     {location.name}
                     {!location.is_active && (
-                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                        Retired
-                      </span>
+                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("s.admin.configuration.locations.retired")}</span>
                     )}
                   </p>
 
@@ -141,9 +134,7 @@ export default function LocationsConfigurationPage() {
                     disabled={busyId !== null}
                     onClick={() => setEditing(location)}
                   >
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
-                    Edit
-                  </Button>
+                    <Pencil className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.locations.edit")}</Button>
 
                   <Button
                     variant="ghost"
@@ -152,7 +143,7 @@ export default function LocationsConfigurationPage() {
                     disabled={busyId !== null}
                     onClick={() => toggleActive(location)}
                   >
-                    {location.is_active ? "Retire" : "Restore"}
+                    {location.is_active ? t("s.admin.configuration.locations.retire") : t("s.admin.configuration.locations.restore")}
                   </Button>
                 </div>
               </li>

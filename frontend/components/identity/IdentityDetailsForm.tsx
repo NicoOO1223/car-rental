@@ -10,11 +10,12 @@ import {
 } from "@/lib/api";
 import { getCountries } from "@/lib/countries";
 import { formatDateTime } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 const DOCUMENT_TYPES = [
-  { value: "ID_CARD", label: "ID card" },
-  { value: "PASSPORT", label: "Passport" },
-  { value: "RESIDENCE_PERMIT", label: "Residence permit" },
+  { value: "ID_CARD", get label() { return t("c.identity.IdentityDetailsForm.idCard"); } },
+  { value: "PASSPORT", get label() { return t("c.identity.IdentityDetailsForm.passport"); } },
+  { value: "RESIDENCE_PERMIT", get label() { return t("c.identity.IdentityDetailsForm.residencePermit"); } },
 ];
 
 type Props = {
@@ -99,7 +100,7 @@ export function IdentityDetailsForm({
       setEditing(false);
       setDocumentsChecked(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save details.");
+      setError(err instanceof Error ? err.message : t("c.identity.IdentityDetailsForm.failedSaveDetails"));
     } finally {
       setSaving(false);
     }
@@ -107,27 +108,28 @@ export function IdentityDetailsForm({
 
   if (details.legacy_stripe_verified && !editing) {
     return (
-      <p className="text-sm text-gray-700">
-        Identity verified through Stripe Identity.
-      </p>
+      <p className="text-sm text-gray-700">{t("c.identity.IdentityDetailsForm.identityVerifiedThroughStripe")}</p>
     );
   }
 
   if (complete && !editing) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-gray-700">
-          Identity and driving licence recorded
-          {details.identity_checked_by_email &&
-            ` — documents checked by ${details.identity_checked_by_email}`}
-          {details.identity_checked_at &&
-            ` on ${formatDateTime(details.identity_checked_at)}`}
-          .
-        </p>
+        <p className="text-sm text-gray-700">{t(
+          details.identity_checked_by_email
+            ? details.identity_checked_at
+              ? "c.identity.IdentityDetailsForm.recordedByOn"
+              : "c.identity.IdentityDetailsForm.recordedBy"
+            : details.identity_checked_at
+              ? "c.identity.IdentityDetailsForm.recordedOn"
+              : "c.identity.IdentityDetailsForm.recorded",
+          {
+            email: details.identity_checked_by_email ?? "",
+            date: details.identity_checked_at ? formatDateTime(details.identity_checked_at) : "",
+          },
+        )}</p>
 
-        <Button variant="secondary" onClick={() => setEditing(true)}>
-          Edit details
-        </Button>
+        <Button variant="secondary" onClick={() => setEditing(true)}>{t("c.identity.IdentityDetailsForm.editDetails")}</Button>
       </div>
     );
   }
@@ -141,23 +143,23 @@ export function IdentityDetailsForm({
       )}
 
       <div>
-        <h3 className="text-sm font-semibold text-ink">Identity document</h3>
+        <h3 className="text-sm font-semibold text-ink">{t("c.identity.IdentityDetailsForm.identityDocument")}</h3>
 
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <TextField
-            label={nationality === "PL" ? "PESEL" : "National ID number"}
-            hint="If the customer has one. Otherwise enter a document number below, such as a passport number."
+            label={nationality === "PL" ? t("c.identity.IdentityDetailsForm.pesel") : t("c.identity.IdentityDetailsForm.nationalIdNumber")}
+            hint={t("c.identity.IdentityDetailsForm.ifCustomerHasOne")}
             className="sm:col-span-2"
             value={nationalId}
             onChange={(event) => setNationalId(event.target.value)}
           />
 
           <SelectField
-            label="Document type"
+            label={t("c.identity.IdentityDetailsForm.documentType")}
             value={documentType}
             onChange={(event) => setDocumentType(event.target.value)}
           >
-            <option value="">Not recorded</option>
+            <option value="">{t("c.identity.IdentityDetailsForm.notRecorded")}</option>
             {DOCUMENT_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -166,13 +168,13 @@ export function IdentityDetailsForm({
           </SelectField>
 
           <TextField
-            label="Document number"
+            label={t("c.identity.IdentityDetailsForm.documentNumber")}
             value={documentNumber}
             onChange={(event) => setDocumentNumber(event.target.value)}
           />
 
           <TextField
-            label="Document expiry"
+            label={t("c.identity.IdentityDetailsForm.documentExpiry")}
             type="date"
             value={documentExpiry}
             onChange={(event) => setDocumentExpiry(event.target.value)}
@@ -181,22 +183,22 @@ export function IdentityDetailsForm({
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-ink">Driving licence</h3>
+        <h3 className="text-sm font-semibold text-ink">{t("c.identity.IdentityDetailsForm.drivingLicence")}</h3>
 
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <TextField
-            label="Licence number"
+            label={t("c.identity.IdentityDetailsForm.licenceNumber")}
             required
             value={licenseNumber}
             onChange={(event) => setLicenseNumber(event.target.value)}
           />
 
           <SelectField
-            label="Issuing country"
+            label={t("c.identity.IdentityDetailsForm.issuingCountry")}
             value={licenseCountry}
             onChange={(event) => setLicenseCountry(event.target.value)}
           >
-            <option value="">Select a country...</option>
+            <option value="">{t("c.identity.IdentityDetailsForm.selectCountry")}</option>
             {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
@@ -205,21 +207,21 @@ export function IdentityDetailsForm({
           </SelectField>
 
           <TextField
-            label="Categories"
-            hint="e.g. B, BE"
+            label={t("c.identity.IdentityDetailsForm.categories")}
+            hint={t("c.identity.IdentityDetailsForm.eGBBe")}
             value={licenseCategories}
             onChange={(event) => setLicenseCategories(event.target.value)}
           />
 
           <TextField
-            label="Issue date"
+            label={t("c.identity.IdentityDetailsForm.issueDate")}
             type="date"
             value={licenseIssued}
             onChange={(event) => setLicenseIssued(event.target.value)}
           />
 
           <TextField
-            label="Expiry date"
+            label={t("c.identity.IdentityDetailsForm.expiryDate")}
             type="date"
             required
             className="sm:col-span-2"
@@ -235,10 +237,7 @@ export function IdentityDetailsForm({
           className="mt-0.5 h-4 w-4"
           checked={documentsChecked}
           onChange={(event) => setDocumentsChecked(event.target.checked)}
-        />
-        I have checked the customer&apos;s original documents and the details
-        above match them.
-      </label>
+        />{t("c.identity.IdentityDetailsForm.iHaveCheckedCustomer")}</label>
 
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -248,7 +247,7 @@ export function IdentityDetailsForm({
 
       <div className="flex gap-3">
         <Button type="submit" disabled={saving || !documentsChecked}>
-          {saving ? "Saving..." : "Save identity details"}
+          {saving ? t("c.identity.IdentityDetailsForm.saving") : t("c.identity.IdentityDetailsForm.saveIdentityDetails")}
         </Button>
 
         {editing && (
@@ -256,9 +255,7 @@ export function IdentityDetailsForm({
             type="button"
             variant="secondary"
             onClick={() => setEditing(false)}
-          >
-            Cancel
-          </Button>
+          >{t("c.identity.IdentityDetailsForm.cancel")}</Button>
         )}
       </div>
     </form>

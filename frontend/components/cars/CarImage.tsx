@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 
 /**
  * A vehicle's photo, with a category silhouette behind it.
@@ -67,7 +68,7 @@ function CarSilhouette({ category }: { category: string | null }) {
       viewBox="0 0 200 100"
       className="h-full w-full"
       role="img"
-      aria-label="Vehicle illustration"
+      aria-label={t("c.cars.CarImage.vehicleIllustration")}
       preserveAspectRatio="xMidYMid meet"
     >
       <path d={BODY_PATHS[style]} className="fill-gray-300" />

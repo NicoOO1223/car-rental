@@ -146,10 +146,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const businessDefault = brand.loaded ? usable(brand.defaultLanguage) : null;
 
+  // The development pseudo-language is never saved to an account, so it
+  // sticks to the device instead: a page reload keeps it while testing.
+  const devPseudo = stored === PSEUDO ? usable(PSEUDO) : null;
+
   const wanted =
-    userLanguage !== undefined
+    devPseudo ??
+    (userLanguage !== undefined
       ? (usable(userLanguage) ?? businessDefault)
-      : (usable(stored) ?? businessDefault);
+      : (usable(stored) ?? businessDefault));
 
   // A person who is offline or whose branding call failed still gets English.
   const resolved = wanted ?? (brand.loaded ? DEFAULT_LANGUAGE : null);

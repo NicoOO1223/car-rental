@@ -1,42 +1,43 @@
 "use client";
 
 import { ConfigSectionForm } from "@/components/admin/ConfigSectionForm";
+import { t } from "@/lib/i18n";
 
 export default function ReturnChargesConfigurationPage() {
   return (
     <ConfigSectionForm
-      title="Return charges"
-      description="Charged at check-out when a car comes back late, short of fuel, or damaged."
+      title={t("s.admin.configuration.returns.returnCharges")}
+      description={t("s.admin.configuration.returns.chargedAtCheckOut")}
       fields={[
         {
           key: "late_return_grace_minutes",
-          label: "Late return grace period (minutes)",
+          label: t("s.admin.configuration.returns.lateReturnGracePeriod"),
           kind: "integer",
-          hint: "A return no later than this after the scheduled time is not charged.",
+          hint: t("s.admin.configuration.returns.returnNoLaterThan"),
         },
         {
           key: "late_fee_per_hour",
-          label: "Late fee per started hour",
+          label: t("s.admin.configuration.returns.lateFeePerStarted"),
           kind: "money",
-          hint: "Once past the grace period, every started hour late (counted from the scheduled return) is charged.",
+          hint: t("s.admin.configuration.returns.oncePastGracePeriod"),
         },
         {
           key: "fuel_fee_per_eighth",
-          label: "Fuel fee per missing eighth of a tank",
+          label: t("s.admin.configuration.returns.fuelFeePerMissing"),
           kind: "money",
-          hint: "Cars are handed out with a full tank.",
+          hint: t("s.admin.configuration.returns.carsHandedOutWith"),
         },
         {
           key: "refuel_service_fee",
-          label: "Refuelling service fee",
+          label: t("s.admin.configuration.returns.refuellingServiceFee"),
           kind: "money",
-          hint: "Added once when the car comes back with any fuel missing.",
+          hint: t("s.admin.configuration.returns.addedOnceWhenCar"),
         },
         {
           key: "max_damage_charge",
-          label: "Maximum damage charge",
+          label: t("s.admin.configuration.returns.maximumDamageCharge"),
           kind: "money",
-          hint: "The most an employee can charge for damage at check-out.",
+          hint: t("s.admin.configuration.returns.mostEmployeeCanCharge"),
         },
       ]}
     />

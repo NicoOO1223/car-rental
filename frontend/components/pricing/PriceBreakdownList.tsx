@@ -1,5 +1,6 @@
 import { formatCurrency, formatDuration } from "@/lib/format";
 import type { PriceBreakdown } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 /**
  * The itemized price, rendered identically in the booking wizard and on
@@ -13,7 +14,7 @@ import type { PriceBreakdown } from "@/lib/api";
  */
 export function PriceBreakdownList({
   breakdown,
-  totalLabel = "Total",
+  totalLabel = t("c.pricing.PriceBreakdownList.total"),
   className = "",
 }: {
   breakdown: Pick<
@@ -48,9 +49,7 @@ export function PriceBreakdownList({
     <div className={className}>
       <dl className="space-y-2.5 text-sm">
         <div className="flex items-baseline justify-between gap-4">
-          <dt className="text-ink-secondary">
-            Base rental
-            {breakdown.rental_days ? (
+          <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.baseRental")}{breakdown.rental_days ? (
               <span className="text-ink-muted">
                 {" "}
                 · {formatDuration(breakdown.rental_days)}
@@ -64,7 +63,7 @@ export function PriceBreakdownList({
 
         {breakdown.short_term_fee > 0 && (
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-secondary">Short-term rental fee</dt>
+            <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.shortTermRentalFee")}</dt>
             <dd className="shrink-0 font-medium text-ink tabular-nums">
               {money(breakdown.short_term_fee)}
             </dd>
@@ -73,7 +72,7 @@ export function PriceBreakdownList({
 
         {breakdown.airport_change_fee > 0 && (
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-secondary">Airport change fee</dt>
+            <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.airportChangeFee")}</dt>
             <dd className="shrink-0 font-medium text-ink tabular-nums">
               {money(breakdown.airport_change_fee)}
             </dd>
@@ -101,13 +100,13 @@ export function PriceBreakdownList({
       {addsVat && (
         <dl className="mt-4 space-y-2.5 border-t border-border-subtle pt-4 text-sm">
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-secondary">Subtotal</dt>
+            <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.subtotal")}</dt>
             <dd className="shrink-0 font-medium text-ink tabular-nums">
               {money(breakdown.net_amount ?? breakdown.total_amount - vatAmount)}
             </dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-ink-secondary">VAT {rateLabel}</dt>
+            <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.vat", { rateLabel })}</dt>
             <dd className="shrink-0 font-medium text-ink tabular-nums">
               {money(vatAmount)}
             </dd>
@@ -127,9 +126,7 @@ export function PriceBreakdownList({
       </div>
 
       {includesVat && (
-        <p className="mt-2 text-right text-xs text-ink-muted">
-          Includes VAT {rateLabel}: {money(vatAmount)}
-        </p>
+        <p className="mt-2 text-right text-xs text-ink-muted">{t("c.pricing.PriceBreakdownList.includesVat", { rate: rateLabel, amount: money(vatAmount) })}</p>
       )}
     </div>
   );

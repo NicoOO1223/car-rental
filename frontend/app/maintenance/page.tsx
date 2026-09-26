@@ -23,6 +23,7 @@ import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 import { maintenanceCategoryLabel } from "@/lib/maintenance";
 import { formatDateTime } from "@/lib/format";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   status: "OPEN",
@@ -62,7 +63,7 @@ export default function MaintenancePage() {
 
         if (!cancelled) setTasks(data);
       } catch {
-        if (!cancelled) setError("Failed to load maintenance tasks.");
+        if (!cancelled) setError(t("s.maintenance.failedLoadMaintenanceTasks"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -87,7 +88,7 @@ export default function MaintenancePage() {
         ),
       );
     } catch {
-      setError("Failed to load maintenance tasks.");
+      setError(t("s.maintenance.failedLoadMaintenanceTasks"));
     } finally {
       setRefreshing(false);
     }
@@ -116,7 +117,7 @@ export default function MaintenancePage() {
   const columns: Column<MaintenanceTask>[] = [
     {
       id: "vehicle",
-      header: "Vehicle",
+      header: t("s.maintenance.vehicle"),
       mobile: "primary",
       cell: (task) => (
         <TwoLine
@@ -132,14 +133,14 @@ export default function MaintenancePage() {
       // The table folds the plate into the vehicle cell above; the card
       // needs it as its own line.
       id: "plate",
-      header: "Plate",
+      header: t("s.maintenance.plate"),
       mobile: "secondary",
       mobileOnly: true,
       cell: (task) => task.car.license_plate,
     },
     {
       id: "type",
-      header: "Type",
+      header: t("s.maintenance.type"),
       mobile: "trailing",
       cell: (task) => (
         <div className="flex flex-col items-start gap-1">
@@ -156,7 +157,7 @@ export default function MaintenancePage() {
     },
     {
       id: "notes",
-      header: "Notes",
+      header: t("s.maintenance.notes"),
       mobile: "hidden",
       cell: (task) => (
         <span className="text-sm text-ink-secondary">{task.notes || "—"}</span>
@@ -164,34 +165,32 @@ export default function MaintenancePage() {
     },
     {
       id: "window",
-      header: "Out of service",
-      mobileLabel: "Out of service",
+      header: t("s.maintenance.outService"),
+      mobileLabel: t("s.maintenance.outService"),
       cell: (task) => (
         <div className="text-sm text-ink-muted">
           <div>{formatDateTime(task.starts_at ?? task.opened_at)}</div>
           <div className="mt-0.5">
-            {task.ends_at ? `until ${formatDateTime(task.ends_at)}` : "until closed"}
+            {task.ends_at ? t("s.maintenance.untilDate", { date: formatDateTime(task.ends_at) }) : t("s.maintenance.untilClosed")}
           </div>
         </div>
       ),
       mobileCell: (task) =>
         `${formatDateTime(task.starts_at ?? task.opened_at)} – ${
-          task.ends_at ? formatDateTime(task.ends_at) : "until closed"
+          task.ends_at ? formatDateTime(task.ends_at) : t("s.maintenance.untilClosed")
         }`,
       sortable: true,
       sortAccessor: (task) => new Date(task.starts_at ?? task.opened_at),
     },
     {
       id: "opened",
-      header: "Opened",
-      mobileLabel: "Opened",
+      header: t("s.maintenance.opened"),
+      mobileLabel: t("s.maintenance.opened"),
       cell: (task) => (
         <div className="text-sm text-ink-muted">
           <div>{formatDateTime(task.opened_at)}</div>
           {task.completed_at && (
-            <div className="mt-0.5">
-              Closed {formatDateTime(task.completed_at)}
-            </div>
+            <div className="mt-0.5">{t("s.maintenance.closed", { v1: formatDateTime(task.completed_at) })}</div>
           )}
         </div>
       ),
@@ -202,8 +201,8 @@ export default function MaintenancePage() {
     },
     {
       id: "status",
-      header: "Status",
-      mobileLabel: "Status",
+      header: t("s.maintenance.status"),
+      mobileLabel: t("s.maintenance.status"),
       cell: (task) => <TaskStatusBadge status={task.status} />,
       sortable: true,
       sortAccessor: (task) => task.status,
@@ -213,8 +212,8 @@ export default function MaintenancePage() {
   return (
     <PageShell width="medium">
       <PageHeader
-        title="Maintenance"
-        description="Fleet-wide maintenance and cleaning. A car with an open task is automatically excluded from new bookings."
+        title={t("s.maintenance.maintenance")}
+        description={t("s.maintenance.fleetWideMaintenanceCleaning")}
         actions={
           <>
             <Button
@@ -225,42 +224,38 @@ export default function MaintenancePage() {
               <RefreshCw
                 className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
                 aria-hidden="true"
-              />
-              Refresh
-            </Button>
+              />{t("s.maintenance.refresh")}</Button>
 
             <Button
               onClick={() => setShowNewTask(true)}
               disabled={cars.length === 0}
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New task
-            </Button>
+              <Plus className="h-4 w-4" aria-hidden="true" />{t("s.maintenance.newTask")}</Button>
           </>
         }
       />
 
       <StatTileGrid columns={2} className="mb-6">
         <StatTile
-          label="Open maintenance"
+          label={t("s.maintenance.openMaintenance")}
           value={statistics.openMaintenance}
           icon={Wrench}
         />
-        <StatTile label="Open cleaning" value={statistics.openCleaning} />
+        <StatTile label={t("s.maintenance.openCleaning")} value={statistics.openCleaning} />
       </StatTileGrid>
 
       <Toolbar>
-        <Field label="Status">
+        <Field label={t("s.maintenance.status")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={statusFilter}
               onChange={(event) => setFilters({ status: event.target.value })}
             >
-              <option value="OPEN">Open</option>
-              <option value="DONE">Done</option>
-              <option value="CANCELLED">Cancelled</option>
-              <option value="ALL">All</option>
+              <option value="OPEN">{t("s.maintenance.open")}</option>
+              <option value="DONE">{t("s.maintenance.done")}</option>
+              <option value="CANCELLED">{t("s.maintenance.cancelled")}</option>
+              <option value="ALL">{t("s.maintenance.all")}</option>
             </Select>
           )}
         </Field>
@@ -281,7 +276,7 @@ export default function MaintenancePage() {
         loading={loading}
         rowActions={[
           {
-            label: "Mark complete",
+            label: t("s.maintenance.markComplete"),
             onClick: async (task) => {
               // An inspection records itself on the car and needs its
               // next due date, so it goes through a form first.
@@ -296,7 +291,7 @@ export default function MaintenancePage() {
             hidden: (task) => task.status !== "OPEN",
           },
           {
-            label: "Cancel",
+            label: t("s.maintenance.cancel"),
             variant: "ghost",
             onClick: async (task) => {
               await cancelMaintenanceTask(task.id);
@@ -307,8 +302,8 @@ export default function MaintenancePage() {
         ]}
         empty={{
           icon: Wrench,
-          title: "No tasks found",
-          description: "Nothing matches this filter right now.",
+          title: t("s.maintenance.noTasksFound"),
+          description: t("s.maintenance.nothingMatchesFilterRight"),
         }}
       />
 

@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
 import { completeMaintenanceTask, type MaintenanceTask } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 type Props = {
   task: MaintenanceTask;
@@ -33,7 +34,7 @@ export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
     event.preventDefault();
 
     if (!nextDue) {
-      setError("Enter when the next inspection is due.");
+      setError(t("c.maintenance.CompleteTaskModal.enterWhenNextInspection"));
       return;
     }
 
@@ -46,7 +47,7 @@ export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
       onCompleted(updated);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to complete task.");
+      setError(err instanceof Error ? err.message : t("c.maintenance.CompleteTaskModal.failedCompleteTask"));
     } finally {
       setSaving(false);
     }
@@ -55,23 +56,21 @@ export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
   return (
     <Modal
       isOpen
-      title="Complete technical inspection"
-      description={`Today will be recorded as the last inspection of ${task.car.make} ${task.car.model} (${task.car.license_plate}).`}
+      title={t("c.maintenance.CompleteTaskModal.completeTechnicalInspection")}
+      description={t("c.maintenance.CompleteTaskModal.todayWillBeRecorded", { make: task.car.make, model: task.car.model, license_plate: task.car.license_plate })}
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.maintenance.CompleteTaskModal.cancel")}</Button>
           <Button type="submit" form="complete-task-form" loading={saving}>
-            {saving ? "Saving" : "Mark complete"}
+            {saving ? t("c.maintenance.CompleteTaskModal.saving") : t("c.maintenance.CompleteTaskModal.markComplete")}
           </Button>
         </>
       }
     >
       <form id="complete-task-form" onSubmit={handleSubmit} className="space-y-4">
         <TextField
-          label="Next inspection due"
+          label={t("c.maintenance.CompleteTaskModal.nextInspectionDue")}
           type="date"
           required
           min={minDate}

@@ -34,6 +34,8 @@ import {
   todayInZone,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { t, enumLabel } from "@/lib/i18n";
+import { categoryLabel } from "@/lib/carDisplay";
 
 type Props = {
   params: Promise<{
@@ -44,11 +46,11 @@ type Props = {
 // Longer ranges get narrower day columns so they stay scannable; at the
 // narrowest widths the date header collapses to just the day number.
 const TIMELINE_RANGES = [
-  { days: 30, label: "30 days", dayWidth: 90 },
-  { days: 60, label: "60 days", dayWidth: 60 },
-  { days: 90, label: "90 days", dayWidth: 40 },
-  { days: 180, label: "6 months", dayWidth: 24 },
-  { days: 365, label: "1 year", dayWidth: 16 },
+  { days: 30, get label() { return t("duration.days", { count: 30 }); }, dayWidth: 90 },
+  { days: 60, get label() { return t("duration.days", { count: 60 }); }, dayWidth: 60 },
+  { days: 90, get label() { return t("duration.days", { count: 90 }); }, dayWidth: 40 },
+  { days: 180, get label() { return t("duration.months", { count: 6 }); }, dayWidth: 24 },
+  { days: 365, get label() { return t("duration.years", { count: 1 }); }, dayWidth: 16 },
 ] as const;
 
 /** A calendar-day Date (local midnight) back to "YYYY-MM-DD". */
@@ -97,7 +99,7 @@ export default function CarDetailsPage({ params }: Props) {
         setLocations(locationData);
         setMaintenanceTasks(taskData);
       } catch {
-        setError("Failed to load vehicle.");
+        setError(t("s.cars.id.failedLoadVehicle"));
       } finally {
         setLoading(false);
       }
@@ -132,7 +134,7 @@ export default function CarDetailsPage({ params }: Props) {
     if (!car) return;
 
     const confirmed = window.confirm(
-      `Confirm the car is now at its home airport, ${car.home_location.airport_code}?`,
+      t("s.cars.id.confirmCarNowAt", { airport_code: car.home_location.airport_code }),
     );
 
     if (!confirmed) return;
@@ -144,7 +146,7 @@ export default function CarDetailsPage({ params }: Props) {
       setCar(await returnCarToHome(car.id));
     } catch (err) {
       setRelocateError(
-        err instanceof Error ? err.message : "Failed to move the car.",
+        err instanceof Error ? err.message : t("s.cars.id.failedMoveCar"),
       );
     } finally {
       setRelocating(false);
@@ -329,7 +331,7 @@ export default function CarDetailsPage({ params }: Props) {
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
-            {error || "Vehicle not found."}
+            {error || t("s.cars.id.vehicleNotFound")}
           </p>
         </div>
       </main>
@@ -349,9 +351,7 @@ export default function CarDetailsPage({ params }: Props) {
             }
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to fleet
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.cars.id.backFleet")}</button>
 
           <div className="mt-4 flex items-center justify-between">
 
@@ -369,9 +369,7 @@ export default function CarDetailsPage({ params }: Props) {
               <CarStatusBadge status={car.status} className="px-4 py-2 text-sm" />
 
               <Button variant="secondary" onClick={() => setEditing(true)}>
-                <Pencil className="h-4 w-4" />
-                Edit
-              </Button>
+                <Pencil className="h-4 w-4" />{t("s.cars.id.edit")}</Button>
             </div>
 
           </div>
@@ -383,15 +381,9 @@ export default function CarDetailsPage({ params }: Props) {
             role="alert"
           >
             <div>
-              <p className="font-medium">
-                Away from home airport
-              </p>
+              <p className="font-medium">{t("s.cars.id.awayFromHomeAirport")}</p>
 
-              <p className="mt-1 text-sm">
-                This car is at {car.current_location.airport_code} but belongs
-                at {car.home_location.airport_code}. Once it has been driven
-                back, record it here.
-              </p>
+              <p className="mt-1 text-sm">{t("s.cars.id.carAtButBelongs", { airport_code: car.current_location.airport_code, airport_code2: car.home_location.airport_code })}</p>
 
               {relocateError && (
                 <p className="mt-2 text-sm text-red-700">{relocateError}</p>
@@ -404,8 +396,8 @@ export default function CarDetailsPage({ params }: Props) {
               disabled={relocating}
             >
               {relocating
-                ? "Saving..."
-                : `Return to ${car.home_location.airport_code}`}
+                ? t("s.cars.id.saving")
+                : t("s.cars.id.return", { airport_code: car.home_location.airport_code })}
             </Button>
           </div>
         )}
@@ -413,16 +405,12 @@ export default function CarDetailsPage({ params }: Props) {
         {/* Vehicle information */}
         <section className="rounded-xl bg-surface p-6 shadow-sm">
 
-          <h2 className="text-xl font-semibold">
-            Vehicle Information
-          </h2>
+          <h2 className="text-xl font-semibold">{t("s.cars.id.vehicleInformation")}</h2>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
             <div>
-              <p className="text-sm text-gray-500">
-                License Plate
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.licensePlate")}</p>
 
               <p className="mt-1 font-medium">
                 {car.license_plate}
@@ -430,9 +418,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Year
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.year")}</p>
 
               <p className="mt-1 font-medium">
                 {car.year}
@@ -440,19 +426,15 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Category
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.category")}</p>
 
               <p className="mt-1 font-medium">
-                {car.category || "—"}
+                {car.category ? categoryLabel(car.category) : "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Price / Day
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.priceDay")}</p>
 
               <p className="mt-1 font-medium">
                 {formatCurrency(car.price_per_day)}
@@ -460,29 +442,23 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Transmission
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.transmission")}</p>
 
               <p className="mt-1 font-medium">
-                {car.transmission || "—"}
+                {car.transmission ? enumLabel("transmission", car.transmission) : "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Fuel
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.fuel")}</p>
 
               <p className="mt-1 font-medium">
-                {car.fuel_type || "—"}
+                {car.fuel_type ? enumLabel("fuel", car.fuel_type) : "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Seats
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.seats")}</p>
 
               <p className="mt-1 font-medium">
                 {car.seats ?? "—"}
@@ -490,9 +466,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Current Location
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.currentLocation")}</p>
 
               <p className="mt-1 font-medium">
                 {car.current_location.airport_code}
@@ -504,9 +478,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Home Airport
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.homeAirport")}</p>
 
               <p className="mt-1 font-medium">
                 {car.home_location.airport_code}
@@ -524,42 +496,32 @@ export default function CarDetailsPage({ params }: Props) {
         <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
 
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              Vehicle Condition
-            </h2>
+            <h2 className="text-xl font-semibold">{t("s.cars.id.vehicleCondition")}</h2>
 
             <Button variant="secondary" onClick={() => setEditingCondition(true)}>
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Button>
+              <Pencil className="h-4 w-4" />{t("s.cars.id.edit")}</Button>
           </div>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
             <div>
-              <p className="text-sm text-gray-500">
-                Mileage
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.mileage")}</p>
 
               <p className="mt-1 font-medium">
-                {car.mileage != null ? `${formatNumber(car.mileage)} km` : "—"}
+                {car.mileage != null ? t("common.km", { value: formatNumber(car.mileage) }) : "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Tire Condition
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.tireCondition")}</p>
 
               <p className="mt-1 font-medium">
-                {car.tire_condition ? car.tire_condition.replace("_", " ") : "—"}
+                {car.tire_condition ? enumLabel("tireCondition", car.tire_condition) : "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Last Oil Change
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.lastOilChange")}</p>
 
               <p className="mt-1 font-medium">
                 {car.last_oil_change_at ? formatDate(car.last_oil_change_at) : "—"}
@@ -567,9 +529,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Last Inspection
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.lastInspection")}</p>
 
               <p className="mt-1 font-medium">
                 {car.last_inspection_at ? formatDate(car.last_inspection_at) : "—"}
@@ -577,21 +537,15 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">
-                Next Inspection Due
-              </p>
+              <p className="text-sm text-gray-500">{t("s.cars.id.nextInspectionDue")}</p>
 
               <p className="mt-1 font-medium">
                 {car.next_inspection_due ? formatDate(car.next_inspection_due) : "—"}
                 {inspectionStatus(car.next_inspection_due) === "overdue" && (
-                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-                    Overdue
-                  </span>
+                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">{t("s.cars.id.overdue")}</span>
                 )}
                 {inspectionStatus(car.next_inspection_due) === "soon" && (
-                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
-                    Due soon
-                  </span>
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.id.dueSoon")}</span>
                 )}
               </p>
             </div>
@@ -605,31 +559,21 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="flex items-center justify-between">
 
             <div>
-              <h2 className="text-xl font-semibold">
-                Maintenance History
-              </h2>
+              <h2 className="text-xl font-semibold">{t("s.cars.id.maintenanceHistory")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Maintenance and cleaning tasks logged for this vehicle
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.maintenanceCleaningTasksLogged")}</p>
             </div>
 
             <Button variant="secondary" onClick={() => setLoggingTask(true)}>
-              <Wrench className="h-4 w-4" />
-              Log Task
-            </Button>
+              <Wrench className="h-4 w-4" />{t("s.cars.id.logTask")}</Button>
 
           </div>
 
           {maintenanceTasks.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
-              <p className="font-medium text-gray-700">
-                No maintenance history
-              </p>
+              <p className="font-medium text-gray-700">{t("s.cars.id.noMaintenanceHistory")}</p>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Nothing has been logged for this vehicle yet.
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.nothingHasBeenLogged")}</p>
             </div>
           ) : (
             <div className="mt-6 space-y-3">
@@ -648,19 +592,17 @@ export default function CarDetailsPage({ params }: Props) {
                             {maintenanceCategoryLabel(task.category)}
                           </span>
                         )}
-                        {task.notes || "No notes"}
+                        {task.notes || t("s.cars.id.noNotes")}
                       </p>
 
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        Out of service{" "}
-                        {formatDateTime(task.starts_at ?? task.opened_at)}
-                        {task.ends_at ? (
-                          <> → {formatDateTime(task.ends_at)}</>
-                        ) : (
-                          <> until closed</>
-                        )}
+                      <p className="mt-0.5 text-xs text-gray-500">{task.ends_at
+                          ? t("s.cars.id.outServiceRange", {
+                              from: formatDateTime(task.starts_at ?? task.opened_at),
+                              to: formatDateTime(task.ends_at),
+                            })
+                          : t("s.cars.id.outServiceOpen", { from: formatDateTime(task.starts_at ?? task.opened_at) })}
                         {task.completed_at && (
-                          <> · Closed {formatDateTime(task.completed_at)}</>
+                          <>{" "}{t("s.cars.id.closed", { date: formatDateTime(task.completed_at) })}</>
                         )}
                       </p>
                     </div>
@@ -668,7 +610,7 @@ export default function CarDetailsPage({ params }: Props) {
 
                   <div className="flex items-center gap-3 self-start sm:self-auto">
                     <span className="text-xs font-medium text-gray-500">
-                      {task.status}
+                      {enumLabel("taskStatus", task.status)}
                     </span>
 
                     {task.status === "OPEN" && (
@@ -676,16 +618,12 @@ export default function CarDetailsPage({ params }: Props) {
                         <button
                           onClick={() => handleCompleteTask(task)}
                           className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
-                        >
-                          Mark Complete
-                        </button>
+                        >{t("s.cars.id.markComplete")}</button>
 
                         <button
                           onClick={() => handleCancelTask(task.id)}
                           className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
-                        >
-                          Cancel
-                        </button>
+                        >{t("s.cars.id.cancel")}</button>
                       </>
                     )}
                   </div>
@@ -701,13 +639,9 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
-              <h2 className="text-xl font-semibold">
-                Availability Schedule
-              </h2>
+              <h2 className="text-xl font-semibold">{t("s.cars.id.availabilitySchedule")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Next {timelineRange.label}
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.next", { label: timelineRange.label })}</p>
             </div>
 
             <div className="flex items-center gap-1 rounded-lg bg-surface-sunken p-1 text-sm">
@@ -733,28 +667,20 @@ export default function CarDetailsPage({ params }: Props) {
               <div className="flex items-center gap-2">
                 <div
                   className={`h-3 w-3 rounded-full ${getReservationStatusStyle("CONFIRMED", "dot")}`}
-                />
-                Reserved
-              </div>
+                />{t("s.cars.id.reserved")}</div>
 
               <div className="flex items-center gap-2">
                 <div
                   className={`h-3 w-3 rounded-full ${getReservationStatusStyle("ACTIVE", "dot")}`}
-                />
-                Active
-              </div>
+                />{t("s.cars.id.active")}</div>
 
               <div className="flex items-center gap-2">
                 <div
                   className={`h-3 w-3 rounded-full ${getReservationStatusStyle("COMPLETED", "dot")}`}
-                />
-                Completed
-              </div>
+                />{t("s.cars.id.completed")}</div>
 
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-amber-400" />
-                Out of service
-              </div>
+                <div className="h-3 w-3 rounded-full bg-amber-400" />{t("s.cars.id.outService2")}</div>
 
             </div>
 
@@ -944,21 +870,21 @@ export default function CarDetailsPage({ params }: Props) {
                         top: (visibleReservations.length + taskIndex) * 70 + 10,
                         height: 50,
                       }}
-                      title={`${task.task_type} — ${formatDateTime(
+                      title={`${enumLabel("taskType", task.task_type)} — ${formatDateTime(
                         start.toISOString()
                       )} → ${
                         task.ends_at
                           ? formatDateTime(end.toISOString())
-                          : "until closed"
+                          : t("s.cars.id.untilClosed")
                       }${task.notes ? ` — ${task.notes}` : ""}`}
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">
-                          {task.task_type === "CLEANING" ? "Cleaning" : "Maintenance"}
+                          {task.task_type === "CLEANING" ? t("s.cars.id.cleaning") : t("s.cars.id.maintenance")}
                         </p>
 
                         <p className="truncate text-xs opacity-90">
-                          {task.notes || "Out of service"}
+                          {task.notes || t("s.cars.id.outService2")}
                         </p>
                       </div>
                     </div>
@@ -969,10 +895,7 @@ export default function CarDetailsPage({ params }: Props) {
                 {timelineRowCount ===
                   0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700">
-                      Vehicle available — no
-                      reservations or maintenance in this period
-                    </div>
+                    <div className="rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700">{t("s.cars.id.vehicleAvailableNoReservations")}</div>
                   </div>
                 )}
 
@@ -982,10 +905,7 @@ export default function CarDetailsPage({ params }: Props) {
 
           </div>
 
-          <p className="mt-4 text-xs text-ink-muted">
-            Scroll horizontally to view the full
-            schedule.
-          </p>
+          <p className="mt-4 text-xs text-ink-muted">{t("s.cars.id.scrollHorizontallyViewFull")}</p>
 
         </section>
 
@@ -995,34 +915,21 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="flex items-center justify-between">
 
             <div>
-              <h2 className="text-xl font-semibold">
-                Reservations
-              </h2>
+              <h2 className="text-xl font-semibold">{t("s.cars.id.reservations")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Detailed booking information
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.detailedBookingInformation")}</p>
             </div>
 
-            <span className="text-sm text-gray-500">
-              {reservations.length} booking
-              {reservations.length !== 1
-                ? "s"
-                : ""}
-            </span>
+            <span className="text-sm text-gray-500">{t("common.bookings", { count: reservations.length })}</span>
 
           </div>
 
           {reservations.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
 
-              <p className="font-medium text-gray-700">
-                No reservations
-              </p>
+              <p className="font-medium text-gray-700">{t("s.cars.id.noReservations")}</p>
 
-              <p className="mt-1 text-sm text-gray-500">
-                This vehicle has no bookings.
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.vehicleHasNoBookings")}</p>
 
             </div>
           ) : (
@@ -1097,7 +1004,7 @@ export default function CarDetailsPage({ params }: Props) {
                           reservation.status
                         )}`}
                       >
-                        {reservation.status}
+                        {enumLabel("reservationStatus", reservation.status)}
                       </span>
 
                     </div>

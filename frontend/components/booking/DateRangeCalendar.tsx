@@ -9,6 +9,7 @@ import {
   getLocale,
   todayInZone,
 } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 /**
  * A single-month range calendar for picking the rental period.
@@ -214,7 +215,7 @@ export function DateRangeCalendar({
           type="button"
           onClick={() => shiftMonths(-1)}
           disabled={!canGoBack}
-          aria-label="Previous month"
+          aria-label={t("c.booking.DateRangeCalendar.previousMonth")}
           className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -227,7 +228,7 @@ export function DateRangeCalendar({
         <button
           type="button"
           onClick={() => shiftMonths(1)}
-          aria-label="Next month"
+          aria-label={t("c.booking.DateRangeCalendar.nextMonth")}
           className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -343,7 +344,7 @@ export function DateRangeCalendar({
           the selection is confirmed somewhere other than the shading. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border-subtle bg-surface-sunken px-4 py-3 text-sm">
         <span className="font-medium text-ink">
-          {pickupDate ? formatCalendarDate(pickupDate) : "Pick a start date"}
+          {pickupDate ? formatCalendarDate(pickupDate) : t("c.booking.DateRangeCalendar.pickStartDate")}
         </span>
 
         <ArrowRight
@@ -352,13 +353,11 @@ export function DateRangeCalendar({
         />
 
         <span className={returnDate ? "font-medium text-ink" : "text-ink-muted"}>
-          {returnDate ? formatCalendarDate(returnDate) : "Pick a drop-off date"}
+          {returnDate ? formatCalendarDate(returnDate) : t("c.booking.DateRangeCalendar.pickDropOffDate")}
         </span>
 
         {dayCount > 0 && (
-          <span className="ml-auto text-ink-muted">
-            {dayCount} day{dayCount === 1 ? "" : "s"}
-          </span>
+          <span className="ml-auto text-ink-muted">{t("duration.days", { count: dayCount })}</span>
         )}
       </div>
     </div>

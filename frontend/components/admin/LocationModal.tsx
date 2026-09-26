@@ -11,6 +11,7 @@ import {
   type Location,
 } from "@/lib/api";
 import { timezoneOptions } from "@/lib/localization";
+import { t } from "@/lib/i18n";
 
 type Props = {
   /** The location being edited; omit to add a new one. */
@@ -58,7 +59,7 @@ export function LocationModal({
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save the location.");
+      setError(err instanceof Error ? err.message : t("c.admin.LocationModal.failedSaveLocation"));
     } finally {
       setSaving(false);
     }
@@ -67,55 +68,53 @@ export function LocationModal({
   return (
     <Modal
       isOpen
-      title={location ? "Edit location" : "Add a location"}
+      title={location ? t("c.admin.LocationModal.editLocation") : t("c.admin.LocationModal.addLocation")}
       description={
         location
-          ? "Times and days at this location follow its timezone."
-          : "Vehicles can be based at it and picked up from it straight away."
+          ? t("c.admin.LocationModal.timesDaysAtLocation")
+          : t("c.admin.LocationModal.vehiclesCanBeBased")
       }
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.admin.LocationModal.cancel")}</Button>
           <Button type="submit" form="location-form" loading={saving}>
-            {saving ? "Saving" : location ? "Save changes" : "Add location"}
+            {saving ? t("c.admin.LocationModal.saving") : location ? t("c.admin.LocationModal.saveChanges") : t("c.admin.LocationModal.addLocation2")}
           </Button>
         </>
       }
     >
       <form id="location-form" onSubmit={handleSubmit} className="space-y-4">
         <TextField
-          label="Name"
+          label={t("c.admin.LocationModal.name")}
           required
           maxLength={100}
-          hint="For example: Olbia Costa Smeralda Airport."
+          hint={t("c.admin.LocationModal.exampleOlbiaCostaSmeralda")}
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
 
         <TextField
-          label="Code"
+          label={t("c.admin.LocationModal.code")}
           required
           minLength={2}
           maxLength={10}
-          hint="A short unique code, such as OLB. Shown in tables and filters."
+          hint={t("c.admin.LocationModal.shortUniqueCodeSuch")}
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase())}
         />
 
         <TextField
-          label="Address"
+          label={t("c.admin.LocationModal.address")}
           maxLength={255}
           value={address}
           onChange={(event) => setAddress(event.target.value)}
         />
 
         <SelectField
-          label="Timezone"
+          label={t("c.admin.LocationModal.timezone")}
           required
-          hint="Where this location is. Pickup and return times are set and shown in it."
+          hint={t("c.admin.LocationModal.whereLocationPickupReturn")}
           value={timezone}
           onChange={(event) => setTimezone(event.target.value)}
         >

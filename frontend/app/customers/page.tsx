@@ -22,6 +22,7 @@ import { formatDate } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   q: "",
@@ -75,7 +76,7 @@ export default function CustomersPage() {
         setTotal(list.total);
         setSummary(stats);
       } catch {
-        if (!cancelled) setError("Failed to load customers.");
+        if (!cancelled) setError(t("s.customers.failedLoadCustomers"));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -104,7 +105,7 @@ export default function CustomersPage() {
   const columns: Column<CustomerListItem>[] = [
     {
       id: "name",
-      header: "Customer",
+      header: t("s.customers.customer"),
       mobile: "primary",
       cell: (customer) => (
         <div className="flex items-center gap-2">
@@ -113,7 +114,7 @@ export default function CustomersPage() {
             secondary={customer.postal_code}
           />
           {customer.anonymized_at && (
-            <Badge colorClass="bg-gray-100 text-gray-600">Erased</Badge>
+            <Badge colorClass="bg-gray-100 text-gray-600">{t("s.customers.erased")}</Badge>
           )}
         </div>
       ),
@@ -122,7 +123,7 @@ export default function CustomersPage() {
     },
     {
       id: "reservations",
-      header: "Reservations",
+      header: t("s.customers.reservations"),
       mobile: "trailing",
       cell: (customer) => (
         <span className="font-medium tabular-nums">
@@ -131,18 +132,14 @@ export default function CustomersPage() {
       ),
       mobileCell: (customer) => (
         <span className="text-sm font-medium text-ink">
-          {customer.reservation_count}
-          <span className="font-normal text-ink-muted">
-            {" "}
-            booking{customer.reservation_count === 1 ? "" : "s"}
-          </span>
+          {t("common.bookings", { count: customer.reservation_count })}
         </span>
       ),
     },
     {
       id: "last_booking",
-      header: "Last booking",
-      mobileLabel: "Last booking",
+      header: t("s.customers.lastBooking"),
+      mobileLabel: t("s.customers.lastBooking"),
       cell: (customer) =>
         customer.last_reservation_at
           ? formatDate(customer.last_reservation_at)
@@ -154,8 +151,8 @@ export default function CustomersPage() {
     },
     {
       id: "created",
-      header: "Customer since",
-      mobileLabel: "Customer since",
+      header: t("s.customers.customerSince"),
+      mobileLabel: t("s.customers.customerSince"),
       cell: (customer) => (
         <span className="text-sm text-ink-muted">
           {formatDate(customer.created_at)}
@@ -172,9 +169,7 @@ export default function CustomersPage() {
             {error}
           </p>
 
-          <Button className="mt-4" onClick={refreshCustomers}>
-            Try again
-          </Button>
+          <Button className="mt-4" onClick={refreshCustomers}>{t("s.customers.tryAgain")}</Button>
         </Card>
       </PageShell>
     );
@@ -183,8 +178,8 @@ export default function CustomersPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Customers"
-        description="Everyone who has booked a vehicle, most recent booking first."
+        title={t("s.customers.customers")}
+        description={t("s.customers.everyoneWhoHasBooked")}
         actions={
           <Button
             variant="secondary"
@@ -195,24 +190,24 @@ export default function CustomersPage() {
               className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
               aria-hidden="true"
             />
-            {refreshing ? "Refreshing" : "Refresh"}
+            {refreshing ? t("s.customers.refreshing") : t("s.customers.refresh")}
           </Button>
         }
       />
 
       <StatTileGrid columns={5} className="mb-8">
-        <StatTile label="Total customers" value={summary?.total ?? "–"} />
-        <StatTile label="New this week" value={summary?.new_this_week ?? "–"} />
+        <StatTile label={t("s.customers.totalCustomers")} value={summary?.total ?? "–"} />
+        <StatTile label={t("s.customers.newWeek")} value={summary?.new_this_week ?? "–"} />
         <StatTile
-          label="Repeat customers"
+          label={t("s.customers.repeatCustomers")}
           value={summary?.repeat_customers ?? "–"}
         />
         <StatTile
-          label="Total reservations"
+          label={t("s.customers.totalReservations")}
           value={summary?.total_reservations ?? "–"}
         />
         <StatTile
-          label="Avg. reservations"
+          label={t("s.customers.avgReservations")}
           value={summary ? summary.avg_reservations.toFixed(1) : "–"}
         />
       </StatTileGrid>
@@ -221,53 +216,50 @@ export default function CustomersPage() {
         footer={
           <>
             <p>
-              <span className="font-medium text-ink">{total}</span>{" "}
-              {isFiltered ? "matching customers" : "customers"}
+              {t(isFiltered ? "s.customers.matchingCount" : "s.customers.totalCount", { count: total })}
             </p>
 
             {isFiltered && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear filters
-              </Button>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>{t("s.customers.clearFilters")}</Button>
             )}
           </>
         }
       >
-        <Field label="Search" className="sm:col-span-2">
+        <Field label={t("s.customers.search")} className="sm:col-span-2">
           {(fieldProps) => (
             <Input
               {...fieldProps}
               type="search"
               value={filters.q}
               onChange={(event) => updateFilters({ q: event.target.value })}
-              placeholder="Name, email, phone or address..."
+              placeholder={t("s.customers.nameEmailPhoneAddress")}
             />
           )}
         </Field>
 
-        <Field label="Segment">
+        <Field label={t("s.customers.segment")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.segment}
               onChange={(event) => updateFilters({ segment: event.target.value })}
             >
-              <option value="ALL">All customers</option>
-              <option value="NEW_THIS_WEEK">New this week</option>
-              <option value="REPEAT">Repeat customers</option>
+              <option value="ALL">{t("s.customers.allCustomers")}</option>
+              <option value="NEW_THIS_WEEK">{t("s.customers.newWeek")}</option>
+              <option value="REPEAT">{t("s.customers.repeatCustomers")}</option>
             </Select>
           )}
         </Field>
 
-        <Field label="Sort by">
+        <Field label={t("s.customers.sortBy")}>
           {(fieldProps) => (
             <Select
               {...fieldProps}
               value={filters.sort}
               onChange={(event) => updateFilters({ sort: event.target.value })}
             >
-              <option value="recent">Most recent booking</option>
-              <option value="name">Name, A to Z</option>
+              <option value="recent">{t("s.customers.mostRecentBooking")}</option>
+              <option value="name">{t("s.customers.nameZ")}</option>
             </Select>
           )}
         </Field>
@@ -281,14 +273,12 @@ export default function CustomersPage() {
         onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
         empty={{
           icon: Users,
-          title: isFiltered ? "No customers match" : "No customers yet",
+          title: isFiltered ? t("s.customers.noCustomersMatch") : t("s.customers.noCustomersYet"),
           description: isFiltered
-            ? "Try changing your search or segment."
-            : "Customers appear here once they have booked a vehicle.",
+            ? t("s.customers.tryChangingSearchSegment")
+            : t("s.customers.customersAppearHereOnce"),
           action: isFiltered ? (
-            <Button variant="secondary" onClick={clearFilters}>
-              Clear filters
-            </Button>
+            <Button variant="secondary" onClick={clearFilters}>{t("s.customers.clearFilters")}</Button>
           ) : undefined,
         }}
       />

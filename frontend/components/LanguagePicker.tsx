@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "use-intl";
 import { Languages } from "lucide-react";
 
 import { useLanguage } from "@/components/LanguageProvider";
-import { LANGUAGES, PSEUDO } from "@/lib/i18n";
+import { t, LANGUAGES, PSEUDO } from "@/lib/i18n";
 
 /**
  * Chooses the interface language. When someone is signed in the choice is
@@ -21,7 +20,6 @@ export function LanguagePicker({
   compact?: boolean;
   className?: string;
 }) {
-  const t = useTranslations("language");
   const { language, setLanguage } = useLanguage();
   const [error, setError] = useState(false);
 
@@ -29,7 +27,7 @@ export function LanguagePicker({
 
   // A development aid for finding text that was never extracted; not shipped.
   if (process.env.NODE_ENV !== "production") {
-    options.push({ code: PSEUDO, label: "Pseudo (dev)" });
+    options.push({ code: PSEUDO, label: t("c.LanguagePicker.pseudoDev") });
   }
 
   async function handleChange(next: string) {
@@ -46,12 +44,12 @@ export function LanguagePicker({
   return (
     <label className={`flex items-center gap-2 text-sm text-ink-secondary ${className}`}>
       <Languages className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="sr-only">{t("choose")}</span>
+      <span className="sr-only">{t("language.choose")}</span>
 
       <select
         value={language}
         onChange={(event) => handleChange(event.target.value)}
-        aria-label={t("choose")}
+        aria-label={t("language.choose")}
         aria-invalid={error || undefined}
         className={`rounded-md border border-border-strong bg-surface py-1 pl-2 pr-6 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
           compact ? "w-16" : "min-w-0 flex-1"

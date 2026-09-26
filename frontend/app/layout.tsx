@@ -5,6 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BrandProvider } from "@/components/BrandProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { NavigationProgressProvider } from "@/components/NavigationProgress";
+import { t } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,8 +39,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: name ? `${name} · Management` : "Rental management",
-    description: "Vehicle rental management",
+    title: name ? t("s.layout.management", { name }) : t("s.layout.rentalManagement"),
+    description: t("s.layout.vehicleRentalManagement"),
   };
 }
 

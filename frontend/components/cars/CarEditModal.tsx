@@ -8,6 +8,7 @@ import { SelectField, TextField } from "@/components/ui/Field";
 import { CarImage } from "@/components/cars/CarImage";
 import { updateCar, type Car, type Location } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 const CATEGORY_OPTIONS = [
   "ECONOMY",
@@ -67,7 +68,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
       onSaved(updated);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update car.");
+      setError(err instanceof Error ? err.message : t("c.cars.CarEditModal.failedUpdateCar"));
     } finally {
       setSaving(false);
     }
@@ -76,16 +77,14 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title="Edit vehicle"
+      title={t("c.cars.CarEditModal.editVehicle")}
       size="lg"
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.cars.CarEditModal.cancel")}</Button>
           <Button type="submit" form="car-edit-form" loading={saving}>
-            {saving ? "Saving" : "Save changes"}
+            {saving ? t("c.cars.CarEditModal.saving") : t("c.cars.CarEditModal.saveChanges")}
           </Button>
         </>
       }
@@ -93,21 +92,21 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
       <form id="car-edit-form" onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="Make"
+            label={t("c.cars.CarEditModal.make")}
             required
             value={make}
             onChange={(event) => setMake(event.target.value)}
           />
 
           <TextField
-            label="Model"
+            label={t("c.cars.CarEditModal.model")}
             required
             value={model}
             onChange={(event) => setModel(event.target.value)}
           />
 
           <TextField
-            label="Year"
+            label={t("c.cars.CarEditModal.year")}
             type="number"
             required
             value={year}
@@ -115,19 +114,19 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="License plate"
+            label={t("c.cars.CarEditModal.licensePlate")}
             required
             value={licensePlate}
             onChange={(event) => setLicensePlate(event.target.value)}
           />
 
           <SelectField
-            label="Category"
-            hint="Drives the fallback illustration in the booking flow."
+            label={t("c.cars.CarEditModal.category")}
+            hint={t("c.cars.CarEditModal.drivesFallbackIllustrationBooking")}
             value={category}
             onChange={(event) => setCategory(event.target.value)}
           >
-            <option value="">Not set</option>
+            <option value="">{t("c.cars.CarEditModal.notSet")}</option>
             {CATEGORY_OPTIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -136,20 +135,17 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
           </SelectField>
 
           <div>
-            <p className="text-sm font-medium text-ink">Price per day</p>
+            <p className="text-sm font-medium text-ink">{t("c.cars.CarEditModal.pricePerDay")}</p>
 
-            <p className="mt-1.5 text-sm text-ink-secondary">
-              {formatCurrency(car.price_per_day)} — rates are managed by an
-              admin under Configuration → Vehicle rates.
-            </p>
+            <p className="mt-1.5 text-sm text-ink-secondary">{t("c.cars.CarEditModal.ratesManagedByAdmin", { v1: formatCurrency(car.price_per_day) })}</p>
           </div>
 
           <SelectField
-            label="Transmission"
+            label={t("c.cars.CarEditModal.transmission")}
             value={transmission}
             onChange={(event) => setTransmission(event.target.value)}
           >
-            <option value="">Not set</option>
+            <option value="">{t("c.cars.CarEditModal.notSet")}</option>
             {TRANSMISSION_OPTIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -158,11 +154,11 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
           </SelectField>
 
           <SelectField
-            label="Fuel type"
+            label={t("c.cars.CarEditModal.fuelType")}
             value={fuelType}
             onChange={(event) => setFuelType(event.target.value)}
           >
-            <option value="">Not set</option>
+            <option value="">{t("c.cars.CarEditModal.notSet")}</option>
             {FUEL_OPTIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -171,16 +167,16 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
           </SelectField>
 
           <TextField
-            label="Seats"
+            label={t("c.cars.CarEditModal.seats")}
             type="number"
             value={seats}
             onChange={(event) => setSeats(event.target.value)}
           />
 
           <SelectField
-            label="Home airport"
+            label={t("c.cars.CarEditModal.homeAirport")}
             className="sm:col-span-2"
-            hint="Where this car belongs. Its current airport changes through check-out."
+            hint={t("c.cars.CarEditModal.whereCarBelongsIts")}
             value={homeLocationId}
             onChange={(event) => setHomeLocationId(event.target.value)}
           >
@@ -195,10 +191,10 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         <div className="border-t border-border-subtle pt-5">
           <div className="grid gap-4 sm:grid-cols-[1fr_9rem] sm:items-start">
             <TextField
-              label="Photo URL"
+              label={t("c.cars.CarEditModal.photoUrl")}
               type="url"
               placeholder="https://..."
-              hint="Shown to customers in the booking flow. Leave empty to use the category illustration."
+              hint={t("c.cars.CarEditModal.shownCustomersBookingFlow")}
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}
             />
@@ -207,7 +203,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
               <CarImage
                 imageUrl={imageUrl.trim() || null}
                 category={category || null}
-                alt="Vehicle preview"
+                alt={t("c.cars.CarEditModal.vehiclePreview")}
                 className="aspect-[16/9] w-full rounded-lg"
               />
             </div>

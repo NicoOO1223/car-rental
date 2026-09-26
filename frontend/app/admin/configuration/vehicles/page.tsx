@@ -6,6 +6,8 @@ import { getCars, updateCarPrice, type Car } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency, getDefaultCurrency } from "@/lib/format";
+import { t } from "@/lib/i18n";
+import { categoryLabel } from "@/lib/carDisplay";
 
 export default function VehicleRatesConfigurationPage() {
   const [cars, setCars] = useState<Car[] | null>(null);
@@ -22,7 +24,7 @@ export default function VehicleRatesConfigurationPage() {
         if (!cancelled) setCars(data);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load vehicles.");
+        if (!cancelled) setError(t("s.admin.configuration.vehicles.failedLoadVehicles"));
       });
 
     return () => {
@@ -59,7 +61,7 @@ export default function VehicleRatesConfigurationPage() {
       });
       setSavedId(car.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update the rate.");
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.vehicles.failedUpdateRate"));
     } finally {
       setSavingId(null);
     }
@@ -67,13 +69,9 @@ export default function VehicleRatesConfigurationPage() {
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-ink">Vehicle rates</h2>
+      <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.vehicles.vehicleRates")}</h2>
 
-      <p className="mt-1 text-sm text-ink-secondary">
-        The daily rate of each vehicle. Every change is recorded in the audit
-        log. A new rate also applies to reservations that haven&apos;t been
-        paid yet; anything already paid keeps the amount it was charged.
-      </p>
+      <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.dailyRateEachVehicle")}</p>
 
       {error && (
         <p className="mt-4 text-sm text-red-600" role="alert">
@@ -82,7 +80,7 @@ export default function VehicleRatesConfigurationPage() {
       )}
 
       {!cars ? (
-        !error && <p className="mt-6 text-ink-secondary">Loading vehicles…</p>
+        !error && <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.vehicles.loadingVehicles")}</p>
       ) : (
         <ul className="mt-6 divide-y divide-border-subtle">
           {cars.map((car) => {
@@ -102,16 +100,11 @@ export default function VehicleRatesConfigurationPage() {
                     </span>
                   </p>
 
-                  <p className="text-sm text-ink-muted">
-                    {car.category ?? "Standard"} · home {car.home_location.airport_code}
-                    {" · "}currently {formatCurrency(car.price_per_day)}/day
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  <label className="sr-only" htmlFor={`rate-${car.id}`}>
-                    Daily rate for {car.license_plate}
-                  </label>
+                  <label className="sr-only" htmlFor={`rate-${car.id}`}>{t("s.admin.configuration.vehicles.dailyRate", { license_plate: car.license_plate })}</label>
 
                   <div className="flex items-center gap-1.5">
                     <input
@@ -137,7 +130,7 @@ export default function VehicleRatesConfigurationPage() {
                     onClick={() => save(car)}
                     disabled={!dirty || savingId === car.id}
                   >
-                    {savingId === car.id ? "Saving" : savedId === car.id ? "Saved" : "Save"}
+                    {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
                   </Button>
                 </div>
               </li>

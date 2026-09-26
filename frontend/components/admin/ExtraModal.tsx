@@ -11,6 +11,7 @@ import {
   type AdminExtra,
   type PriceUnit,
 } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 type Props = {
   /** The extra being edited; omit to add a new one. */
@@ -55,7 +56,7 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save the extra.");
+      setError(err instanceof Error ? err.message : t("c.admin.ExtraModal.failedSaveExtra"));
     } finally {
       setSaving(false);
     }
@@ -64,27 +65,25 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title={extra ? "Edit extra" : "Add an extra"}
+      title={extra ? t("c.admin.ExtraModal.editExtra") : t("c.admin.ExtraModal.addExtra")}
       description={
         extra
-          ? "Existing bookings keep the price they were booked at."
-          : "Customers can add it to a booking straight away."
+          ? t("c.admin.ExtraModal.existingBookingsKeepPrice")
+          : t("c.admin.ExtraModal.customersCanAddIt")
       }
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.admin.ExtraModal.cancel")}</Button>
           <Button type="submit" form="extra-form" loading={saving}>
-            {saving ? "Saving" : extra ? "Save changes" : "Add extra"}
+            {saving ? t("c.admin.ExtraModal.saving") : extra ? t("c.admin.ExtraModal.saveChanges") : t("c.admin.ExtraModal.addExtra2")}
           </Button>
         </>
       }
     >
       <form id="extra-form" onSubmit={handleSubmit} className="space-y-4">
         <TextField
-          label="Name"
+          label={t("c.admin.ExtraModal.name")}
           required
           maxLength={100}
           value={name}
@@ -92,7 +91,7 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
         />
 
         <TextField
-          label="Description"
+          label={t("c.admin.ExtraModal.description")}
           maxLength={255}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -100,7 +99,7 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="Price"
+            label={t("c.admin.ExtraModal.price")}
             type="number"
             min={0}
             step="0.01"
@@ -110,22 +109,22 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
           />
 
           <SelectField
-            label="Charged"
+            label={t("c.admin.ExtraModal.charged")}
             value={priceUnit}
             onChange={(event) => setPriceUnit(event.target.value as PriceUnit)}
           >
-            <option value="PER_DAY">Per day</option>
-            <option value="PER_RENTAL">Once per rental</option>
+            <option value="PER_DAY">{t("c.admin.ExtraModal.perDay")}</option>
+            <option value="PER_RENTAL">{t("c.admin.ExtraModal.oncePerRental")}</option>
           </SelectField>
 
           <TextField
-            label="Maximum quantity"
+            label={t("c.admin.ExtraModal.maximumQuantity")}
             type="number"
             min={1}
             max={10}
             step={1}
             required
-            hint="How many a customer can add to one booking."
+            hint={t("c.admin.ExtraModal.howManyCustomerCan")}
             value={maxQuantity}
             onChange={(event) => setMaxQuantity(event.target.value)}
           />

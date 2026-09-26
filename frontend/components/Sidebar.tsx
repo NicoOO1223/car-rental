@@ -24,12 +24,12 @@ import {
 } from "lucide-react";
 
 import { clearToken } from "@/lib/api";
-import { useTranslations } from "use-intl";
 
 import { BrandMark } from "@/components/BrandMark";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { useBrand } from "@/components/BrandProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { t } from "@/lib/i18n";
 
 // Names are keys into the "nav" catalog, translated where they are drawn.
 type NavItem = { key: string; href: string; icon: LucideIcon };
@@ -143,7 +143,6 @@ function SidebarContent({
 }) {
   const isNewBooking = pathname.startsWith("/reservations/new");
   const { name: brandName } = useBrand();
-  const t = useTranslations("nav");
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -161,7 +160,7 @@ function SidebarContent({
               <h1 className="min-h-7 truncate text-lg font-bold tracking-tight text-ink">
                 {brandName}
               </h1>
-              <p className="mt-0.5 text-xs text-ink-muted">{t("managementPanel")}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{t("nav.managementPanel")}</p>
             </div>
           </div>
         )}
@@ -170,7 +169,7 @@ function SidebarContent({
           <button
             type="button"
             onClick={onClose}
-            aria-label={t("closeMenu")}
+            aria-label={t("nav.closeMenu")}
             className="-mr-2 -mt-1 rounded-lg p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -179,28 +178,28 @@ function SidebarContent({
       </div>
 
       <nav
-        aria-label={t("main")}
+        aria-label={t("nav.main")}
         className={`flex-1 overflow-y-auto py-5 ${collapsed ? "px-2" : "px-3"}`}
       >
         <Link
           href="/reservations/new"
           onClick={onNavigate}
-          title={collapsed ? t("newReservation") : undefined}
+          title={collapsed ? t("nav.newReservation") : undefined}
           aria-current={isNewBooking ? "page" : undefined}
           className={`flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
             collapsed ? "px-2" : "px-3"
           } ${isNewBooking ? "ring-2 ring-gray-900 ring-offset-2" : ""}`}
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {!collapsed && t("newReservation")}
-          {collapsed && <span className="sr-only">{t("newReservation")}</span>}
+          {!collapsed && t("nav.newReservation")}
+          {collapsed && <span className="sr-only">{t("nav.newReservation")}</span>}
         </Link>
 
         {sections.map((section, sectionIndex) => (
           <div key={section.labelKey ?? sectionIndex} className="mt-6">
             {section.labelKey && !collapsed && (
               <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                {t(section.labelKey)}
+                {t(`nav.${section.labelKey}`)}
               </p>
             )}
 
@@ -220,7 +219,7 @@ function SidebarContent({
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    title={collapsed ? t(item.key) : undefined}
+                    title={collapsed ? t(`nav.${item.key}`) : undefined}
                     aria-current={active ? "page" : undefined}
                     className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
                       collapsed ? "justify-center px-2" : "px-3"
@@ -246,8 +245,8 @@ function SidebarContent({
                       aria-hidden="true"
                     />
 
-                    {!collapsed && t(item.key)}
-                    {collapsed && <span className="sr-only">{t(item.key)}</span>}
+                    {!collapsed && t(`nav.${item.key}`)}
+                    {collapsed && <span className="sr-only">{t(`nav.${item.key}`)}</span>}
                   </Link>
                 );
               })}
@@ -278,21 +277,21 @@ function SidebarContent({
               // stale authenticated state survives into the login page.
               window.location.href = "/login";
             }}
-            title={collapsed ? t("signOut") : undefined}
+            title={collapsed ? t("nav.signOut") : undefined}
             className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
               collapsed ? "mx-auto justify-center px-2" : "px-0"
             }`}
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {!collapsed && t("signOut")}
-            {collapsed && <span className="sr-only">{t("signOut")}</span>}
+            {!collapsed && t("nav.signOut")}
+            {collapsed && <span className="sr-only">{t("nav.signOut")}</span>}
           </button>
 
           {onToggleCollapse && (
             <button
               type="button"
               onClick={onToggleCollapse}
-              aria-label={collapsed ? t("expandSidebar") : t("collapseSidebar")}
+              aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
               className={`rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
                 collapsed ? "mx-auto" : ""
               }`}
@@ -314,7 +313,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { name: brandName } = useBrand();
-  const t = useTranslations("nav");
   const { user } = useCurrentUser();
 
   // Per-employee display preference, configured from /admin/users — not
@@ -411,7 +409,7 @@ export default function Sidebar() {
           ref={menuButtonRef}
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label={t("openMenu")}
+          aria-label={t("nav.openMenu")}
           aria-expanded={mobileOpen}
           className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
         >
@@ -430,7 +428,7 @@ export default function Sidebar() {
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
-            aria-label={t("navigation")}
+            aria-label={t("nav.navigation")}
             className="absolute inset-y-0 left-0 w-72 max-w-[85vw] shadow-xl animate-[slide-in-left_0.2s_ease-out]"
           >
             <SidebarContent

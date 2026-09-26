@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { formatCalendarDate } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 export type LineChartPoint = {
   date: string;
@@ -110,7 +111,7 @@ export function LineChart({ data, formatValue, className = "" }: Props) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full"
         role="img"
-        aria-label="Revenue over time"
+        aria-label={t("c.charts.LineChart.revenueOverTime")}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoverIndex(null)}
       >

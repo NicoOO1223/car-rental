@@ -9,6 +9,7 @@ import { getCustomers, type CustomerListItem } from "@/lib/api";
 import { getCountries } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { t } from "@/lib/i18n";
 
 export type CustomerDetails = {
   first_name: string;
@@ -128,22 +129,17 @@ export function CustomerStep({
                   <p className="truncate font-medium text-ink">
                     {selected.first_name} {selected.last_name}
                   </p>
-                  <p className="truncate text-xs text-ink-muted">
-                    Existing customer · {selected.reservation_count} previous
-                    booking{selected.reservation_count === 1 ? "" : "s"}
-                  </p>
+                  <p className="truncate text-xs text-ink-muted">{t("c.booking.CustomerStep.previousBookings", { count: selected.reservation_count })}</p>
                 </div>
               </div>
 
               <Button variant="ghost" size="sm" onClick={clearSelection}>
-                <X className="h-4 w-4" aria-hidden="true" />
-                Clear
-              </Button>
+                <X className="h-4 w-4" aria-hidden="true" />{t("c.booking.CustomerStep.clear")}</Button>
             </div>
           ) : (
             <Field
-              label="Returning customer"
-              hint="Search by name, email or phone to fill the form automatically."
+              label={t("c.booking.CustomerStep.returningCustomer")}
+              hint={t("c.booking.CustomerStep.searchByNameEmail")}
             >
               {(fieldProps) => (
                 <div className="relative">
@@ -157,7 +153,7 @@ export function CustomerStep({
                     autoComplete="off"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Start typing a name..."
+                    placeholder={t("c.booking.CustomerStep.startTypingName")}
                     className="pl-9"
                   />
 
@@ -173,10 +169,7 @@ export function CustomerStep({
                             <p className="text-sm font-medium text-ink">
                               {customer.first_name} {customer.last_name}
                             </p>
-                            <p className="mt-0.5 text-xs text-ink-muted">
-                              Born {formatDate(customer.date_of_birth)}
-                              {customer.email ? ` · ${customer.email}` : ""}
-                            </p>
+                            <p className="mt-0.5 text-xs text-ink-muted">{t("c.booking.CustomerStep.born", { date: formatDate(customer.date_of_birth) })}{customer.email ? ` · ${customer.email}` : ""}{customer.email ? ` · ${customer.email}` : ""}</p>
                           </button>
                         </li>
                       ))}
@@ -191,12 +184,12 @@ export function CustomerStep({
 
       <div className="rounded-xl bg-surface p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-ink">
-          {selected ? "Confirm details" : "Customer details"}
+          {selected ? t("c.booking.CustomerStep.confirmDetails") : t("c.booking.CustomerStep.customerDetails")}
         </h2>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <TextField
-            label="First name"
+            label={t("c.booking.CustomerStep.firstName")}
             required
             autoComplete="given-name"
             value={value.first_name}
@@ -205,7 +198,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Last name"
+            label={t("c.booking.CustomerStep.lastName")}
             required
             autoComplete="family-name"
             value={value.last_name}
@@ -214,7 +207,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Date of birth"
+            label={t("c.booking.CustomerStep.dateBirth")}
             type="date"
             required
             autoComplete="bday"
@@ -224,7 +217,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Postal code"
+            label={t("c.booking.CustomerStep.postalCode")}
             required
             autoComplete="postal-code"
             value={value.postal_code}
@@ -233,7 +226,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Address"
+            label={t("c.booking.CustomerStep.address")}
             required
             autoComplete="street-address"
             className="sm:col-span-2"
@@ -243,7 +236,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Phone number"
+            label={t("c.booking.CustomerStep.phoneNumber")}
             type="tel"
             required
             autoComplete="tel"
@@ -253,7 +246,7 @@ export function CustomerStep({
           />
 
           <TextField
-            label="Email"
+            label={t("c.booking.CustomerStep.email")}
             type="email"
             required
             autoComplete="email"
@@ -263,13 +256,13 @@ export function CustomerStep({
           />
 
           <SelectField
-            label="Nationality"
+            label={t("c.booking.CustomerStep.nationality")}
             autoComplete="country"
             value={value.nationality}
             onChange={set("nationality")}
             error={errors.nationality}
           >
-            <option value="">Select a country...</option>
+            <option value="">{t("c.booking.CustomerStep.selectCountry")}</option>
             {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}

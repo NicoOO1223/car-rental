@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { PriceBreakdownList } from "@/components/pricing/PriceBreakdownList";
+import { t } from "@/lib/i18n";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -45,7 +46,7 @@ export function PaymentForm({
   reservationId,
   onPaid,
   confirm = confirmHandoverPayment,
-  submitLabel = "Charge Card",
+  submitLabel = t("c.handover.PaymentStep.chargeCard"),
 }: Pick<Props, "reservationId" | "onPaid"> & {
   confirm?: ConfirmFn;
   submitLabel?: string;
@@ -73,7 +74,7 @@ export function PaymentForm({
       });
 
       if (stripeError) {
-        throw new Error(stripeError.message || "Payment failed.");
+        throw new Error(stripeError.message || t("c.handover.PaymentStep.paymentFailed"));
       }
 
       // Never trust the client-side result alone — the server re-verifies
@@ -82,7 +83,7 @@ export function PaymentForm({
 
       onPaid();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed.");
+      setError(err instanceof Error ? err.message : t("c.handover.PaymentStep.paymentFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +99,7 @@ export function PaymentForm({
 
       <Button type="submit" disabled={!stripe || submitting} fullWidth>
         <CreditCard className="h-4 w-4" aria-hidden="true" />
-        {submitting ? "Processing..." : submitLabel}
+        {submitting ? t("c.handover.PaymentStep.processing") : submitLabel}
       </Button>
     </form>
   );
@@ -108,8 +109,8 @@ export function CashPaymentForm({
   reservationId,
   onPaid,
   confirm = confirmCashPayment,
-  description = "Confirm only once the full amount has been received in cash from the customer.",
-  buttonLabel = "Confirm Cash Payment",
+  description = t("c.handover.PaymentStep.confirmOnlyOnceFull"),
+  buttonLabel = t("c.handover.PaymentStep.confirmCashPayment"),
 }: Pick<Props, "reservationId" | "onPaid"> & {
   confirm?: ConfirmFn;
   description?: string;
@@ -127,7 +128,7 @@ export function CashPaymentForm({
       onPaid();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to confirm cash payment.",
+        err instanceof Error ? err.message : t("c.handover.PaymentStep.failedConfirmCashPayment"),
       );
     } finally {
       setConfirming(false);
@@ -142,7 +143,7 @@ export function CashPaymentForm({
 
       <Button onClick={handleConfirm} disabled={confirming} fullWidth>
         <Banknote className="h-4 w-4" aria-hidden="true" />
-        {confirming ? "Confirming..." : buttonLabel}
+        {confirming ? t("c.handover.PaymentStep.confirming") : buttonLabel}
       </Button>
     </div>
   );
@@ -181,15 +182,15 @@ export function PaymentStep({
             net_amount: vat?.net,
             prices_include_vat: vat?.includedInPrices,
           }}
-          totalLabel="Amount due"
+          totalLabel={t("c.handover.PaymentStep.amountDue")}
         />
       )}
 
       <div className="flex gap-2 border-b border-border-strong">
         {(
           [
-            { key: "card", label: "Card", Icon: CreditCard },
-            { key: "cash", label: "Cash", Icon: Banknote },
+            { key: "card", label: t("c.handover.PaymentStep.card"), Icon: CreditCard },
+            { key: "cash", label: t("c.handover.PaymentStep.cash"), Icon: Banknote },
           ] as const
         ).map(({ key, label, Icon }) => (
           <button
@@ -214,11 +215,7 @@ export function PaymentStep({
             <PaymentForm reservationId={reservationId} onPaid={onPaid} />
           </Elements>
         ) : (
-          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
-            Stripe is not configured yet — set{" "}
-            <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> in{" "}
-            <code>frontend/.env.local</code> to enable card payment.
-          </div>
+          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("c.handover.PaymentStep.stripeNotConfigured")}</div>
         )
       ) : (
         <CashPaymentForm reservationId={reservationId} onPaid={onPaid} />

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { useTranslations } from "use-intl";
 
 import { login, setToken } from "@/lib/api";
 import { BrandMark } from "@/components/BrandMark";
@@ -10,10 +9,10 @@ import { useBrand } from "@/components/BrandProvider";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
+import { t } from "@/lib/i18n";
 
 export default function LoginPage() {
   const { name: brandName } = useBrand();
-  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -33,7 +32,7 @@ export default function LoginPage() {
       // re-evaluates from scratch with the new token in place.
       window.location.href = "/";
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("failed"));
+      setError(err instanceof Error ? err.message : t("auth.failed"));
       setSubmitting(false);
     }
   }
@@ -47,12 +46,12 @@ export default function LoginPage() {
           {brandName}
         </h1>
         <p className="mt-1 text-sm text-ink-muted">
-          {t("subtitle")}
+          {t("auth.subtitle")}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <TextField
-            label={t("email")}
+            label={t("auth.email")}
             type="email"
             required
             autoComplete="email"
@@ -61,7 +60,7 @@ export default function LoginPage() {
           />
 
           <TextField
-            label={t("password")}
+            label={t("auth.password")}
             type="password"
             required
             autoComplete="current-password"
@@ -76,7 +75,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" fullWidth loading={submitting}>
-            {submitting ? t("signingIn") : t("signIn")}
+            {submitting ? t("auth.signingIn") : t("auth.signIn")}
           </Button>
         </form>
 

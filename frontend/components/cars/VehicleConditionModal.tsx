@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCar, type Car } from "@/lib/api";
+import { t, enumLabel } from "@/lib/i18n";
 
 const TIRE_CONDITION_OPTIONS = ["GOOD", "FAIR", "WORN", "NEEDS_REPLACEMENT"];
 
@@ -52,7 +53,7 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to update vehicle condition.",
+        err instanceof Error ? err.message : t("c.cars.VehicleConditionModal.failedUpdateVehicleCondition"),
       );
     } finally {
       setSaving(false);
@@ -62,15 +63,13 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title="Edit vehicle condition"
+      title={t("c.cars.VehicleConditionModal.editVehicleCondition")}
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.cars.VehicleConditionModal.cancel")}</Button>
           <Button type="submit" form="vehicle-condition-form" loading={saving}>
-            {saving ? "Saving" : "Save changes"}
+            {saving ? t("c.cars.VehicleConditionModal.saving") : t("c.cars.VehicleConditionModal.saveChanges")}
           </Button>
         </>
       }
@@ -82,7 +81,7 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="Mileage (km)"
+            label={t("c.cars.VehicleConditionModal.mileageKm")}
             type="number"
             min="0"
             value={mileage}
@@ -90,20 +89,20 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
           />
 
           <SelectField
-            label="Tire condition"
+            label={t("c.cars.VehicleConditionModal.tireCondition")}
             value={tireCondition}
             onChange={(event) => setTireCondition(event.target.value)}
           >
-            <option value="">Unknown</option>
+            <option value="">{t("c.cars.VehicleConditionModal.unknown")}</option>
             {TIRE_CONDITION_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {option.replace("_", " ")}
+                {enumLabel("tireCondition", option)}
               </option>
             ))}
           </SelectField>
 
           <TextField
-            label="Last oil change"
+            label={t("c.cars.VehicleConditionModal.lastOilChange")}
             type="date"
             className="sm:col-span-2"
             value={lastOilChangeAt}
@@ -111,14 +110,14 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Last inspection"
+            label={t("c.cars.VehicleConditionModal.lastInspection")}
             type="date"
             value={lastInspectionAt}
             onChange={(event) => setLastInspectionAt(event.target.value)}
           />
 
           <TextField
-            label="Next inspection due"
+            label={t("c.cars.VehicleConditionModal.nextInspectionDue")}
             type="date"
             value={nextInspectionDue}
             onChange={(event) => setNextInspectionDue(event.target.value)}

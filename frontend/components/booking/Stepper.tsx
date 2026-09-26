@@ -1,15 +1,16 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export type BookingStep = "search" | "vehicle" | "extras" | "customer" | "review";
 
 export const BOOKING_STEPS: { id: BookingStep; label: string }[] = [
-  { id: "search", label: "Search" },
-  { id: "vehicle", label: "Vehicle" },
-  { id: "extras", label: "Extras" },
-  { id: "customer", label: "Details" },
-  { id: "review", label: "Review" },
+  { id: "search", get label() { return t("c.booking.Stepper.search"); } },
+  { id: "vehicle", get label() { return t("c.booking.Stepper.vehicle"); } },
+  { id: "extras", get label() { return t("c.booking.Stepper.extras"); } },
+  { id: "customer", get label() { return t("c.booking.Stepper.details"); } },
+  { id: "review", get label() { return t("c.booking.Stepper.review"); } },
 ];
 
 export function stepIndex(step: BookingStep): number {
@@ -35,7 +36,7 @@ export function Stepper({
   const furthestIndex = stepIndex(furthest);
 
   return (
-    <nav aria-label="Booking progress" className="mb-8">
+    <nav aria-label={t("c.booking.Stepper.bookingProgress")} className="mb-8">
       <ol className="flex items-center gap-1 sm:gap-2">
         {BOOKING_STEPS.map((step, index) => {
           const isComplete = index < currentIndex;

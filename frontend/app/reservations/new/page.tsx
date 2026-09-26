@@ -53,6 +53,7 @@ import {
   zonedToInstant,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { t } from "@/lib/i18n";
 
 type SortKey = "price-asc" | "price-desc" | "name";
 
@@ -131,7 +132,7 @@ export default function NewReservationPage() {
         setExtras(extraData);
         setLocationsLoaded(true);
       } catch {
-        setSearchError("Failed to load booking options. Please refresh.");
+        setSearchError(t("s.reservations.new.failedLoadBookingOptions"));
       }
     }
 
@@ -218,17 +219,17 @@ export default function NewReservationPage() {
 
   async function handleSearch() {
     if (!pickupLocationId || !returnLocationId) {
-      setSearchError("Choose a pickup and return location.");
+      setSearchError(t("s.reservations.new.choosePickupReturnLocation"));
       return;
     }
 
     if (!pickupDate || !returnDate) {
-      setSearchError("Pick a pickup and a drop-off date on the calendar.");
+      setSearchError(t("s.reservations.new.pickPickupDropOff"));
       return;
     }
 
     if (new Date(returnIso) <= new Date(pickupIso)) {
-      setSearchError("The drop-off must be after the pickup.");
+      setSearchError(t("s.reservations.new.dropOffMustBe"));
       return;
     }
 
@@ -247,7 +248,7 @@ export default function NewReservationPage() {
       setCars(results);
       goTo("vehicle");
     } catch {
-      setSearchError("Failed to search for available cars. Please try again.");
+      setSearchError(t("s.reservations.new.failedSearchAvailableCars"));
     } finally {
       setSearching(false);
     }
@@ -285,7 +286,7 @@ export default function NewReservationPage() {
     } catch (error) {
       if (token === requestToken.current) {
         setQuoteError(
-          error instanceof Error ? error.message : "Failed to price this booking.",
+          error instanceof Error ? error.message : t("s.reservations.new.failedPriceBooking"),
         );
       }
     } finally {
@@ -385,12 +386,12 @@ export default function NewReservationPage() {
 
     for (const key of required) {
       if (!customer[key].trim()) {
-        errors[key] = "Required";
+        errors[key] = t("s.reservations.new.required");
       }
     }
 
     if (!errors.email && !customer.email.includes("@")) {
-      errors.email = "Enter a valid email address.";
+      errors.email = t("s.reservations.new.enterValidEmailAddress");
     }
 
     setCustomerErrors(errors);
@@ -427,7 +428,7 @@ export default function NewReservationPage() {
       setCreated(reservation);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Failed to create reservation.",
+        error instanceof Error ? error.message : t("s.reservations.new.failedCreateReservation"),
       );
     } finally {
       setSubmitting(false);
@@ -444,37 +445,32 @@ export default function NewReservationPage() {
             <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-ink">
-            Reservation created
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">{t("s.reservations.new.reservationCreated")}</h1>
 
-          <p className="mx-auto mt-2 max-w-sm text-ink-secondary">
-            {created.customer.first_name} {created.customer.last_name} has a pending
-            reservation for the {created.car.make} {created.car.model}.
-          </p>
+          <p className="mx-auto mt-2 max-w-sm text-ink-secondary">{t("s.reservations.new.hasPendingReservation", { first_name: created.customer.first_name, last_name: created.customer.last_name, make: created.car.make, model: created.car.model })}</p>
 
           <dl className="mt-6 space-y-2.5 rounded-lg bg-surface-sunken p-4 text-left text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Booking reference</dt>
+              <dt className="text-ink-muted">{t("s.reservations.new.bookingReference")}</dt>
               <dd className="font-mono text-xs font-medium text-ink">
                 {bookingReference(created.id)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Pickup</dt>
+              <dt className="text-ink-muted">{t("s.reservations.new.pickup")}</dt>
               <dd className="text-right font-medium text-ink">
                 {formatDateTime(created.pickup_at, created.pickup_location?.timezone)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-ink-muted">Return</dt>
+              <dt className="text-ink-muted">{t("s.reservations.new.return")}</dt>
               <dd className="text-right font-medium text-ink">
                 {formatDateTime(created.return_at, created.return_location?.timezone)}
               </dd>
             </div>
             {quote && (
               <div className="flex justify-between gap-4 border-t border-border-strong pt-2.5">
-                <dt className="text-ink-muted">Total</dt>
+                <dt className="text-ink-muted">{t("s.reservations.new.total")}</dt>
                 <dd className="font-semibold text-ink">
                   {formatCurrency(quote.total_amount)}
                 </dd>
@@ -485,16 +481,12 @@ export default function NewReservationPage() {
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button
               onClick={() => navigate(`/reservations/manage/${created.id}`)}
-            >
-              View reservation
-            </Button>
+            >{t("s.reservations.new.viewReservation")}</Button>
 
             <Button
               variant="secondary"
               onClick={() => window.location.reload()}
-            >
-              Start another booking
-            </Button>
+            >{t("s.reservations.new.startAnotherBooking")}</Button>
           </div>
         </div>
       </PageShell>
@@ -508,12 +500,8 @@ export default function NewReservationPage() {
   return (
     <PageShell width="wide">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-ink">
-          New reservation
-        </h1>
-        <p className="mt-2 text-ink-secondary">
-          Find a vehicle, add any extras, and confirm the booking.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.reservations.new.newReservation")}</h1>
+        <p className="mt-2 text-ink-secondary">{t("s.reservations.new.findVehicleAddAny")}</p>
       </div>
 
       <Stepper current={step} furthest={furthest} onStepClick={goTo} />
@@ -529,23 +517,18 @@ export default function NewReservationPage() {
         <div className="min-w-0">
           {step === "search" && (
             <div className="rounded-xl bg-surface p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-ink">
-                Where and when
-              </h2>
+              <h2 className="text-lg font-semibold text-ink">{t("s.reservations.new.whereWhen")}</h2>
 
               {locationsLoaded && locations.length === 0 && (
                 <p
                   className="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900"
                   role="status"
-                >
-                  There are no locations yet, so nothing can be booked. An
-                  administrator can add them under Configuration, Locations.
-                </p>
+                >{t("s.reservations.new.thereNoLocationsYet")}</p>
               )}
 
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <SelectField
-                  label="Pickup location"
+                  label={t("s.reservations.new.pickupLocation")}
                   required
                   value={pickupLocationId}
                   onChange={(event) => {
@@ -559,7 +542,7 @@ export default function NewReservationPage() {
                     }
                   }}
                 >
-                  <option value="">Select an airport</option>
+                  <option value="">{t("s.reservations.new.selectAirport")}</option>
                   {locations.map((location) => (
                     <option key={location.id} value={location.id}>
                       {location.airport_code} — {location.name}
@@ -568,17 +551,17 @@ export default function NewReservationPage() {
                 </SelectField>
 
                 <SelectField
-                  label="Return location"
+                  label={t("s.reservations.new.returnLocation")}
                   required
                   hint={
                     returnLocationId && returnLocationId !== pickupLocationId
-                      ? "A one-way rental adds an airport change fee."
+                      ? t("s.reservations.new.oneWayRentalAdds")
                       : undefined
                   }
                   value={returnLocationId}
                   onChange={(event) => setReturnLocationId(event.target.value)}
                 >
-                  <option value="">Select an airport</option>
+                  <option value="">{t("s.reservations.new.selectAirport")}</option>
                   {locations.map((location) => (
                     <option key={location.id} value={location.id}>
                       {location.airport_code} — {location.name}
@@ -589,9 +572,7 @@ export default function NewReservationPage() {
               </div>
 
               <div className="mt-6">
-                <p className="mb-2 text-sm font-medium text-ink">
-                  Rental dates
-                  <span className="ml-0.5 text-ink-muted" aria-hidden="true">
+                <p className="mb-2 text-sm font-medium text-ink">{t("s.reservations.new.rentalDates")}<span className="ml-0.5 text-ink-muted" aria-hidden="true">
                     *
                   </span>
                 </p>
@@ -612,7 +593,7 @@ export default function NewReservationPage() {
 
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <SelectField
-                  label="Pickup time"
+                  label={t("s.reservations.new.pickupTime")}
                   required
                   value={pickupTime}
                   onChange={(event) => setPickupTime(event.target.value)}
@@ -625,7 +606,7 @@ export default function NewReservationPage() {
                 </SelectField>
 
                 <SelectField
-                  label="Drop-off time"
+                  label={t("s.reservations.new.dropOffTime")}
                   required
                   value={returnTime}
                   onChange={(event) => setReturnTime(event.target.value)}
@@ -652,7 +633,7 @@ export default function NewReservationPage() {
                   loading={searching}
                   onClick={handleSearch}
                 >
-                  {searching ? "Searching" : "Search vehicles"}
+                  {searching ? t("s.reservations.new.searching") : t("s.reservations.new.searchVehicles")}
                   {!searching && (
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   )}
@@ -665,11 +646,9 @@ export default function NewReservationPage() {
             <div>
               <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-ink-secondary">
-                  <span className="font-semibold text-ink">
-                    {visibleCars.length}
-                  </span>{" "}
-                  {visibleCars.length === 1 ? "vehicle" : "vehicles"} available
-                  {visibleCars.length !== cars.length && ` of ${cars.length}`}
+                  {visibleCars.length !== cars.length
+                    ? t("s.reservations.new.availableOf", { count: visibleCars.length, total: cars.length })
+                    : t("s.reservations.new.available", { count: visibleCars.length })}
                 </p>
 
                 {/* Each control is width-constrained by its wrapper rather
@@ -679,14 +658,14 @@ export default function NewReservationPage() {
                   {categories.length > 1 && (
                     <div className="w-40">
                       <Select
-                        aria-label="Filter by category"
+                        aria-label={t("s.reservations.new.filterByCategory")}
                         value={categoryFilter}
                         onChange={(event) =>
                           setCategoryFilter(event.target.value)
                         }
                         className="py-2 text-sm"
                       >
-                        <option value="ALL">All categories</option>
+                        <option value="ALL">{t("s.reservations.new.allCategories")}</option>
                         {categories.map((category) => (
                           <option key={category} value={category}>
                             {categoryLabel(category)}
@@ -699,17 +678,17 @@ export default function NewReservationPage() {
                   {transmissions.length > 1 && (
                     <div className="w-40">
                       <Select
-                        aria-label="Filter by transmission"
+                        aria-label={t("s.reservations.new.filterByTransmission")}
                         value={transmissionFilter}
                         onChange={(event) =>
                           setTransmissionFilter(event.target.value)
                         }
                         className="py-2 text-sm"
                       >
-                        <option value="ALL">Any transmission</option>
+                        <option value="ALL">{t("s.reservations.new.anyTransmission")}</option>
                         {transmissions.map((transmission) => (
                           <option key={transmission} value={transmission}>
-                            {transmission === "MANUAL" ? "Manual" : "Automatic"}
+                            {transmission === "MANUAL" ? t("s.reservations.new.manual") : t("s.reservations.new.automatic")}
                           </option>
                         ))}
                       </Select>
@@ -718,16 +697,16 @@ export default function NewReservationPage() {
 
                   <div className="w-44">
                     <Select
-                      aria-label="Sort vehicles"
+                      aria-label={t("s.reservations.new.sortVehicles")}
                       value={sortKey}
                       onChange={(event) =>
                         setSortKey(event.target.value as SortKey)
                       }
                       className="py-2 text-sm"
                     >
-                      <option value="price-asc">Price: low to high</option>
-                      <option value="price-desc">Price: high to low</option>
-                      <option value="name">Name</option>
+                      <option value="price-asc">{t("s.reservations.new.priceLowHigh")}</option>
+                      <option value="price-desc">{t("s.reservations.new.priceHighLow")}</option>
+                      <option value="name">{t("s.reservations.new.name")}</option>
                     </Select>
                   </div>
                 </div>
@@ -754,19 +733,17 @@ export default function NewReservationPage() {
                   icon={cars.length === 0 ? SearchX : CarFront}
                   title={
                     cars.length === 0
-                      ? "No vehicles available"
-                      : "No vehicles match those filters"
+                      ? t("s.reservations.new.noVehiclesAvailable")
+                      : t("s.reservations.new.noVehiclesMatchThose")
                   }
                   description={
                     cars.length === 0
-                      ? "Nothing is free at that location for the dates you chose. Try a different window."
-                      : "Clear a filter to see the rest of what is available."
+                      ? t("s.reservations.new.nothingFreeAtLocation")
+                      : t("s.reservations.new.clearFilterSeeRest")
                   }
                   action={
                     cars.length === 0 ? (
-                      <Button variant="secondary" onClick={() => goTo("search")}>
-                        Change search
-                      </Button>
+                      <Button variant="secondary" onClick={() => goTo("search")}>{t("s.reservations.new.changeSearch")}</Button>
                     ) : (
                       <Button
                         variant="secondary"
@@ -774,9 +751,7 @@ export default function NewReservationPage() {
                           setCategoryFilter("ALL");
                           setTransmissionFilter("ALL");
                         }}
-                      >
-                        Clear filters
-                      </Button>
+                      >{t("s.reservations.new.clearFilters")}</Button>
                     )
                   }
                 />
@@ -799,7 +774,7 @@ export default function NewReservationPage() {
                 onBack={() => goTo("search")}
                 onNext={() => goTo("extras")}
                 nextDisabled={!selectedCar}
-                nextHint={!selectedCar ? "Select a vehicle to continue" : undefined}
+                nextHint={!selectedCar ? t("s.reservations.new.selectVehicleContinue") : undefined}
               />
             </div>
           )}
@@ -807,12 +782,8 @@ export default function NewReservationPage() {
           {step === "extras" && (
             <div>
               <div className="mb-5">
-                <h2 className="text-lg font-semibold text-ink">
-                  Add extras
-                </h2>
-                <p className="mt-1 text-sm text-ink-secondary">
-                  Optional. Everything here can also be added at the counter.
-                </p>
+                <h2 className="text-lg font-semibold text-ink">{t("s.reservations.new.addExtras")}</h2>
+                <p className="mt-1 text-sm text-ink-secondary">{t("s.reservations.new.optionalEverythingHereCan")}</p>
               </div>
 
               <ExtrasPicker
@@ -825,7 +796,7 @@ export default function NewReservationPage() {
                 onBack={() => goTo("vehicle")}
                 onNext={() => goTo("customer")}
                 nextLabel={
-                  selectedExtras.length === 0 ? "Skip extras" : "Continue"
+                  selectedExtras.length === 0 ? t("s.reservations.new.skipExtras") : t("s.reservations.new.continue")
                 }
               />
             </div>
@@ -851,7 +822,7 @@ export default function NewReservationPage() {
           {step === "review" && selectedCar && (
             <div className="space-y-5">
               <div className="rounded-xl bg-surface p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-ink">Review</h2>
+                <h2 className="text-lg font-semibold text-ink">{t("s.reservations.new.review")}</h2>
 
                 <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <CarImage
@@ -871,16 +842,12 @@ export default function NewReservationPage() {
                     <p className="mt-2 text-sm text-ink-secondary">
                       {formatDateTime(pickupIso, pickupZone)}
                     </p>
-                    <p className="text-sm text-ink-secondary">
-                      to {formatDateTime(returnIso, returnZone)}
-                    </p>
+                    <p className="text-sm text-ink-secondary">{t("s.reservations.new.text", { v1: formatDateTime(returnIso, returnZone) })}</p>
                   </div>
                 </div>
 
                 <div className="mt-6 border-t border-border-subtle pt-5">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
-                    Driver
-                  </h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("s.reservations.new.driver")}</h3>
                   <p className="mt-2 font-medium text-ink">
                     {customer.first_name} {customer.last_name}
                   </p>
@@ -894,14 +861,12 @@ export default function NewReservationPage() {
               </div>
 
               <div className="rounded-xl bg-surface p-6 shadow-sm">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
-                  Price
-                </h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("s.reservations.new.price")}</h3>
 
                 {quote ? (
                   <PriceBreakdownList
                     breakdown={quote}
-                    totalLabel="Total due at pickup"
+                    totalLabel={t("s.reservations.new.totalDueAtPickup")}
                     className="mt-4"
                   />
                 ) : (
@@ -920,9 +885,7 @@ export default function NewReservationPage() {
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                 <Button variant="secondary" onClick={() => goTo("customer")}>
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  Back
-                </Button>
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("s.reservations.new.back")}</Button>
 
                 <Button
                   size="lg"
@@ -930,7 +893,7 @@ export default function NewReservationPage() {
                   disabled={!quote || !quote.car_available}
                   onClick={handleConfirm}
                 >
-                  {submitting ? "Confirming" : "Confirm reservation"}
+                  {submitting ? t("s.reservations.new.confirming") : t("s.reservations.new.confirmReservation")}
                 </Button>
               </div>
             </div>
@@ -957,7 +920,7 @@ export default function NewReservationPage() {
 function StepNav({
   onBack,
   onNext,
-  nextLabel = "Continue",
+  nextLabel = t("s.reservations.new.continue"),
   nextDisabled = false,
   nextHint,
 }: {
@@ -970,9 +933,7 @@ function StepNav({
   return (
     <div className="mt-6 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
       <Button variant="secondary" onClick={onBack}>
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Back
-      </Button>
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("s.reservations.new.back")}</Button>
 
       <div className="flex items-center gap-3 sm:justify-end">
         {nextHint && (

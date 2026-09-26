@@ -11,6 +11,7 @@ import {
   type Car,
   type MaintenanceTask,
 } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 const TASK_TYPE_OPTIONS = ["MAINTENANCE", "CLEANING"];
 
@@ -38,17 +39,17 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
     event.preventDefault();
 
     if (!carId) {
-      setError("Select a vehicle.");
+      setError(t("c.maintenance.NewTaskModal.selectVehicle"));
       return;
     }
 
     if (taskType === "MAINTENANCE" && !category) {
-      setError("Select a maintenance category.");
+      setError(t("c.maintenance.NewTaskModal.selectMaintenanceCategory"));
       return;
     }
 
     if (!startsAt || !endsAt) {
-      setError("Select when the vehicle is out of service.");
+      setError(t("c.maintenance.NewTaskModal.selectWhenVehicleOut"));
       return;
     }
 
@@ -57,7 +58,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
     const end = new Date(endsAt);
 
     if (end <= start) {
-      setError("The end must be after the start.");
+      setError(t("c.maintenance.NewTaskModal.endMustBeAfter"));
       return;
     }
 
@@ -77,7 +78,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
       onCreated(task);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to log task.");
+      setError(err instanceof Error ? err.message : t("c.maintenance.NewTaskModal.failedLogTask"));
     } finally {
       setSaving(false);
     }
@@ -86,23 +87,21 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
   return (
     <Modal
       isOpen
-      title="Log a task"
-      description="The vehicle is unavailable for new bookings during this period and shows on its calendar."
+      title={t("c.maintenance.NewTaskModal.logTask")}
+      description={t("c.maintenance.NewTaskModal.vehicleUnavailableNewBookings")}
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.maintenance.NewTaskModal.cancel")}</Button>
           <Button type="submit" form="new-task-form" loading={saving}>
-            {saving ? "Saving" : "Log task"}
+            {saving ? t("c.maintenance.NewTaskModal.saving") : t("c.maintenance.NewTaskModal.logTask2")}
           </Button>
         </>
       }
     >
       <form id="new-task-form" onSubmit={handleSubmit} className="space-y-4">
         {car ? (
-          <Field label="Vehicle">
+          <Field label={t("c.maintenance.NewTaskModal.vehicle")}>
             {(fieldProps) => (
               <p
                 id={fieldProps.id}
@@ -114,7 +113,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
           </Field>
         ) : (
           <SelectField
-            label="Vehicle"
+            label={t("c.maintenance.NewTaskModal.vehicle")}
             required
             value={carId}
             onChange={(event) => setCarId(event.target.value)}
@@ -128,7 +127,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
         )}
 
         <SelectField
-          label="Task type"
+          label={t("c.maintenance.NewTaskModal.taskType")}
           value={taskType}
           onChange={(event) => setTaskType(event.target.value)}
         >
@@ -141,12 +140,12 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
 
         {taskType === "MAINTENANCE" && (
           <SelectField
-            label="Category"
+            label={t("c.maintenance.NewTaskModal.category")}
             required
             value={category}
             onChange={(event) => setCategory(event.target.value)}
           >
-            <option value="">Select a category...</option>
+            <option value="">{t("c.maintenance.NewTaskModal.selectCategory")}</option>
             {MAINTENANCE_CATEGORIES.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -157,7 +156,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="Out of service from"
+            label={t("c.maintenance.NewTaskModal.outServiceFrom")}
             type="datetime-local"
             required
             value={startsAt}
@@ -165,7 +164,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
           />
 
           <TextField
-            label="Back in service at"
+            label={t("c.maintenance.NewTaskModal.backServiceAt")}
             type="datetime-local"
             required
             min={startsAt || undefined}
@@ -174,14 +173,14 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
           />
         </div>
 
-        <Field label="Notes">
+        <Field label={t("c.maintenance.NewTaskModal.notes")}>
           {(fieldProps) => (
             <Textarea
               {...fieldProps}
               rows={3}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Reason for this task..."
+              placeholder={t("c.maintenance.NewTaskModal.reasonTask")}
             />
           )}
         </Field>

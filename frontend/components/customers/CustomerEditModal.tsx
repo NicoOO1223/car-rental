@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCustomer, type Customer } from "@/lib/api";
 import { getCountries } from "@/lib/countries";
+import { t } from "@/lib/i18n";
 
 type Props = {
   customer: Customer;
@@ -49,7 +50,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to update customer.",
+        err instanceof Error ? err.message : t("c.customers.CustomerEditModal.failedUpdateCustomer"),
       );
     } finally {
       setSaving(false);
@@ -59,15 +60,13 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
   return (
     <Modal
       isOpen
-      title="Edit customer"
+      title={t("c.customers.CustomerEditModal.editCustomer")}
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.customers.CustomerEditModal.cancel")}</Button>
           <Button type="submit" form="customer-edit-form" loading={saving}>
-            {saving ? "Saving" : "Save changes"}
+            {saving ? t("c.customers.CustomerEditModal.saving") : t("c.customers.CustomerEditModal.saveChanges")}
           </Button>
         </>
       }
@@ -79,7 +78,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="First name"
+            label={t("c.customers.CustomerEditModal.firstName")}
             required
             autoComplete="given-name"
             value={firstName}
@@ -87,7 +86,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Last name"
+            label={t("c.customers.CustomerEditModal.lastName")}
             required
             autoComplete="family-name"
             value={lastName}
@@ -95,7 +94,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Date of birth"
+            label={t("c.customers.CustomerEditModal.dateBirth")}
             type="date"
             required
             autoComplete="bday"
@@ -104,7 +103,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Postal code"
+            label={t("c.customers.CustomerEditModal.postalCode")}
             required
             autoComplete="postal-code"
             value={postalCode}
@@ -112,7 +111,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Phone number"
+            label={t("c.customers.CustomerEditModal.phoneNumber")}
             type="tel"
             required
             autoComplete="tel"
@@ -121,7 +120,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Email"
+            label={t("c.customers.CustomerEditModal.email")}
             type="email"
             required
             autoComplete="email"
@@ -130,7 +129,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <TextField
-            label="Address"
+            label={t("c.customers.CustomerEditModal.address")}
             required
             autoComplete="street-address"
             className="sm:col-span-2"
@@ -139,12 +138,12 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
           />
 
           <SelectField
-            label="Nationality"
+            label={t("c.customers.CustomerEditModal.nationality")}
             autoComplete="country"
             value={nationality}
             onChange={(event) => setNationality(event.target.value)}
           >
-            <option value="">Select a country...</option>
+            <option value="">{t("c.customers.CustomerEditModal.selectCountry")}</option>
             {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}

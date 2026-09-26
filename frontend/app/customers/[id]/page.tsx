@@ -18,6 +18,7 @@ import { SkeletonDetailPage } from "@/components/ui/Skeleton";
 import { bookingReference, formatDate, formatDateTime } from "@/lib/format";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { useNavigate } from "@/lib/useNavigate";
+import { t } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{
@@ -52,7 +53,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         setCustomer(customerData);
         setReservations(reservationData);
       } catch {
-        setError("Failed to load customer.");
+        setError(t("s.customers.id.failedLoadCustomer"));
       } finally {
         setLoading(false);
       }
@@ -71,7 +72,7 @@ export default function CustomerDetailsPage({ params }: Props) {
       await downloadCustomerDataExport(customer.id);
     } catch (err) {
       setPrivacyActionError(
-        err instanceof Error ? err.message : "Failed to export customer data.",
+        err instanceof Error ? err.message : t("s.customers.id.failedExportCustomerData"),
       );
     } finally {
       setExporting(false);
@@ -82,7 +83,7 @@ export default function CustomerDetailsPage({ params }: Props) {
     if (!customer) return;
 
     const confirmed = window.confirm(
-      "Erase this customer's personal data? This cannot be undone — their name, date of birth, address, and contact details will be permanently replaced with placeholders. Their reservation history stays on file.",
+      t("s.customers.id.eraseCustomerSPersonal"),
     );
 
     if (!confirmed) return;
@@ -95,7 +96,7 @@ export default function CustomerDetailsPage({ params }: Props) {
       setCustomer(updated);
     } catch (err) {
       setPrivacyActionError(
-        err instanceof Error ? err.message : "Failed to erase customer data.",
+        err instanceof Error ? err.message : t("s.customers.id.failedEraseCustomerData"),
       );
     } finally {
       setErasing(false);
@@ -115,7 +116,7 @@ export default function CustomerDetailsPage({ params }: Props) {
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
-            {error || "Customer not found."}
+            {error || t("s.customers.id.customerNotFound")}
           </p>
         </div>
       </main>
@@ -132,9 +133,7 @@ export default function CustomerDetailsPage({ params }: Props) {
             onClick={() => navigate("/customers")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to customers
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.customers.id.backCustomers")}</button>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -142,9 +141,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                 {customer.first_name} {customer.last_name}
               </h1>
 
-              <p className="mt-2 text-gray-500">
-                Customer since {formatDate(customer.created_at)}
-              </p>
+              <p className="mt-2 text-gray-500">{t("s.customers.id.customerSince", { v1: formatDate(customer.created_at) })}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -156,7 +153,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                     disabled={exporting}
                   >
                     <Download className="h-4 w-4" />
-                    {exporting ? "Exporting..." : "Export Data"}
+                    {exporting ? t("s.customers.id.exporting") : t("s.customers.id.exportData")}
                   </Button>
 
                   {!customer.anonymized_at && (
@@ -166,7 +163,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                       disabled={erasing}
                     >
                       <Trash2 className="h-4 w-4" />
-                      {erasing ? "Erasing..." : "Erase Customer Data"}
+                      {erasing ? t("s.customers.id.erasing") : t("s.customers.id.eraseCustomerData")}
                     </Button>
                   )}
                 </>
@@ -174,9 +171,7 @@ export default function CustomerDetailsPage({ params }: Props) {
 
               {!customer.anonymized_at && (
                 <Button variant="secondary" onClick={() => setEditing(true)}>
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Button>
+                  <Pencil className="h-4 w-4" />{t("s.customers.id.edit")}</Button>
               )}
             </div>
           </div>
@@ -188,52 +183,47 @@ export default function CustomerDetailsPage({ params }: Props) {
           {customer.anonymized_at && (
             <div className="mt-4 flex items-start gap-2 rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>
-                This customer&apos;s personal data was erased on{" "}
-                {formatDate(customer.anonymized_at)}. Their reservation history
-                is kept for accounting/legal record-keeping, but the fields
-                below are placeholders and can no longer be edited.
-              </span>
+              <span>{t("s.customers.id.customerSPersonalData", { v1: formatDate(customer.anonymized_at) })}</span>
             </div>
           )}
         </div>
 
         {/* Customer information */}
         <section className="rounded-xl bg-surface p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Customer Information</h2>
+          <h2 className="text-xl font-semibold">{t("s.customers.id.customerInformation")}</h2>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-gray-500">Date of Birth</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.dateBirth")}</p>
               <p className="mt-1 font-medium">
                 {formatDate(customer.date_of_birth)}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Postal Code</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.postalCode")}</p>
               <p className="mt-1 font-medium">{customer.postal_code}</p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Phone</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.phone")}</p>
               <p className="mt-1 font-medium">
                 {customer.phone_number || "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Email</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.email")}</p>
               <p className="mt-1 font-medium">{customer.email || "—"}</p>
             </div>
 
             <div className="sm:col-span-2">
-              <p className="text-sm text-gray-500">Address</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.address")}</p>
               <p className="mt-1 font-medium">{customer.address}</p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">Customer reference</p>
+              <p className="text-sm text-gray-500">{t("s.customers.id.customerReference")}</p>
               <p className="mt-1 font-mono font-medium">
                 {bookingReference(customer.id)}
               </p>
@@ -245,24 +235,17 @@ export default function CustomerDetailsPage({ params }: Props) {
         <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Reservations</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Full booking history
-              </p>
+              <h2 className="text-xl font-semibold">{t("s.customers.id.reservations")}</h2>
+              <p className="mt-1 text-sm text-gray-500">{t("s.customers.id.fullBookingHistory")}</p>
             </div>
 
-            <span className="text-sm text-gray-500">
-              {reservations.length} booking
-              {reservations.length !== 1 ? "s" : ""}
-            </span>
+            <span className="text-sm text-gray-500">{t("common.bookings", { count: reservations.length })}</span>
           </div>
 
           {reservations.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
-              <p className="font-medium text-gray-700">No reservations</p>
-              <p className="mt-1 text-sm text-gray-500">
-                This customer has no bookings.
-              </p>
+              <p className="font-medium text-gray-700">{t("s.customers.id.noReservations")}</p>
+              <p className="mt-1 text-sm text-gray-500">{t("s.customers.id.customerHasNoBookings")}</p>
             </div>
           ) : (
             <div className="mt-6 space-y-3">

@@ -19,13 +19,15 @@ import { PieChart, type PieChartDatum } from "@/components/charts/PieChart";
 import { Skeleton, SkeletonStatTiles } from "@/components/ui/Skeleton";
 import { useNavigate } from "@/lib/useNavigate";
 import { addDays, formatCalendarDate, todayInZone } from "@/lib/format";
+import { enumLabel, t } from "@/lib/i18n";
+import { categoryLabel } from "@/lib/carDisplay";
 
 const FLEET_STATUS_ORDER: { key: string; label: string }[] = [
-  { key: "available", label: "Available" },
-  { key: "reserved", label: "Reserved" },
-  { key: "rented", label: "Rented" },
-  { key: "maintenance", label: "Maintenance" },
-  { key: "cleaning", label: "Cleaning" },
+  { key: "available", get label() { return enumLabel("carStatus", "AVAILABLE"); } },
+  { key: "reserved", get label() { return enumLabel("carStatus", "RESERVED"); } },
+  { key: "rented", get label() { return enumLabel("carStatus", "RENTED"); } },
+  { key: "maintenance", get label() { return enumLabel("carStatus", "MAINTENANCE"); } },
+  { key: "cleaning", get label() { return enumLabel("carStatus", "CLEANING"); } },
 ];
 
 /** Today's date at the business (not in UTC, not in the browser). */
@@ -111,9 +113,9 @@ export default function DashboardPage() {
           // A failed range filter shouldn't blank the whole dashboard —
           // only the very first load has nothing else to fall back on.
           if (hasLoadedDashboardRef.current) {
-            setUpcomingError("Failed to load pickups & returns for this range.");
+            setUpcomingError(t("s.failedLoadPickupsReturns"));
           } else {
-            setError("Failed to load dashboard.");
+            setError(t("s.failedLoadDashboard"));
           }
         }
       } finally {
@@ -163,7 +165,7 @@ export default function DashboardPage() {
         }
       } catch {
         if (!cancelled) {
-          setFleetStatusError("Failed to load fleet status.");
+          setFleetStatusError(t("s.failedLoadFleetStatus"));
         }
       } finally {
         if (!cancelled) {
@@ -199,7 +201,7 @@ export default function DashboardPage() {
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <p className="text-red-600">
-            {error || "Failed to load dashboard."}
+            {error || t("s.failedLoadDashboard")}
           </p>
         </div>
       </main>
@@ -223,13 +225,9 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-ink">
-            Overview
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.overview")}</h1>
 
-          <p className="mt-2 text-ink-secondary">
-            Your fleet and reservations at a glance.
-          </p>
+          <p className="mt-2 text-ink-secondary">{t("s.fleetReservationsAtGlance")}</p>
         </div>
 
         {/* Opened from the "Need relocation" tile; sits on top of the overview. */}
@@ -237,20 +235,15 @@ export default function DashboardPage() {
           <Card className="mb-8 border border-amber-300">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">
-                  Vehicles that need relocation
-                </h2>
+                <h2 className="text-lg font-semibold">{t("s.vehiclesNeedRelocation")}</h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  These cars ended a one-way rental at another airport. Once one
-                  has been driven back, record it on its page.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">{t("s.theseCarsEndedOne")}</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowRelocation(false)}
-                aria-label="Close"
+                aria-label={t("s.close")}
                 className="rounded-md p-1 text-gray-500 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
@@ -270,7 +263,7 @@ export default function DashboardPage() {
                       {car.make} {car.model}
                       <span className="ml-2 text-sm font-normal text-gray-500">
                         {car.year}
-                        {car.category ? ` · ${car.category}` : ""}
+                        {car.category ? ` · ${categoryLabel(car.category)}` : ""}
                       </span>
                     </span>
 
@@ -280,8 +273,7 @@ export default function DashboardPage() {
                   </span>
 
                   <span className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                    <span>
-                      At <strong>{car.current_airport_code}</strong>{" "}
+                    <span>{t("s.at")}{" "}<strong>{car.current_airport_code}</strong>{" "}
                       <span className="text-gray-500">
                         ({car.current_airport_name})
                       </span>
@@ -291,8 +283,7 @@ export default function DashboardPage() {
                       →
                     </span>
 
-                    <span>
-                      Home <strong>{car.home_airport_code}</strong>{" "}
+                    <span>{t("s.home")}{" "}<strong>{car.home_airport_code}</strong>{" "}
                       <span className="text-gray-500">
                         ({car.home_airport_name})
                       </span>
@@ -317,15 +308,13 @@ export default function DashboardPage() {
               className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
             >
               <div>
-                <p className="text-sm text-gray-500">In maintenance</p>
+                <p className="text-sm text-gray-500">{t("s.dashboard.inMaintenance")}</p>
 
                 <p className="mt-2 text-3xl font-bold">
                   {dashboard.fleet.maintenance}
                 </p>
 
-                <p className="mt-2 text-sm text-gray-500">
-                  Vehicles out of service right now
-                </p>
+                <p className="mt-2 text-sm text-gray-500">{t("s.vehiclesOutServiceRight")}</p>
               </div>
 
               <Wrench className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
@@ -339,7 +328,7 @@ export default function DashboardPage() {
               className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 disabled:cursor-default disabled:hover:shadow-sm"
             >
               <div>
-                <p className="text-sm text-gray-500">Need relocation</p>
+                <p className="text-sm text-gray-500">{t("s.needRelocation")}</p>
 
                 <p className="mt-2 text-3xl font-bold">
                   {dashboard.cars_away_from_home.length}
@@ -347,8 +336,8 @@ export default function DashboardPage() {
 
                 <p className="mt-2 text-sm text-gray-500">
                   {dashboard.cars_away_from_home.length === 0
-                    ? "Every vehicle is at its home airport"
-                    : "Vehicles away from their home airport"}
+                    ? t("s.everyVehicleAtIts")
+                    : t("s.vehiclesAwayFromTheir")}
                 </p>
               </div>
 
@@ -358,7 +347,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Next pickups + Next returns */}
-        <h2 className="mt-8 text-lg font-semibold text-ink">Pickups &amp; returns</h2>
+        <h2 className="mt-8 text-lg font-semibold text-ink">{t("s.pickupsReturns")}</h2>
 
         {/* A grid (full-width filter row, then a 2-col card row) rather
             than nesting the filter above just the pickups card — that
@@ -382,9 +371,7 @@ export default function DashboardPage() {
                   ? "bg-gray-900 text-white"
                   : "bg-surface-sunken text-ink-secondary hover:text-ink"
               }`}
-            >
-              All upcoming
-            </button>
+            >{t("s.allUpcoming")}</button>
 
             {currentWeekDates().map(({ label, date }) => (
               <button
@@ -394,7 +381,7 @@ export default function DashboardPage() {
                   setUpcomingStartDate(date);
                   setUpcomingEndDate(date);
                 }}
-                title={date === todayDateString() ? `${label} (today)` : label}
+                title={date === todayDateString() ? t("s.today", { label }) : label}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   upcomingStartDate === date && upcomingEndDate === date
                     ? "bg-gray-900 text-white"
@@ -409,7 +396,7 @@ export default function DashboardPage() {
 
             <input
               type="date"
-              aria-label="From date"
+              aria-label={t("s.fromDate")}
               value={upcomingStartDate}
               onChange={(event) => {
                 const value = event.target.value;
@@ -430,7 +417,7 @@ export default function DashboardPage() {
 
             <input
               type="date"
-              aria-label="To date"
+              aria-label={t("s.date")}
               value={upcomingEndDate}
               onChange={(event) => {
                 const value = event.target.value;
@@ -444,12 +431,12 @@ export default function DashboardPage() {
             />
 
             <select
-              aria-label="Filter pickups and returns by airport"
+              aria-label={t("s.filterPickupsReturnsBy")}
               value={upcomingLocationId}
               onChange={(event) => setUpcomingLocationId(event.target.value)}
               className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             >
-              <option value="">All airports</option>
+              <option value="">{t("s.allAirports")}</option>
 
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -490,22 +477,18 @@ export default function DashboardPage() {
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold">
-                  Fleet status
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Vehicle status as of the selected date
-                </p>
+                <h2 className="text-lg font-semibold">{t("s.fleetStatus")}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t("s.vehicleStatusAsSelected")}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <select
-                  aria-label="Filter fleet status by airport"
+                  aria-label={t("s.filterFleetStatusBy")}
                   value={airportFilter}
                   onChange={(event) => setAirportFilter(event.target.value)}
                   className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">All airports</option>
+                  <option value="">{t("s.allAirports")}</option>
 
                   {locations.map((location) => (
                     <option key={location.id} value={location.id}>
@@ -516,7 +499,7 @@ export default function DashboardPage() {
 
                 <input
                   type="date"
-                  aria-label="Fleet status date"
+                  aria-label={t("s.fleetStatusDate")}
                   value={dateFilter}
                   onChange={(event) => setDateFilter(event.target.value)}
                   className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
@@ -526,9 +509,7 @@ export default function DashboardPage() {
 
             <div className="mt-6">
               {fleetStatusLoading ? (
-                <p className="text-sm text-gray-500">
-                  Loading fleet status...
-                </p>
+                <p className="text-sm text-gray-500">{t("s.loadingFleetStatus")}</p>
               ) : fleetStatusError ? (
                 <p className="text-sm text-red-600">{fleetStatusError}</p>
               ) : (
@@ -539,13 +520,9 @@ export default function DashboardPage() {
 
           {/* Fleet by location */}
           <Card>
-            <h2 className="text-lg font-semibold">
-              Fleet by location
-            </h2>
+            <h2 className="text-lg font-semibold">{t("s.fleetByLocation")}</h2>
 
-            <p className="mt-1 text-sm text-gray-500">
-              Current vehicle distribution
-            </p>
+            <p className="mt-1 text-sm text-gray-500">{t("s.currentVehicleDistribution")}</p>
 
             <div className="mt-6 space-y-5">
 
@@ -579,20 +556,14 @@ export default function DashboardPage() {
 
                     <div className="mt-3 flex gap-2 text-xs">
 
-                      <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">
-                        {location.available} available
-                      </span>
+                      <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">{t("s.available", { available: location.available })}</span>
 
                       {location.reserved > 0 && (
-                        <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">
-                          {location.reserved} reserved
-                        </span>
+                        <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">{t("s.reserved", { reserved: location.reserved })}</span>
                       )}
 
                       {location.rented > 0 && (
-                        <span className="rounded bg-gray-900 px-2 py-1 text-white">
-                          {location.rented} rented
-                        </span>
+                        <span className="rounded bg-gray-900 px-2 py-1 text-white">{t("s.rented", { rented: location.rented })}</span>
                       )}
 
                     </div>

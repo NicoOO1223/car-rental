@@ -10,9 +10,8 @@ import {
   uploadLogo,
   type Configuration,
 } from "@/lib/api";
-import { useTranslations } from "use-intl";
 
-import { LANGUAGES } from "@/lib/i18n";
+import { t, LANGUAGES } from "@/lib/i18n";
 import { LOCALES, timezoneOptions } from "@/lib/localization";
 import { BrandMark } from "@/components/BrandMark";
 import { useBrand } from "@/components/BrandProvider";
@@ -46,14 +45,13 @@ function readAsDataUrl(file: File): Promise<string> {
     const reader = new FileReader();
 
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.onerror = () => reject(new Error(t("s.admin.configuration.business.couldNotReadFile")));
     reader.readAsDataURL(file);
   });
 }
 
 export default function BusinessConfigurationPage() {
   const brand = useBrand();
-  const t = useTranslations("config.business");
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -75,7 +73,7 @@ export default function BusinessConfigurationPage() {
           ) as Profile,
         ),
       )
-      .catch(() => setLoadError("Failed to load configuration."));
+      .catch(() => setLoadError(t("s.admin.configuration.business.failedLoadConfiguration")));
   }, []);
 
   async function handleSave(event: React.FormEvent) {
@@ -103,7 +101,7 @@ export default function BusinessConfigurationPage() {
       brand.refresh();
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Failed to update configuration.",
+        err instanceof Error ? err.message : t("s.admin.configuration.business.failedUpdateConfiguration"),
       );
     } finally {
       setSaving(false);
@@ -118,12 +116,12 @@ export default function BusinessConfigurationPage() {
     setLogoError("");
 
     if (file.type !== "image/png" && file.type !== "image/jpeg") {
-      setLogoError("Choose a PNG or JPEG image.");
+      setLogoError(t("s.admin.configuration.business.choosePngJpegImage"));
       return;
     }
 
     if (file.size > MAX_LOGO_BYTES) {
-      setLogoError(`That file is too large. The limit is ${MAX_LOGO_BYTES / 1024} KB.`);
+      setLogoError(t("s.admin.configuration.business.fileTooLargeLimit", { v1: MAX_LOGO_BYTES / 1024 }));
       return;
     }
 
@@ -133,7 +131,7 @@ export default function BusinessConfigurationPage() {
       await uploadLogo(await readAsDataUrl(file));
       brand.refresh();
     } catch (err) {
-      setLogoError(err instanceof Error ? err.message : "Failed to upload the logo.");
+      setLogoError(err instanceof Error ? err.message : t("s.admin.configuration.business.failedUploadLogo"));
     } finally {
       setLogoBusy(false);
     }
@@ -147,7 +145,7 @@ export default function BusinessConfigurationPage() {
       await deleteLogo();
       brand.refresh();
     } catch (err) {
-      setLogoError(err instanceof Error ? err.message : "Failed to remove the logo.");
+      setLogoError(err instanceof Error ? err.message : t("s.admin.configuration.business.failedRemoveLogo"));
     } finally {
       setLogoBusy(false);
     }
@@ -166,7 +164,7 @@ export default function BusinessConfigurationPage() {
   if (!profile) {
     return (
       <Card>
-        <p className="text-ink-secondary">Loading configuration…</p>
+        <p className="text-ink-secondary">{t("s.admin.configuration.business.loadingConfiguration")}</p>
       </Card>
     );
   }
@@ -184,11 +182,8 @@ export default function BusinessConfigurationPage() {
     <>
       <Card className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-ink">Logo</h2>
-          <p className="mt-1 text-sm text-ink-secondary">
-            Shown on the sign-in page and in the sidebar, and printed on
-            agreements. PNG or JPEG, up to {MAX_LOGO_BYTES / 1024} KB.
-          </p>
+          <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.business.logo")}</h2>
+          <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.business.shownSignPageSidebar", { v1: MAX_LOGO_BYTES / 1024 })}</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -200,7 +195,7 @@ export default function BusinessConfigurationPage() {
             accept="image/png,image/jpeg"
             className="sr-only"
             onChange={handleLogoFile}
-            aria-label="Choose a logo file"
+            aria-label={t("s.admin.configuration.business.chooseLogoFile")}
           />
 
           <Button
@@ -210,7 +205,7 @@ export default function BusinessConfigurationPage() {
             onClick={() => fileInput.current?.click()}
           >
             <ImagePlus className="h-4 w-4" aria-hidden="true" />
-            {brand.logoUrl ? "Replace logo" : "Upload logo"}
+            {brand.logoUrl ? t("s.admin.configuration.business.replaceLogo") : t("s.admin.configuration.business.uploadLogo")}
           </Button>
 
           {brand.logoUrl && (
@@ -220,9 +215,7 @@ export default function BusinessConfigurationPage() {
               disabled={logoBusy}
               onClick={handleLogoRemove}
             >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Remove
-            </Button>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.business.remove")}</Button>
           )}
         </div>
 
@@ -236,31 +229,28 @@ export default function BusinessConfigurationPage() {
       <form onSubmit={handleSave} className="space-y-6">
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">Business profile</h2>
-            <p className="mt-1 text-sm text-ink-secondary">
-              Printed at the top of agreements. Leave a field empty to leave
-              it off.
-            </p>
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.business.businessProfile")}</h2>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.business.printedAtTopAgreements")}</p>
           </div>
 
           <TextField
-            label="Business name"
+            label={t("s.admin.configuration.business.businessName")}
             required
             maxLength={100}
-            hint="Shown on the sign-in page, the sidebar and the browser tab."
+            hint={t("s.admin.configuration.business.shownSignPageSidebar2")}
             value={profile.business_name}
             onChange={set("business_name")}
           />
 
           <TextField
-            label="Legal name"
+            label={t("s.admin.configuration.business.legalName")}
             maxLength={150}
-            hint="The registered company name, if different."
+            hint={t("s.admin.configuration.business.registeredCompanyNameIf")}
             value={profile.legal_name}
             onChange={set("legal_name")}
           />
 
-          <Field label="Address">
+          <Field label={t("s.admin.configuration.business.address")}>
             {(fieldProps) => (
               <Textarea
                 {...fieldProps}
@@ -274,13 +264,13 @@ export default function BusinessConfigurationPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
-              label="Phone"
+              label={t("s.admin.configuration.business.phone")}
               maxLength={50}
               value={profile.phone}
               onChange={set("phone")}
             />
             <TextField
-              label="Email"
+              label={t("s.admin.configuration.business.email")}
               type="email"
               maxLength={150}
               value={profile.email}
@@ -289,7 +279,7 @@ export default function BusinessConfigurationPage() {
           </div>
 
           <TextField
-            label="VAT ID"
+            label={t("s.admin.configuration.business.vatId")}
             maxLength={50}
             value={profile.vat_id}
             onChange={set("vat_id")}
@@ -297,8 +287,8 @@ export default function BusinessConfigurationPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
-              label="Timezone"
-              hint="The business default. Each location can set its own."
+              label={t("s.admin.configuration.business.timezone")}
+              hint={t("s.admin.configuration.business.businessDefaultEachLocation")}
               value={profile.timezone}
               onChange={set("timezone")}
             >
@@ -310,8 +300,8 @@ export default function BusinessConfigurationPage() {
             </SelectField>
 
             <SelectField
-              label="Format"
-              hint="How dates, times and amounts are written. The interface stays in English."
+              label={t("s.admin.configuration.business.format")}
+              hint={t("s.admin.configuration.business.howDatesTimesAmounts")}
               value={profile.locale}
               onChange={set("locale")}
             >
@@ -325,8 +315,8 @@ export default function BusinessConfigurationPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
-              label={t("defaultLanguage")}
-              hint={t("defaultLanguageHint")}
+              label={t("config.business.defaultLanguage")}
+              hint={t("config.business.defaultLanguageHint")}
               value={profile.default_language}
               onChange={set("default_language")}
             >
@@ -338,8 +328,8 @@ export default function BusinessConfigurationPage() {
             </SelectField>
 
             <SelectField
-              label={t("documentLanguage")}
-              hint={t("documentLanguageHint")}
+              label={t("config.business.documentLanguage")}
+              hint={t("config.business.documentLanguageHint")}
               value={profile.document_language}
               onChange={set("document_language")}
             >
@@ -354,30 +344,25 @@ export default function BusinessConfigurationPage() {
 
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">VAT and invoices</h2>
-            <p className="mt-1 text-sm text-ink-secondary">
-              A single VAT rate for everything you charge. An invoice is
-              issued automatically when a rental is paid, and a credit note
-              if it is refunded. Invoices never change after they are issued.
-              Ask your accountant which rate and setting apply to you.
-            </p>
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.business.vatInvoices")}</h2>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.business.singleVatRateEverything")}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
-              label="VAT rate (%)"
+              label={t("s.admin.configuration.business.vatRate")}
               type="number"
               min={0}
               max={100}
               step="0.01"
-              hint="0 shows no VAT."
+              hint={t("s.admin.configuration.business.0ShowsNoVat")}
               value={vatRateText}
               onChange={(event) => setVatRateInput(event.target.value)}
             />
 
             <SelectField
-              label="Prices"
-              hint="Whether the prices you set already contain VAT."
+              label={t("s.admin.configuration.business.prices")}
+              hint={t("s.admin.configuration.business.whetherPricesYouSet")}
               value={profile.prices_include_vat ? "include" : "exclude"}
               onChange={(event) =>
                 setProfile({
@@ -386,15 +371,15 @@ export default function BusinessConfigurationPage() {
                 })
               }
             >
-              <option value="include">Include VAT</option>
-              <option value="exclude">Exclude VAT (added at checkout)</option>
+              <option value="include">{t("s.admin.configuration.business.includeVat")}</option>
+              <option value="exclude">{t("s.admin.configuration.business.excludeVatAddedAt")}</option>
             </SelectField>
           </div>
 
           <TextField
-            label="Invoice number prefix"
+            label={t("s.admin.configuration.business.invoiceNumberPrefix")}
             maxLength={10}
-            hint="Numbers look like INV-000001. Credit notes use CN."
+            hint={t("s.admin.configuration.business.numbersLookLikeInv")}
             value={profile.invoice_prefix}
             onChange={(event) =>
               setProfile({
@@ -407,15 +392,11 @@ export default function BusinessConfigurationPage() {
 
         <Card className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">Agreement terms</h2>
-            <p className="mt-1 text-sm text-ink-secondary">
-              The wording printed under Terms &amp; Conditions on every rental
-              agreement. Have it reviewed by a lawyer. Leave empty to use the
-              built-in placeholder text.
-            </p>
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.business.agreementTerms")}</h2>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.business.wordingPrintedUnderTerms")}</p>
           </div>
 
-          <Field label="Terms">
+          <Field label={t("s.admin.configuration.business.terms")}>
             {(fieldProps) => (
               <Textarea
                 {...fieldProps}
@@ -434,11 +415,11 @@ export default function BusinessConfigurationPage() {
           )}
 
           {saved && !saveError && (
-            <p className="text-sm text-ink-secondary">Saved.</p>
+            <p className="text-sm text-ink-secondary">{t("s.admin.configuration.business.saved")}</p>
           )}
 
           <Button type="submit" loading={saving}>
-            {saving ? "Saving" : "Save changes"}
+            {saving ? t("s.admin.configuration.business.saving") : t("s.admin.configuration.business.saveChanges")}
           </Button>
         </Card>
       </form>

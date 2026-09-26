@@ -29,6 +29,7 @@ import {
   formatTime,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { enumLabel, t } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{
@@ -100,7 +101,7 @@ export default function ReservationDetailsPage({
           }
         }
       } catch {
-        setError("Failed to load reservation.");
+        setError(t("s.reservations.manage.id.failedLoadReservation"));
       } finally {
         setLoading(false);
       }
@@ -112,7 +113,7 @@ export default function ReservationDetailsPage({
   // Dates and times come from lib/format.ts. Pickup and return are shown in
   // the timezone of the location they happen at (passed at each call).
   function formatDateTime(date: string, timeZone?: string) {
-    return `${formatDate(date, timeZone)} at ${formatTime(date, timeZone)}`;
+    return t("common.dateAtTime", { date: formatDate(date, timeZone), time: formatTime(date, timeZone) });
   }
 
   function getRentalDays(
@@ -137,11 +138,11 @@ export default function ReservationDetailsPage({
 
     const willRefund = handover?.payment_status === "SUCCEEDED";
     const confirmationMessage = willRefund
-      ? `Are you sure you want to cancel this reservation? This will also refund ${formatCurrency(
+      ? t("s.reservations.manage.id.youSureYouWant", { amount: formatCurrency(
           handover!.payment_amount ?? 0,
           handover!.payment_currency ?? undefined,
-        )} to the customer via ${handover!.payment_method === "CASH" ? "cash" : "card"}.`
-      : "Are you sure you want to cancel this reservation?";
+        ), method: handover!.payment_method ?? "" })
+      : t("s.reservations.manage.id.youSureYouWant2");
 
     const confirmed = window.confirm(confirmationMessage);
 
@@ -165,7 +166,7 @@ export default function ReservationDetailsPage({
       setActionError(
         error instanceof Error
           ? error.message
-          : "Failed to cancel reservation."
+          : t("s.reservations.manage.id.failedCancelReservation")
       );
     } finally {
       setCancelling(false);
@@ -179,13 +180,12 @@ export default function ReservationDetailsPage({
     return;
   }
 
-  const action =
-    newStatus === "CONFIRMED"
-      ? "approve this reservation"
-      : "complete this rental";
-
   const confirmed = window.confirm(
-    `Are you sure you want to ${action}?`,
+    t(
+      newStatus === "CONFIRMED"
+        ? "s.reservations.manage.id.confirmApprove"
+        : "s.reservations.manage.id.confirmComplete",
+    ),
   );
 
   if (!confirmed) {
@@ -207,7 +207,7 @@ export default function ReservationDetailsPage({
     setActionError(
       error instanceof Error
         ? error.message
-        : "Failed to update reservation status.",
+        : t("s.reservations.manage.id.failedUpdateReservationStatus"),
     );
   } finally {
     setUpdatingStatus(false);
@@ -227,7 +227,7 @@ export default function ReservationDetailsPage({
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
           <p className="text-red-600">
-            {error || "Reservation not found."}
+            {error || t("s.reservations.manage.id.reservationNotFound")}
           </p>
         </div>
       </main>
@@ -252,44 +252,33 @@ export default function ReservationDetailsPage({
             }
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to reservations
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.reservations.manage.id.backReservations")}</button>
 
           <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold">
-                  Reservation
-                </h1>
+                <h1 className="text-3xl font-bold">{t("s.reservations.manage.id.reservation")}</h1>
 
                 <ReservationStatusBadge status={reservation.status} />
 
                 {EDITABLE_STATUSES.has(reservation.status) && (
                   <Button variant="secondary" onClick={() => setEditing(true)}>
-                    <Pencil className="h-4 w-4" />
-                    Edit
-                  </Button>
+                    <Pencil className="h-4 w-4" />{t("s.reservations.manage.id.edit")}</Button>
                 )}
               </div>
 
-              <p className="mt-2 text-sm text-ink-muted">
-                Booking{" "}
-                <span className="font-mono text-ink-secondary">
+              <p className="mt-2 text-sm text-ink-muted">{t("s.reservations.manage.id.booking")}{" "}<span className="font-mono text-ink-secondary">
                   {bookingReference(reservation.id)}
                 </span>
               </p>
             </div>
 
             <div className="text-left md:text-right">
-              <p className="text-sm text-gray-500">
-                Rental duration
-              </p>
+              <p className="text-sm text-gray-500">{t("s.reservations.manage.id.rentalDuration")}</p>
 
               <p className="text-2xl font-semibold">
-                {rentalDays}{" "}
-                {rentalDays === 1 ? "day" : "days"}
+                {t("duration.days", { count: rentalDays })}
               </p>
             </div>
 
@@ -306,18 +295,14 @@ export default function ReservationDetailsPage({
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">
-                  Customer
-                </h2>
+                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.customer")}</h2>
 
                 <button
                   onClick={() =>
                     navigate(`/customers/${reservation.customer.id}`)
                   }
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
-                >
-                  View customer
-                  <ArrowRight className="h-4 w-4" />
+                >{t("s.reservations.manage.id.viewCustomer")}<ArrowRight className="h-4 w-4" />
                 </button>
               </div>
 
@@ -336,9 +321,7 @@ export default function ReservationDetailsPage({
                     {reservation.customer.last_name}
                   </p>
 
-                  <p className="mt-1 text-sm text-gray-500">
-                    Customer for this reservation
-                  </p>
+                  <p className="mt-1 text-sm text-gray-500">{t("s.reservations.manage.id.customerReservation")}</p>
                 </div>
 
               </div>
@@ -348,18 +331,14 @@ export default function ReservationDetailsPage({
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">
-                  Vehicle
-                </h2>
+                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.vehicle")}</h2>
 
                 <button
                   onClick={() =>
                     navigate(`/cars/${reservation.car.id}`)
                   }
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
-                >
-                  View vehicle
-                  <ArrowRight className="h-4 w-4" />
+                >{t("s.reservations.manage.id.viewVehicle")}<ArrowRight className="h-4 w-4" />
                 </button>
               </div>
 
@@ -377,9 +356,7 @@ export default function ReservationDetailsPage({
                 </div>
 
                 <div className="rounded-lg bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">
-                    Assigned vehicle
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.assignedVehicle")}</p>
 
                   <p className="mt-1 font-medium">
                     {reservation.car.license_plate}
@@ -393,11 +370,9 @@ export default function ReservationDetailsPage({
                 plain booking does not gain an empty panel. */}
             {reservation.extras.length > 0 && (
               <section className="rounded-xl bg-surface p-6 shadow-sm">
-                <h2 className="text-lg font-semibold">Extras</h2>
+                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.extras")}</h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Booked add-ons, at the prices they were booked at.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">{t("s.reservations.manage.id.bookedAddOnsAt")}</p>
 
                 <ul className="mt-5 divide-y divide-gray-100">
                   {reservation.extras.map((line) => (
@@ -419,7 +394,7 @@ export default function ReservationDetailsPage({
                         <p className="mt-0.5 text-sm text-gray-500">
                           {formatCurrency(line.unit_price)}
                           {line.price_unit === "PER_DAY"
-                            ? " per day"
+                            ? t("s.reservations.manage.id.perDay")
                             : " one-off"}
                         </p>
                       </div>
@@ -432,9 +407,7 @@ export default function ReservationDetailsPage({
             {/* Rental timeline */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
-              <h2 className="text-lg font-semibold">
-                Rental timeline
-              </h2>
+              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.rentalTimeline")}</h2>
 
               <div className="mt-6">
 
@@ -453,9 +426,7 @@ export default function ReservationDetailsPage({
 
                   <div className="pb-6">
 
-                    <p className="text-sm font-medium text-gray-500">
-                      PICKUP
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">{t("s.reservations.manage.id.pickup")}</p>
 
                     <p className="mt-1 text-lg font-semibold">
                       {reservation.pickup_location.name}
@@ -491,9 +462,7 @@ export default function ReservationDetailsPage({
 
                   <div>
 
-                    <p className="text-sm font-medium text-gray-500">
-                      RETURN
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">{t("s.reservations.manage.id.return")}</p>
 
                     <p className="mt-1 text-lg font-semibold">
                       {reservation.return_location.name}
@@ -527,26 +496,20 @@ export default function ReservationDetailsPage({
             {/* Reservation summary */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
-              <h2 className="text-lg font-semibold">
-                Reservation summary
-              </h2>
+              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.reservationSummary")}</h2>
 
               <div className="mt-5 space-y-4">
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    Status
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.status")}</p>
 
                   <p className="mt-1 font-medium">
-                    {reservation.status}
+                    {enumLabel("reservationStatus", reservation.status)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    Booked
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.booked")}</p>
 
                   <p className="mt-1 font-medium">
                     {formatDate(
@@ -562,9 +525,7 @@ export default function ReservationDetailsPage({
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    Pickup
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.pickup2")}</p>
 
                   <p className="mt-1 font-medium">
                     {formatDate(
@@ -580,9 +541,7 @@ export default function ReservationDetailsPage({
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    Return
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.return2")}</p>
 
                   <p className="mt-1 font-medium">
                     {formatDate(
@@ -599,15 +558,10 @@ export default function ReservationDetailsPage({
 
                 <div className="border-t pt-4">
 
-                  <p className="text-xs text-gray-500">
-                    Rental period
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.rentalPeriod")}</p>
 
                   <p className="mt-1 text-lg font-semibold">
-                    {rentalDays}{" "}
-                    {rentalDays === 1
-                      ? "day"
-                      : "days"}
+                    {t("duration.days", { count: rentalDays })}
                   </p>
 
                 </div>
@@ -618,16 +572,12 @@ export default function ReservationDetailsPage({
             {/* Locations */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
-              <h2 className="text-lg font-semibold">
-                Locations
-              </h2>
+              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.locations")}</h2>
 
               <div className="mt-5 space-y-5">
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    PICKUP LOCATION
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.pickupLocation")}</p>
 
                   <p className="mt-1 font-medium">
                     {
@@ -645,9 +595,7 @@ export default function ReservationDetailsPage({
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500">
-                    RETURN LOCATION
-                  </p>
+                  <p className="text-xs text-gray-500">{t("s.reservations.manage.id.returnLocation")}</p>
 
                   <p className="mt-1 font-medium">
                     {
@@ -670,9 +618,7 @@ export default function ReservationDetailsPage({
             {/* Actions */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">
 
-              <h2 className="text-lg font-semibold">
-                Actions
-              </h2>
+              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.actions")}</h2>
 
               {actionError && (
                 <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -692,8 +638,8 @@ export default function ReservationDetailsPage({
                     className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {updatingStatus
-                      ? "Approving..."
-                      : "Approve Reservation"}
+                      ? t("s.reservations.manage.id.approving")
+                      : t("s.reservations.manage.id.approveReservation2")}
                   </button>
 
                   <button
@@ -702,14 +648,11 @@ export default function ReservationDetailsPage({
                     className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelling
-                      ? "Rejecting..."
-                      : "Reject Reservation"}
+                      ? t("s.reservations.manage.id.rejecting")
+                      : t("s.reservations.manage.id.rejectReservation")}
                   </button>
 
-                  <p className="pt-1 text-xs text-gray-500">
-                    Approving will let this reservation move on to
-                    payment and handover once the customer arrives.
-                  </p>
+                  <p className="pt-1 text-xs text-gray-500">{t("s.reservations.manage.id.approvingWillLetReservation")}</p>
 
                 </div>
               )}
@@ -723,9 +666,7 @@ export default function ReservationDetailsPage({
                       navigate(`/handovers/${reservation.id}/check-in`)
                     }
                     className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
-                  >
-                    Start check-in (Payment &amp; Agreement)
-                  </button>
+                  >{t("s.reservations.manage.id.startCheckPaymentAgreement")}</button>
 
                   <button
                     onClick={handleCancelReservation}
@@ -733,14 +674,11 @@ export default function ReservationDetailsPage({
                     className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelling
-                      ? "Cancelling..."
-                      : "Cancel Reservation"}
+                      ? t("s.reservations.manage.id.cancelling")
+                      : t("s.reservations.manage.id.cancelReservation")}
                   </button>
 
-                  <p className="pt-1 text-xs text-gray-500">
-                    Check-in collects payment, signatures, and generates
-                    the rental agreement before starting the rental.
-                  </p>
+                  <p className="pt-1 text-xs text-gray-500">{t("s.reservations.manage.id.checkCollectsPaymentSignatures")}</p>
 
                 </div>
               )}
@@ -750,13 +688,9 @@ export default function ReservationDetailsPage({
                 <div className="mt-5">
 
                   <div className="rounded-lg bg-gray-900 p-4">
-                    <p className="font-medium text-white">
-                      Rental is currently active
-                    </p>
+                    <p className="font-medium text-white">{t("s.reservations.manage.id.rentalCurrentlyActive")}</p>
 
-                    <p className="mt-1 text-sm text-gray-300">
-                      This vehicle is currently with the customer.
-                    </p>
+                    <p className="mt-1 text-sm text-gray-300">{t("s.reservations.manage.id.vehicleCurrentlyWithCustomer")}</p>
                   </div>
 
                   <button
@@ -764,9 +698,7 @@ export default function ReservationDetailsPage({
                       navigate(`/handovers/${reservation.id}/check-out`)
                     }
                     className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
-                  >
-                    Start check-out
-                  </button>
+                  >{t("s.reservations.manage.id.startCheckOut")}</button>
 
                   {handover?.has_agreement && (
                     <button
@@ -777,9 +709,7 @@ export default function ReservationDetailsPage({
                         )
                       }
                       className="mt-3 block w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Download Agreement
-                    </button>
+                    >{t("s.reservations.manage.id.downloadAgreement")}</button>
                   )}
 
                 </div>
@@ -788,23 +718,12 @@ export default function ReservationDetailsPage({
               {/* CANCELLED */}
               {reservation.status === "CANCELLED" && (
                 <div className="mt-4 rounded-lg bg-gray-100 p-4">
-                  <p className="font-medium text-gray-700">
-                    Reservation cancelled
-                  </p>
+                  <p className="font-medium text-gray-700">{t("s.reservations.manage.id.reservationCancelled")}</p>
 
-                  <p className="mt-1 text-sm text-gray-500">
-                    This reservation is no longer active.
-                  </p>
+                  <p className="mt-1 text-sm text-gray-500">{t("s.reservations.manage.id.reservationNoLongerActive")}</p>
 
                   {handover?.payment_status === "REFUNDED" && (
-                    <p className="mt-2 text-sm text-gray-700">
-                      Refunded{" "}
-                      {formatCurrency(
-                        handover.refund_amount ?? 0,
-                        handover.payment_currency ?? undefined,
-                      )}{" "}
-                      via {handover.payment_method === "CASH" ? "cash" : "card"}.
-                    </p>
+                    <p className="mt-2 text-sm text-gray-700">{t("s.reservations.manage.id.refundedVia", { amount: formatCurrency(handover.refund_amount ?? 0, handover.payment_currency ?? undefined), method: handover.payment_method ?? "" })}</p>
                   )}
                 </div>
               )}
@@ -813,14 +732,9 @@ export default function ReservationDetailsPage({
               {reservation.status === "COMPLETED" && (
                 <div className="mt-4 space-y-3">
                   <div className="rounded-lg bg-gray-50 p-4">
-                    <p className="font-medium text-gray-800">
-                      Rental completed
-                    </p>
+                    <p className="font-medium text-gray-800">{t("s.reservations.manage.id.rentalCompleted")}</p>
 
-                    <p className="mt-1 text-sm text-gray-600">
-                      This rental has been completed and the
-                      reservation is now closed.
-                    </p>
+                    <p className="mt-1 text-sm text-gray-600">{t("s.reservations.manage.id.rentalHasBeenCompleted")}</p>
                   </div>
 
                   {handover?.has_agreement && (
@@ -832,9 +746,7 @@ export default function ReservationDetailsPage({
                         )
                       }
                       className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-center font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Download Agreement
-                    </button>
+                    >{t("s.reservations.manage.id.downloadAgreement")}</button>
                   )}
                 </div>
               )}
@@ -849,10 +761,8 @@ export default function ReservationDetailsPage({
                     aria-expanded={showApproval}
                     className="flex w-full items-center justify-between gap-2 text-left text-sm text-gray-600 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                   >
-                    <span>
-                      Approved by{" "}
-                      <span className="font-medium text-gray-800">
-                        {handover.employee_signed_by_email ?? "a former employee"}
+                    <span>{t("s.reservations.manage.id.approvedBy")}{" "}<span className="font-medium text-gray-800">
+                        {handover.employee_signed_by_email ?? t("s.reservations.manage.id.formerEmployee")}
                       </span>
                     </span>
 
@@ -867,16 +777,14 @@ export default function ReservationDetailsPage({
                   {showApproval && (
                     <div className="mt-3 space-y-3">
                       {handover.employee_signed_at && (
-                        <p className="text-xs text-gray-500">
-                          Signed {formatDateTime(handover.employee_signed_at)}
-                        </p>
+                        <p className="text-xs text-gray-500">{t("s.reservations.manage.id.signed", { v1: formatDateTime(handover.employee_signed_at) })}</p>
                       )}
 
                       {handover.employee_signature_image && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={handover.employee_signature_image}
-                          alt="Employee signature"
+                          alt={t("s.reservations.manage.id.employeeSignature")}
                           className="h-16 w-auto rounded-lg border border-gray-200 bg-white p-2"
                         />
                       )}
@@ -894,10 +802,8 @@ export default function ReservationDetailsPage({
                     aria-expanded={showCheckOut}
                     className="flex w-full items-center justify-between gap-2 text-left text-sm text-gray-600 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                   >
-                    <span>
-                      Returned to{" "}
-                      <span className="font-medium text-gray-800">
-                        {checkOut.employee_signed_by_email ?? "a former employee"}
+                    <span>{t("s.reservations.manage.id.returned")}{" "}<span className="font-medium text-gray-800">
+                        {checkOut.employee_signed_by_email ?? t("s.reservations.manage.id.formerEmployee")}
                       </span>
                     </span>
 
@@ -911,32 +817,29 @@ export default function ReservationDetailsPage({
 
                   {showCheckOut && (
                     <div className="mt-3 space-y-2 text-sm text-gray-700">
-                      <p>Returned {formatDateTime(checkOut.returned_at)}</p>
-                      <p>
-                        {formatNumber(checkOut.return_mileage)} km · fuel{" "}
-                        {checkOut.fuel_eighths}/8
-                      </p>
+                      <p>{t("s.reservations.manage.id.returned2", { v1: formatDateTime(checkOut.returned_at) })}</p>
+                      <p>{t("s.reservations.manage.id.kmFuel8", { v1: formatNumber(checkOut.return_mileage), fuel_eighths: checkOut.fuel_eighths })}</p>
                       <p>
                         {checkOut.damage_reported
-                          ? `Damage: ${checkOut.damage_notes ?? "reported"}`
-                          : "No damage reported"}
+                          ? checkOut.damage_notes ? t("s.reservations.manage.id.damage", { notes: checkOut.damage_notes }) : t("s.reservations.manage.id.damageReported")
+                          : t("s.reservations.manage.id.noDamageReported")}
                       </p>
                       <p>
                         {checkOut.total_charge > 0
-                          ? `Charged ${formatCurrency(
+                          ? t("s.reservations.manage.id.charged", { amount: formatCurrency(
                               checkOut.total_charge,
                               checkOut.payment_currency?.toUpperCase(),
-                            )} (${checkOut.payment_method === "CASH" ? "cash" : "card"})`
-                          : "No return charges"}
+                            ), method: checkOut.payment_method ?? "" })
+                          : t("s.reservations.manage.id.noReturnCharges")}
                         {checkOut.waiver_reason &&
-                          ` — waived: ${checkOut.waiver_reason}`}
+                          ` — ${t("s.reservations.manage.id.waived", { reason: checkOut.waiver_reason })}`}
                       </p>
 
                       {checkOut.employee_signature_image && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={checkOut.employee_signature_image}
-                          alt="Employee signature at check-out"
+                          alt={t("s.reservations.manage.id.employeeSignatureAtCheck")}
                           className="h-16 w-auto rounded-lg border border-gray-200 bg-white p-2"
                         />
                       )}

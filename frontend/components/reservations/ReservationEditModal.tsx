@@ -12,6 +12,7 @@ import {
   type Location,
 } from "@/lib/api";
 import { isoToLocalInput, localInputToIso } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 type CarOption = {
   id: string;
@@ -162,7 +163,7 @@ export function ReservationEditModal({
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to update reservation.",
+          : t("c.reservations.ReservationEditModal.failedUpdateReservation"),
       );
     } finally {
       setSaving(false);
@@ -172,20 +173,18 @@ export function ReservationEditModal({
   return (
     <Modal
       isOpen
-      title="Edit reservation"
+      title={t("c.reservations.ReservationEditModal.editReservation")}
       size="lg"
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.reservations.ReservationEditModal.cancel")}</Button>
           <Button
             type="submit"
             form="reservation-edit-form"
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save changes"}
+            {saving ? t("c.reservations.ReservationEditModal.saving") : t("c.reservations.ReservationEditModal.saveChanges")}
           </Button>
         </>
       }
@@ -196,31 +195,29 @@ export function ReservationEditModal({
         className="space-y-6"
       >
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
-            Rental period
-          </h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("c.reservations.ReservationEditModal.rentalPeriod")}</h3>
 
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <TextField
-              label="Pickup"
+              label={t("c.reservations.ReservationEditModal.pickup")}
               type="datetime-local"
-              hint={pickupZone ? `Time at the pickup location (${pickupZone}).` : undefined}
+              hint={pickupZone ? t("c.reservations.ReservationEditModal.timeAtPickupLocation", { pickupZone }) : undefined}
               required
               value={pickupAt}
               onChange={(event) => setPickupAt(event.target.value)}
             />
 
             <TextField
-              label="Return"
+              label={t("c.reservations.ReservationEditModal.return")}
               type="datetime-local"
-              hint={returnZone ? `Time at the return location (${returnZone}).` : undefined}
+              hint={returnZone ? t("c.reservations.ReservationEditModal.timeAtReturnLocation", { returnZone }) : undefined}
               required
               value={returnAt}
               onChange={(event) => setReturnAt(event.target.value)}
             />
 
             <SelectField
-              label="Pickup location"
+              label={t("c.reservations.ReservationEditModal.pickupLocation")}
               value={pickupLocationId}
               onChange={(event) => setPickupLocationId(event.target.value)}
             >
@@ -232,7 +229,7 @@ export function ReservationEditModal({
             </SelectField>
 
             <SelectField
-              label="Return location"
+              label={t("c.reservations.ReservationEditModal.returnLocation")}
               value={returnLocationId}
               onChange={(event) => setReturnLocationId(event.target.value)}
             >
@@ -244,7 +241,7 @@ export function ReservationEditModal({
             </SelectField>
 
             <SelectField
-              label="Assigned vehicle"
+              label={t("c.reservations.ReservationEditModal.assignedVehicle")}
               className="sm:col-span-2"
               value={carId}
               onChange={(event) => setCarId(event.target.value)}
@@ -260,13 +257,11 @@ export function ReservationEditModal({
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
-            Customer details
-          </h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("c.reservations.ReservationEditModal.customerDetails")}</h3>
 
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <TextField
-              label="First name"
+              label={t("c.reservations.ReservationEditModal.firstName")}
               required
               autoComplete="given-name"
               value={firstName}
@@ -274,7 +269,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Last name"
+              label={t("c.reservations.ReservationEditModal.lastName")}
               required
               autoComplete="family-name"
               value={lastName}
@@ -282,7 +277,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Date of birth"
+              label={t("c.reservations.ReservationEditModal.dateBirth")}
               type="date"
               required
               autoComplete="bday"
@@ -291,7 +286,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Postal code"
+              label={t("c.reservations.ReservationEditModal.postalCode")}
               required
               autoComplete="postal-code"
               value={postalCode}
@@ -299,7 +294,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Phone number"
+              label={t("c.reservations.ReservationEditModal.phoneNumber")}
               type="tel"
               required
               autoComplete="tel"
@@ -308,7 +303,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Email"
+              label={t("c.reservations.ReservationEditModal.email")}
               type="email"
               required
               autoComplete="email"
@@ -317,7 +312,7 @@ export function ReservationEditModal({
             />
 
             <TextField
-              label="Address"
+              label={t("c.reservations.ReservationEditModal.address")}
               required
               autoComplete="street-address"
               className="sm:col-span-2"

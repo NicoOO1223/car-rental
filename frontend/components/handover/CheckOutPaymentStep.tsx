@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { CashPaymentForm, PaymentForm } from "@/components/handover/PaymentStep";
 import { formatCurrency } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -36,9 +37,7 @@ export function CheckOutPaymentStep({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-700">
-        Amount due:{" "}
-        <span className="font-semibold">
+      <p className="text-sm text-gray-700">{t("c.handover.CheckOutPaymentStep.amountDue")}{" "}<span className="font-semibold">
           {formatCurrency(amount, currency?.toUpperCase())}
         </span>
       </p>
@@ -46,8 +45,8 @@ export function CheckOutPaymentStep({
       <div className="flex gap-2 border-b border-border-strong">
         {(
           [
-            { key: "card", label: "Card", Icon: CreditCard },
-            { key: "cash", label: "Cash", Icon: Banknote },
+            { key: "card", label: t("c.handover.CheckOutPaymentStep.card"), Icon: CreditCard },
+            { key: "cash", label: t("c.handover.CheckOutPaymentStep.cash"), Icon: Banknote },
           ] as const
         ).map(({ key, label, Icon }) => (
           <button
@@ -80,9 +79,7 @@ export function CheckOutPaymentStep({
             />
           </Elements>
         ) : (
-          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
-            Card payment is unavailable right now — you can still take cash.
-          </div>
+          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("c.handover.CheckOutPaymentStep.cardPaymentUnavailableRight")}</div>
         )
       ) : (
         <CashPaymentForm

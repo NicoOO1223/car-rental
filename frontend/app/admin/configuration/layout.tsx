@@ -4,18 +4,19 @@ import { usePathname } from "next/navigation";
 
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { SubNav } from "@/components/ui/SubNav";
+import { t } from "@/lib/i18n";
 
 // Every cost and price the business charges, one section per kind. Each
 // section is its own route so it can be linked to and reloaded.
 const SECTIONS = [
-  { id: "business", label: "Business", href: "/admin/configuration/business" },
-  { id: "locations", label: "Locations", href: "/admin/configuration/locations" },
-  { id: "pricing", label: "General pricing", href: "/admin/configuration/pricing" },
-  { id: "extras", label: "Extras", href: "/admin/configuration/extras" },
-  { id: "vehicles", label: "Vehicle rates", href: "/admin/configuration/vehicles" },
-  { id: "returns", label: "Return charges", href: "/admin/configuration/returns" },
-  { id: "deposit", label: "Security deposit", href: "/admin/configuration/deposit" },
-  { id: "system", label: "System", href: "/admin/configuration/system" },
+  { id: "business", get label() { return t("s.admin.configuration.layout.business"); }, href: "/admin/configuration/business" },
+  { id: "locations", get label() { return t("s.admin.configuration.layout.locations"); }, href: "/admin/configuration/locations" },
+  { id: "pricing", get label() { return t("s.admin.configuration.layout.generalPricing"); }, href: "/admin/configuration/pricing" },
+  { id: "extras", get label() { return t("s.admin.configuration.layout.extras"); }, href: "/admin/configuration/extras" },
+  { id: "vehicles", get label() { return t("s.admin.configuration.layout.vehicleRates"); }, href: "/admin/configuration/vehicles" },
+  { id: "returns", get label() { return t("s.admin.configuration.layout.returnCharges"); }, href: "/admin/configuration/returns" },
+  { id: "deposit", get label() { return t("s.admin.configuration.layout.securityDeposit"); }, href: "/admin/configuration/deposit" },
+  { id: "system", get label() { return t("s.admin.configuration.layout.system"); }, href: "/admin/configuration/system" },
 ];
 
 export default function ConfigurationLayout({
@@ -31,12 +32,12 @@ export default function ConfigurationLayout({
   return (
     <PageShell width="wide">
       <PageHeader
-        title="Configuration"
-        description="Who the business is, the prices it charges, and the rules behind them."
+        title={t("s.admin.configuration.layout.configuration")}
+        description={t("s.admin.configuration.layout.whoBusinessPricesIt")}
       />
 
       <SubNav
-        label="Configuration sections"
+        label={t("s.admin.configuration.layout.configurationSections")}
         items={SECTIONS}
         activeId={active}
         className="mb-6"

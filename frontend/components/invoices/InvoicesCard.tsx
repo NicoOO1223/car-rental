@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 /**
  * The tax documents issued for a booking: an invoice when the rental was
@@ -52,7 +53,7 @@ export function InvoicesCard({
     try {
       await downloadInvoice(invoice);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to download.");
+      setError(err instanceof Error ? err.message : t("c.invoices.InvoicesCard.failedDownload"));
     } finally {
       setBusyId(null);
     }
@@ -62,7 +63,7 @@ export function InvoicesCard({
 
   return (
     <section className="rounded-xl bg-surface p-6 shadow-sm">
-      <h2 className="text-lg font-semibold">Invoices</h2>
+      <h2 className="text-lg font-semibold">{t("c.invoices.InvoicesCard.invoices")}</h2>
 
       <ul className="mt-4 divide-y divide-border-subtle">
         {invoices.map((invoice) => (
@@ -80,9 +81,7 @@ export function InvoicesCard({
                 <p className="truncate font-medium text-ink">
                   {invoice.number}
                   {invoice.kind === "CREDIT_NOTE" && (
-                    <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                      Credit note
-                    </span>
+                    <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("c.invoices.InvoicesCard.creditNote")}</span>
                   )}
                 </p>
 
@@ -90,11 +89,7 @@ export function InvoicesCard({
                   {formatDate(invoice.issued_at)} ·{" "}
                   {formatCurrency(invoice.total_amount, invoice.currency.toUpperCase())}
                   {invoice.vat_rate > 0 && (
-                    <>
-                      {" "}
-                      · VAT{" "}
-                      {formatCurrency(invoice.vat_amount, invoice.currency.toUpperCase())}
-                    </>
+                    <>{t("c.invoices.InvoicesCard.vat", { amount: formatCurrency(invoice.vat_amount, invoice.currency.toUpperCase()) })}</>
                   )}
                 </p>
               </div>
@@ -107,9 +102,7 @@ export function InvoicesCard({
               disabled={busyId !== null}
               onClick={() => handleDownload(invoice)}
             >
-              <Download className="h-4 w-4" aria-hidden="true" />
-              PDF
-            </Button>
+              <Download className="h-4 w-4" aria-hidden="true" />{t("c.invoices.InvoicesCard.pdf")}</Button>
           </li>
         ))}
       </ul>

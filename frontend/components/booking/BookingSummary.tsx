@@ -6,6 +6,7 @@ import { PriceBreakdownList } from "@/components/pricing/PriceBreakdownList";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDateTime } from "@/lib/format";
 import type { Car, Location, ReservationQuote } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 /**
  * The running summary that stays beside the wizard from the vehicle step
@@ -36,12 +37,10 @@ export function BookingSummary({
 
   return (
     <aside
-      aria-label="Booking summary"
+      aria-label={t("c.booking.BookingSummary.bookingSummary")}
       className="rounded-xl bg-surface p-5 shadow-sm lg:sticky lg:top-6"
     >
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
-        Your booking
-      </h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("c.booking.BookingSummary.booking")}</h2>
 
       <div className="mt-4 space-y-3 text-sm">
         {pickupLocation && (
@@ -73,7 +72,7 @@ export function BookingSummary({
             />
             <div className="min-w-0 text-xs">
               <p className="font-medium text-ink">{formatDateTime(pickupAt, pickupLocation?.timezone)}</p>
-              <p className="mt-0.5 text-ink-muted">to {formatDateTime(returnAt, (returnLocation ?? pickupLocation)?.timezone)}</p>
+              <p className="mt-0.5 text-ink-muted">{t("c.booking.BookingSummary.text", { v1: formatDateTime(returnAt, (returnLocation ?? pickupLocation)?.timezone) })}</p>
             </div>
           </div>
         )}
@@ -117,10 +116,7 @@ export function BookingSummary({
             className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted"
             aria-hidden="true"
           />
-          <p>
-            {quote.availability_message} Pick another vehicle or change the
-            dates to continue.
-          </p>
+          <p>{t("c.booking.BookingSummary.pickAnotherVehicleChange", { availability_message: quote.availability_message })}</p>
         </div>
       )}
     </aside>

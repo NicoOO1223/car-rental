@@ -32,6 +32,7 @@ import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDateTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { t } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -98,7 +99,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
             setPaymentIntentError(
               paymentError instanceof Error
                 ? paymentError.message
-                : "Failed to start payment.",
+                : t("s.handovers.id.checkIn.failedStartPayment"),
             );
           }
         }
@@ -106,7 +107,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
         setLoadError(
           error instanceof Error
             ? error.message
-            : "Failed to load handover.",
+            : t("s.handovers.id.checkIn.failedLoadHandover"),
         );
       } finally {
         setLoading(false);
@@ -127,7 +128,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
     if (!reservationId || !signaturePadRef.current) return;
 
     if (signaturePadRef.current.isEmpty()) {
-      setSignatureError("Please have the customer sign before continuing.");
+      setSignatureError(t("s.handovers.id.checkIn.pleaseHaveCustomerSign"));
       return;
     }
 
@@ -140,7 +141,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
       setHandover(updated);
     } catch (error) {
       setSignatureError(
-        error instanceof Error ? error.message : "Failed to save signature.",
+        error instanceof Error ? error.message : t("s.handovers.id.checkIn.failedSaveSignature"),
       );
     } finally {
       setSigning(false);
@@ -151,7 +152,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
     if (!reservationId || !employeeSignaturePadRef.current) return;
 
     if (employeeSignaturePadRef.current.isEmpty()) {
-      setEmployeeSignatureError("Please sign before continuing.");
+      setEmployeeSignatureError(t("s.handovers.id.checkIn.pleaseSignBeforeContinuing"));
       return;
     }
 
@@ -166,7 +167,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
       setEmployeeSignatureError(
         error instanceof Error
           ? error.message
-          : "Failed to save employee signature.",
+          : t("s.handovers.id.checkIn.failedSaveEmployeeSignature"),
       );
     } finally {
       setEmployeeSigning(false);
@@ -189,7 +190,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
       setGenerateError(
         error instanceof Error
           ? error.message
-          : "Failed to generate agreement.",
+          : t("s.handovers.id.checkIn.failedGenerateAgreement"),
       );
     } finally {
       setGenerating(false);
@@ -216,12 +217,10 @@ export default function FinalizeHandoverPage({ params }: Props) {
             onClick={() => navigate("/handovers")}
             className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to handovers
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkIn.backHandovers")}</button>
 
           <p className="text-red-600">
-            {loadError || "Reservation not found."}
+            {loadError || t("s.handovers.id.checkIn.reservationNotFound")}
           </p>
         </div>
       </main>
@@ -285,30 +284,24 @@ export default function FinalizeHandoverPage({ params }: Props) {
             onClick={() => navigate("/handovers")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to handovers
-          </button>
+            <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkIn.backHandovers")}</button>
 
           <button
             onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
             className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
-          >
-            View/Change Reservation
-            <ArrowRight className="h-4 w-4" />
+          >{t("s.handovers.id.checkIn.viewChangeReservation")}<ArrowRight className="h-4 w-4" />
           </button>
         </div>
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Vehicle Check-in</h1>
+            <h1 className="text-3xl font-bold">{t("s.handovers.id.checkIn.vehicleCheck")}</h1>
             <p className="mt-2 text-gray-600">
               {reservation.customer.first_name}{" "}
               {reservation.customer.last_name} · {reservation.car.make}{" "}
               {reservation.car.model} · {reservation.car.license_plate}
             </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Booked {formatDateTime(reservation.created_at)}
-            </p>
+            <p className="mt-1 text-sm text-gray-500">{t("s.handovers.id.checkIn.booked", { v1: formatDateTime(reservation.created_at) })}</p>
           </div>
 
           <ReservationStatusBadge status={reservation.status} />
@@ -320,12 +313,9 @@ export default function FinalizeHandoverPage({ params }: Props) {
               <Check className="h-6 w-6" />
             </div>
 
-            <h2 className="text-xl font-semibold">Check-in complete</h2>
+            <h2 className="text-xl font-semibold">{t("s.handovers.id.checkIn.checkComplete")}</h2>
 
-            <p className="mt-2 text-sm text-gray-600">
-              The rental agreement has been generated and the reservation is
-              now active.
-            </p>
+            <p className="mt-2 text-sm text-gray-600">{t("s.handovers.id.checkIn.rentalAgreementHasBeen")}</p>
 
             <div className="mt-6 flex justify-center gap-3">
               <button
@@ -336,25 +326,21 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   )
                 }
                 className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
-              >
-                Download Agreement
-              </button>
+              >{t("s.handovers.id.checkIn.downloadAgreement")}</button>
 
               <Button
                 variant="secondary"
                 onClick={() =>
                   navigate(`/reservations/manage/${reservation.id}`)
                 }
-              >
-                View Reservation
-              </Button>
+              >{t("s.handovers.id.checkIn.viewReservation")}</Button>
             </div>
           </Card>
         ) : (
           <div className="space-y-6">
             {/* Step 1: Payment */}
             <Card>
-              <StepHeader index={1} title="Payment" status={paymentStatus} />
+              <StepHeader index={1} title={t("s.handovers.id.checkIn.payment")} status={paymentStatus} />
 
               <div className="mt-5">
                 {paymentDone ? (
@@ -363,20 +349,15 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       <Banknote className="h-4 w-4 shrink-0" aria-hidden="true" />
                     ) : (
                       <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    )}
-                    Payment received
-                    {handover.payment_method &&
-                      ` (${handover.payment_method === "CASH" ? "Cash" : "Card"})`}
-                    {handover.payment_amount !== null &&
-                      ` — ${handover.payment_amount.toFixed(2)} ${handover.payment_currency?.toUpperCase()}`}
-                    .
-                  </p>
+                    )}{handover.payment_method && handover.payment_amount !== null
+                      ? t("s.handovers.id.checkIn.paymentReceivedVia", {
+                          method: t(handover.payment_method === "CASH" ? "common.cash" : "common.card"),
+                          amount: `${handover.payment_amount.toFixed(2)} ${handover.payment_currency?.toUpperCase() ?? ""}`,
+                        })
+                      : t("s.handovers.id.checkIn.paymentReceived")}</p>
                 ) : paymentIntentError ? (
                   <div className="space-y-4">
-                    <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
-                      {paymentIntentError} Card payment is unavailable, but you
-                      can still take cash.
-                    </div>
+                    <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("s.handovers.id.checkIn.cardPaymentUnavailableBut", { paymentIntentError })}</div>
                     <CashPaymentForm
                       reservationId={reservation.id}
                       onPaid={handlePaid}
@@ -402,9 +383,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     onPaid={handlePaid}
                   />
                 ) : (
-                  <p className="text-sm text-gray-500">
-                    Preparing payment...
-                  </p>
+                  <p className="text-sm text-gray-500">{t("s.handovers.id.checkIn.preparingPayment")}</p>
                 )}
               </div>
             </Card>
@@ -412,17 +391,18 @@ export default function FinalizeHandoverPage({ params }: Props) {
             {/* Step 2: Security deposit (only when deposits are on) */}
             {depositRequired && (
               <Card className={depositStatus === "locked" ? "opacity-50" : ""}>
-                <StepHeader index={2} title="Security Deposit" status={depositStatus} />
+                <StepHeader index={2} title={t("s.handovers.id.checkIn.securityDeposit")} status={depositStatus} />
 
                 <div className="mt-5">
                   {depositDone ? (
-                    <p className="text-sm text-gray-700">
-                      Deposit held (
-                      {handover.deposit_method === "CASH" ? "Cash" : "Card hold"}) —{" "}
-                      {handover.deposit_amount !== null &&
-                        `${handover.deposit_amount.toFixed(2)} ${handover.deposit_currency?.toUpperCase() ?? ""}`}
-                      .
-                    </p>
+                    <p className="text-sm text-gray-700">{handover.deposit_amount !== null
+                      ? t("s.handovers.id.checkIn.depositHeldAmount", {
+                          method: t(handover.deposit_method === "CASH" ? "common.cash" : "common.cardHold"),
+                          amount: `${handover.deposit_amount.toFixed(2)} ${handover.deposit_currency?.toUpperCase() ?? ""}`,
+                        })
+                      : t("s.handovers.id.checkIn.depositHeld", {
+                          method: t(handover.deposit_method === "CASH" ? "common.cash" : "common.cardHold"),
+                        })}</p>
                   ) : depositStatus === "active" ? (
                     <DepositStep
                       reservationId={reservation.id}
@@ -431,7 +411,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       onHeld={handlePaid}
                     />
                   ) : (
-                    <p className="text-sm text-ink-muted">Complete payment first.</p>
+                    <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.completePaymentFirst")}</p>
                   )}
                 </div>
               </Card>
@@ -441,7 +421,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
             <Card className={identityStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
                 index={identityIndex}
-                title="Identity & Driving Licence"
+                title={t("s.handovers.id.checkIn.identityDrivingLicence")}
                 status={identityStatus}
               />
 
@@ -456,9 +436,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     onSaved={setIdentityDetails}
                   />
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Complete payment{depositRequired ? " and the deposit" : ""} first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t(depositRequired ? "s.handovers.id.checkIn.completePaymentDepositFirst" : "s.handovers.id.checkIn.completePaymentFirst")}</p>
                 )}
               </div>
             </Card>
@@ -467,20 +445,16 @@ export default function FinalizeHandoverPage({ params }: Props) {
             <Card className={signatureStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
                 index={identityIndex + 1}
-                title="Customer Signature"
+                title={t("s.handovers.id.checkIn.customerSignature")}
                 status={signatureStatus}
               />
 
               <div className="mt-5">
                 {signatureDone ? (
-                  <p className="text-sm text-gray-700">
-                    Signature captured.
-                  </p>
+                  <p className="text-sm text-gray-700">{t("s.handovers.id.checkIn.signatureCaptured")}</p>
                 ) : signatureStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      Have the customer sign below.
-                    </p>
+                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.haveCustomerSignBelow")}</p>
 
                     <SignaturePad ref={signaturePadRef} />
 
@@ -492,19 +466,15 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       <Button
                         variant="secondary"
                         onClick={() => signaturePadRef.current?.clear()}
-                      >
-                        Clear
-                      </Button>
+                      >{t("s.handovers.id.checkIn.clear")}</Button>
 
                       <Button onClick={handleSaveSignature} disabled={signing}>
-                        {signing ? "Saving..." : "Save Signature"}
+                        {signing ? t("s.handovers.id.checkIn.saving") : t("s.handovers.id.checkIn.saveSignature")}
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Verify the customer&apos;s identity first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.verifyCustomerSIdentity")}</p>
                 )}
               </div>
             </Card>
@@ -515,24 +485,23 @@ export default function FinalizeHandoverPage({ params }: Props) {
             >
               <StepHeader
                 index={identityIndex + 2}
-                title="Employee Signature"
+                title={t("s.handovers.id.checkIn.employeeSignature")}
                 status={employeeSignatureStatus}
               />
 
               <div className="mt-5">
                 {employeeSignatureDone ? (
-                  <p className="text-sm text-gray-700">
-                    Signed by {handover.employee_signed_by_email ?? "an employee"}
-                    {handover.employee_signed_at &&
-                      ` on ${formatDateTime(handover.employee_signed_at)}`}
-                    .
-                  </p>
+                  <p className="text-sm text-gray-700">{handover.employee_signed_at
+                      ? t("s.handovers.id.checkIn.signedByOn", {
+                          who: handover.employee_signed_by_email ?? t("common.anEmployee"),
+                          date: formatDateTime(handover.employee_signed_at),
+                        })
+                      : t("s.handovers.id.checkIn.signedBy", {
+                          who: handover.employee_signed_by_email ?? t("common.anEmployee"),
+                        })}</p>
                 ) : employeeSignatureStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      The approving employee signs below to confirm the
-                      handover.
-                    </p>
+                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.approvingEmployeeSignsBelow")}</p>
 
                     <SignaturePad ref={employeeSignaturePadRef} />
 
@@ -546,23 +515,18 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       <Button
                         variant="secondary"
                         onClick={() => employeeSignaturePadRef.current?.clear()}
-                      >
-                        Clear
-                      </Button>
+                      >{t("s.handovers.id.checkIn.clear")}</Button>
 
                       <Button
                         onClick={handleSaveEmployeeSignature}
                         disabled={employeeSigning}
                       >
-                        {employeeSigning ? "Saving..." : "Save Signature"}
+                        {employeeSigning ? t("s.handovers.id.checkIn.saving") : t("s.handovers.id.checkIn.saveSignature")}
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Capture the customer&apos;s signature and verify their
-                    identity first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.captureCustomerSSignature")}</p>
                 )}
               </div>
             </Card>
@@ -571,18 +535,14 @@ export default function FinalizeHandoverPage({ params }: Props) {
             <Card className={agreementStatus === "locked" ? "opacity-50" : ""}>
               <StepHeader
                 index={identityIndex + 3}
-                title="Generate Agreement"
+                title={t("s.handovers.id.checkIn.generateAgreement")}
                 status={agreementStatus}
               />
 
               <div className="mt-5">
                 {agreementStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      This will generate the rental agreement, mark the
-                      reservation as active, and assign the vehicle to the
-                      customer.
-                    </p>
+                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.willGenerateRentalAgreement")}</p>
 
                     {generateError && (
                       <p className="text-sm text-red-600">{generateError}</p>
@@ -590,15 +550,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
                     <Button onClick={handleGenerateAgreement} disabled={generating} fullWidth>
                       {generating
-                        ? "Generating..."
-                        : "Generate Agreement & Start Rental"}
+                        ? t("s.handovers.id.checkIn.generating")
+                        : t("s.handovers.id.checkIn.generateAgreementStartRental")}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-ink-muted">
-                    Complete the customer and employee signatures and verify
-                    the customer&apos;s identity first.
-                  </p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.completeCustomerEmployeeSignatures")}</p>
                 )}
               </div>
             </Card>

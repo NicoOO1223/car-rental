@@ -1,19 +1,20 @@
 "use client";
 
 import { ConfigSectionForm } from "@/components/admin/ConfigSectionForm";
+import { t } from "@/lib/i18n";
 
 export default function SystemConfigurationPage() {
   return (
     <ConfigSectionForm
-      title="System"
-      description="Not a charge, but part of how the app runs."
+      title={t("s.admin.configuration.system.system")}
+      description={t("s.admin.configuration.system.notChargeButPart")}
       fields={[
         {
           key: "access_token_expire_days",
-          label: "Staff session length (days)",
+          label: t("s.admin.configuration.system.staffSessionLengthDays"),
           kind: "integer",
           min: 1,
-          hint: "A staff member's login token is valid for this many days. Changing this only affects sessions started after the change — it does not shorten or extend a session already in progress.",
+          hint: t("s.admin.configuration.system.staffMemberSLogin"),
         },
       ]}
     />

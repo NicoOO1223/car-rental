@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, Input, SelectField, TextField } from "@/components/ui/Field";
 import { createUser, type User } from "@/lib/api";
 import { generatePassword } from "@/lib/password";
+import { t } from "@/lib/i18n";
 
 type Props = {
   onClose: () => void;
@@ -44,7 +45,7 @@ export function NewUserModal({ onClose, onCreated }: Props) {
       onCreated(user);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user.");
+      setError(err instanceof Error ? err.message : t("c.users.NewUserModal.failedCreateUser"));
     } finally {
       setSaving(false);
     }
@@ -53,23 +54,21 @@ export function NewUserModal({ onClose, onCreated }: Props) {
   return (
     <Modal
       isOpen
-      title="New user"
-      description="There is no email system to deliver credentials — copy the password below and share it with them directly."
+      title={t("c.users.NewUserModal.newUser")}
+      description={t("c.users.NewUserModal.thereNoEmailSystem")}
       onClose={onClose}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>{t("c.users.NewUserModal.cancel")}</Button>
           <Button type="submit" form="new-user-form" loading={saving}>
-            {saving ? "Creating" : "Create user"}
+            {saving ? t("c.users.NewUserModal.creating") : t("c.users.NewUserModal.createUser")}
           </Button>
         </>
       }
     >
       <form id="new-user-form" onSubmit={handleSubmit} className="space-y-4">
         <TextField
-          label="Email"
+          label={t("c.users.NewUserModal.email")}
           type="email"
           required
           autoComplete="email"
@@ -78,15 +77,15 @@ export function NewUserModal({ onClose, onCreated }: Props) {
         />
 
         <SelectField
-          label="Role"
+          label={t("c.users.NewUserModal.role")}
           value={role}
           onChange={(event) => setRole(event.target.value)}
         >
-          <option value="staff">Staff</option>
-          <option value="admin">Admin</option>
+          <option value="staff">{t("c.users.NewUserModal.staff")}</option>
+          <option value="admin">{t("c.users.NewUserModal.admin")}</option>
         </SelectField>
 
-        <Field label="Initial password" hint="At least 8 characters.">
+        <Field label={t("c.users.NewUserModal.initialPassword")} hint={t("c.users.NewUserModal.atLeast8Characters")}>
           {(fieldProps) => (
             <div className="flex gap-2">
               <Input
@@ -107,12 +106,10 @@ export function NewUserModal({ onClose, onCreated }: Props) {
                   setPassword(generatePassword());
                   setCopied(false);
                 }}
-              >
-                Generate
-              </Button>
+              >{t("c.users.NewUserModal.generate")}</Button>
               <Button type="button" variant="secondary" onClick={handleCopy}>
                 <Copy className="h-4 w-4" aria-hidden="true" />
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("c.users.NewUserModal.copied") : t("c.users.NewUserModal.copy")}
               </Button>
             </div>
           )}

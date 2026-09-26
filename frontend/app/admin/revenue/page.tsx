@@ -13,6 +13,7 @@ import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { LineChart } from "@/components/charts/LineChart";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 export default function RevenuePage() {
   const [startDate, setStartDate] = useState("");
@@ -36,7 +37,7 @@ export default function RevenuePage() {
 
         if (!cancelled) setRevenue(data);
       } catch {
-        if (!cancelled) setError("Failed to load revenue.");
+        if (!cancelled) setError(t("s.admin.revenue.failedLoadRevenue"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,20 +53,18 @@ export default function RevenuePage() {
   return (
     <PageShell>
       <PageHeader
-        title="Revenue"
-        description="Revenue from completed reservations, attributed to their pickup date."
+        title={t("s.admin.revenue.revenue")}
+        description={t("s.admin.revenue.revenueFromCompletedReservations")}
         actions={
           revenue && (
             <Button variant="secondary" onClick={() => downloadRevenueCsv(revenue)}>
-              <Download className="h-4 w-4" aria-hidden="true" />
-              Download CSV
-            </Button>
+              <Download className="h-4 w-4" aria-hidden="true" />{t("s.admin.revenue.downloadCsv")}</Button>
           )
         }
       />
 
       <Toolbar>
-        <Field label="From">
+        <Field label={t("s.admin.revenue.from")}>
           {(fieldProps) => (
             <Input
               {...fieldProps}
@@ -76,7 +75,7 @@ export default function RevenuePage() {
           )}
         </Field>
 
-        <Field label="To">
+        <Field label={t("s.admin.revenue.text")}>
           {(fieldProps) => (
             <Input
               {...fieldProps}
@@ -103,19 +102,16 @@ export default function RevenuePage() {
           <>
             <StatTileGrid columns={3} className="mb-6">
               <StatTile
-                label="Total revenue"
+                label={t("s.admin.revenue.totalRevenue")}
                 value={formatCurrency(revenue.total_revenue)}
               />
-              <StatTile label="From" value={formatDate(revenue.start_date)} />
-              <StatTile label="To" value={formatDate(revenue.end_date)} />
+              <StatTile label={t("s.admin.revenue.from")} value={formatDate(revenue.start_date)} />
+              <StatTile label={t("s.admin.revenue.text")} value={formatDate(revenue.end_date)} />
             </StatTileGrid>
 
             <Card>
-              <h2 className="text-lg font-semibold">Revenue over time</h2>
-              <p className="mt-1 text-sm text-ink-muted">
-                Day-rate x duration of completed rentals, attributed to
-                pickup date. Excludes surcharges and add-ons.
-              </p>
+              <h2 className="text-lg font-semibold">{t("s.admin.revenue.revenueOverTime")}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.admin.revenue.dayRateXDuration")}</p>
 
               <div className="mt-6">
                 <LineChart
@@ -128,36 +124,30 @@ export default function RevenuePage() {
               </div>
             </Card>
 
-            <h2 className="mb-4 mt-8 text-lg font-semibold text-ink">
-              Money collected
-            </h2>
+            <h2 className="mb-4 mt-8 text-lg font-semibold text-ink">{t("s.admin.revenue.moneyCollected")}</h2>
 
             <StatTileGrid columns={4} className="mb-6">
               <StatTile
-                label="Total collected"
+                label={t("s.admin.revenue.totalCollected")}
                 value={formatCurrency(revenue.total_collected)}
               />
               <StatTile
-                label="By card"
+                label={t("s.admin.revenue.byCard")}
                 value={formatCurrency(revenue.collected_by_method.card)}
               />
               <StatTile
-                label="By cash"
+                label={t("s.admin.revenue.byCash")}
                 value={formatCurrency(revenue.collected_by_method.cash)}
               />
               <StatTile
-                label="Total refunded"
+                label={t("s.admin.revenue.totalRefunded")}
                 value={formatCurrency(revenue.total_refunded)}
               />
             </StatTileGrid>
 
             <Card>
-              <h2 className="text-lg font-semibold">Collected over time</h2>
-              <p className="mt-1 text-sm text-ink-muted">
-                Money actually taken (card and cash), attributed to payment
-                date. Includes surcharges and add-ons, excludes anything
-                later refunded.
-              </p>
+              <h2 className="text-lg font-semibold">{t("s.admin.revenue.collectedOverTime")}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.admin.revenue.moneyActuallyTakenCard")}</p>
 
               <div className="mt-6">
                 <LineChart

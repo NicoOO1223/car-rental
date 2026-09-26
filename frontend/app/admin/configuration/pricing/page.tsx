@@ -1,32 +1,33 @@
 "use client";
 
 import { ConfigSectionForm } from "@/components/admin/ConfigSectionForm";
+import { t } from "@/lib/i18n";
 
 export default function PricingConfigurationPage() {
   return (
     <ConfigSectionForm
-      title="General pricing"
-      description="Surcharges added on top of the vehicle's daily rate, and the currency everything is charged in."
+      title={t("s.admin.configuration.pricing.generalPricing")}
+      description={t("s.admin.configuration.pricing.surchargesAddedTopVehicle")}
       fields={[
         {
           key: "short_term_threshold_days",
-          label: "Short-term rental threshold (days)",
+          label: t("s.admin.configuration.pricing.shortTermRentalThreshold"),
           kind: "integer",
           min: 1,
-          hint: "Rentals shorter than this many days incur the short-term fee below.",
+          hint: t("s.admin.configuration.pricing.rentalsShorterThanMany"),
         },
-        { key: "short_term_fee", label: "Short-term fee", kind: "money" },
+        { key: "short_term_fee", label: t("s.admin.configuration.pricing.shortTermFee"), kind: "money" },
         {
           key: "airport_change_fee",
-          label: "Airport change fee",
+          label: t("s.admin.configuration.pricing.airportChangeFee"),
           kind: "money",
-          hint: "Applied when the pickup and return locations differ.",
+          hint: t("s.admin.configuration.pricing.appliedWhenPickupReturn"),
         },
         {
           key: "default_currency",
-          label: "Default currency",
+          label: t("s.admin.configuration.pricing.defaultCurrency"),
           kind: "currency",
-          hint: "3-letter code, e.g. eur.",
+          hint: t("s.admin.configuration.pricing.3LetterCodeE"),
         },
       ]}
     />
