@@ -111,7 +111,7 @@ Deployment notes:
 - Notifications are in-app only. Email and SMS stay deferred with L9, so nobody is told unless they open the app.
 - Not covered: a cost on cleaning or non-inspection completions beyond what was entered when logging, and cost reports.
 
-**L14 Per-customer stack automation.** Built and committed locally. Nothing below is live until the live stack is moved over (see the rollout steps) and it is pushed.
+**L14 Per-customer stack automation.** Built, pushed and rolled out to the live `demo` stack (the canary).
 - One image serves every stack. The frontend reads its API address, Stripe publishable key and error-tracking address from the container's environment when it runs, hands them to the browser from the layout, and builds its Content-Security-Policy per request. The Docker image takes no build arguments.
 - Stacks are described by `deploy/stacks/<slug>.json` (no secrets), checked by tests: exactly one canary, no shared resource groups, business settings validated with the admin screen's own rules. The live stack is adopted as `demo`, the canary.
 - The container registry moved to its own resource group (`deploy/shared.bicep`), so deleting a stack never deletes it.
@@ -119,12 +119,16 @@ Deployment notes:
 - The release builds once, deploys to the canary, smoke-tests it, then deploys to the other stacks one at a time. Backups and restore drills run per stack. The smoke test also checks that the frontend is configured for its own stack's API.
 - Details are in `deploy/PROVISIONING.md`.
 
-Rollout, once, in this order:
-1. Run `deploy/provision.ps1 -Stack demo -DryRun`, read it, then run it for real. It creates the shared registry, moves the live apps onto it, creates the `stack-demo` GitHub Environment and grants the CI login what it needs. It leaves the live database login, Stripe keys and webhook alone.
-2. Then push. The release now builds into the shared registry and deploys through the environment.
-3. Delete the old registry in the live resource group once the running images come from the shared one.
+Rollout done on the demo stack: the shared registry exists and both apps run from it, the `stack-demo` GitHub Environment and CI login exist, the first canary-first release deployed and passed its smoke test, and backups and the restore drill run through the new pipeline. The old registry in the demo resource group is still there and can be deleted.
+
+Closed at the same time (the L12 checklist had never been applied to the live stack):
+- The internet-wide database firewall rule is deleted. The backup job opens and removes its own rule, using a role that could not be created before because it listed an action Azure does not have.
+- The backend has health probes, the migration login, and the least-privilege database role.
+- The Stripe webhook endpoint is registered for the live stack, and the route now verifies signatures.
+- The restore drill had been failing daily since L12. It now restores the newest backup, runs the migrations, checks the data, and boots the backend on it.
 
 Not done, on purpose:
+- **Monitoring alerts are still not deployed.** They need an alert email address in `deploy/stacks/demo.json`, then a re-run of `provision.ps1 -Stack demo`.
 - **A second real stack has not been provisioned.** Provision one with a different currency, timezone and branding beside the demo, restore it from its own backup, then deprovision it. This is the remaining item of the definition of done.
 - Custom domains are not automated.
 
