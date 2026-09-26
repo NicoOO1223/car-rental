@@ -25,6 +25,7 @@ from app.services.handovers import (
     create_or_reuse_payment_intent,
     generate_agreement,
     get_or_create_handover,
+    settle_prepaid_handover,
     submit_employee_signature,
     submit_signature,
 )
@@ -106,6 +107,19 @@ def confirm_cash_payment_endpoint(
     current_user: User = Depends(require_authenticated_user),
 ):
     handover = confirm_cash_payment(db, reservation_id, actor=current_user)
+
+    return HandoverResponse.from_model(handover)
+
+
+@router.post("/settle-prepaid", response_model=HandoverResponse)
+def settle_prepaid_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """A rental paid in full online needs no payment at the counter."""
+
+    handover = settle_prepaid_handover(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
 

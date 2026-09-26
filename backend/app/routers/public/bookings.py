@@ -9,10 +9,25 @@ from app.database import get_db
 from app.errors import AppError
 from app.models import Reservation, ReservationPayment
 from app.routers.public.catalog import enabled_configuration
-from app.schemas.public import PublicBookingCreated, PublicBookingRequest, PublicBookingStatus
+from app.schemas.public import (
+    PublicBooking,
+    PublicBookingAccess,
+    PublicBookingCreated,
+    PublicBookingLookup,
+    PublicBookingRequest,
+    PublicBookingStatus,
+)
 from app.services.client_ip import client_ip
 from app.services.manage_token import create_manage_token, reservation_id_from_token
-from app.services.public_booking import create_booking, normalize_reference, sync_payment
+from app.services.public_booking import (
+    booking_view,
+    create_booking,
+    find_booking,
+    normalize_reference,
+    renter_cancel,
+    sync_payment,
+)
+from app.services.turnstile import require_human
 from app.services.rate_limit import limit_by_ip
 
 router = APIRouter()
@@ -91,3 +106,53 @@ def sync_public_payment(
     what Stripe says, without waiting for its webhook."""
 
     return _status(db, sync_payment(db, reservation))
+
+
+@router.post(
+    "/bookings/lookup",
+    response_model=PublicBookingAccess,
+    dependencies=[Depends(limit_by_ip("public-lookup", 10))],
+)
+def lookup_public_booking(
+    data: PublicBookingLookup,
+    request: Request,
+    configuration=Depends(enabled_configuration),
+    db: Session = Depends(get_db),
+):
+    """Reference plus the booker's email: finds a booking and gives this
+    browser a token to manage it for the next hour."""
+
+    require_human(data.captcha_token, client_ip(request))
+
+    reservation = find_booking(db, data.reference, data.email)
+
+    return PublicBookingAccess(manage_token=create_manage_token(reservation.id), booking=booking_view(db, reservation))
+
+
+@router.get(
+    "/bookings/{reference}",
+    response_model=PublicBooking,
+    dependencies=[Depends(limit_by_ip("public-read", 120))],
+)
+def get_public_booking(
+    reservation: Reservation = Depends(booking_from_token),
+    db: Session = Depends(get_db),
+):
+    return booking_view(db, reservation)
+
+
+@router.post(
+    "/bookings/{reference}/cancel",
+    response_model=PublicBooking,
+    dependencies=[Depends(limit_by_ip("public-cancel", 10))],
+)
+def cancel_public_booking(
+    reservation: Reservation = Depends(booking_from_token),
+    db: Session = Depends(get_db),
+):
+    """The renter cancels. The online share is refunded up to the cancellation
+    deadline and kept after it."""
+
+    cancelled = renter_cancel(db, reservation)
+
+    return booking_view(db, cancelled)

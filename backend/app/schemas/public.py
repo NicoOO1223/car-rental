@@ -171,3 +171,44 @@ class PublicBookingStatus(BaseModel):
     status: str
     hold_expires_at: datetime | None
     payment_status: str | None
+
+
+class PublicBookingExtra(BaseModel):
+    name: str
+    quantity: int
+
+
+class PublicBooking(BaseModel):
+    """A booking as its renter sees it. No plate, no ids, nothing internal."""
+
+    reference: str
+    status: str
+    pickup_at: datetime
+    return_at: datetime
+    pickup_location: PublicLocation
+    return_location: PublicLocation
+    vehicle: PublicVehicle
+    extras: list[PublicBookingExtra]
+
+    currency: str
+    total_amount: float
+    paid_online: float
+    refunded_online: float
+    due_at_pickup: float
+
+    hold_expires_at: datetime | None
+    cancellation_deadline_at: datetime | None
+    can_cancel: bool
+    # Whether cancelling right now gives the online share back.
+    cancel_refunds_online: bool
+
+
+class PublicBookingLookup(BaseModel):
+    reference: str = Field(min_length=4, max_length=20)
+    email: str = Field(min_length=3, max_length=254)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+
+class PublicBookingAccess(BaseModel):
+    manage_token: str
+    booking: PublicBooking

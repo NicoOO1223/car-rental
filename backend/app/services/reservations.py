@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,6 +17,7 @@ from app.services.availability import (
 from app.services.customers import find_matching_customer
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
+from app.services.prepayments import settle_prepayment_for_cancellation
 from app.services.extras import (
     build_reservation_extras,
     resolve_extra_selections,
@@ -229,8 +232,20 @@ def quote_reservation(
 def cancel_reservation(
     db: Session,
     reservation_id,
-    actor: User,
+    actor: User | None,
+    *,
+    reason: str = "STAFF",
+    refund_prepayment: bool | None = None,
 ):
+    """
+    Cancels a booking, giving back what should be given back.
+
+    `reason` is who or what cancelled it: STAFF, RENTER (on the storefront) or
+    NO_SHOW. `refund_prepayment` decides the share the renter paid online:
+    None follows the admin's policy (refunded up to the cancellation deadline,
+    kept after it), True or False overrides it for this cancellation.
+    """
+
     reservation = db.get(
         Reservation,
         reservation_id,
@@ -251,11 +266,18 @@ def cancel_reservation(
     # Refund whatever was actually paid before flipping the status, so a
     # refund failure (e.g. a Stripe error) leaves the reservation
     # un-cancelled rather than cancelled with the money never returned.
+    reservation.cancellation_reason = reason
+    reservation.cancelled_at = datetime.now(timezone.utc)
+
     refund_handover_if_paid(db, reservation_id, actor)
     release_deposit_for_cancellation(db, reservation_id, actor)
+    prepayment = settle_prepayment_for_cancellation(db, reservation, actor, refund_prepayment)
 
     reservation.status = "CANCELLED"
-    reservation.updated_by = actor.id
+    reservation.hold_expires_at = None
+
+    if actor is not None:
+        reservation.updated_by = actor.id
 
     audit_log(
         db,
@@ -263,12 +285,41 @@ def cancel_reservation(
         action="reservation.cancelled",
         entity_type="reservation",
         entity_id=reservation.id,
+        metadata={"reason": reason, "online_payment": prepayment},
     )
 
     db.commit()
     db.refresh(reservation)
 
     return reservation
+
+def mark_no_show(db: Session, reservation_id, actor: User):
+    """
+    The renter never came. The booking is cancelled and the share they paid
+    online is kept, whatever the cancellation deadline was: the car was held
+    for them and turned other renters away.
+    """
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    if reservation.status != "CONFIRMED":
+        raise AppError(
+            "reservation.no_show_needs_confirmed",
+            "Only a confirmed reservation can be marked as a no-show.",
+            status=reservation.status,
+        )
+
+    if reservation.pickup_at > datetime.now(timezone.utc):
+        raise AppError(
+            "reservation.no_show_too_early",
+            "A reservation can only be marked as a no-show once its pickup time has passed.",
+        )
+
+    return cancel_reservation(db, reservation_id, actor, reason="NO_SHOW", refund_prepayment=False)
+
 
 def update_reservation_status(
     db: Session,

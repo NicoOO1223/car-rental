@@ -43,6 +43,7 @@ from app.services.booking_prices import stamp_agreed_prices
 from app.services.extras import build_reservation_extras, resolve_extra_selections
 from app.services.invoices import issue_invoice_for_prepayment
 from app.services.money import to_cents
+from app.services.prepayments import refund_prepayment
 from app.services.public_catalog import (
     cancellation_deadline,
     cars_for_offer,
@@ -306,26 +307,6 @@ def release_hold(db: Session, reservation_id, now: datetime) -> None:
 # --- the payment arrives -------------------------------------------------------------------------
 
 
-def refund_prepayment(db: Session, payment: ReservationPayment) -> None:
-    """Gives the whole online share back through Stripe. Never commits."""
-
-    if payment.payment_status != "SUCCEEDED":
-        return
-
-    try:
-        refund = stripe.Refund.create(
-            payment_intent=payment.stripe_payment_intent_id,
-            idempotency_key=f"prepayment-refund:{payment.id}",
-        )
-    except stripe.StripeError as exc:
-        raise stripe_app_error(exc)
-
-    payment.stripe_refund_id = refund.id
-    payment.refund_amount = payment.payment_amount
-    payment.refunded_at = datetime.now(timezone.utc)
-    payment.payment_status = "REFUNDED"
-
-
 def on_prepayment_succeeded(db: Session, payment: ReservationPayment, now: datetime | None = None) -> str:
     """
     The renter's online payment has gone through. Confirms the booking and
@@ -505,3 +486,128 @@ def _expire_one(db: Session, reservation_id, now: datetime) -> str:
     )
 
     return "expired"
+
+
+# --- the renter looks at and cancels a booking ---------------------------------------------------------
+
+
+def find_booking(db: Session, reference: str, email: str) -> Reservation:
+    """
+    The storefront booking with this reference and this booker's email. Every
+    way of not finding one (wrong reference, wrong email, a staff booking)
+    gives the same answer, so the lookup cannot be used to discover which
+    references exist.
+    """
+
+    reservation = db.scalar(
+        select(Reservation)
+        .join(Customer, Customer.id == Reservation.customer_id)
+        .where(
+            Reservation.source == "STOREFRONT",
+            Reservation.public_reference == normalize_reference(reference),
+            func.lower(Customer.email) == email.strip().lower(),
+        )
+    )
+
+    if reservation is None:
+        raise AppError(
+            "public.booking_not_found",
+            "We could not find a booking with that reference and email.",
+            status_code=404,
+        )
+
+    return reservation
+
+
+def _can_cancel(reservation: Reservation, now: datetime) -> bool:
+    return reservation.status in ("AWAITING_PAYMENT", "CONFIRMED") and reservation.pickup_at > now
+
+
+def booking_view(db: Session, reservation: Reservation):
+    """The booking as the renter sees it."""
+
+    from app.models import Car
+    from app.schemas.public import (
+        PublicBooking,
+        PublicBookingExtra,
+        PublicLocation,
+        PublicVehicle,
+    )
+    from app.services.prepayments import get_prepayment, refund_is_free
+
+    now = datetime.now(timezone.utc)
+    car = db.get(Car, reservation.car_id)
+    payment = get_prepayment(db, reservation.id)
+
+    paid = Decimal(payment.payment_amount) if payment and payment.payment_status == "SUCCEEDED" else Decimal("0")
+    refunded = Decimal(payment.refund_amount or 0) if payment and payment.payment_status == "REFUNDED" else Decimal("0")
+    total = Decimal(reservation.agreed_total_amount or 0)
+
+    # What is left to pay when picking up: nothing once the booking is over.
+    live = reservation.status in ("AWAITING_PAYMENT", "CONFIRMED", "ACTIVE")
+    at_pickup = max(total - paid, Decimal("0")) if live else Decimal("0")
+
+    def location(place):
+        return PublicLocation(
+            id=place.id,
+            name=place.name,
+            airport_code=place.airport_code,
+            address=place.address,
+            timezone=place.timezone,
+        )
+
+    return PublicBooking(
+        reference=reservation.public_reference,
+        status=reservation.status,
+        pickup_at=reservation.pickup_at,
+        return_at=reservation.return_at,
+        pickup_location=location(reservation.pickup_location),
+        return_location=location(reservation.return_location),
+        vehicle=PublicVehicle(
+            make=car.make,
+            model=car.model,
+            year=car.year,
+            category=car.category,
+            transmission=car.transmission,
+            fuel_type=car.fuel_type,
+            seats=car.seats,
+            image_url=car.image_url,
+            price_per_day=float(reservation.agreed_price_per_day or car.price_per_day),
+        ),
+        extras=[PublicBookingExtra(name=line.name, quantity=line.quantity) for line in reservation.extras],
+        currency=reservation.agreed_currency or "",
+        total_amount=float(total),
+        paid_online=float(paid),
+        refunded_online=float(refunded),
+        due_at_pickup=float(at_pickup),
+        hold_expires_at=reservation.hold_expires_at,
+        cancellation_deadline_at=reservation.cancellation_deadline_at,
+        can_cancel=_can_cancel(reservation, now),
+        cancel_refunds_online=refund_is_free(reservation, now),
+    )
+
+
+def renter_cancel(db: Session, reservation: Reservation) -> Reservation:
+    """
+    The renter cancels their own booking. The share they paid online follows
+    the admin's policy: refunded in full up to the cancellation deadline, kept
+    after it. They cannot choose otherwise.
+    """
+
+    from app.services.reservations import cancel_reservation
+
+    if not _can_cancel(reservation, datetime.now(timezone.utc)):
+        raise AppError("public.cannot_cancel", "This booking can no longer be cancelled online. Please contact us.")
+
+    _require_stripe_if_paid(db, reservation)
+
+    return cancel_reservation(db, reservation.id, None, reason="RENTER")
+
+
+def _require_stripe_if_paid(db: Session, reservation: Reservation) -> None:
+    from app.services.prepayments import get_prepayment
+
+    payment = get_prepayment(db, reservation.id)
+
+    if payment is not None and payment.payment_status != "CANCELLED":
+        _require_stripe()

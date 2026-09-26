@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
-from app.models import Car, CheckOut, Handover, Reservation
+from app.models import Car, CheckOut, Handover, Reservation, ReservationPayment
 from app.services.pricing import calculate_rental_price
 from app.services.timezones import business_zone, local_date, range_bounds
 
@@ -123,6 +123,18 @@ def get_collected_revenue(
         )
     ).all()
 
+    # The share renters paid online when booking. A refunded one has moved to
+    # REFUNDED and drops out; one kept after a late cancellation stays in.
+    paid_rows += db.execute(
+        select(
+            ReservationPayment.paid_at, ReservationPayment.payment_amount, ReservationPayment.payment_method
+        ).where(
+            ReservationPayment.payment_status == "SUCCEEDED",
+            ReservationPayment.paid_at >= range_start,
+            ReservationPayment.paid_at < range_end,
+        )
+    ).all()
+
     # The part of a security deposit taken for return charges is money
     # collected, on the day it was settled and by the deposit's own method.
     paid_rows += db.execute(
@@ -165,6 +177,16 @@ def get_collected_revenue(
             Handover.refunded_at >= range_start,
             Handover.refunded_at < range_end,
         )
+    )
+
+    total_refunded = (total_refunded or 0) + (
+        db.scalar(
+            select(func.coalesce(func.sum(ReservationPayment.refund_amount), 0)).where(
+                ReservationPayment.refunded_at >= range_start,
+                ReservationPayment.refunded_at < range_end,
+            )
+        )
+        or 0
     )
 
     return CollectedRevenue(

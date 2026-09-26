@@ -16,6 +16,7 @@ from app.services.agreement_pdf import render_agreement_pdf
 from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
 from app.services.booking_prices import reservation_price_breakdown
+from app.services.prepayments import prepaid_amount
 from app.services.configuration import get_configuration, vat_terms
 from app.services.identity_details import identity_issue
 
@@ -62,6 +63,70 @@ def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover
     return handover
 
 
+def amount_due(db: Session, reservation_id, breakdown) -> Decimal:
+    """
+    What is still to be paid at the counter: the whole price less what the
+    renter paid online. Raises when nothing is left, because a rental paid in
+    full online is settled with settle_prepaid_handover, not by taking money.
+    """
+
+    total = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    due = total - prepaid_amount(db, reservation_id)
+
+    if due <= 0:
+        raise AppError(
+            "handover.nothing_due",
+            "This rental was paid in full online. Settle it as paid instead of taking a payment.",
+        )
+
+    return due
+
+
+def settle_prepaid_handover(db: Session, reservation_id, actor: User) -> Handover:
+    """
+    Records that a rental paid in full online needs no payment at the counter,
+    so check-in can continue. The counter payment is PREPAID, for nothing.
+    """
+
+    handover = get_or_create_handover(db, reservation_id, actor=actor)
+
+    if handover.payment_status == "SUCCEEDED":
+        return handover
+
+    reservation = db.get(Reservation, reservation_id)
+    car = db.get(Car, reservation.car_id)
+    configuration = get_configuration(db)
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
+    total = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    if prepaid_amount(db, reservation_id) < total:
+        raise AppError(
+            "handover.not_fully_prepaid",
+            "This rental has not been paid in full online, so a payment is still due.",
+        )
+
+    handover.payment_amount = Decimal("0.00")
+    handover.payment_currency = configuration.default_currency
+    handover.payment_method = "PREPAID"
+    handover.payment_status = "SUCCEEDED"
+    handover.paid_at = datetime.now(timezone.utc)
+    handover.updated_by = actor.id
+
+    audit_log(
+        db,
+        user=actor,
+        action="handover.payment_confirmed",
+        entity_type="handover",
+        entity_id=handover.id,
+        metadata={"payment_method": "PREPAID", "payment_status": handover.payment_status},
+    )
+
+    db.commit()
+    db.refresh(handover)
+
+    return handover
+
+
 def _require_stripe_configured() -> None:
     if not stripe.api_key:
         raise AppError("stripe.not_configured", "Stripe is not configured on the server. Set STRIPE_SECRET_KEY "
@@ -102,10 +167,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
     # exact 2-dp Decimal multiplied by integers, so int() truncation is
     # currently safe; it stops being obviously safe the moment a
     # percentage-based or prorated extra is added.
-    amount = breakdown.total_amount.quantize(
-        Decimal("0.01"),
-        rounding=ROUND_HALF_UP,
-    )
+    amount = amount_due(db, reservation_id, breakdown)
 
     try:
         if handover.stripe_payment_intent_id:
@@ -249,7 +311,7 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
 
     breakdown = reservation_price_breakdown(db, reservation, car, configuration)
 
-    amount = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    amount = amount_due(db, reservation_id, breakdown)
 
     handover.payment_amount = amount
     handover.payment_currency = configuration.default_currency
@@ -301,6 +363,11 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
     )
 
     if handover is None or handover.payment_status != "SUCCEEDED":
+        return None
+
+    # Paid in full online: there is no counter payment to give back; the
+    # online share is settled separately (services/prepayments.py).
+    if handover.payment_method == "PREPAID":
         return None
 
     if handover.payment_method == "CARD":

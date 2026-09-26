@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.i18n.documents import document_language, format_amount, label
 from app.services.extras import localized_name, selections_from_reservation, translations_by_code
 from app.services.booking_prices import reservation_price_breakdown
+from app.services.prepayments import prepaid_amount
 from app.services.configuration import get_configuration, vat_terms
 from app.services.pdf_common import (
     FONT,
@@ -141,7 +142,14 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         extra_name = localized_name(extra_line.name, extra_words.get(extra_line.code), language)
         money_line(f"{quantity_label}{extra_name}", extra_line.amount)
     amount = handover.payment_amount if handover.payment_amount is not None else breakdown.total_amount
-    money_line(label(language, "agreement.total_paid"), amount)
+    online = prepaid_amount(db, reservation.id)
+
+    if online > 0:
+        # Part (or all) of the rental was paid on the website before pickup.
+        money_line(label(language, "agreement.paid_online"), online)
+        money_line(label(language, "agreement.paid_at_counter"), amount)
+    else:
+        money_line(label(language, "agreement.total_paid"), amount)
     line(
         label(
             language,

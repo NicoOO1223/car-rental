@@ -208,16 +208,18 @@
       "agreement_missing": "Agreement has not been generated yet.",
       "cannot_generate_status": "Cannot generate agreement for a {status} reservation.",
       "cannot_sign_status": "Cannot sign for a {status} reservation.",
+      "card_payment_already_succeeded": "The customer has already paid by card. Confirm the card payment instead of taking cash.",
       "customer_must_sign_before_employee": "The customer must sign before the employee.",
       "customer_signature_required_before_generating_agreement": "Customer signature is required before generating the agreement.",
       "employee_signature_required_before_generating_agreement": "Employee signature is required before generating the agreement.",
       "handover_only_available_confirmed_reservations": "Handover is only available for confirmed reservations.",
       "identity_incomplete": "Identity check incomplete: {problem}",
       "no_payment_initiated_reservation": "No payment has been initiated for this reservation.",
-      "payment_must_completed_before_generating_agreement": "Payment must be completed before generating the agreement.",
-      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement.",
+      "not_fully_prepaid": "This rental has not been paid in full online, so a payment is still due.",
+      "nothing_due": "This rental was paid in full online. Settle it as paid instead of taking a payment.",
       "payment_already_taken": "This rental has already been paid.",
-      "card_payment_already_succeeded": "The customer has already paid by card. Confirm the card payment instead of taking cash."
+      "payment_must_completed_before_generating_agreement": "Payment must be completed before generating the agreement.",
+      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement."
     },
     "http": {
       "400": "The request was not valid.",
@@ -278,16 +280,18 @@
     "reservation": {
       "cannot_change_status": "Cannot change reservation status from {from_status} to {to_status}.",
       "cannot_edit_status": "Cannot edit a {status} reservation.",
+      "cannot_move_after_payment": "The car, dates and locations cannot be changed after payment has been taken.",
       "car_already_reserved_part_period": "Car is already reserved for part of this period.",
       "car_not_currently_available": "Car is not currently available.",
       "car_not_located_at_selected_pickup": "Car is not located at the selected pickup location.",
       "car_scheduled_maintenance_or_cleaning_during": "Car is scheduled for maintenance or cleaning during this period.",
       "completed_reservations_cannot_cancelled": "Completed reservations cannot be cancelled.",
       "extras_cannot_changed_after_payment_taken": "Extras cannot be changed after payment has been taken.",
+      "no_show_needs_confirmed": "Only a confirmed reservation can be marked as a no-show.",
+      "no_show_too_early": "A reservation can only be marked as a no-show once its pickup time has passed.",
       "not_found": "Reservation not found.",
       "reservation_already_cancelled": "Reservation is already cancelled.",
-      "return_before_pickup": "Return time must be after pickup time.",
-      "cannot_move_after_payment": "The car, dates and locations cannot be changed after payment has been taken."
+      "return_before_pickup": "Return time must be after pickup time."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "The damage charge cannot be negative.",

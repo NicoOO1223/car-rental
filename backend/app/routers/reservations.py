@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.errors import NotFoundError
@@ -27,6 +28,7 @@ from app.services.reservation_search import (
 from app.services.reservations import (
     create_reservation,
     cancel_reservation,
+    mark_no_show,
     quote_reservation,
     update_reservation_status,
     update_reservation,
@@ -36,6 +38,12 @@ from app.models import Reservation, User
 
 from uuid import UUID
 from sqlalchemy import select
+
+
+class CancelRequest(BaseModel):
+    # Whether to give back the share the renter paid online: None follows the
+    # admin's policy (refund up to the cancellation deadline, keep after it).
+    refund_prepayment: bool | None = None
 
 
 router = APIRouter(
@@ -101,6 +109,7 @@ def quote_reservation_endpoint(
 )
 def cancel_reservation_endpoint(
     reservation_id: UUID,
+    data: CancelRequest | None = Body(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
@@ -108,9 +117,24 @@ def cancel_reservation_endpoint(
         db=db,
         reservation_id=reservation_id,
         actor=current_user,
+        refund_prepayment=data.refund_prepayment if data else None,
     )
 
     return reservation
+
+
+@router.post(
+    "/{reservation_id}/no-show",
+    response_model=ReservationListResponse,
+)
+def no_show_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """The renter did not come: cancels the booking and keeps what they paid online."""
+
+    return mark_no_show(db, reservation_id, current_user)
 
 @router.get(
     "",

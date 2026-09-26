@@ -208,16 +208,18 @@
       "agreement_missing": "Umowa nie została jeszcze wygenerowana.",
       "cannot_generate_status": "Nie można wygenerować umowy dla rezerwacji o statusie: {status}.",
       "cannot_sign_status": "Nie można podpisać rezerwacji o statusie: {status}.",
+      "card_payment_already_succeeded": "Klient już zapłacił kartą. Potwierdź płatność kartą zamiast przyjmować gotówkę.",
       "customer_must_sign_before_employee": "Klient musi podpisać przed pracownikiem.",
       "customer_signature_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagany jest podpis klienta.",
       "employee_signature_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagany jest podpis pracownika.",
       "handover_only_available_confirmed_reservations": "Wydanie jest dostępne tylko dla potwierdzonych rezerwacji.",
       "identity_incomplete": "Weryfikacja tożsamości jest niekompletna: {problem}",
       "no_payment_initiated_reservation": "Dla tej rezerwacji nie rozpoczęto żadnej płatności.",
-      "payment_must_completed_before_generating_agreement": "Przed wygenerowaniem umowy płatność musi zostać zakończona.",
-      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja.",
+      "not_fully_prepaid": "Ten wynajem nie został w całości opłacony online, więc pozostaje kwota do zapłaty.",
+      "nothing_due": "Ten wynajem został w całości opłacony online. Oznacz go jako opłacony zamiast przyjmować płatność.",
       "payment_already_taken": "Ten wynajem został już opłacony.",
-      "card_payment_already_succeeded": "Klient już zapłacił kartą. Potwierdź płatność kartą zamiast przyjmować gotówkę."
+      "payment_must_completed_before_generating_agreement": "Przed wygenerowaniem umowy płatność musi zostać zakończona.",
+      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja."
     },
     "http": {
       "400": "Żądanie jest nieprawidłowe.",
@@ -278,16 +280,18 @@
     "reservation": {
       "cannot_change_status": "Nie można zmienić statusu rezerwacji z {from_status} na {to_status}.",
       "cannot_edit_status": "Nie można edytować rezerwacji o statusie: {status}.",
+      "cannot_move_after_payment": "Samochodu, dat i lokalizacji nie można zmienić po przyjęciu płatności.",
       "car_already_reserved_part_period": "Pojazd jest już zarezerwowany na część tego okresu.",
       "car_not_currently_available": "Pojazd nie jest teraz dostępny.",
       "car_not_located_at_selected_pickup": "Pojazd nie znajduje się w wybranej lokalizacji odbioru.",
       "car_scheduled_maintenance_or_cleaning_during": "Pojazd ma zaplanowany serwis lub czyszczenie w tym okresie.",
       "completed_reservations_cannot_cancelled": "Zakończonych rezerwacji nie można anulować.",
       "extras_cannot_changed_after_payment_taken": "Dodatków nie można zmieniać po przyjęciu płatności.",
+      "no_show_needs_confirmed": "Tylko potwierdzoną rezerwację można oznaczyć jako niestawienie się.",
+      "no_show_too_early": "Rezerwację można oznaczyć jako niestawienie się dopiero po upływie godziny odbioru.",
       "not_found": "Nie znaleziono rezerwacji.",
       "reservation_already_cancelled": "Rezerwacja została już anulowana.",
-      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru.",
-      "cannot_move_after_payment": "Samochodu, dat i lokalizacji nie można zmienić po przyjęciu płatności."
+      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "Opłata za szkodę nie może być ujemna.",

@@ -41,6 +41,8 @@ LABELS: dict[str, dict[str, str]] = {
         "agreement.airport_change_fee": "Airport change fee",
         "agreement.total_paid": "Total paid",
         "agreement.paid_at": "Paid at: {time}",
+        "agreement.paid_online": "Paid online when booking",
+        "agreement.paid_at_counter": "Paid at the counter",
         "agreement.terms": "Terms & Conditions",
         "agreement.default_terms": (
             "The customer agrees to return the vehicle in the same condition as "
@@ -79,6 +81,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.short_term_fee": "Short-term rental fee",
         "line.one_way_fee": "One-way rental fee",
         "line.advance": "Advance payment for booking {reference}",
+        "line.advance_deducted": "Advance payment received (invoice {number})",
     },
     "it": {
         "not_available": "N/D",
@@ -99,6 +102,8 @@ LABELS: dict[str, dict[str, str]] = {
         "agreement.airport_change_fee": "Supplemento per cambio aeroporto",
         "agreement.total_paid": "Totale pagato",
         "agreement.paid_at": "Pagato il: {time}",
+        "agreement.paid_online": "Pagato online alla prenotazione",
+        "agreement.paid_at_counter": "Pagato al banco",
         "agreement.terms": "Termini e condizioni",
         "agreement.default_terms": (
             "Il cliente si impegna a restituire il veicolo nelle stesse condizioni in cui "
@@ -135,6 +140,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.short_term_fee": "Supplemento per noleggio breve",
         "line.one_way_fee": "Supplemento per noleggio di sola andata",
         "line.advance": "Acconto sulla prenotazione {reference}",
+        "line.advance_deducted": "Acconto ricevuto (fattura {number})",
     },
     "pl": {
         "not_available": "brak danych",
@@ -155,6 +161,8 @@ LABELS: dict[str, dict[str, str]] = {
         "agreement.airport_change_fee": "Opłata za zmianę lotniska",
         "agreement.total_paid": "Zapłacono łącznie",
         "agreement.paid_at": "Data płatności: {time}",
+        "agreement.paid_online": "Zapłacono online przy rezerwacji",
+        "agreement.paid_at_counter": "Zapłacono na miejscu",
         "agreement.terms": "Warunki i zasady",
         "agreement.default_terms": (
             "Klient zobowiązuje się zwrócić pojazd w takim samym stanie, w jakim go "
@@ -191,6 +199,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.short_term_fee": "Opłata za krótki wynajem",
         "line.one_way_fee": "Opłata za wynajem w jedną stronę",
         "line.advance": "Zaliczka na rezerwację {reference}",
+        "line.advance_deducted": "Otrzymana zaliczka (faktura {number})",
     },
 }
 

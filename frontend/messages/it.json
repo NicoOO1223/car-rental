@@ -208,16 +208,18 @@
       "agreement_missing": "Il contratto non è ancora stato generato.",
       "cannot_generate_status": "Non si può generare il contratto per una prenotazione {status}.",
       "cannot_sign_status": "Non si può firmare per una prenotazione {status}.",
+      "card_payment_already_succeeded": "Il cliente ha già pagato con carta. Conferma il pagamento con carta invece di incassare in contanti.",
       "customer_must_sign_before_employee": "Il cliente deve firmare prima dell'operatore.",
       "customer_signature_required_before_generating_agreement": "Serve la firma del cliente prima di generare il contratto.",
       "employee_signature_required_before_generating_agreement": "Serve la firma dell'operatore prima di generare il contratto.",
       "handover_only_available_confirmed_reservations": "La consegna è disponibile solo per le prenotazioni confermate.",
       "identity_incomplete": "Verifica dell'identità incompleta: {problem}",
       "no_payment_initiated_reservation": "Non è stato avviato alcun pagamento per questa prenotazione.",
-      "payment_must_completed_before_generating_agreement": "Il pagamento deve essere completato prima di generare il contratto.",
-      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto.",
+      "not_fully_prepaid": "Questo noleggio non è stato pagato interamente online, quindi c'è ancora un importo da pagare.",
+      "nothing_due": "Questo noleggio è stato pagato interamente online. Segnalo come pagato invece di incassare un pagamento.",
       "payment_already_taken": "Questo noleggio è già stato pagato.",
-      "card_payment_already_succeeded": "Il cliente ha già pagato con carta. Conferma il pagamento con carta invece di incassare in contanti."
+      "payment_must_completed_before_generating_agreement": "Il pagamento deve essere completato prima di generare il contratto.",
+      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto."
     },
     "http": {
       "400": "La richiesta non è valida.",
@@ -278,16 +280,18 @@
     "reservation": {
       "cannot_change_status": "Non si può cambiare lo stato della prenotazione da {from_status} a {to_status}.",
       "cannot_edit_status": "Non si può modificare una prenotazione {status}.",
+      "cannot_move_after_payment": "L’auto, le date e le sedi non possono essere modificate dopo il pagamento.",
       "car_already_reserved_part_period": "Il veicolo è già prenotato per una parte di questo periodo.",
       "car_not_currently_available": "Il veicolo non è disponibile al momento.",
       "car_not_located_at_selected_pickup": "Il veicolo non si trova nella sede di ritiro selezionata.",
       "car_scheduled_maintenance_or_cleaning_during": "Il veicolo ha una manutenzione o una pulizia programmata in questo periodo.",
       "completed_reservations_cannot_cancelled": "Le prenotazioni completate non si possono annullare.",
       "extras_cannot_changed_after_payment_taken": "Gli extra non si possono modificare dopo l'incasso del pagamento.",
+      "no_show_needs_confirmed": "Solo una prenotazione confermata può essere segnata come mancata presentazione.",
+      "no_show_too_early": "Una prenotazione può essere segnata come mancata presentazione solo dopo l'orario di ritiro.",
       "not_found": "Prenotazione non trovata.",
       "reservation_already_cancelled": "La prenotazione è già annullata.",
-      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro.",
-      "cannot_move_after_payment": "L’auto, le date e le sedi non possono essere modificate dopo il pagamento."
+      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "L'addebito per danni non può essere negativo.",

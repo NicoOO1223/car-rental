@@ -143,6 +143,11 @@ def issue_invoice_for_handover(
     if handover.payment_status != "SUCCEEDED" or handover.payment_amount is None:
         return None
 
+    # A rental paid in full online has nothing left to invoice at the counter:
+    # the advance invoice already covers it.
+    if Decimal(handover.payment_amount) <= 0:
+        return None
+
     existing = _existing(db, handover.id, KIND_INVOICE)
 
     if existing is not None:
@@ -153,6 +158,28 @@ def issue_invoice_for_handover(
     configuration = get_configuration(db)
 
     breakdown = reservation_price_breakdown(db, reservation, car, configuration)
+
+    lines = _lines(
+        reservation,
+        car,
+        breakdown,
+        translations_by_code(db, (line.code for line in breakdown.extras)),
+    )
+
+    # What was paid online is taken off: the invoice is for the rest.
+    advance = _advance_invoice(db, reservation.id)
+
+    if advance is not None:
+        lines.append(
+            {
+                "description": f"Advance payment received (invoice {advance.number})",
+                "key": "line.advance_deducted",
+                "params": {"number": advance.number},
+                "quantity": 1,
+                "unit_price": _money(-advance.total_amount),
+                "amount": _money(-advance.total_amount),
+            }
+        )
 
     # The money actually collected is the authority for the totals, however
     # the lines were priced: it is what the customer paid. It is always the
@@ -177,12 +204,7 @@ def issue_invoice_for_handover(
                 handover_id=handover.id,
                 currency=handover.payment_currency or configuration.default_currency,
                 language=document_language(configuration.document_language),
-                lines=_lines(
-                    reservation,
-                    car,
-                    breakdown,
-                    translations_by_code(db, (line.code for line in breakdown.extras)),
-                ),
+                lines=lines,
                 prices_include_vat=configuration.prices_include_vat,
                 vat_rate=rate,
                 net_amount=gross - vat,
@@ -211,6 +233,28 @@ def issue_invoice_for_handover(
     )
 
     return invoice
+
+
+def _advance_invoice(db: Session, reservation_id) -> Invoice | None:
+    """The advance invoice of a rental paid partly online, if it still stands
+    (one that was refunded was credited, so nothing is deducted)."""
+
+    invoice = db.scalar(
+        select(Invoice).where(
+            Invoice.reservation_id == reservation_id,
+            Invoice.payment_id.is_not(None),
+            Invoice.kind == KIND_INVOICE,
+        )
+    )
+
+    if invoice is None:
+        return None
+
+    credited = db.scalar(
+        select(Invoice.id).where(Invoice.original_invoice_id == invoice.id, Invoice.kind == KIND_CREDIT_NOTE)
+    )
+
+    return None if credited else invoice
 
 
 def _existing_for_payment(db: Session, payment_id, kind: str) -> Invoice | None:
@@ -296,22 +340,12 @@ def issue_invoice_for_prepayment(
     return invoice
 
 
-def issue_credit_note_for_handover(
-    db: Session, handover: Handover, actor: User | None = None
-) -> Invoice | None:
-    """
-    Reverses the invoice of a payment that has been refunded. Returns None
-    when there is nothing to reverse: a payment taken before invoices
-    existed has no invoice, and inventing one now would put a false date on
-    a tax document. Never commits.
-    """
+def _issue_credit_note(db: Session, original: Invoice, link: dict, lookup, actor: User | None) -> Invoice:
+    """One credit note reversing `original`, linked to the payment (`link`) it
+    was issued for. `lookup` finds an existing note for that payment, so
+    issuing twice returns the first."""
 
-    original = _existing(db, handover.id, KIND_INVOICE)
-
-    if original is None:
-        return None
-
-    existing = _existing(db, handover.id, KIND_CREDIT_NOTE)
+    existing = lookup(KIND_CREDIT_NOTE)
 
     if existing is not None:
         return existing
@@ -324,7 +358,6 @@ def issue_credit_note_for_handover(
                 sequence=sequence,
                 kind=KIND_CREDIT_NOTE,
                 reservation_id=original.reservation_id,
-                handover_id=handover.id,
                 original_invoice_id=original.id,
                 currency=original.currency,
                 language=original.language,
@@ -345,11 +378,12 @@ def issue_credit_note_for_handover(
                 total_amount=-original.total_amount,
                 seller=original.seller,
                 customer=original.customer,
+                **link,
             )
             db.add(note)
             db.flush()
     except IntegrityError:
-        existing = _existing(db, handover.id, KIND_CREDIT_NOTE)
+        existing = lookup(KIND_CREDIT_NOTE)
 
         if existing is not None:
             return existing
@@ -370,6 +404,49 @@ def issue_credit_note_for_handover(
     )
 
     return note
+
+
+def issue_credit_note_for_handover(
+    db: Session, handover: Handover, actor: User | None = None
+) -> Invoice | None:
+    """
+    Reverses the invoice of a payment that has been refunded. Returns None
+    when there is nothing to reverse: a payment taken before invoices
+    existed has no invoice, and inventing one now would put a false date on
+    a tax document. Never commits.
+    """
+
+    original = _existing(db, handover.id, KIND_INVOICE)
+
+    if original is None:
+        return None
+
+    return _issue_credit_note(
+        db,
+        original,
+        {"handover_id": handover.id},
+        lambda kind: _existing(db, handover.id, kind),
+        actor,
+    )
+
+
+def issue_credit_note_for_payment(
+    db: Session, payment: ReservationPayment, actor: User | None = None
+) -> Invoice | None:
+    """The same, for the share paid online: reverses its advance invoice."""
+
+    original = _existing_for_payment(db, payment.id, KIND_INVOICE)
+
+    if original is None:
+        return None
+
+    return _issue_credit_note(
+        db,
+        original,
+        {"payment_id": payment.id},
+        lambda kind: _existing_for_payment(db, payment.id, kind),
+        actor,
+    )
 
 
 def list_invoices_for_reservation(db: Session, reservation_id) -> list[Invoice]:

@@ -35,7 +35,9 @@ def apply_payment_intent_status(record: Handover | CheckOut, intent_status: str)
     paid_at keeps the first time it was paid.
     """
 
-    if record.payment_method == "CASH":
+    # Cash, and a rental already paid in full online, are decided by staff and
+    # by the online payment, never by an intent on this record.
+    if record.payment_method in ("CASH", "PREPAID"):
         return False
 
     if record.payment_status == "REFUNDED":
