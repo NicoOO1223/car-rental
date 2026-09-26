@@ -38,6 +38,11 @@ USER node
 
 EXPOSE 3000
 
+# Next's standalone server binds to the container's own hostname by default,
+# which the health check below (and anything else on 127.0.0.1) cannot reach.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1
 
