@@ -22,6 +22,7 @@ from app.services.pricing import (
     calculate_rental_duration_days,
 )
 from app.services.configuration import get_configuration
+from app.services.locations import require_bookable_location
 
 
 def create_reservation(
@@ -56,6 +57,9 @@ def create_reservation(
     # ---------------------------------------------------------
     # 3. Validate car location
     # ---------------------------------------------------------
+
+    require_bookable_location(db, pickup_location_id, "pickup")
+    require_bookable_location(db, return_location_id, "return")
 
     if car.current_location_id != pickup_location_id:
         raise ValueError(
@@ -377,6 +381,14 @@ def update_reservation(
 
     if target_car is None:
         raise ValueError("Car not found.")
+
+    # Only a location the booking is being moved to has to be in use; a
+    # reservation already at a since-retired location stays editable.
+    if effective_pickup_location_id != reservation.pickup_location_id:
+        require_bookable_location(db, effective_pickup_location_id, "pickup")
+
+    if effective_return_location_id != reservation.return_location_id:
+        require_bookable_location(db, effective_return_location_id, "return")
 
     if target_car.current_location_id != effective_pickup_location_id:
         raise ValueError(

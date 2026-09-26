@@ -78,6 +78,7 @@ export default function NewReservationPage() {
 
   // --- Search ---
   const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoaded, setLocationsLoaded] = useState(false);
   const [pickupLocationId, setPickupLocationId] = useState("");
   const [returnLocationId, setReturnLocationId] = useState("");
   const initialRange = useMemo(() => defaultRange(), []);
@@ -127,6 +128,7 @@ export default function NewReservationPage() {
 
         setLocations(locationData);
         setExtras(extraData);
+        setLocationsLoaded(true);
       } catch {
         setSearchError("Failed to load booking options. Please refresh.");
       }
@@ -526,6 +528,16 @@ export default function NewReservationPage() {
               <h2 className="text-lg font-semibold text-ink">
                 Where and when
               </h2>
+
+              {locationsLoaded && locations.length === 0 && (
+                <p
+                  className="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900"
+                  role="status"
+                >
+                  There are no locations yet, so nothing can be booked. An
+                  administrator can add them under Configuration, Locations.
+                </p>
+              )}
 
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <SelectField

@@ -9,6 +9,7 @@ import { SubNav } from "@/components/ui/SubNav";
 // section is its own route so it can be linked to and reloaded.
 const SECTIONS = [
   { id: "business", label: "Business", href: "/admin/configuration/business" },
+  { id: "locations", label: "Locations", href: "/admin/configuration/locations" },
   { id: "pricing", label: "General pricing", href: "/admin/configuration/pricing" },
   { id: "extras", label: "Extras", href: "/admin/configuration/extras" },
   { id: "vehicles", label: "Vehicle rates", href: "/admin/configuration/vehicles" },

@@ -95,6 +95,10 @@ export type Location = {
   name: string;
   airport_code: string;
   address: string | null;
+  /** IANA name; days and displayed times at this location follow it. */
+  timezone: string;
+  /** Inactive locations are hidden from new bookings. */
+  is_active: boolean;
 };
 
 export type IdentityVerification = {
@@ -323,14 +327,74 @@ export async function quoteReservation(data: {
   return response.json();
 }
 
-export async function getLocations(): Promise<Location[]> {
-  const response = await apiFetch("/api/locations");
+/**
+ * Active locations by default, which is what booking needs. Screens that
+ * show past records pass `includeInactive` so a retired location still
+ * resolves and filters.
+ */
+export async function getLocations(
+  options: { includeInactive?: boolean } = {},
+): Promise<Location[]> {
+  const response = await apiFetch(
+    `/api/locations${options.includeInactive ? "?include_inactive=true" : ""}`,
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch locations");
   }
 
   return response.json();
+}
+
+export type LocationInput = {
+  name: string;
+  airport_code: string;
+  address: string;
+  timezone: string;
+};
+
+async function locationRequest(
+  path: string,
+  method: "POST" | "PATCH",
+  body: unknown,
+  fallback: string,
+): Promise<Location> {
+  const response = await apiFetch(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const detail = errorData?.detail;
+
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail) && detail[0]?.msg
+          ? String(detail[0].msg).replace(/^Value error, /, "")
+          : fallback,
+    );
+  }
+
+  return response.json();
+}
+
+export function createLocation(input: LocationInput): Promise<Location> {
+  return locationRequest("/api/locations", "POST", input, "Failed to add the location.");
+}
+
+export function updateLocation(
+  id: string,
+  patch: Partial<LocationInput> & { is_active?: boolean },
+): Promise<Location> {
+  return locationRequest(
+    `/api/locations/${id}`,
+    "PATCH",
+    patch,
+    "Failed to update the location.",
+  );
 }
 
 

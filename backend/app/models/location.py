@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,6 +31,25 @@ class Location(Base):
     address: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
+    )
+
+    # IANA timezone the place is in. Day boundaries (what counts as "today"
+    # at this location) and displayed times follow it, not the viewer's.
+    timezone: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="UTC",
+        server_default="UTC",
+    )
+
+    # Locations are referenced by cars and reservations, so they are never
+    # deleted; a location no longer used is deactivated, which hides it from
+    # new bookings but keeps every past record readable.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -57,7 +57,7 @@ export default function ManageReservationsPage() {
   const search = useDebouncedValue(filters.q);
 
   useEffect(() => {
-    getLocations()
+    getLocations({ includeInactive: true })
       .then(setLocations)
       .catch(() => {});
   }, []);
