@@ -7,7 +7,6 @@ import {
   getLocations,
   getReservations,
   getReservationSummary,
-  localDayBounds,
   type Location,
   type Reservation,
   type ReservationSummary,
@@ -70,8 +69,6 @@ export default function ManageReservationsPage() {
       setError("");
 
       try {
-        const { dayStart, dayEnd } = localDayBounds();
-
         const [list, counts] = await Promise.all([
           getReservations({
             q: search,
@@ -79,12 +76,10 @@ export default function ManageReservationsPage() {
             location: filters.location === "ALL" ? undefined : filters.location,
             window: filters.window === "ALL" ? undefined : filters.window,
             sort: filters.sort,
-            dayStart,
-            dayEnd,
             limit: PAGE_SIZE,
             offset: (page - 1) * PAGE_SIZE,
           }),
-          getReservationSummary(dayStart, dayEnd),
+          getReservationSummary(),
         ]);
 
         if (cancelled) return;
@@ -175,15 +170,15 @@ export default function ManageReservationsPage() {
       mobileLabel: "Pickup",
       cell: (reservation) => (
         <TwoLine
-          primary={formatDate(reservation.pickup_at)}
-          secondary={formatTime(reservation.pickup_at)}
+          primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
+          secondary={formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
         />
       ),
       mobileCell: (reservation) => (
         <>
-          <div>{formatDate(reservation.pickup_at)}</div>
+          <div>{formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}</div>
           <div className="font-normal text-ink-muted">
-            {formatTime(reservation.pickup_at)}
+            {formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
           </div>
         </>
       ),
@@ -194,15 +189,15 @@ export default function ManageReservationsPage() {
       mobileLabel: "Return",
       cell: (reservation) => (
         <TwoLine
-          primary={formatDate(reservation.return_at)}
-          secondary={formatTime(reservation.return_at)}
+          primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
+          secondary={formatTime(reservation.return_at, reservation.return_location.timezone)}
         />
       ),
       mobileCell: (reservation) => (
         <>
-          <div>{formatDate(reservation.return_at)}</div>
+          <div>{formatDate(reservation.return_at, reservation.return_location.timezone)}</div>
           <div className="font-normal text-ink-muted">
-            {formatTime(reservation.return_at)}
+            {formatTime(reservation.return_at, reservation.return_location.timezone)}
           </div>
         </>
       ),

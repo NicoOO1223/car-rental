@@ -135,12 +135,16 @@ export type Reservation = {
     id: string;
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   return_location: {
     id: string;
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   pickup_at: string;
@@ -566,16 +570,6 @@ export async function getReservationSummary(
   return response.json();
 }
 
-/** Midnight to midnight of the browser's current day, as ISO instants. */
-export function localDayBounds(now = new Date()) {
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  return { dayStart: start.toISOString(), dayEnd: end.toISOString() };
-}
-
 export async function getReservation(
   id: string
 ): Promise<Reservation> {
@@ -802,11 +796,15 @@ export type CarReservation = {
   pickup_location: {
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   return_location: {
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   pickup_at: string;
@@ -1023,9 +1021,11 @@ export type DashboardReservation = {
 
   pickup_location_name: string;
   pickup_location_code: string;
+  pickup_timezone: string;
 
   return_location_name: string;
   return_location_code: string;
+  return_timezone: string;
 
   pickup_at: string;
   return_at: string;
@@ -1325,12 +1325,16 @@ export type CustomerReservation = {
     id: string;
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   return_location: {
     id: string;
     name: string;
     airport_code: string;
+    /** Times here are shown and entered in this timezone. */
+    timezone: string;
   };
 
   pickup_at: string;

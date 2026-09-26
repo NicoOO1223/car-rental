@@ -1,3 +1,4 @@
+import { todayInZone } from "@/lib/format";
 export const MAINTENANCE_CATEGORIES = [
   { value: "DAMAGE_REPAIR", label: "Damage repair" },
   { value: "TECHNICAL_INSPECTION", label: "Technical inspection" },
@@ -24,8 +25,9 @@ export function inspectionStatus(
   const [year, month, day] = nextDue.split("-").map(Number);
   const due = new Date(year, month - 1, day);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Today at the business, as a plain calendar day.
+  const [todayYear, todayMonth, todayDay] = todayInZone().split("-").map(Number);
+  const today = new Date(todayYear, todayMonth - 1, todayDay);
 
   const daysLeft = Math.round((due.getTime() - today.getTime()) / 86_400_000);
 

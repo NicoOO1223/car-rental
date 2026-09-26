@@ -49,6 +49,8 @@ class LocationSummary(BaseModel):
     id: UUID
     name: str
     airport_code: str
+    # Times at this location are shown and entered in this timezone.
+    timezone: str
 
     model_config = ConfigDict(from_attributes=True)
 

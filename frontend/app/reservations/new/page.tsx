@@ -38,33 +38,34 @@ import {
   stepIndex,
   type BookingStep,
 } from "@/components/booking/Stepper";
-import { DateRangeCalendar, toDateKey } from "@/components/booking/DateRangeCalendar";
+import { DateRangeCalendar } from "@/components/booking/DateRangeCalendar";
 import { CarImage } from "@/components/cars/CarImage";
 import { categoryLabel } from "@/lib/carDisplay";
 import {
   TIME_SLOTS,
+  addDays,
   bookingReference,
   formatCurrency,
   formatDateTime,
   formatTimeSlot,
-  localInputToIso,
   rentalDays,
+  todayInZone,
+  zonedToInstant,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type SortKey = "price-asc" | "price-desc" | "name";
 
-/** A sensible default window: tomorrow to three days later, at 10:00. */
+/**
+ * A sensible default window: tomorrow to three days later, at 10:00.
+ * "Tomorrow" is the business's tomorrow, not the browser's.
+ */
 function defaultRange() {
-  const start = new Date();
-  start.setDate(start.getDate() + 1);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 3);
+  const today = todayInZone();
 
   return {
-    pickupDate: toDateKey(start),
-    returnDate: toDateKey(end),
+    pickupDate: addDays(today, 1),
+    returnDate: addDays(today, 4),
     pickupTime: "10:00",
     returnTime: "10:00",
   };
@@ -144,12 +145,15 @@ export default function NewReservationPage() {
 
   // The calendar owns the days and the selects own the clock time; the
   // two are only recombined here, at the edge where the API needs an
-  // instant.
-  const pickupLocal = pickupDate ? `${pickupDate}T${pickupTime}` : "";
-  const returnLocal = returnDate ? `${returnDate}T${returnTime}` : "";
+  // instant. The clock time is the time AT the location: "10:00" at a
+  // Lisbon pickup is 10:00 in Lisbon, whatever timezone the person taking
+  // the booking is sitting in. Until a location is chosen the business's
+  // own timezone stands in.
+  const pickupZone = pickupLocation?.timezone;
+  const returnZone = returnLocation?.timezone ?? pickupZone;
 
-  const pickupIso = pickupLocal ? localInputToIso(pickupLocal) : "";
-  const returnIso = returnLocal ? localInputToIso(returnLocal) : "";
+  const pickupIso = pickupDate ? zonedToInstant(pickupDate, pickupTime, pickupZone) : "";
+  const returnIso = returnDate ? zonedToInstant(returnDate, returnTime, returnZone) : "";
   const days = pickupIso && returnIso ? rentalDays(pickupIso, returnIso) : 0;
 
   function goTo(next: BookingStep) {
@@ -180,14 +184,14 @@ export default function NewReservationPage() {
     let cancelled = false;
 
     async function loadDayRates() {
-      const end = new Date();
-      end.setDate(end.getDate() + 365);
+      // Rates run from today at the pickup location to a year on.
+      const start = todayInZone(pickupZone);
 
       try {
         const prices = await getDailyRates(
           pickupLocationId,
-          toDateKey(new Date()),
-          toDateKey(end),
+          start,
+          addDays(start, 365),
         );
 
         if (!cancelled) {
@@ -203,7 +207,7 @@ export default function NewReservationPage() {
     return () => {
       cancelled = true;
     };
-  }, [pickupLocationId]);
+  }, [pickupLocationId, pickupZone]);
 
   const dayPrices =
     dayRates && dayRates.locationId === pickupLocationId
@@ -223,7 +227,7 @@ export default function NewReservationPage() {
       return;
     }
 
-    if (new Date(returnLocal) <= new Date(pickupLocal)) {
+    if (new Date(returnIso) <= new Date(pickupIso)) {
       setSearchError("The drop-off must be after the pickup.");
       return;
     }
@@ -459,13 +463,13 @@ export default function NewReservationPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-ink-muted">Pickup</dt>
               <dd className="text-right font-medium text-ink">
-                {formatDateTime(created.pickup_at)}
+                {formatDateTime(created.pickup_at, created.pickup_location?.timezone)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-ink-muted">Return</dt>
               <dd className="text-right font-medium text-ink">
-                {formatDateTime(created.return_at)}
+                {formatDateTime(created.return_at, created.return_location?.timezone)}
               </dd>
             </div>
             {quote && (
@@ -593,6 +597,7 @@ export default function NewReservationPage() {
                 </p>
 
                 <DateRangeCalendar
+                  todayKey={todayInZone(pickupZone)}
                   pickupDate={pickupDate}
                   returnDate={returnDate}
                   dayCount={days}
@@ -864,10 +869,10 @@ export default function NewReservationPage() {
                       {selectedCar.license_plate}
                     </p>
                     <p className="mt-2 text-sm text-ink-secondary">
-                      {formatDateTime(pickupIso)}
+                      {formatDateTime(pickupIso, pickupZone)}
                     </p>
                     <p className="text-sm text-ink-secondary">
-                      to {formatDateTime(returnIso)}
+                      to {formatDateTime(returnIso, returnZone)}
                     </p>
                   </div>
                 </div>

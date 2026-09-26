@@ -15,7 +15,7 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CustomerEditModal } from "@/components/customers/CustomerEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
-import { bookingReference } from "@/lib/format";
+import { bookingReference, formatDate, formatDateTime } from "@/lib/format";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { useNavigate } from "@/lib/useNavigate";
 
@@ -60,14 +60,6 @@ export default function CustomerDetailsPage({ params }: Props) {
 
     loadData();
   }, [params]);
-
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString();
-  }
-
-  function formatDateTime(date: string) {
-    return new Date(date).toLocaleString();
-  }
 
   async function handleExport() {
     if (!customer) return;
@@ -299,15 +291,15 @@ export default function CustomerDetailsPage({ params }: Props) {
 
                     <div className="md:text-right">
                       <p className="font-medium">
-                        {formatDate(reservation.pickup_at)}
+                        {formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
                         {" → "}
-                        {formatDate(reservation.return_at)}
+                        {formatDate(reservation.return_at, reservation.return_location.timezone)}
                       </p>
 
                       <p className="mt-1 text-sm text-gray-500">
-                        {formatDateTime(reservation.pickup_at)}
+                        {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)}
                         {" → "}
-                        {formatDateTime(reservation.return_at)}
+                        {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
                       </p>
                     </div>
 

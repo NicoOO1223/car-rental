@@ -72,8 +72,8 @@ export function BookingSummary({
               aria-hidden="true"
             />
             <div className="min-w-0 text-xs">
-              <p className="font-medium text-ink">{formatDateTime(pickupAt)}</p>
-              <p className="mt-0.5 text-ink-muted">to {formatDateTime(returnAt)}</p>
+              <p className="font-medium text-ink">{formatDateTime(pickupAt, pickupLocation?.timezone)}</p>
+              <p className="mt-0.5 text-ink-muted">to {formatDateTime(returnAt, (returnLocation ?? pickupLocation)?.timezone)}</p>
             </div>
           </div>
         )}

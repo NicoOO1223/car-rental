@@ -30,7 +30,7 @@ import {
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
 import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -429,7 +429,7 @@ export default function CheckOutPage({ params }: Props) {
               {reservation.car.license_plate}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              Due back {formatDateTime(reservation.return_at)} at{" "}
+              Due back {formatDateTime(reservation.return_at, reservation.return_location.timezone)} at{" "}
               {reservation.return_location.airport_code}
             </p>
           </div>
@@ -513,7 +513,7 @@ export default function CheckOutPage({ params }: Props) {
                     disabled={!editable}
                     hint={
                       car.mileage !== null
-                        ? `Currently recorded: ${car.mileage.toLocaleString()} km`
+                        ? `Currently recorded: ${formatNumber(car.mileage)} km`
                         : undefined
                     }
                     value={mileage}

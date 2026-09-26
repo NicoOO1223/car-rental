@@ -3,27 +3,38 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { getPublicConfiguration } from "@/lib/api";
-import { setDefaultCurrency } from "@/lib/format";
+import {
+  setBusinessTimeZone,
+  setDefaultCurrency,
+  setLocale,
+} from "@/lib/format";
 
 /**
- * Loads the business currency once per session and hands it to
- * lib/format.ts. Children render straight away (in EUR until it arrives)
- * and re-render, via the changed key, once the real currency is known.
+ * Loads how this business writes money, dates and times, once per session,
+ * and hands it to lib/format.ts: the currency, the formatting locale and the
+ * business timezone.
+ *
+ * Children render straight away with neutral defaults and are remounted,
+ * via the changed key, once the real values are known. Remounting (not just
+ * re-rendering) matters because pages compute things like "today" when they
+ * first mount, and those must be redone in the business's timezone.
  */
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrency] = useState("EUR");
+  const [settingsKey, setSettingsKey] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
     getPublicConfiguration()
-      .then(({ default_currency }) => {
+      .then(({ default_currency, locale, timezone }) => {
         if (cancelled) return;
 
         setDefaultCurrency(default_currency);
-        setCurrency(default_currency.toUpperCase());
+        setLocale(locale);
+        setBusinessTimeZone(timezone);
+        setSettingsKey(`${default_currency}|${locale}|${timezone}`);
       })
-      // Falling back to EUR is harmless; a 401 is handled globally.
+      // Falling back to the defaults is harmless; a 401 is handled globally.
       .catch(() => {});
 
     return () => {
@@ -31,5 +42,5 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <div key={currency} className="contents">{children}</div>;
+  return <div key={settingsKey} className="contents">{children}</div>;
 }

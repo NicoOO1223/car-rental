@@ -11,6 +11,7 @@ import {
   type Reservation,
   type Location,
 } from "@/lib/api";
+import { isoToLocalInput, localInputToIso } from "@/lib/format";
 
 type CarOption = {
   id: string;
@@ -26,32 +27,21 @@ type Props = {
   onSaved: (updated: Reservation) => void;
 };
 
-// The backend stores/accepts UTC ISO timestamps; <input type="datetime-local">
-// works with a local, timezone-less string. These helpers convert between them.
-function isoToLocalInput(iso: string): string {
-  const date = new Date(iso);
-  const pad = (value: number) => String(value).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate(),
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function localInputToIso(value: string): string {
-  return new Date(value).toISOString();
-}
-
 export function ReservationEditModal({
   reservation,
   locations,
   onClose,
   onSaved,
 }: Props) {
+  // <input type="datetime-local"> holds a wall-clock time with no zone. Here
+  // it is the time AT the place: the pickup field reads in the pickup
+  // location's timezone and the return field in the return location's, not
+  // in the timezone of whoever is editing.
   const [pickupAt, setPickupAt] = useState(
-    isoToLocalInput(reservation.pickup_at),
+    isoToLocalInput(reservation.pickup_at, reservation.pickup_location.timezone),
   );
   const [returnAt, setReturnAt] = useState(
-    isoToLocalInput(reservation.return_at),
+    isoToLocalInput(reservation.return_at, reservation.return_location.timezone),
   );
   const [pickupLocationId, setPickupLocationId] = useState(
     reservation.pickup_location.id,
@@ -59,6 +49,21 @@ export function ReservationEditModal({
   const [returnLocationId, setReturnLocationId] = useState(
     reservation.return_location.id,
   );
+
+  // The zone of whichever location is currently selected. A location that
+  // has since been retired is missing from the list, so the reservation's
+  // own copy of it covers that case.
+  function zoneOf(locationId: string): string | undefined {
+    return (
+      locations.find((location) => location.id === locationId)?.timezone ??
+      [reservation.pickup_location, reservation.return_location].find(
+        (location) => location.id === locationId,
+      )?.timezone
+    );
+  }
+
+  const pickupZone = zoneOf(pickupLocationId);
+  const returnZone = zoneOf(returnLocationId);
   const [carId, setCarId] = useState(reservation.car.id);
 
   const [firstName, setFirstName] = useState(
@@ -94,8 +99,8 @@ export function ReservationEditModal({
       try {
         const cars: CarOption[] = await getAvailableCars(
           pickupLocationId,
-          localInputToIso(pickupAt),
-          localInputToIso(returnAt),
+          localInputToIso(pickupAt, pickupZone),
+          localInputToIso(returnAt, pickupZone),
         );
 
         if (!cancelled) {
@@ -112,7 +117,7 @@ export function ReservationEditModal({
     return () => {
       cancelled = true;
     };
-  }, [pickupLocationId, pickupAt, returnAt]);
+  }, [pickupLocationId, pickupAt, returnAt, pickupZone]);
 
   const currentCarOption: CarOption = {
     id: reservation.car.id,
@@ -135,8 +140,8 @@ export function ReservationEditModal({
 
     try {
       const updated = await updateReservation(reservation.id, {
-        pickup_at: localInputToIso(pickupAt),
-        return_at: localInputToIso(returnAt),
+        pickup_at: localInputToIso(pickupAt, pickupZone),
+        return_at: localInputToIso(returnAt, returnZone),
         pickup_location_id: pickupLocationId,
         return_location_id: returnLocationId,
         car_id: carId,
@@ -199,6 +204,7 @@ export function ReservationEditModal({
             <TextField
               label="Pickup"
               type="datetime-local"
+              hint={pickupZone ? `Time at the pickup location (${pickupZone}).` : undefined}
               required
               value={pickupAt}
               onChange={(event) => setPickupAt(event.target.value)}
@@ -207,6 +213,7 @@ export function ReservationEditModal({
             <TextField
               label="Return"
               type="datetime-local"
+              hint={returnZone ? `Time at the return location (${returnZone}).` : undefined}
               required
               value={returnAt}
               onChange={(event) => setReturnAt(event.target.value)}

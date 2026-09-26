@@ -18,6 +18,7 @@ import { getCarStatusHex } from "@/lib/status";
 import { PieChart, type PieChartDatum } from "@/components/charts/PieChart";
 import { Skeleton, SkeletonStatTiles } from "@/components/ui/Skeleton";
 import { useNavigate } from "@/lib/useNavigate";
+import { addDays, formatCalendarDate, todayInZone } from "@/lib/format";
 
 const FLEET_STATUS_ORDER: { key: string; label: string }[] = [
   { key: "available", label: "Available" },
@@ -27,27 +28,24 @@ const FLEET_STATUS_ORDER: { key: string; label: string }[] = [
   { key: "cleaning", label: "Cleaning" },
 ];
 
+/** Today's date at the business (not in UTC, not in the browser). */
 function todayDateString() {
-  return new Date().toISOString().split("T")[0];
+  return todayInZone();
 }
-
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /** This week's Mon–Sun as date-input values, so staff can jump straight
  * to any day in the current week instead of picking two dates by hand. */
 function currentWeekDates(): { label: string; date: string }[] {
-  const today = new Date();
-  const day = today.getUTCDay(); // 0 (Sun) – 6 (Sat)
-  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const today = todayInZone();
+  // Days are plain calendar dates, so the weekday is read in UTC.
+  const [year, month, day] = today.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay(); // 0 (Sun) – 6 (Sat)
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
 
-  const monday = new Date(today);
-  monday.setUTCDate(today.getUTCDate() + mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(today, mondayOffset + index);
 
-  return WEEKDAY_LABELS.map((label, index) => {
-    const date = new Date(monday);
-    date.setUTCDate(monday.getUTCDate() + index);
-
-    return { label, date: date.toISOString().split("T")[0] };
+    return { label: formatCalendarDate(date, { weekday: "short" }), date };
   });
 }
 

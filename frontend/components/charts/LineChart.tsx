@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { formatCalendarDate } from "@/lib/format";
 
 export type LineChartPoint = {
   date: string;
@@ -34,10 +35,8 @@ const PLOT_HEIGHT = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
 const BASELINE_Y = PADDING_TOP + PLOT_HEIGHT;
 
 function formatShortDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-  });
+  // Chart points are calendar days ("2040-06-15"), never shifted by a zone.
+  return formatCalendarDate(dateStr, { day: "numeric", month: "short" });
 }
 
 export function LineChart({ data, formatValue, className = "" }: Props) {

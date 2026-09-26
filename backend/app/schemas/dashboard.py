@@ -40,9 +40,11 @@ class DashboardReservation(BaseModel):
 
     pickup_location_name: str
     pickup_location_code: str
+    pickup_timezone: str
 
     return_location_name: str
     return_location_code: str
+    return_timezone: str
 
     pickup_at: datetime
     return_at: datetime

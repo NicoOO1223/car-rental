@@ -76,9 +76,11 @@ def _to_dashboard_reservation(reservation: Reservation, configuration) -> Dashbo
 
         pickup_location_name=reservation.pickup_location.name,
         pickup_location_code=reservation.pickup_location.airport_code,
+        pickup_timezone=reservation.pickup_location.timezone,
 
         return_location_name=reservation.return_location.name,
         return_location_code=reservation.return_location.airport_code,
+        return_timezone=reservation.return_location.timezone,
 
         pickup_at=reservation.pickup_at,
         return_at=reservation.return_at,

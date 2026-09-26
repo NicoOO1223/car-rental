@@ -3,7 +3,12 @@
 import { useMemo, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { formatCurrencyCompact, formatDate } from "@/lib/format";
+import {
+  formatCalendarDate,
+  formatCurrencyCompact,
+  getLocale,
+  todayInZone,
+} from "@/lib/format";
 
 /**
  * A single-month range calendar for picking the rental period.
@@ -12,13 +17,53 @@ import { formatCurrencyCompact, formatDate } from "@/lib/format";
  * runtime dependencies and no date library, and a range picker with this
  * little behaviour is not worth the bundle or the styling fight.
  *
- * All dates are handled as local calendar days in `yyyy-mm-dd` form. There
+ * All dates are handled as plain calendar days in `yyyy-mm-dd` form. There
  * is deliberately no Date-to-UTC conversion anywhere in here — a rental on
  * the 14th means the 14th at the counter, and going through toISOString()
- * would shift it a day for anyone west of Greenwich.
+ * would shift it a day for anyone west of Greenwich. Which day "today" is
+ * comes from the caller (the pickup location's timezone), not from the
+ * viewer's clock.
+ *
+ * The first day of the week and the weekday and month names follow the
+ * business locale.
  */
 
-const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+/** 0 = Sunday ... 6 = Saturday: the day the week starts on in this locale. */
+function weekStart(): number {
+  try {
+    const tag = getLocale() ?? navigator.language;
+    // A bare "en" would resolve to United States rules (Sunday first). The
+    // plain-English choice has always meant Monday-first here, so it keeps
+    // that; pick "English (United States)" for Sunday.
+    const locale = new Intl.Locale(tag === "en" ? "en-GB" : tag) as Intl.Locale & {
+      getWeekInfo?: () => { firstDay: number };
+      weekInfo?: { firstDay: number };
+    };
+    const info = locale.getWeekInfo?.() ?? locale.weekInfo;
+
+    // Intl numbers days 1 (Monday) to 7 (Sunday).
+    if (info) return info.firstDay % 7;
+  } catch {
+    // Fall through to Monday.
+  }
+
+  return 1;
+}
+
+/** Short weekday names starting from the locale's first day of the week. */
+function weekdayLabels(firstDay: number): string[] {
+  const formatter = new Intl.DateTimeFormat(getLocale(), {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+
+  // 2024-01-07 was a Sunday.
+  return Array.from({ length: 7 }, (_, index) =>
+    formatter
+      .format(new Date(Date.UTC(2024, 0, 7 + ((firstDay + index) % 7), 12)))
+      .slice(0, 2),
+  );
+}
 
 export function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -33,17 +78,11 @@ function fromDateKey(key: string): Date {
   return new Date(year, month - 1, day);
 }
 
-function startOfToday(): Date {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
-}
-
-/** Day cells for one month, padded to whole Monday-start weeks. */
-function monthCells(year: number, month: number): (Date | null)[] {
+/** Day cells for one month, padded to whole weeks starting on `firstDay`. */
+function monthCells(year: number, month: number, firstDay: number): (Date | null)[] {
   const first = new Date(year, month, 1);
-  // getDay() is Sunday-first; shift so Monday is column 0.
-  const offset = (first.getDay() + 6) % 7;
+  // getDay() is Sunday-first; shift so the locale's first day is column 0.
+  const offset = (first.getDay() - firstDay + 7) % 7;
   const dayCount = new Date(year, month + 1, 0).getDate();
 
   const cells: (Date | null)[] = Array(offset).fill(null);
@@ -58,7 +97,7 @@ function monthCells(year: number, month: number): (Date | null)[] {
 }
 
 function monthLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString(undefined, {
+  return new Date(year, month, 1).toLocaleDateString(getLocale(), {
     month: "long",
     year: "numeric",
   });
@@ -70,6 +109,7 @@ export function DateRangeCalendar({
   onChange,
   dayCount = 0,
   dayPrices,
+  todayKey,
 }: {
   pickupDate: string;
   returnDate: string;
@@ -87,8 +127,18 @@ export function DateRangeCalendar({
    * shows up here without any change to this component.
    */
   dayPrices?: Record<string, number>;
+  /**
+   * Today as a date key in the timezone of the place being booked, so the
+   * first selectable day is the counter's today. Defaults to the business's.
+   */
+  todayKey?: string;
 }) {
-  const today = useMemo(() => startOfToday(), []);
+  const today = useMemo(
+    () => fromDateKey(todayKey ?? todayInZone()),
+    [todayKey],
+  );
+  const firstDay = useMemo(() => weekStart(), []);
+  const weekdays = useMemo(() => weekdayLabels(firstDay), [firstDay]);
 
   const [viewStart, setViewStart] = useState(() => {
     const anchor = pickupDate ? fromDateKey(pickupDate) : today;
@@ -186,7 +236,7 @@ export function DateRangeCalendar({
 
       <div onMouseLeave={() => setHoverKey("")}>
         <div className="grid grid-cols-7 gap-y-1">
-          {WEEKDAYS.map((weekday) => (
+          {weekdays.map((weekday) => (
             <div
               key={weekday}
               aria-hidden="true"
@@ -196,7 +246,7 @@ export function DateRangeCalendar({
             </div>
           ))}
 
-          {monthCells(year, month).map((date, index) => {
+          {monthCells(year, month, firstDay).map((date, index) => {
             if (!date) {
               return <div key={`pad-${index}`} aria-hidden="true" />;
             }
@@ -240,7 +290,7 @@ export function DateRangeCalendar({
                 onMouseEnter={() => setHoverKey(key)}
                 onFocus={() => setHoverKey(key)}
                 aria-pressed={isEnd}
-                aria-label={date.toLocaleDateString(undefined, {
+                aria-label={date.toLocaleDateString(getLocale(), {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -293,7 +343,7 @@ export function DateRangeCalendar({
           the selection is confirmed somewhere other than the shading. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border-subtle bg-surface-sunken px-4 py-3 text-sm">
         <span className="font-medium text-ink">
-          {pickupDate ? formatDate(pickupDate) : "Pick a start date"}
+          {pickupDate ? formatCalendarDate(pickupDate) : "Pick a start date"}
         </span>
 
         <ArrowRight
@@ -302,7 +352,7 @@ export function DateRangeCalendar({
         />
 
         <span className={returnDate ? "font-medium text-ink" : "text-ink-muted"}>
-          {returnDate ? formatDate(returnDate) : "Pick a drop-off date"}
+          {returnDate ? formatCalendarDate(returnDate) : "Pick a drop-off date"}
         </span>
 
         {dayCount > 0 && (

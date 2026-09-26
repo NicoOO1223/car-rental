@@ -25,7 +25,14 @@ import { CompleteTaskModal } from "@/components/maintenance/CompleteTaskModal";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 import { inspectionStatus, maintenanceCategoryLabel } from "@/lib/maintenance";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
-import { formatCurrency } from "@/lib/format";
+import {
+  formatCalendarDate,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  todayInZone,
+} from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -43,6 +50,13 @@ const TIMELINE_RANGES = [
   { days: 180, label: "6 months", dayWidth: 24 },
   { days: 365, label: "1 year", dayWidth: 16 },
 ] as const;
+
+/** A calendar-day Date (local midnight) back to "YYYY-MM-DD". */
+function dateKey(date: Date): string {
+  const two = (n: number) => String(n).padStart(2, "0");
+
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
+}
 
 export default function CarDetailsPage({ params }: Props) {
   const navigate = useNavigate();
@@ -149,14 +163,6 @@ export default function CarDetailsPage({ params }: Props) {
     }
   }
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString();
-  }
-
-  function formatDateTime(date: string) {
-    return new Date(date).toLocaleString();
-  }
-
   function getReservationClass(status: string) {
     return getReservationStatusStyle(status, "solid");
   }
@@ -173,11 +179,10 @@ export default function CarDetailsPage({ params }: Props) {
    * default).
    */
   const timelineStart = useMemo(() => {
-    const date = new Date();
+    // Today at the business, as a plain calendar day.
+    const [year, month, day] = todayInZone().split("-").map(Number);
 
-    date.setHours(0, 0, 0, 0);
-
-    return date;
+    return new Date(year, month - 1, day);
   }, []);
 
   const timelineDays = useMemo(() => {
@@ -537,7 +542,7 @@ export default function CarDetailsPage({ params }: Props) {
               </p>
 
               <p className="mt-1 font-medium">
-                {car.mileage != null ? `${car.mileage.toLocaleString()} km` : "—"}
+                {car.mileage != null ? `${formatNumber(car.mileage)} km` : "—"}
               </p>
             </div>
 
@@ -784,7 +789,7 @@ export default function CarDetailsPage({ params }: Props) {
                         <>
                           <p className="h-4 overflow-visible whitespace-nowrap text-left text-[10px] font-medium text-ink-muted">
                             {index === 0 || date.getDate() === 1
-                              ? date.toLocaleDateString(undefined, {
+                              ? formatCalendarDate(dateKey(date), {
                                   month: "short",
                                 })
                               : ""}
@@ -797,12 +802,9 @@ export default function CarDetailsPage({ params }: Props) {
                       ) : (
                         <>
                           <p className="text-xs text-ink-muted">
-                            {date.toLocaleDateString(
-                              undefined,
-                              {
-                                weekday: "short",
-                              }
-                            )}
+                            {formatCalendarDate(dateKey(date), {
+                              weekday: "short",
+                            })}
                           </p>
 
                           <p className="mt-1 font-medium">
@@ -810,12 +812,9 @@ export default function CarDetailsPage({ params }: Props) {
                           </p>
 
                           <p className="text-xs text-ink-muted">
-                            {date.toLocaleDateString(
-                              undefined,
-                              {
-                                month: "short",
-                              }
-                            )}
+                            {formatCalendarDate(dateKey(date), {
+                              month: "short",
+                            })}
                           </p>
                         </>
                       )}
@@ -893,9 +892,9 @@ export default function CarDetailsPage({ params }: Props) {
                           height: 50,
                         }}
                         title={`${reservation.customer.first_name} ${reservation.customer.last_name} — ${formatDateTime(
-                          reservation.pickup_at
+                          reservation.pickup_at, reservation.pickup_location.timezone
                         )} → ${formatDateTime(
-                          reservation.return_at
+                          reservation.return_at, reservation.return_location.timezone
                         )}`}
                       >
 
@@ -916,11 +915,11 @@ export default function CarDetailsPage({ params }: Props) {
 
                           <p className="truncate text-xs opacity-90">
                             {formatDate(
-                              reservation.pickup_at
+                              reservation.pickup_at, reservation.pickup_location.timezone
                             )}
                             {" → "}
                             {formatDate(
-                              reservation.return_at
+                              reservation.return_at, reservation.return_location.timezone
                             )}
                           </p>
 
@@ -1073,21 +1072,21 @@ export default function CarDetailsPage({ params }: Props) {
 
                         <p className="font-medium">
                           {formatDate(
-                            reservation.pickup_at
+                            reservation.pickup_at, reservation.pickup_location.timezone
                           )}
                           {" → "}
                           {formatDate(
-                            reservation.return_at
+                            reservation.return_at, reservation.return_location.timezone
                           )}
                         </p>
 
                         <p className="mt-1 text-sm text-gray-500">
                           {formatDateTime(
-                            reservation.pickup_at
+                            reservation.pickup_at, reservation.pickup_location.timezone
                           )}
                           {" → "}
                           {formatDateTime(
-                            reservation.return_at
+                            reservation.return_at, reservation.return_location.timezone
                           )}
                         </p>
 

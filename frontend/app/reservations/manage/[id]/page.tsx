@@ -20,7 +20,13 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
-import { bookingReference, formatCurrency } from "@/lib/format";
+import {
+  bookingReference,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  formatTime,
+} from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Props = {
@@ -102,23 +108,10 @@ export default function ReservationDetailsPage({
     loadReservation();
   }, [params]);
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }
-
-  function formatTime(date: string) {
-    return new Date(date).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  function formatDateTime(date: string) {
-    return `${formatDate(date)} at ${formatTime(date)}`;
+  // Dates and times come from lib/format.ts. Pickup and return are shown in
+  // the timezone of the location they happen at (passed at each call).
+  function formatDateTime(date: string, timeZone?: string) {
+    return `${formatDate(date, timeZone)} at ${formatTime(date, timeZone)}`;
   }
 
   function getRentalDays(
@@ -469,7 +462,7 @@ export default function ReservationDetailsPage({
 
                     <p className="mt-1 text-sm text-gray-600">
                       {formatDateTime(
-                        reservation.pickup_at
+                        reservation.pickup_at, reservation.pickup_location.timezone
                       )}
                     </p>
 
@@ -507,7 +500,7 @@ export default function ReservationDetailsPage({
 
                     <p className="mt-1 text-sm text-gray-600">
                       {formatDateTime(
-                        reservation.return_at
+                        reservation.return_at, reservation.return_location.timezone
                       )}
                     </p>
 
@@ -574,13 +567,13 @@ export default function ReservationDetailsPage({
 
                   <p className="mt-1 font-medium">
                     {formatDate(
-                      reservation.pickup_at
+                      reservation.pickup_at, reservation.pickup_location.timezone
                     )}
                   </p>
 
                   <p className="text-sm text-gray-500">
                     {formatTime(
-                      reservation.pickup_at
+                      reservation.pickup_at, reservation.pickup_location.timezone
                     )}
                   </p>
                 </div>
@@ -592,13 +585,13 @@ export default function ReservationDetailsPage({
 
                   <p className="mt-1 font-medium">
                     {formatDate(
-                      reservation.return_at
+                      reservation.return_at, reservation.return_location.timezone
                     )}
                   </p>
 
                   <p className="text-sm text-gray-500">
                     {formatTime(
-                      reservation.return_at
+                      reservation.return_at, reservation.return_location.timezone
                     )}
                   </p>
                 </div>
@@ -919,7 +912,7 @@ export default function ReservationDetailsPage({
                     <div className="mt-3 space-y-2 text-sm text-gray-700">
                       <p>Returned {formatDateTime(checkOut.returned_at)}</p>
                       <p>
-                        {checkOut.return_mileage.toLocaleString()} km · fuel{" "}
+                        {formatNumber(checkOut.return_mileage)} km · fuel{" "}
                         {checkOut.fuel_eighths}/8
                       </p>
                       <p>

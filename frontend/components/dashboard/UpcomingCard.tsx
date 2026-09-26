@@ -18,14 +18,17 @@ import {
   formatDateShort,
   formatDuration,
   formatTime,
+  instantToZoned,
   rentalDays,
+  todayInZone,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 type Direction = "pickup" | "return";
 
-function isToday(value: string, now: number): boolean {
-  return new Date(value).toDateString() === new Date(now).toDateString();
+/** Whether the moment falls on today's date at the place it happens. */
+function isToday(value: string, timeZone: string): boolean {
+  return instantToZoned(value, timeZone).date === todayInZone(timeZone);
 }
 
 /**
@@ -88,6 +91,9 @@ export function UpcomingCard({
   const [now] = useState(() => Date.now());
   const config = DIRECTION_CONFIG[direction];
   const Icon = config.icon;
+  // The clock and the day shown are those of the place the event happens.
+  const zoneOf = (reservation: DashboardReservation) =>
+    direction === "pickup" ? reservation.pickup_timezone : reservation.return_timezone;
 
   return (
     <Card>
@@ -132,12 +138,12 @@ export function UpcomingCard({
               {/* Left: the hour, and how long the rental lasts. */}
               <div className="self-center text-center">
                 <p className="font-semibold text-ink">
-                  {formatTime(reservation[config.timestampKey])}
+                  {formatTime(reservation[config.timestampKey], zoneOf(reservation))}
                 </p>
 
-                {!isToday(reservation[config.timestampKey], now) && (
+                {!isToday(reservation[config.timestampKey], zoneOf(reservation)) && (
                   <p className="text-xs text-ink-muted">
-                    {formatDateShort(reservation[config.timestampKey])}
+                    {formatDateShort(reservation[config.timestampKey], zoneOf(reservation))}
                   </p>
                 )}
 

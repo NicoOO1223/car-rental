@@ -13,6 +13,8 @@ import {
 import { getCarStatusStyle, getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge, ReservationStatusBadge } from "@/components/ui/Badge";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
+import { toDateKey } from "@/components/booking/DateRangeCalendar";
+import { formatCalendarDate, formatDateTime as formatMoment, formatTime, todayInZone } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 
 // Only bookings that are actually confirmed or currently underway are
@@ -33,9 +35,8 @@ export default function FleetPage() {
   const [error, setError] = useState("");
 
   // New Control States
-  const [startDate, setStartDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  // The timeline opens on today at the business, not in UTC or the browser.
+  const [startDate, setStartDate] = useState<string>(() => todayInZone());
   const [timelineDaysCount, setTimelineDaysCount] = useState<number>(30);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -129,9 +130,11 @@ export default function FleetPage() {
    * ---------------------------------------------------------
    */
   const timelineStart = useMemo(() => {
-    const date = new Date(startDate);
-    date.setHours(0, 0, 0, 0);
-    return date;
+    // Built from the year, month and day directly: parsing "2040-06-15" as a
+    // Date reads it as UTC midnight, which is the previous evening for
+    // anyone west of Greenwich.
+    const [year, month, day] = startDate.split("-").map(Number);
+    return new Date(year, month - 1, day);
   }, [startDate]);
 
   const timelineDays = useMemo(() => {
@@ -195,13 +198,10 @@ export default function FleetPage() {
    * Helpers
    * ---------------------------------------------------------
    */
-  function formatDateTime(date: string) {
-    return new Date(date).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  // A rental's pickup and return are shown at the clocks of the places
+  // they happen at.
+  function formatDateTime(date: string, timeZone?: string) {
+    return formatMoment(date, timeZone);
   }
 
   function getReservationStyles(status: string) {
@@ -444,8 +444,8 @@ export default function FleetPage() {
                               </div>
 
                               <p className="mt-1 text-xs text-gray-500">
-                                {formatDateTime(reservation.pickup_at)} →{" "}
-                                {formatDateTime(reservation.return_at)}
+                                {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
+                                {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
                               </p>
                             </button>
                           ))
@@ -474,8 +474,7 @@ export default function FleetPage() {
 
                     <div className="flex">
                       {timelineDays.map((date, index) => {
-                        const isToday =
-                          date.toDateString() === new Date().toDateString();
+                        const isToday = toDateKey(date) === todayInZone();
                         return (
                           <div
                             key={index}
@@ -485,13 +484,13 @@ export default function FleetPage() {
                             }`}
                           >
                             <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-gray-900' : 'text-gray-400'}`}>
-                              {date.toLocaleDateString(undefined, { weekday: "short" })}
+                              {formatCalendarDate(toDateKey(date), { weekday: "short" })}
                             </p>
                             <p className={`mt-0.5 text-lg font-bold ${isToday ? 'text-gray-900' : 'text-gray-700'}`}>
                               {date.getDate()}
                             </p>
                             <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                              {date.toLocaleDateString(undefined, { month: "short" })}
+                              {formatCalendarDate(toDateKey(date), { month: "short" })}
                             </p>
                           </div>
                         );
@@ -627,7 +626,7 @@ export default function FleetPage() {
                                     {reservation.customer.last_name}
                                   </p>
                                   <p className="truncate text-[11px] font-medium opacity-80 mt-0.5">
-                                    {new Date(reservation.pickup_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(reservation.return_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    {formatTime(reservation.pickup_at, reservation.pickup_location.timezone)} - {formatTime(reservation.return_at, reservation.return_location.timezone)}
                                   </p>
                                 </div>
 
@@ -656,8 +655,8 @@ export default function FleetPage() {
                                   </div>
 
                                   <p className="border-t border-white/10 pt-2 text-gray-400">
-                                    {formatDateTime(reservation.pickup_at)} →{" "}
-                                    {formatDateTime(reservation.return_at)}
+                                    {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
+                                    {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
                                   </p>
 
                                   <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-gray-900" />

@@ -6,7 +6,6 @@ import { ArrowLeftRight, RefreshCw } from "lucide-react";
 import {
   getReservations,
   getReservationSummary,
-  localDayBounds,
   type Reservation,
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -63,8 +62,6 @@ export default function HandoversPage() {
   const [now, setNow] = useState(() => Date.now());
 
   const loadQueues = useCallback(async () => {
-    const { dayStart, dayEnd } = localDayBounds();
-
     const [checkIn, checkOut, summary] = await Promise.all([
       getReservations({
         status: "CONFIRMED",
@@ -76,7 +73,7 @@ export default function HandoversPage() {
         sort: "return_asc",
         limit: QUEUE_LIMIT,
       }),
-      getReservationSummary(dayStart, dayEnd),
+      getReservationSummary(),
     ]);
 
     setAwaitingCheckIn(checkIn.items);
@@ -148,12 +145,12 @@ export default function HandoversPage() {
     mobileLabel: "Pickup",
     cell: (reservation) => (
       <TwoLine
-        primary={formatDate(reservation.pickup_at)}
-        secondary={formatTime(reservation.pickup_at)}
+        primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
+        secondary={formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
       />
     ),
     mobileCell: (reservation) =>
-      `${formatDate(reservation.pickup_at)}, ${formatTime(reservation.pickup_at)}`,
+      `${formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}, ${formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}`,
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.pickup_at),
   };
@@ -164,12 +161,12 @@ export default function HandoversPage() {
     mobileLabel: "Return",
     cell: (reservation) => (
       <TwoLine
-        primary={formatDate(reservation.return_at)}
-        secondary={formatTime(reservation.return_at)}
+        primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
+        secondary={formatTime(reservation.return_at, reservation.return_location.timezone)}
       />
     ),
     mobileCell: (reservation) =>
-      `${formatDate(reservation.return_at)}, ${formatTime(reservation.return_at)}`,
+      `${formatDate(reservation.return_at, reservation.return_location.timezone)}, ${formatTime(reservation.return_at, reservation.return_location.timezone)}`,
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.return_at),
   };
