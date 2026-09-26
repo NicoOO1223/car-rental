@@ -121,6 +121,8 @@ resource firewallRuleManagerRole 'Microsoft.Authorization/roleDefinitions@2022-0
     permissions: [
       {
         actions: [
+          // Reading the server itself: the CLI looks it up before touching a rule.
+          'Microsoft.DBforPostgreSQL/flexibleServers/read'
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/read'
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/write'
           'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules/delete'
