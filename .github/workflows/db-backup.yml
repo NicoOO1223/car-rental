@@ -51,8 +51,8 @@ jobs:
           echo "Allowing runner IP $runner_ip"
           az postgres flexible-server firewall-rule create \
             --resource-group "$RESOURCE_GROUP" \
-            --name "${POSTGRES_HOST%%.*}" \
-            --rule-name "gha-backup-${{ github.run_id }}" \
+            --server-name "${POSTGRES_HOST%%.*}" \
+            --name "gha-backup-${{ github.run_id }}" \
             --start-ip-address "$runner_ip" \
             --end-ip-address "$runner_ip"
 
@@ -74,8 +74,8 @@ jobs:
         run: |
           az postgres flexible-server firewall-rule delete \
             --resource-group "$RESOURCE_GROUP" \
-            --name "${POSTGRES_HOST%%.*}" \
-            --rule-name "gha-backup-${{ github.run_id }}" \
+            --server-name "${POSTGRES_HOST%%.*}" \
+            --name "gha-backup-${{ github.run_id }}" \
             --yes || true
 
   # Proves the backup that's actually sitting in storage right now is
