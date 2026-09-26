@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCustomer, type Customer } from "@/lib/api";
-import { COUNTRIES } from "@/lib/countries";
+import { getCountries } from "@/lib/countries";
 
 type Props = {
   customer: Customer;
@@ -145,7 +145,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
             onChange={(event) => setNationality(event.target.value)}
           >
             <option value="">Select a country...</option>
-            {COUNTRIES.map((country) => (
+            {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
               </option>

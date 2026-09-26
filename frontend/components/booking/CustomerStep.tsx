@@ -6,7 +6,7 @@ import { Search, UserRound, X } from "lucide-react";
 import { Field, Input, SelectField, TextField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { getCustomers, type CustomerListItem } from "@/lib/api";
-import { COUNTRIES } from "@/lib/countries";
+import { getCountries } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -270,7 +270,7 @@ export function CustomerStep({
             error={errors.nationality}
           >
             <option value="">Select a country...</option>
-            {COUNTRIES.map((country) => (
+            {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
               </option>

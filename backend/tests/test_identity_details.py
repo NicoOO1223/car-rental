@@ -320,3 +320,85 @@ def test_legacy_stripe_verified_customers_still_pass_the_identity_check():
         db.close()
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
         _reset_identity_verification(customer_id)
+
+
+# --- country neutrality ----------------------------------------------------
+
+
+def test_a_national_id_number_is_optional_when_an_id_document_number_is_given():
+    customer_id, reservation_id = create_customer(
+        "SA-006-AA", "2029-03-13T10:00:00Z", "2029-03-14T10:00:00Z", "NoNationalId"
+    )
+
+    response = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json=details_payload(national_id_number="   "),
+        params={"reservation_id": reservation_id},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["national_id_number"] is None
+    assert body["id_document_number"] == "P-99887766"
+    assert body["problem"] is None
+
+
+def test_some_kind_of_id_number_is_still_required():
+    customer_id, _ = create_customer(
+        "SA-006-AA", "2029-03-15T10:00:00Z", "2029-03-16T10:00:00Z", "NoIdAtAll"
+    )
+
+    response = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json=details_payload(
+            national_id_number=None,
+            id_document_type=None,
+            id_document_number=None,
+            id_document_expires_at=None,
+        ),
+    )
+
+    assert response.status_code == 400
+    assert "ID number" in response.json()["detail"]
+    assert "PESEL" not in response.json()["detail"]
+
+
+def test_the_pesel_rule_only_applies_when_a_polish_customer_enters_one():
+    customer_id, _ = create_customer(
+        "SA-006-AA",
+        "2029-03-17T10:00:00Z",
+        "2029-03-18T10:00:00Z",
+        "PlPassportOnly",
+        nationality="PL",
+    )
+
+    without_number = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json=details_payload(national_id_number=None),
+    )
+    assert without_number.status_code == 200
+
+    # Entering a number that is not a PESEL is still refused for a Pole.
+    wrong = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json=details_payload(national_id_number="12345678901"),
+    )
+    assert wrong.status_code == 400
+
+
+def test_a_non_polish_customers_number_is_not_checked_as_a_pesel():
+    customer_id, _ = create_customer(
+        "SA-006-AA",
+        "2029-03-19T10:00:00Z",
+        "2029-03-20T10:00:00Z",
+        "NotPolish",
+        nationality="GB",
+    )
+
+    response = client.put(
+        f"/api/customers/{customer_id}/identity-details",
+        json=details_payload(national_id_number="QQ 12 34 56 C"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["national_id_number"] == "QQ123456C"

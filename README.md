@@ -93,6 +93,15 @@ A few conventions worth knowing:
 - Lists that can grow without bound (reservations, customers, the audit log) are paged and filtered on the server.
 - Every state change that matters writes an audit entry in the same transaction.
 
+## Setting up a new business
+
+A fresh stack has no locations, no vehicles and no demo data (`seed.py` is for local development only, and refuses to run on a production stack). After creating the first admin login:
+
+1. Open **Configuration, Business** and set the business name, legal details, VAT ID, timezone, format and logo. The name and logo appear on the sign-in page and in the sidebar, and the details are printed on rental agreements.
+2. Open **Configuration, Locations** and add each place vehicles are based, with its timezone. Times for a booking are entered and shown in the timezone of the location they happen at.
+3. Check **Extras** and the pricing pages. The extras a new stack starts with (additional driver, baby seat and so on) are only starting values from a migration; edit or retire them.
+4. Have the agreement wording under **Business** reviewed by a lawyer. Until it is filled in, agreements print placeholder terms.
+
 ## Configuration reference
 
 Backend, in `backend/.env` locally and as Container App settings when deployed:

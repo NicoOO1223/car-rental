@@ -27,7 +27,9 @@ class IdentityVerificationSummary(BaseModel):
 class IdentityDetailsUpdate(BaseModel):
     """What staff type in at the counter."""
 
-    national_id_number: str
+    # Optional: not every country has one. Either this or an ID document
+    # number has to be given (checked in app/services/identity_details.py).
+    national_id_number: str | None = None
     id_document_type: str | None = None
     id_document_number: str | None = None
     id_document_expires_at: date | None = None

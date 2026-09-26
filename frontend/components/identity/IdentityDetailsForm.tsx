@@ -8,7 +8,7 @@ import {
   saveIdentityDetails,
   type IdentityDetails,
 } from "@/lib/api";
-import { COUNTRIES } from "@/lib/countries";
+import { getCountries } from "@/lib/countries";
 import { formatDateTime } from "@/lib/format";
 
 const DOCUMENT_TYPES = [
@@ -20,7 +20,8 @@ const DOCUMENT_TYPES = [
 type Props = {
   customerId: string;
   reservationId: string;
-  // The customer's nationality; "PL" means the ID number is a PESEL.
+  // The customer's nationality. For "PL" the national number is a PESEL and
+  // is checked as one when entered; no other country has a special rule.
   nationality: string | null;
   details: IdentityDetails;
   onSaved: (details: IdentityDetails) => void;
@@ -145,7 +146,7 @@ export function IdentityDetailsForm({
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <TextField
             label={nationality === "PL" ? "PESEL" : "National ID number"}
-            required
+            hint="If the customer has one. Otherwise enter a document number below, such as a passport number."
             className="sm:col-span-2"
             value={nationalId}
             onChange={(event) => setNationalId(event.target.value)}
@@ -196,7 +197,7 @@ export function IdentityDetailsForm({
             onChange={(event) => setLicenseCountry(event.target.value)}
           >
             <option value="">Select a country...</option>
-            {COUNTRIES.map((country) => (
+            {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
               </option>

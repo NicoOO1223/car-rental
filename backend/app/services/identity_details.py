@@ -49,9 +49,13 @@ def identity_problem(customer: Customer, return_at: datetime | None = None) -> s
     """
     Why this customer's recorded identity can't yet back a rental, or None
     when it can. A customer verified through the old Stripe Identity flow
-    still counts. Otherwise the ID number and driving licence must be on
-    file, an employee must have confirmed the original documents, and the
-    licence must still be valid when the rental ends.
+    still counts. Otherwise some form of ID number and the driving licence
+    must be on file, an employee must have confirmed the original
+    documents, and the licence must still be valid when the rental ends.
+
+    Not every country issues a national ID number, so what identifies the
+    person is either that number or the number of an ID document such as a
+    passport.
     """
 
     if customer.identity_verification_status == "verified":
@@ -60,8 +64,8 @@ def identity_problem(customer: Customer, return_at: datetime | None = None) -> s
     if customer.anonymized_at is not None:
         return "This customer's data has been erased."
 
-    if not customer.national_id_number:
-        return "Enter the customer's national ID number (PESEL)."
+    if not (customer.national_id_number or customer.id_document_number):
+        return "Enter the customer's ID number, or the number of an ID document such as a passport."
 
     if not customer.driving_license_number or customer.driving_license_expires_at is None:
         return "Enter the customer's driving licence number and expiry date."
@@ -162,12 +166,17 @@ def save_identity_details(
     if not data.documents_checked:
         raise ValueError("Confirm that you checked the customer's original documents.")
 
-    national_id = data.national_id_number.strip().replace(" ", "")
+    national_id = (data.national_id_number or "").strip().replace(" ", "")
+    document_number = (data.id_document_number or "").strip() or None
 
-    if not national_id:
-        raise ValueError("The national ID number is required.")
+    if not (national_id or document_number):
+        raise ValueError(
+            "Enter the customer's ID number, or the number of an ID document such as a passport."
+        )
 
-    if customer.nationality == "PL" and not is_valid_pesel(national_id):
+    # The one country-specific rule: a Polish customer's national number is
+    # a PESEL, which has a checksum. Only checked when one is entered.
+    if national_id and customer.nationality == "PL" and not is_valid_pesel(national_id):
         raise ValueError("That is not a valid PESEL.")
 
     license_number = data.driving_license_number.strip()
@@ -184,8 +193,6 @@ def save_identity_details(
     ):
         raise ValueError("The licence must be issued before it expires.")
 
-    document_number = (data.id_document_number or "").strip() or None
-
     if document_number and data.id_document_type not in DOCUMENT_TYPES:
         raise ValueError("Select the ID document type.")
 
@@ -195,7 +202,7 @@ def save_identity_details(
         raise ValueError("Use a 2-letter country code for the licence.")
 
     new_values = {
-        "national_id_number": national_id,
+        "national_id_number": national_id or None,
         "id_document_type": data.id_document_type if document_number else None,
         "id_document_number": document_number,
         "id_document_expires_at": (
