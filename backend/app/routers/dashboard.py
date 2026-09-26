@@ -3,10 +3,11 @@ from uuid import UUID
 
 from decimal import ROUND_HALF_UP, Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.errors import AppError
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
 from app.models import Car, Location, Reservation
@@ -115,10 +116,7 @@ def get_dashboard(
         resolved_end = end_date or start_date
 
         if resolved_start > resolved_end:
-            raise HTTPException(
-                status_code=400,
-                detail="start_date must not be after end_date.",
-            )
+            raise AppError("date_range.start_after_end", "start_date must not be after end_date.")
 
         # A range of calendar days means days where the pickups happen:
         # the chosen location's, or the business's when none is chosen.
@@ -441,14 +439,8 @@ def get_revenue(
     resolved_end = end_date or today
     resolved_start = start_date or (resolved_end - timedelta(days=29))
 
-    try:
-        points = get_daily_revenue(db, resolved_start, resolved_end)
-        collected = get_collected_revenue(db, resolved_start, resolved_end)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    points = get_daily_revenue(db, resolved_start, resolved_end)
+    collected = get_collected_revenue(db, resolved_start, resolved_end)
 
     return DashboardRevenueResponse(
         start_date=resolved_start,

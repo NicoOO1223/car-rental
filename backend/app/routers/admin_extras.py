@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,13 +28,6 @@ router = APIRouter(
 )
 
 
-def _raise_for_value_error(exc: ValueError):
-    if str(exc) == "Extra not found.":
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    raise HTTPException(status_code=400, detail=str(exc))
-
-
 @router.get("", response_model=list[AdminExtraResponse])
 def list_all_extras(db: Session = Depends(get_db)):
     """Every extra in display order, retired ones included."""
@@ -48,10 +41,7 @@ def create_extra_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return create_extra(db, data, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    return create_extra(db, data, current_user)
 
 
 @router.put("/order", response_model=list[AdminExtraResponse])
@@ -60,10 +50,7 @@ def reorder_extras_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return reorder_extras(db, data.ids, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    return reorder_extras(db, data.ids, current_user)
 
 
 @router.patch("/{extra_id}", response_model=AdminExtraResponse)
@@ -73,7 +60,4 @@ def update_extra_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return update_extra(db, extra_id, data, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    return update_extra(db, extra_id, data, current_user)

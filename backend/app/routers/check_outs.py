@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -42,13 +42,6 @@ def _response(db: Session, check_out) -> CheckOutResponse:
     return CheckOutResponse.from_model(check_out, handover)
 
 
-def _raise_for_value_error(exc: ValueError):
-    if str(exc) == "Reservation not found.":
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    raise HTTPException(status_code=400, detail=str(exc))
-
-
 @router.get("", response_model=CheckOutResponse | None)
 def get_check_out_state(
     reservation_id: UUID,
@@ -56,10 +49,7 @@ def get_check_out_state(
 ):
     """The check-out so far, or null when none has been started."""
 
-    try:
-        check_out = get_check_out(db, reservation_id)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = get_check_out(db, reservation_id)
 
     return _response(db, check_out) if check_out else None
 
@@ -71,10 +61,7 @@ def save_condition_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = save_condition(db, reservation_id, data, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = save_condition(db, reservation_id, data, current_user)
 
     return _response(db, check_out)
 
@@ -86,10 +73,7 @@ def waive_charges_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = waive_charges(db, reservation_id, data, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = waive_charges(db, reservation_id, data, current_user)
 
     return _response(db, check_out)
 
@@ -100,10 +84,7 @@ def settle_deposit_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = settle_deposit_step(db, reservation_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = settle_deposit_step(db, reservation_id, current_user)
 
     return _response(db, check_out)
 
@@ -114,12 +95,9 @@ def create_payment_intent_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out, intent = create_or_reuse_payment_intent(
-            db, reservation_id, current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out, intent = create_or_reuse_payment_intent(
+        db, reservation_id, current_user
+    )
 
     return CheckOutPaymentIntentResponse(
         client_secret=intent.client_secret,
@@ -142,10 +120,7 @@ def confirm_payment_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = confirm_payment(db, reservation_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = confirm_payment(db, reservation_id, current_user)
 
     return _response(db, check_out)
 
@@ -156,10 +131,7 @@ def confirm_cash_payment_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = confirm_cash_payment(db, reservation_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = confirm_cash_payment(db, reservation_id, current_user)
 
     return _response(db, check_out)
 
@@ -171,12 +143,9 @@ def submit_employee_signature_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out = submit_employee_signature(
-            db, reservation_id, data.signature_image, current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out = submit_employee_signature(
+        db, reservation_id, data.signature_image, current_user
+    )
 
     return _response(db, check_out)
 
@@ -187,12 +156,9 @@ def complete_check_out_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        check_out, car, task_id = complete_check_out(
-            db, reservation_id, current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    check_out, car, task_id = complete_check_out(
+        db, reservation_id, current_user
+    )
 
     return CheckOutCompleteResponse(
         check_out=_response(db, check_out),

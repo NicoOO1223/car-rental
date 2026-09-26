@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.errors import AppError, NotFoundError
 from app.models import Car, MaintenanceTask, User
 from app.services.audit import audit_log
 from app.services.timezones import assume_zone, business_zone, local_today
@@ -46,7 +47,7 @@ def list_tasks_for_car(db: Session, car_id: UUID) -> list[MaintenanceTask]:
     car = db.get(Car, car_id)
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     return list(
         db.scalars(
@@ -77,37 +78,33 @@ def create_task(
     car = db.get(Car, car_id)
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     if task_type not in VALID_TASK_TYPES:
-        raise ValueError("Invalid task type.")
+        raise AppError("maintenance.invalid_task_type", "Invalid task type.")
 
     if task_type == "MAINTENANCE":
         if category not in VALID_CATEGORIES:
-            raise ValueError("Select a maintenance category.")
+            raise AppError("maintenance.select_maintenance_category", "Select a maintenance category.")
     elif category is not None:
-        raise ValueError("Only maintenance tasks have a category.")
+        raise AppError("maintenance.only_maintenance_tasks_have_category", "Only maintenance tasks have a category.")
 
     # A time typed without a timezone means local time at the business.
     starts_at = assume_zone(starts_at, business_zone(db))
     ends_at = assume_zone(ends_at, business_zone(db))
 
     if ends_at <= starts_at:
-        raise ValueError("End time must be after start time.")
+        raise AppError("maintenance.end_time_must_after_start_time", "End time must be after start time.")
 
     if ends_at <= datetime.now(timezone.utc):
-        raise ValueError("The maintenance window must end in the future.")
+        raise AppError("maintenance.maintenance_window_must_end_future", "The maintenance window must end in the future.")
 
     if has_conflicting_maintenance(db, car_id, starts_at, ends_at):
-        raise ValueError(
-            "This car already has maintenance or cleaning scheduled during this period."
-        )
+        raise AppError("maintenance.car_already_maintenance_or_cleaning_scheduled", "This car already has maintenance or cleaning scheduled during this period.")
 
     if has_conflicting_reservation(db, car_id, starts_at, ends_at):
-        raise ValueError(
-            "This car has a reservation during this period. "
-            "Cancel or move the reservation first."
-        )
+        raise AppError("maintenance.car_reservation_during_period_cancel_or", "This car has a reservation during this period. "
+            "Cancel or move the reservation first.")
 
     task = MaintenanceTask(
         car_id=car_id,
@@ -158,10 +155,10 @@ def _close_task(
     task = db.get(MaintenanceTask, task_id)
 
     if task is None:
-        raise ValueError("Maintenance task not found.")
+        raise NotFoundError("maintenance.task_not_found", "Maintenance task not found.")
 
     if task.status != "OPEN":
-        raise ValueError("Only an open task can be closed.")
+        raise AppError("maintenance.only_open_task_can_closed", "Only an open task can be closed.")
 
     is_inspection_done = (
         new_status == "DONE" and task.category == "TECHNICAL_INSPECTION"
@@ -169,14 +166,10 @@ def _close_task(
 
     if is_inspection_done:
         if next_inspection_due is None:
-            raise ValueError(
-                "Enter when the next technical inspection is due."
-            )
+            raise AppError("maintenance.enter_when_next_technical_inspection_due", "Enter when the next technical inspection is due.")
 
         if next_inspection_due <= local_today(business_zone(db)):
-            raise ValueError(
-                "The next inspection must be due after today."
-            )
+            raise AppError("maintenance.next_inspection_must_due_after_today", "The next inspection must be due after today.")
 
     task.status = new_status
     task.completed_at = datetime.now(timezone.utc)

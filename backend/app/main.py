@@ -44,6 +44,7 @@ from app.routers.configuration import router as configuration_router
 from app.routers.stripe_webhook import router as stripe_webhook_router
 
 from app.config import IS_PRODUCTION
+from app.error_handlers import install_error_handlers
 from app.security_headers import SecurityHeadersMiddleware
 
 # The interactive docs list every endpoint and payload, which is a free map
@@ -55,6 +56,8 @@ app = FastAPI(
     redoc_url=None if IS_PRODUCTION else "/redoc",
     openapi_url=None if IS_PRODUCTION else "/openapi.json",
 )
+
+install_error_handlers(app)
 
 # Comma-separated list of allowed frontend origins, e.g.
 # "https://car-rental-frontend.example.azurecontainerapps.io". Defaults to

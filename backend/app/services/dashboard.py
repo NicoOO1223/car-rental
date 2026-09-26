@@ -4,6 +4,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.models import Car, CheckOut, Handover, Reservation
 from app.services.pricing import calculate_rental_price
 from app.services.timezones import business_zone, local_date, range_bounds
@@ -29,7 +30,7 @@ def get_daily_revenue(
     """
 
     if start_date > end_date:
-        raise ValueError("start_date must be on or before end_date.")
+        raise AppError("date_range.start_after_end", "start_date must be on or before end_date.")
 
     # Days are the business's calendar days, not UTC's.
     tz = business_zone(db)
@@ -94,7 +95,7 @@ def get_collected_revenue(
     """
 
     if start_date > end_date:
-        raise ValueError("start_date must be on or before end_date.")
+        raise AppError("date_range.start_after_end", "start_date must be on or before end_date.")
 
     # Days are the business's calendar days, not UTC's.
     tz = business_zone(db)

@@ -18,6 +18,8 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.services.stripe_errors import stripe_app_error
+from app.errors import AppError
 from app.models import Handover, User
 from app.services.audit import audit_log
 from app.services.money import to_cents as _cents
@@ -39,16 +41,16 @@ def _require_deposit_stage(db: Session, handover: Handover) -> Decimal:
     amount = get_configuration(db).security_deposit_amount
 
     if amount <= 0 and handover.deposit_status is None:
-        raise ValueError("Security deposits are not enabled.")
+        raise AppError("deposit.security_deposits_are_not_enabled", "Security deposits are not enabled.")
 
     if handover.deposit_status in _HOLD_ACTIVE:
-        raise ValueError("The security deposit is already held.")
+        raise AppError("deposit.security_deposit_already_held", "The security deposit is already held.")
 
     if handover.deposit_status is not None and handover.deposit_settled_at is not None:
-        raise ValueError("This deposit has already been settled.")
+        raise AppError("deposit.deposit_already_settled", "This deposit has already been settled.")
 
     if handover.payment_status != "SUCCEEDED":
-        raise ValueError("Take the rental payment before the security deposit.")
+        raise AppError("deposit.take_rental_payment_before_security_deposit", "Take the rental payment before the security deposit.")
 
     return Decimal(amount).quantize(_CENTS)
 
@@ -97,7 +99,7 @@ def create_or_reuse_deposit_intent(db: Session, reservation_id: UUID, actor: Use
             ),
         )
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     handover.deposit_stripe_payment_intent_id = intent.id
     handover.deposit_amount = amount
@@ -120,12 +122,12 @@ def confirm_deposit_hold(db: Session, reservation_id: UUID, actor: User) -> Hand
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if not handover.deposit_stripe_payment_intent_id:
-        raise ValueError("No deposit has been started for this reservation.")
+        raise AppError("deposit.no_deposit_started_reservation", "No deposit has been started for this reservation.")
 
     try:
         intent = stripe.PaymentIntent.retrieve(handover.deposit_stripe_payment_intent_id)
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     if intent.status == "requires_capture":
         if handover.deposit_status != "HELD":
@@ -219,7 +221,7 @@ def release_deposit_for_cancellation(
                 "payment_intent_unexpected_state",
                 "resource_missing",
             ):
-                raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+                raise stripe_app_error(exc)
 
     was_held = handover.deposit_status == "HELD"
 

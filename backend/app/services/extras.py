@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError, NotFoundError
 from app.models import Extra, Reservation, ReservationExtra, User
 from app.schemas.extra import ExtraCreate, ExtraUpdate
 from app.services.audit import audit_log
@@ -43,7 +44,7 @@ def resolve_extra_selections(
     extra_ids = [item.extra_id for item in requested]
 
     if len(set(extra_ids)) != len(extra_ids):
-        raise ValueError("The same extra was selected more than once.")
+        raise AppError("extra.same_extra_was_selected_more_than", "The same extra was selected more than once.")
 
     catalog = {
         extra.id: extra
@@ -58,14 +59,21 @@ def resolve_extra_selections(
         extra = catalog.get(item.extra_id)
 
         if extra is None:
-            raise ValueError("Unknown extra selected.")
+            raise AppError("extra.unknown_extra_selected", "Unknown extra selected.")
 
         if not extra.is_active and extra.id not in already_booked_ids:
-            raise ValueError(f"{extra.name} is no longer available.")
+            raise AppError(
+                "extra.no_longer_available",
+                f"{extra.name} is no longer available.",
+                name=extra.name,
+            )
 
         if item.quantity > extra.max_quantity:
-            raise ValueError(
-                f"At most {extra.max_quantity} x {extra.name} can be added."
+            raise AppError(
+                "extra.max_quantity",
+                f"At most {extra.max_quantity} x {extra.name} can be added.",
+                max=extra.max_quantity,
+                name=extra.name,
             )
 
         resolved.append((extra, item.quantity))
@@ -155,7 +163,7 @@ def get_extra(db: Session, extra_id: UUID) -> Extra:
     extra = db.get(Extra, extra_id)
 
     if extra is None:
-        raise ValueError("Extra not found.")
+        raise NotFoundError("extra.not_found", "Extra not found.")
 
     return extra
 
@@ -219,13 +227,13 @@ def update_extra(db: Session, extra_id: UUID, data: ExtraUpdate, actor: User) ->
             value = (value or "").strip()
 
             if not value:
-                raise ValueError("The name cannot be empty.")
+                raise AppError("validation.name_empty", "The name cannot be empty.")
 
         if field == "description":
             value = (value or "").strip() or None
 
         if field == "price" and value is None:
-            raise ValueError("The price cannot be empty.")
+            raise AppError("extra.price_cannot_empty", "The price cannot be empty.")
 
         current = getattr(extra, field)
 
@@ -268,7 +276,7 @@ def reorder_extras(db: Session, ordered_ids: list[UUID], actor: User) -> list[Ex
     extras = {extra.id: extra for extra in db.scalars(select(Extra)).all()}
 
     if len(set(ordered_ids)) != len(ordered_ids) or set(ordered_ids) != set(extras):
-        raise ValueError("The new order must list every extra exactly once.")
+        raise AppError("extra.new_order_must_list_every_extra", "The new order must list every extra exactly once.")
 
     for position, extra_id in enumerate(ordered_ids):
         extras[extra_id].sort_order = (position + 1) * 10

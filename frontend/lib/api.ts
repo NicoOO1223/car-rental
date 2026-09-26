@@ -1,3 +1,5 @@
+import { throwApiError } from "@/lib/apiErrors";
+import { t } from "@/lib/i18n";
 // Baked in at build time (Next.js inlines NEXT_PUBLIC_* vars into the
 // client bundle), so it must be passed as a Docker build arg for any
 // deployment that isn't talking to a local backend.
@@ -35,7 +37,14 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch {
+    // The server could not be reached at all (offline, restarting).
+    throw new Error(t("errors.generic.network"));
+  }
 
   if (
     response.status === 401 &&
@@ -72,7 +81,7 @@ export async function updateMyLanguage(language: string | null): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to save the language.");
+    await throwApiError(response, "errors.generic.save");
   }
 }
 
@@ -80,7 +89,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   const response = await apiFetch("/api/auth/me");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch current user.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -97,9 +106,7 @@ export async function login(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to log in.");
+    await throwApiError(response, "auth.failed");
   }
 
   return response.json();
@@ -212,17 +219,14 @@ async function adminExtrasRequest<T>(
   const response = await apiFetch(`/api/admin/extras${path}`, init);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const detail = errorData?.detail;
-
-    throw new Error(typeof detail === "string" ? detail : failure);
+    await throwApiError(response, failure);
   }
 
   return response.json();
 }
 
 export function getAdminExtras(): Promise<AdminExtra[]> {
-  return adminExtrasRequest("", undefined, "Failed to load extras.");
+  return adminExtrasRequest("", undefined, "errors.generic.load");
 }
 
 export function createExtra(data: ExtraInput): Promise<AdminExtra> {
@@ -233,7 +237,7 @@ export function createExtra(data: ExtraInput): Promise<AdminExtra> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
-    "Failed to add the extra.",
+    "errors.generic.save",
   );
 }
 
@@ -248,7 +252,7 @@ export function updateExtra(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     },
-    "Failed to update the extra.",
+    "errors.generic.save",
   );
 }
 
@@ -260,7 +264,7 @@ export function reorderExtras(ids: string[]): Promise<AdminExtra[]> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
     },
-    "Failed to reorder the extras.",
+    "errors.generic.failed",
   );
 }
 
@@ -324,7 +328,7 @@ export async function getExtras(): Promise<Extra[]> {
   const response = await apiFetch("/api/extras");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch extras.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -345,9 +349,7 @@ export async function quoteReservation(data: {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to price this booking.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -366,7 +368,7 @@ export async function getLocations(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch locations");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -392,23 +394,14 @@ async function locationRequest(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const detail = errorData?.detail;
-
-    throw new Error(
-      typeof detail === "string"
-        ? detail
-        : Array.isArray(detail) && detail[0]?.msg
-          ? String(detail[0].msg).replace(/^Value error, /, "")
-          : fallback,
-    );
+    await throwApiError(response, fallback);
   }
 
   return response.json();
 }
 
 export function createLocation(input: LocationInput): Promise<Location> {
-  return locationRequest("/api/locations", "POST", input, "Failed to add the location.");
+  return locationRequest("/api/locations", "POST", input, "errors.generic.save");
 }
 
 export function updateLocation(
@@ -419,7 +412,7 @@ export function updateLocation(
     `/api/locations/${id}`,
     "PATCH",
     patch,
-    "Failed to update the location.",
+    "errors.generic.save",
   );
 }
 
@@ -438,7 +431,7 @@ export async function getAvailableCars(
   const response = await apiFetch(`/api/cars/available?${params}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch available cars");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -459,7 +452,7 @@ export async function getDailyRates(
   const response = await apiFetch(`/api/cars/daily-rates?${params}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch daily rates");
+    await throwApiError(response, "errors.generic.load");
   }
 
   const rates: { date: string; price: string | number }[] =
@@ -497,12 +490,7 @@ export async function createReservation(data: {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.detail ||
-      "Failed to create reservation",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -559,7 +547,7 @@ export async function getReservations(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch reservations.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -586,7 +574,7 @@ export async function getReservationSummary(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch reservation summary.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -598,7 +586,7 @@ export async function getReservation(
   const response = await apiFetch(`/api/reservations/${id}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch reservation.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -633,12 +621,7 @@ export async function updateReservation(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.detail ||
-        "Failed to update reservation",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -656,12 +639,7 @@ export async function cancelReservation(reservationId: string) {
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.detail ||
-        "Failed to cancel reservation",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -718,10 +696,7 @@ export async function updateCarPrice(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const detail = errorData?.detail;
-
-    throw new Error(typeof detail === "string" ? detail : "Failed to update the rate.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -734,9 +709,7 @@ export async function returnCarToHome(carId: string): Promise<Car> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to move the car.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -746,7 +719,7 @@ export async function getCars(): Promise<Car[]> {
   const response = await apiFetch("/api/cars");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch cars");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -758,7 +731,7 @@ export async function getCar(
   const response = await apiFetch(`/api/cars/${carId}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch car");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -794,11 +767,7 @@ export async function updateCar(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.detail || "Failed to update car",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -841,7 +810,7 @@ export async function getFleetReservations(): Promise<FleetReservation[]> {
   const response = await apiFetch("/api/cars/reservations");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch fleet reservations");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -853,9 +822,7 @@ export async function getCarReservations(
   const response = await apiFetch(`/api/cars/${carId}/reservations`);
 
   if (!response.ok) {
-    throw new Error(
-      "Failed to fetch car reservations",
-    );
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -870,7 +837,7 @@ export async function getCarStatusesByDate(
   const response = await apiFetch(`/api/cars/status-by-date?date=${date}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch car statuses for date.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -912,7 +879,7 @@ export async function getMaintenanceTasks(params?: {
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch maintenance tasks.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -924,7 +891,7 @@ export async function getCarMaintenanceTasks(
   const response = await apiFetch(`/api/cars/${carId}/maintenance-tasks`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch car maintenance history.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -948,9 +915,7 @@ export async function createMaintenanceTask(data: {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to create maintenance task");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -972,9 +937,7 @@ export async function completeMaintenanceTask(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to complete maintenance task");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -989,9 +952,7 @@ export async function cancelMaintenanceTask(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to cancel maintenance task");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1016,14 +977,7 @@ export async function updateReservationStatus(
   );
 
   if (!response.ok) {
-    const errorData = await response
-      .json()
-      .catch(() => null);
-
-    throw new Error(
-      errorData?.detail ||
-        "Failed to update reservation status.",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1129,7 +1083,7 @@ export async function getDashboard(range?: {
   const response = await apiFetch(`/api/dashboard${query ? `?${query}` : ""}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch dashboard");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1167,7 +1121,7 @@ export async function getFleetStatus(params: {
   const response = await apiFetch(`/api/dashboard/fleet-status?${search}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch fleet status");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1213,9 +1167,7 @@ export async function getRevenue(params: {
   const response = await apiFetch(`/api/dashboard/revenue?${search}`);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to fetch revenue");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1292,7 +1244,7 @@ export async function getAuditLogs(params: {
   const response = await apiFetch(`/api/audit-logs?${search}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch audit log.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1307,7 +1259,7 @@ export async function getAuditLogActors(): Promise<AuditLogActor[]> {
   const response = await apiFetch("/api/audit-logs/actors");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch audit log actors.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1378,7 +1330,7 @@ export async function getCustomers(
   const response = await apiFetch(`/api/customers${queryString(query)}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch customers");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1396,7 +1348,7 @@ export async function getCustomerSummary(): Promise<CustomerSummaryStats> {
   const response = await apiFetch("/api/customers/summary");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch customer summary");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1408,7 +1360,7 @@ export async function getCustomer(
   const response = await apiFetch(`/api/customers/${customerId}`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch customer");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1420,7 +1372,7 @@ export async function getCustomerReservations(
   const response = await apiFetch(`/api/customers/${customerId}/reservations`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch customer reservations");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1471,9 +1423,7 @@ export async function eraseCustomer(customerId: string): Promise<Customer> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to erase customer data.");
+    await throwApiError(response, "errors.generic.delete");
   }
 
   return response.json();
@@ -1488,9 +1438,7 @@ export async function downloadCustomerDataExport(
   const response = await apiFetch(`/api/customers/${customerId}/export`);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to export customer data.");
+    await throwApiError(response, "errors.generic.download");
   }
 
   const bundle: CustomerDataExport = await response.json();
@@ -1558,9 +1506,7 @@ export async function getIdentityDetails(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to load identity details.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1583,9 +1529,7 @@ export async function saveIdentityDetails(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to save identity details.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1683,9 +1627,7 @@ async function checkOutRequest<T>(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || failure);
+    await throwApiError(response, failure);
   }
 
   return response.json();
@@ -1703,40 +1645,40 @@ function jsonPost(body?: unknown): RequestInit {
 
 /** The check-out so far, or null when none has been started. */
 export function getCheckOut(reservationId: string): Promise<CheckOut | null> {
-  return checkOutRequest(reservationId, "", undefined, "Failed to load check-out.");
+  return checkOutRequest(reservationId, "", undefined, "errors.generic.load");
 }
 
 export function saveCheckOutCondition(
   reservationId: string,
   data: CheckOutConditionInput,
 ): Promise<CheckOut> {
-  return checkOutRequest(reservationId, "/condition", jsonPost(data), "Failed to save the vehicle condition.");
+  return checkOutRequest(reservationId, "/condition", jsonPost(data), "errors.generic.save");
 }
 
 export function waiveCheckOutCharges(
   reservationId: string,
   data: { waive_late_fee: boolean; waive_fuel_fee: boolean; reason: string | null },
 ): Promise<CheckOut> {
-  return checkOutRequest(reservationId, "/waive", jsonPost(data), "Failed to update the charges.");
+  return checkOutRequest(reservationId, "/waive", jsonPost(data), "errors.generic.save");
 }
 
 /** Takes the charges from the held deposit and releases the rest. */
 export function settleCheckOutDeposit(reservationId: string): Promise<CheckOut> {
-  return checkOutRequest(reservationId, "/settle-deposit", jsonPost(), "Failed to settle the deposit.");
+  return checkOutRequest(reservationId, "/settle-deposit", jsonPost(), "errors.generic.failed");
 }
 
 export function createCheckOutPaymentIntent(
   reservationId: string,
 ): Promise<CheckOutPaymentIntent> {
-  return checkOutRequest(reservationId, "/payment-intent", jsonPost(), "Failed to start payment.");
+  return checkOutRequest(reservationId, "/payment-intent", jsonPost(), "errors.generic.save");
 }
 
 export function confirmCheckOutPayment(reservationId: string): Promise<CheckOut> {
-  return checkOutRequest(reservationId, "/confirm-payment", jsonPost(), "Failed to confirm payment.");
+  return checkOutRequest(reservationId, "/confirm-payment", jsonPost(), "errors.generic.save");
 }
 
 export function confirmCheckOutCashPayment(reservationId: string): Promise<CheckOut> {
-  return checkOutRequest(reservationId, "/confirm-cash-payment", jsonPost(), "Failed to confirm cash payment.");
+  return checkOutRequest(reservationId, "/confirm-cash-payment", jsonPost(), "errors.generic.save");
 }
 
 export function submitCheckOutEmployeeSignature(
@@ -1747,12 +1689,12 @@ export function submitCheckOutEmployeeSignature(
     reservationId,
     "/employee-signature",
     jsonPost({ signature_image: signatureImage }),
-    "Failed to save the employee signature.",
+    "errors.generic.save",
   );
 }
 
 export function completeCheckOut(reservationId: string): Promise<CheckOutResult> {
-  return checkOutRequest(reservationId, "/complete", jsonPost(), "Failed to complete the check-out.");
+  return checkOutRequest(reservationId, "/complete", jsonPost(), "errors.generic.save");
 }
 
 export type Handover = {
@@ -1812,9 +1754,7 @@ export async function getHandover(reservationId: string): Promise<Handover> {
   const response = await apiFetch(`/api/reservations/${reservationId}/handover`);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to fetch handover.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -1829,9 +1769,7 @@ export async function createPaymentIntent(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to start payment.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1846,9 +1784,7 @@ export async function confirmHandoverPayment(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to confirm payment.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1863,9 +1799,7 @@ export async function confirmCashPayment(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to confirm cash payment.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1889,9 +1823,7 @@ async function depositRequest<T>(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || failure);
+    await throwApiError(response, failure);
   }
 
   return response.json();
@@ -1899,16 +1831,16 @@ async function depositRequest<T>(
 
 /** Starts the card authorization for the security deposit. */
 export function createDepositIntent(reservationId: string): Promise<DepositIntent> {
-  return depositRequest(reservationId, "intent", "Failed to start the deposit.");
+  return depositRequest(reservationId, "intent", "errors.generic.save");
 }
 
 /** Verifies with the server that the card hold succeeded. */
 export function confirmDepositHold(reservationId: string): Promise<Handover> {
-  return depositRequest(reservationId, "confirm", "Failed to confirm the deposit.");
+  return depositRequest(reservationId, "confirm", "errors.generic.save");
 }
 
 export function confirmCashDeposit(reservationId: string): Promise<Handover> {
-  return depositRequest(reservationId, "confirm-cash", "Failed to confirm the cash deposit.");
+  return depositRequest(reservationId, "confirm-cash", "errors.generic.save");
 }
 
 export async function submitSignature(
@@ -1925,9 +1857,7 @@ export async function submitSignature(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to submit signature.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1947,9 +1877,7 @@ export async function submitEmployeeSignature(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to submit employee signature.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1964,9 +1892,7 @@ export async function generateAgreement(
   );
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to generate agreement.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -1999,7 +1925,7 @@ export async function getReservationInvoices(
   const response = await apiFetch(`/api/reservations/${reservationId}/invoices`);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch invoices.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -2010,7 +1936,7 @@ export async function downloadInvoice(invoice: Invoice): Promise<void> {
   const response = await apiFetch(`/api/invoices/${invoice.id}/pdf`);
 
   if (!response.ok) {
-    throw new Error("Failed to download the document.");
+    await throwApiError(response, "errors.generic.download");
   }
 
   const url = URL.createObjectURL(await response.blob());
@@ -2033,7 +1959,7 @@ export async function downloadAgreement(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to download agreement.");
+    await throwApiError(response, "errors.generic.download");
   }
 
   const blob = await response.blob();
@@ -2061,7 +1987,7 @@ export async function getUsers(): Promise<User[]> {
   const response = await apiFetch("/api/users");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch users.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -2079,9 +2005,7 @@ export async function createUser(data: {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to create user.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -2103,9 +2027,7 @@ export async function updateUser(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to update user.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -2122,9 +2044,7 @@ export async function resetUserPassword(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to reset password.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -2153,11 +2073,7 @@ export async function updateCustomer(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.detail || "Failed to update customer",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();
@@ -2209,7 +2125,7 @@ export async function getPublicConfiguration(): Promise<{
   const response = await apiFetch("/api/configuration/public");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch configuration.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -2229,7 +2145,7 @@ export async function getBranding(): Promise<Branding> {
   const response = await apiFetch("/api/branding");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch branding.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -2247,13 +2163,7 @@ export async function uploadLogo(dataUrl: string): Promise<void> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      typeof errorData?.detail === "string"
-        ? errorData.detail
-        : "Failed to upload the logo.",
-    );
+    await throwApiError(response, "errors.generic.save");
   }
 }
 
@@ -2263,7 +2173,7 @@ export async function deleteLogo(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to remove the logo.");
+    await throwApiError(response, "errors.generic.delete");
   }
 }
 
@@ -2271,7 +2181,7 @@ export async function getConfiguration(): Promise<Configuration> {
   const response = await apiFetch("/api/configuration");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch configuration.");
+    await throwApiError(response, "errors.generic.load");
   }
 
   return response.json();
@@ -2287,9 +2197,7 @@ export async function updateConfiguration(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail || "Failed to update configuration.");
+    await throwApiError(response, "errors.generic.save");
   }
 
   return response.json();

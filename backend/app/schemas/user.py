@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.models.user import VALID_ROLES
 
@@ -30,13 +31,17 @@ class UserListItem(BaseModel):
 
 def _validate_password_length(password: str) -> str:
     if len(password) < 8:
-        raise ValueError("Password must be at least 8 characters.")
+        raise PydanticCustomError("validation.password_too_short", "Password must be at least 8 characters.")
     return password
 
 
 def _validate_role(role: str) -> str:
     if role not in VALID_ROLES:
-        raise ValueError(f"Role must be one of: {', '.join(sorted(VALID_ROLES))}.")
+        raise PydanticCustomError(
+            "validation.role_invalid",
+            "Role must be one of: {allowed}.",
+            {"allowed": ", ".join(sorted(VALID_ROLES))},
+        )
     return role
 
 

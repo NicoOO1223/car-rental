@@ -17,6 +17,8 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.services.stripe_errors import stripe_app_error
+from app.errors import AppError, NotFoundError
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, CheckOut, Handover, Reservation, User
 from app.services.money import to_cents
@@ -52,17 +54,15 @@ def _money(value) -> Decimal:
 
 def _require_stripe_configured() -> None:
     if not stripe.api_key:
-        raise ValueError(
-            "Stripe is not configured on the server. Set STRIPE_SECRET_KEY "
-            "in backend/.env to enable payments."
-        )
+        raise AppError("stripe.not_configured", "Stripe is not configured on the server. Set STRIPE_SECRET_KEY "
+            "in backend/.env to enable payments.")
 
 
 def _get_reservation(db: Session, reservation_id: UUID) -> Reservation:
     reservation = db.get(Reservation, reservation_id)
 
     if reservation is None:
-        raise ValueError("Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     return reservation
 
@@ -82,10 +82,10 @@ def _require_started(db: Session, reservation_id: UUID) -> CheckOut:
     )
 
     if check_out is None:
-        raise ValueError("Record the vehicle's condition first.")
+        raise AppError("check_out.record_vehicle_condition_first", "Record the vehicle's condition first.")
 
     if check_out.completed_at is not None or reservation.status != "ACTIVE":
-        raise ValueError("This check-out has already been completed.")
+        raise AppError("check_out.check_out_already_completed", "This check-out has already been completed.")
 
     return check_out
 
@@ -116,13 +116,13 @@ def _require_editable(check_out: CheckOut) -> None:
     """The figures can't change once paid for or signed off."""
 
     if check_out.payment_status == "SUCCEEDED":
-        raise ValueError("The charges have already been paid.")
+        raise AppError("check_out.charges_have_already_paid", "The charges have already been paid.")
 
     if check_out.employee_signature_image is not None:
-        raise ValueError("The employee has already signed this check-out.")
+        raise AppError("check_out.employee_already_signed_check_out", "The employee has already signed this check-out.")
 
     if check_out.deposit_settled_at is not None:
-        raise ValueError("The security deposit has already been settled.")
+        raise AppError("check_out.security_deposit_already_settled", "The security deposit has already been settled.")
 
 
 def _recalculate(check_out: CheckOut, configuration) -> None:
@@ -164,33 +164,33 @@ def save_condition(
 
     if check_out is not None:
         if check_out.completed_at is not None or reservation.status != "ACTIVE":
-            raise ValueError("This check-out has already been completed.")
+            raise AppError("check_out.check_out_already_completed", "This check-out has already been completed.")
 
         _require_editable(check_out)
     elif reservation.status != "ACTIVE":
-        raise ValueError(
-            "Only a rental that is out with the customer can be checked out."
-        )
+        raise AppError("check_out.only_rental_out_with_customer_can", "Only a rental that is out with the customer can be checked out.")
 
     car = db.get(Car, reservation.car_id)
     configuration = get_configuration(db)
 
     if data.return_mileage < 0:
-        raise ValueError("The mileage cannot be negative.")
+        raise AppError("check_out.mileage_cannot_negative", "The mileage cannot be negative.")
 
     if car.mileage is not None and data.return_mileage < car.mileage:
-        raise ValueError(
-            f"The mileage cannot be lower than the car's recorded {car.mileage} km."
+        raise AppError(
+            "check_out.mileage_below_recorded",
+            f"The mileage cannot be lower than the car's recorded {car.mileage} km.",
+            km=car.mileage,
         )
 
     damage_charge = _money(data.damage_charge)
 
     if data.damage_reported:
         if not (data.damage_notes or "").strip():
-            raise ValueError("Describe the damage.")
+            raise AppError("check_out.describe_damage", "Describe the damage.")
 
         if data.damage_task_starts_at is None or data.damage_task_ends_at is None:
-            raise ValueError("Choose when the car is out of service for the repair.")
+            raise AppError("check_out.choose_when_car_out_service_repair", "Choose when the car is out of service for the repair.")
 
         starts_at = data.damage_task_starts_at
         ends_at = data.damage_task_ends_at
@@ -199,18 +199,16 @@ def save_condition(
         ends_at = assume_zone(ends_at, business_zone(db))
 
         if ends_at <= starts_at:
-            raise ValueError("The repair must end after it starts.")
+            raise AppError("check_out.repair_must_end_after_starts", "The repair must end after it starts.")
 
         if ends_at <= datetime.now(timezone.utc):
-            raise ValueError("The repair window must end in the future.")
+            raise AppError("check_out.repair_window_must_end_future", "The repair window must end in the future.")
 
         # Checked now so a clash surfaces here rather than at the very end
         # of the check-out. This rental itself is excluded: it is still
         # ACTIVE until completion.
         if has_conflicting_maintenance(db, car.id, starts_at, ends_at):
-            raise ValueError(
-                "The car already has maintenance or cleaning scheduled in that period."
-            )
+            raise AppError("check_out.car_already_maintenance_or_cleaning_scheduled", "The car already has maintenance or cleaning scheduled in that period.")
 
         if has_conflicting_reservation(
             db,
@@ -219,16 +217,14 @@ def save_condition(
             ends_at,
             exclude_reservation_id=reservation_id,
         ):
-            raise ValueError(
-                "The car has a reservation in that period. "
-                "Cancel or move the reservation first."
-            )
+            raise AppError("check_out.car_reservation_period_cancel_or_move", "The car has a reservation in that period. "
+                "Cancel or move the reservation first.")
     else:
         starts_at = None
         ends_at = None
 
         if damage_charge != 0:
-            raise ValueError("A damage charge needs damage to be reported.")
+            raise AppError("check_out.damage_charge_needs_damage_reported", "A damage charge needs damage to be reported.")
 
     validate_damage_charge(damage_charge, configuration.max_damage_charge)
 
@@ -306,13 +302,13 @@ def waive_charges(
     reason = (data.reason or "").strip()
 
     if (data.waive_late_fee or data.waive_fuel_fee) and not reason:
-        raise ValueError("Give a reason for waiving a charge.")
+        raise AppError("check_out.give_reason_waiving_charge", "Give a reason for waiving a charge.")
 
     if data.waive_late_fee and check_out.late_fee == 0:
-        raise ValueError("There is no late fee to waive.")
+        raise AppError("check_out.there_no_late_fee_waive", "There is no late fee to waive.")
 
     if data.waive_fuel_fee and check_out.fuel_fee == 0:
-        raise ValueError("There is no fuel fee to waive.")
+        raise AppError("check_out.there_no_fuel_fee_waive", "There is no fuel fee to waive.")
 
     check_out.late_fee_waived = data.waive_late_fee
     check_out.fuel_fee_waived = data.waive_fuel_fee
@@ -349,13 +345,13 @@ def waive_charges(
 
 def _require_charges_to_collect(db: Session, check_out: CheckOut) -> None:
     if _deposit_pending(db, check_out):
-        raise ValueError("Settle the security deposit first.")
+        raise AppError("check_out.settle_security_deposit_first", "Settle the security deposit first.")
 
     if _amount_due(check_out) <= 0:
-        raise ValueError("There are no charges to collect.")
+        raise AppError("check_out.there_are_no_charges_collect", "There are no charges to collect.")
 
     if check_out.payment_status == "SUCCEEDED":
-        raise ValueError("The charges have already been paid.")
+        raise AppError("check_out.charges_have_already_paid", "The charges have already been paid.")
 
 
 def create_or_reuse_payment_intent(db: Session, reservation_id: UUID, actor: User):
@@ -367,7 +363,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id: UUID, actor: Use
     _require_charges_to_collect(db, check_out)
 
     if check_out.employee_signature_image is not None:
-        raise ValueError("The employee has already signed this check-out.")
+        raise AppError("check_out.employee_already_signed_check_out", "The employee has already signed this check-out.")
 
     configuration = get_configuration(db)
     amount = _amount_due(check_out)
@@ -399,7 +395,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id: UUID, actor: Use
             ),
         )
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     check_out.stripe_payment_intent_id = intent.id
     check_out.payment_amount = amount
@@ -422,12 +418,12 @@ def confirm_payment(db: Session, reservation_id: UUID, actor: User) -> CheckOut:
     check_out = _require_started(db, reservation_id)
 
     if not check_out.stripe_payment_intent_id:
-        raise ValueError("No payment has been initiated for this check-out.")
+        raise AppError("check_out.no_payment_initiated_check_out", "No payment has been initiated for this check-out.")
 
     try:
         intent = stripe.PaymentIntent.retrieve(check_out.stripe_payment_intent_id)
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     apply_payment_intent_status(check_out, intent.status)
 
@@ -460,7 +456,7 @@ def confirm_cash_payment(db: Session, reservation_id: UUID, actor: User) -> Chec
     _require_charges_to_collect(db, check_out)
 
     if check_out.employee_signature_image is not None:
-        raise ValueError("The employee has already signed this check-out.")
+        raise AppError("check_out.employee_already_signed_check_out", "The employee has already signed this check-out.")
 
     configuration = get_configuration(db)
 
@@ -514,10 +510,10 @@ def settle_deposit_step(db: Session, reservation_id: UUID, actor: User) -> Check
     handover = _handover(db, reservation_id)
 
     if handover is None or handover.deposit_status != "HELD":
-        raise ValueError("There is no security deposit to settle.")
+        raise AppError("check_out.there_no_security_deposit_settle", "There is no security deposit to settle.")
 
     if check_out.deposit_settled_at is not None:
-        raise ValueError("The security deposit has already been settled.")
+        raise AppError("check_out.security_deposit_already_settled", "The security deposit has already been settled.")
 
     deposit = Decimal(handover.deposit_amount)
     applied, returned, _due_now = settle_deposit(check_out.total_charge, deposit)
@@ -538,7 +534,7 @@ def settle_deposit_step(db: Session, reservation_id: UUID, actor: User) -> Check
                 stripe.PaymentIntent.cancel(handover.deposit_stripe_payment_intent_id)
         except stripe.StripeError as exc:
             if getattr(exc, "code", None) != "payment_intent_unexpected_state":
-                raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+                raise stripe_app_error(exc)
 
             # The authorization expired (or was released) before check-out:
             # nothing can be captured, so the charges are collected normally.
@@ -601,7 +597,7 @@ def submit_employee_signature(
     check_out = _require_started(db, reservation_id)
 
     if not _payment_settled(db, check_out):
-        raise ValueError("Collect the charges before signing.")
+        raise AppError("check_out.collect_charges_before_signing", "Collect the charges before signing.")
 
     check_out.employee_signature_image = signature_image
     check_out.employee_signed_at = datetime.now(timezone.utc)
@@ -635,10 +631,10 @@ def complete_check_out(
     reservation = _get_reservation(db, reservation_id)
 
     if not _payment_settled(db, check_out):
-        raise ValueError("Collect the charges before completing the check-out.")
+        raise AppError("check_out.collect_charges_before_completing_check_out", "Collect the charges before completing the check-out.")
 
     if check_out.employee_signature_image is None:
-        raise ValueError("The employee signature is required before completing.")
+        raise AppError("check_out.employee_signature_required_before_completing", "The employee signature is required before completing.")
 
     car = db.get(Car, reservation.car_id)
 

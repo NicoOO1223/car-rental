@@ -13,6 +13,7 @@ rental agreement states a same-to-same fuel policy.)
 import math
 from datetime import datetime, timedelta
 from decimal import Decimal
+from app.errors import AppError
 
 FULL_TANK_EIGHTHS = 8
 
@@ -49,7 +50,7 @@ def calculate_fuel_fee(
     """Per missing eighth, plus the refuelling service fee once any is missing."""
 
     if not 0 <= fuel_eighths <= FULL_TANK_EIGHTHS:
-        raise ValueError("The fuel level must be between 0 and 8 eighths.")
+        raise AppError("return_charge.fuel_level_must_between_0_and", "The fuel level must be between 0 and 8 eighths.")
 
     missing = FULL_TANK_EIGHTHS - fuel_eighths
 
@@ -61,11 +62,13 @@ def calculate_fuel_fee(
 
 def validate_damage_charge(amount: Decimal, maximum: Decimal) -> Decimal:
     if amount < 0:
-        raise ValueError("The damage charge cannot be negative.")
+        raise AppError("return_charge.damage_charge_cannot_negative", "The damage charge cannot be negative.")
 
     if amount > maximum:
-        raise ValueError(
-            f"The damage charge cannot exceed the configured maximum of {maximum:.2f}."
+        raise AppError(
+            "return_charge.damage_over_maximum",
+            f"The damage charge cannot exceed the configured maximum of {maximum:.2f}.",
+            maximum=f"{maximum:.2f}",
         )
 
     return amount

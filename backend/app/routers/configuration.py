@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.schemas.configuration import (
     ConfigurationUpdate,
     PublicConfigurationResponse,
 )
-from app.services.branding import InvalidLogo, remove_logo, set_logo
+from app.services.branding import remove_logo, set_logo
 from app.services.configuration import get_configuration, update_configuration
 
 router = APIRouter(
@@ -48,14 +48,11 @@ def update_configuration_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return update_configuration(
-            db,
-            actor=current_user,
-            **data.model_dump(exclude_unset=True),
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return update_configuration(
+        db,
+        actor=current_user,
+        **data.model_dump(exclude_unset=True),
+    )
 
 
 class LogoUpload(BaseModel):
@@ -70,10 +67,7 @@ def upload_logo_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        set_logo(db, actor=current_user, data_url=data.data_url)
-    except InvalidLogo as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    set_logo(db, actor=current_user, data_url=data.data_url)
 
     return Response(status_code=204)
 

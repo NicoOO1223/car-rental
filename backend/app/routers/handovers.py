@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user
 from app.models import User
@@ -35,23 +36,13 @@ router = APIRouter(
 )
 
 
-def _raise_for_value_error(exc: ValueError):
-    if str(exc) == "Reservation not found.":
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    raise HTTPException(status_code=400, detail=str(exc))
-
-
 @router.get("", response_model=HandoverResponse)
 def get_handover_state(
     reservation_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = get_or_create_handover(db, reservation_id, actor=current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = get_or_create_handover(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -62,12 +53,9 @@ def create_payment_intent_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover, intent, breakdown = create_or_reuse_payment_intent(
-            db, reservation_id, actor=current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover, intent, breakdown = create_or_reuse_payment_intent(
+        db, reservation_id, actor=current_user
+    )
 
     return PaymentIntentResponse(
         client_secret=intent.client_secret,
@@ -106,10 +94,7 @@ def confirm_payment_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = confirm_payment(db, reservation_id, actor=current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = confirm_payment(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -120,10 +105,7 @@ def confirm_cash_payment_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = confirm_cash_payment(db, reservation_id, actor=current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = confirm_cash_payment(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -135,12 +117,9 @@ def submit_signature_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = submit_signature(
-            db, reservation_id, data.signature_image, actor=current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = submit_signature(
+        db, reservation_id, data.signature_image, actor=current_user
+    )
 
     return HandoverResponse.from_model(handover)
 
@@ -151,12 +130,9 @@ def create_deposit_intent_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover, intent = create_or_reuse_deposit_intent(
-            db, reservation_id, current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover, intent = create_or_reuse_deposit_intent(
+        db, reservation_id, current_user
+    )
 
     return DepositIntentResponse(
         client_secret=intent.client_secret,
@@ -176,10 +152,7 @@ def confirm_deposit_hold_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = confirm_deposit_hold(db, reservation_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = confirm_deposit_hold(db, reservation_id, current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -190,10 +163,7 @@ def confirm_cash_deposit_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = confirm_cash_deposit(db, reservation_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = confirm_cash_deposit(db, reservation_id, current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -205,12 +175,9 @@ def submit_employee_signature_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = submit_employee_signature(
-            db, reservation_id, data.signature_image, actor=current_user
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = submit_employee_signature(
+        db, reservation_id, data.signature_image, actor=current_user
+    )
 
     return HandoverResponse.from_model(handover)
 
@@ -221,10 +188,7 @@ def generate_agreement_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = generate_agreement(db, reservation_id, actor=current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = generate_agreement(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -235,13 +199,10 @@ def download_agreement_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        handover = get_or_create_handover(db, reservation_id, actor=current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    handover = get_or_create_handover(db, reservation_id, actor=current_user)
 
     if handover.agreement_pdf is None:
-        raise HTTPException(status_code=404, detail="Agreement has not been generated yet.")
+        raise NotFoundError("handover.agreement_missing", "Agreement has not been generated yet.")
 
     return Response(
         content=handover.agreement_pdf,

@@ -3,6 +3,8 @@ from decimal import Decimal
 
 import pytest
 
+from app.errors import AppError
+
 from app.services.return_charges import (
     calculate_fuel_fee,
     calculate_late_fee,
@@ -59,7 +61,7 @@ def test_missing_fuel_is_charged_per_eighth_plus_service_fee():
 
 @pytest.mark.parametrize("level", [-1, 9])
 def test_fuel_level_must_be_within_the_tank(level):
-    with pytest.raises(ValueError):
+    with pytest.raises(AppError):
         calculate_fuel_fee(level, Decimal("8.00"), Decimal("10.00"))
 
 
@@ -69,10 +71,10 @@ def test_damage_charge_is_bounded():
     assert validate_damage_charge(Decimal("0"), maximum) == Decimal("0")
     assert validate_damage_charge(Decimal("2000.00"), maximum) == Decimal("2000.00")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AppError):
         validate_damage_charge(Decimal("-1"), maximum)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AppError):
         validate_damage_charge(Decimal("2000.01"), maximum)
 
 

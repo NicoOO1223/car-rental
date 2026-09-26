@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError, NotFoundError
 from app.models import Customer, User
 from app.schemas.customer import CustomerUpdate
 from app.services.audit import audit_log
@@ -69,10 +70,10 @@ def update_customer(
     customer = db.get(Customer, customer_id)
 
     if customer is None:
-        raise ValueError("Customer not found.")
+        raise NotFoundError("customer.not_found", "Customer not found.")
 
     if customer.anonymized_at is not None:
-        raise ValueError("Customer data has been erased and can no longer be edited.")
+        raise AppError("customer.erased_not_editable", "Customer data has been erased and can no longer be edited.")
 
     updates = data.model_dump(exclude_unset=True)
 

@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.models import BusinessLogo, User
 from app.services.audit import audit_log
 
@@ -34,24 +35,26 @@ MAX_PIXELS = 25_000_000
 _DATA_URL = re.compile(r"^data:image/(png|jpeg);base64,([A-Za-z0-9+/=\s]+)$")
 
 
-class InvalidLogo(ValueError):
-    pass
+class InvalidLogo(AppError):
+    """A logo that cannot be used. An AppError, so the interface shows the reason in the user's language."""
 
 
 def _decode(data_url: str) -> bytes:
     match = _DATA_URL.match(data_url.strip())
 
     if match is None:
-        raise InvalidLogo("The logo must be a PNG or JPEG image.")
+        raise InvalidLogo("logo.wrong_type", "The logo must be a PNG or JPEG image.")
 
     try:
         raw = base64.b64decode(re.sub(r"\s+", "", match.group(2)), validate=True)
     except (binascii.Error, ValueError):
-        raise InvalidLogo("The logo file is corrupted.")
+        raise InvalidLogo("logo.corrupted", "The logo file is corrupted.")
 
     if len(raw) > MAX_UPLOAD_BYTES:
         raise InvalidLogo(
-            f"The logo is too large. The limit is {MAX_UPLOAD_BYTES // 1024} KB."
+            "logo.too_large",
+            f"The logo is too large. The limit is {MAX_UPLOAD_BYTES // 1024} KB.",
+            limit_kb=MAX_UPLOAD_BYTES // 1024,
         )
 
     return raw
@@ -63,12 +66,12 @@ def _normalize(raw: bytes) -> tuple[bytes, str]:
     try:
         with Image.open(io.BytesIO(raw)) as image:
             if image.format not in ("PNG", "JPEG"):
-                raise InvalidLogo("The logo must be a PNG or JPEG image.")
+                raise InvalidLogo("logo.wrong_type", "The logo must be a PNG or JPEG image.")
 
             width, height = image.size
 
             if width * height > MAX_PIXELS:
-                raise InvalidLogo("The logo dimensions are too large.")
+                raise InvalidLogo("logo.dimensions_too_large", "The logo dimensions are too large.")
 
             image.load()
             image_format = image.format
@@ -76,7 +79,7 @@ def _normalize(raw: bytes) -> tuple[bytes, str]:
     except InvalidLogo:
         raise
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
-        raise InvalidLogo("The logo file could not be read as an image.")
+        raise InvalidLogo("logo.unreadable", "The logo file could not be read as an image.")
 
     working.thumbnail((MAX_DIMENSION, MAX_DIMENSION))
 

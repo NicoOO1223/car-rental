@@ -2,6 +2,7 @@ from uuid import UUID
 from zoneinfo import available_timezones
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 
 class LocationResponse(BaseModel):
@@ -17,7 +18,7 @@ class LocationResponse(BaseModel):
 
 def _check_timezone(value: str | None) -> str | None:
     if value is not None and value not in available_timezones():
-        raise ValueError("Unknown timezone. Use an IANA name such as 'Europe/Rome'.")
+        raise PydanticCustomError("validation.timezone_unknown", "Unknown timezone. Use an IANA name such as 'Europe/Rome'.")
 
     return value
 
@@ -34,7 +35,7 @@ class LocationCreate(BaseModel):
     def strip_name(cls, v: str) -> str:
         v = v.strip()
         if not v:
-            raise ValueError("The name cannot be empty.")
+            raise PydanticCustomError("validation.name_empty", "The name cannot be empty.")
         return v
 
     @field_validator("airport_code")
@@ -42,7 +43,7 @@ class LocationCreate(BaseModel):
     def normalize_code(cls, v: str) -> str:
         v = v.strip().upper()
         if not v.isalnum() or not (2 <= len(v) <= 10):
-            raise ValueError("The code must be 2 to 10 letters or digits.")
+            raise PydanticCustomError("validation.location_code_invalid", "The code must be 2 to 10 letters or digits.")
         return v
 
     @field_validator("address")
@@ -70,7 +71,7 @@ class LocationUpdate(BaseModel):
             return v
         v = v.strip()
         if not v:
-            raise ValueError("The name cannot be empty.")
+            raise PydanticCustomError("validation.name_empty", "The name cannot be empty.")
         return v
 
     @field_validator("airport_code")
@@ -80,7 +81,7 @@ class LocationUpdate(BaseModel):
             return v
         v = v.strip().upper()
         if not v.isalnum() or not (2 <= len(v) <= 10):
-            raise ValueError("The code must be 2 to 10 letters or digits.")
+            raise PydanticCustomError("validation.location_code_invalid", "The code must be 2 to 10 letters or digits.")
         return v
 
     @field_validator("timezone")

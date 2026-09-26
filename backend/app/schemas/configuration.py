@@ -3,6 +3,7 @@ from zoneinfo import available_timezones
 from app.languages import SUPPORTED_LANGUAGES
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 # Formats only: the interface itself is English. A short list keeps every
 # option one the frontend has been checked against.
@@ -81,14 +82,18 @@ class ConfigurationUpdate(BaseModel):
     @classmethod
     def language_must_be_supported(cls, v: str | None) -> str | None:
         if v is not None and v not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Language must be one of: {', '.join(SUPPORTED_LANGUAGES)}.")
+            raise PydanticCustomError(
+                "validation.language_unsupported",
+                "Language must be one of: {allowed}.",
+                {"allowed": ", ".join(SUPPORTED_LANGUAGES)},
+            )
         return v
 
     @field_validator("vat_rate")
     @classmethod
     def vat_rate_is_a_percentage(cls, v: float | None) -> float | None:
         if v is not None and not (0 <= v <= 100):
-            raise ValueError("The VAT rate must be between 0 and 100 percent.")
+            raise PydanticCustomError("validation.vat_rate_range", "The VAT rate must be between 0 and 100 percent.")
         return v
 
     @field_validator("invoice_prefix")
@@ -98,7 +103,7 @@ class ConfigurationUpdate(BaseModel):
             return v
         v = v.strip().upper()
         if not (1 <= len(v) <= 10) or not v.replace("-", "").isalnum():
-            raise ValueError("The invoice prefix must be 1 to 10 letters, digits or dashes.")
+            raise PydanticCustomError("validation.invoice_prefix_invalid", "The invoice prefix must be 1 to 10 letters, digits or dashes.")
         return v
 
     @field_validator(
@@ -119,35 +124,39 @@ class ConfigurationUpdate(BaseModel):
     def business_name_is_required(cls, v: str | None) -> str | None:
         # Shown on the login page and every tab title, so it cannot be blank.
         if v is not None and not v:
-            raise ValueError("The business name cannot be empty.")
+            raise PydanticCustomError("validation.business_name_empty", "The business name cannot be empty.")
         return v
 
     @field_validator("timezone")
     @classmethod
     def timezone_must_be_known(cls, v: str | None) -> str | None:
         if v is not None and v not in available_timezones():
-            raise ValueError("Unknown timezone. Use an IANA name such as 'Europe/Rome'.")
+            raise PydanticCustomError("validation.timezone_unknown", "Unknown timezone. Use an IANA name such as 'Europe/Rome'.")
         return v
 
     @field_validator("locale")
     @classmethod
     def locale_must_be_supported(cls, v: str | None) -> str | None:
         if v is not None and v not in SUPPORTED_LOCALES:
-            raise ValueError(f"Locale must be one of: {', '.join(SUPPORTED_LOCALES)}.")
+            raise PydanticCustomError(
+                "validation.locale_unsupported",
+                "Locale must be one of: {allowed}.",
+                {"allowed": ", ".join(SUPPORTED_LOCALES)},
+            )
         return v
 
     @field_validator("short_term_threshold_days")
     @classmethod
     def threshold_must_be_positive(cls, v: int | None) -> int | None:
         if v is not None and v < 1:
-            raise ValueError("Short-term threshold must be at least 1 day.")
+            raise PydanticCustomError("validation.threshold_min", "Short-term threshold must be at least 1 day.")
         return v
 
     @field_validator("late_return_grace_minutes")
     @classmethod
     def grace_must_not_be_negative(cls, v: int | None) -> int | None:
         if v is not None and v < 0:
-            raise ValueError("The grace period cannot be negative.")
+            raise PydanticCustomError("validation.grace_negative", "The grace period cannot be negative.")
         return v
 
     @field_validator(
@@ -162,14 +171,14 @@ class ConfigurationUpdate(BaseModel):
     @classmethod
     def fee_must_not_be_negative(cls, v: float | None) -> float | None:
         if v is not None and v < 0:
-            raise ValueError("Fees cannot be negative.")
+            raise PydanticCustomError("validation.fee_negative", "Fees cannot be negative.")
         return v
 
     @field_validator("access_token_expire_days")
     @classmethod
     def expiry_must_be_positive(cls, v: int | None) -> int | None:
         if v is not None and v < 1:
-            raise ValueError("Access token expiry must be at least 1 day.")
+            raise PydanticCustomError("validation.token_expiry_min", "Access token expiry must be at least 1 day.")
         return v
 
     @field_validator("default_currency")
@@ -179,7 +188,7 @@ class ConfigurationUpdate(BaseModel):
             return v
         normalized = v.strip().lower()
         if len(normalized) != 3 or not normalized.isalpha():
-            raise ValueError("Currency must be a 3-letter code, e.g. 'eur'.")
+            raise PydanticCustomError("validation.currency_code", "Currency must be a 3-letter code, e.g. 'eur'.")
         return normalized
 
 

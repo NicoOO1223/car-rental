@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -25,13 +25,6 @@ router = APIRouter(
 )
 
 
-def _raise_for_value_error(exc: ValueError):
-    if str(exc) in ("Car not found.", "Maintenance task not found."):
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    raise HTTPException(status_code=400, detail=str(exc))
-
-
 @router.get("/tasks", response_model=list[MaintenanceTaskResponse])
 def list_tasks_endpoint(
     status: str | None = Query(default=None),
@@ -47,19 +40,16 @@ def create_task_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        task = create_task(
-            db,
-            data.car_id,
-            data.task_type,
-            data.category,
-            data.notes,
-            data.starts_at,
-            data.ends_at,
-            current_user,
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    task = create_task(
+        db,
+        data.car_id,
+        data.task_type,
+        data.category,
+        data.notes,
+        data.starts_at,
+        data.ends_at,
+        current_user,
+    )
 
     return task
 
@@ -71,15 +61,12 @@ def complete_task_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        task = complete_task(
-            db,
-            task_id,
-            current_user,
-            data.next_inspection_due if data else None,
-        )
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    task = complete_task(
+        db,
+        task_id,
+        current_user,
+        data.next_inspection_due if data else None,
+    )
 
     return task
 
@@ -90,9 +77,6 @@ def cancel_task_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        task = cancel_task(db, task_id, current_user)
-    except ValueError as exc:
-        _raise_for_value_error(exc)
+    task = cancel_task(db, task_id, current_user)
 
     return task

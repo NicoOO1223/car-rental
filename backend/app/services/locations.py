@@ -2,6 +2,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.errors import AppError, NotFoundError
 from app.models import Car, Location, Reservation, User
 from app.services.audit import audit_log
 from app.services.configuration import get_configuration
@@ -25,10 +26,16 @@ def require_bookable_location(db: Session, location_id, label: str) -> Location:
     location = db.get(Location, location_id)
 
     if location is None:
-        raise ValueError(f"The {label} location was not found.")
+        if label == "pickup":
+            raise NotFoundError("location.pickup_not_found", "The pickup location was not found.")
+
+        raise NotFoundError("location.return_not_found", "The return location was not found.")
 
     if not location.is_active:
-        raise ValueError(f"The {label} location is no longer in use.")
+        if label == "pickup":
+            raise AppError("location.pickup_not_in_use", "The pickup location is no longer in use.")
+
+        raise AppError("location.return_not_in_use", "The return location is no longer in use.")
 
     return location
 
@@ -43,7 +50,7 @@ def create_location(
     timezone: str | None,
 ) -> Location:
     if db.scalar(select(Location.id).where(Location.airport_code == airport_code)):
-        raise ValueError("A location with this code already exists.")
+        raise AppError("location.code_taken", "A location with this code already exists.")
 
     location = Location(
         name=name,
@@ -59,7 +66,7 @@ def create_location(
         db.flush()
     except IntegrityError:
         db.rollback()
-        raise ValueError("A location with this code already exists.")
+        raise AppError("location.code_taken", "A location with this code already exists.")
 
     audit_log(
         db,
@@ -84,7 +91,7 @@ def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}" + ("" if count == 1 else "s")
 
 
-def _in_use_message(db: Session, location: Location) -> str | None:
+def _in_use_error(db: Session, location: Location) -> AppError | None:
     """Why this location cannot be switched off right now, or None."""
 
     cars_here = db.scalar(
@@ -116,10 +123,15 @@ def _in_use_message(db: Session, location: Location) -> str | None:
     if not problems:
         return None
 
-    return (
+    return AppError(
+        "location.in_use",
         "This location is still in use: "
         + " and ".join(problems)
-        + ". Move the vehicles and finish or cancel the reservations first."
+        + ". Move the vehicles and finish or cancel the reservations first.",
+        # The counts, so the sentence can be rebuilt in any language.
+        vehicles=cars_here or 0,
+        reservations=open_reservations or 0,
+        both="yes" if cars_here and open_reservations else "no",
     )
 
 
@@ -146,13 +158,13 @@ def update_location(db: Session, *, actor: User, location: Location, **fields) -
             )
 
             if taken:
-                raise ValueError("A location with this code already exists.")
+                raise AppError("location.code_taken", "A location with this code already exists.")
 
         if field == "is_active" and value is False:
-            message = _in_use_message(db, location)
+            error = _in_use_error(db, location)
 
-            if message:
-                raise ValueError(message)
+            if error:
+                raise error
 
         changes[field] = {"old": current, "new": value}
         setattr(location, field, value)

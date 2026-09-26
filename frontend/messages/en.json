@@ -112,5 +112,232 @@
       "documentLanguage": "Document language",
       "documentLanguageHint": "The language the rental agreement and invoices are printed in, whatever language staff use."
     }
+  },
+  "errors": {
+    "auth": {
+      "forbidden": "You do not have permission to perform this action.",
+      "invalid_credentials": "Incorrect email or password.",
+      "not_authenticated": "Not authenticated.",
+      "too_many_attempts": "Too many login attempts. Try again later."
+    },
+    "branding": {
+      "no_logo": "No logo has been uploaded."
+    },
+    "car": {
+      "cannot_move_yet": "This car can't be moved yet: it has an active rental or reservations that pick it up at {airport} ({references}). Cancel or complete them first.",
+      "car_already_at_its_home_airport": "This car is already at its home airport.",
+      "invalid_tire_condition_value": "Invalid tire condition value.",
+      "license_plate_already_use": "License plate already in use.",
+      "not_found": "Car not found."
+    },
+    "check_out": {
+      "car_already_maintenance_or_cleaning_scheduled": "The car already has maintenance or cleaning scheduled in that period.",
+      "car_reservation_period_cancel_or_move": "The car has a reservation in that period. Cancel or move the reservation first.",
+      "charges_have_already_paid": "The charges have already been paid.",
+      "check_out_already_completed": "This check-out has already been completed.",
+      "choose_when_car_out_service_repair": "Choose when the car is out of service for the repair.",
+      "collect_charges_before_completing_check_out": "Collect the charges before completing the check-out.",
+      "collect_charges_before_signing": "Collect the charges before signing.",
+      "damage_charge_needs_damage_reported": "A damage charge needs damage to be reported.",
+      "describe_damage": "Describe the damage.",
+      "employee_already_signed_check_out": "The employee has already signed this check-out.",
+      "employee_signature_required_before_completing": "The employee signature is required before completing.",
+      "give_reason_waiving_charge": "Give a reason for waiving a charge.",
+      "mileage_below_recorded": "The mileage cannot be lower than the car's recorded {km, number} km.",
+      "mileage_cannot_negative": "The mileage cannot be negative.",
+      "no_payment_initiated_check_out": "No payment has been initiated for this check-out.",
+      "only_rental_out_with_customer_can": "Only a rental that is out with the customer can be checked out.",
+      "record_vehicle_condition_first": "Record the vehicle's condition first.",
+      "repair_must_end_after_starts": "The repair must end after it starts.",
+      "repair_window_must_end_future": "The repair window must end in the future.",
+      "security_deposit_already_settled": "The security deposit has already been settled.",
+      "settle_security_deposit_first": "Settle the security deposit first.",
+      "there_are_no_charges_collect": "There are no charges to collect.",
+      "there_no_fuel_fee_waive": "There is no fuel fee to waive.",
+      "there_no_late_fee_waive": "There is no late fee to waive.",
+      "there_no_security_deposit_settle": "There is no security deposit to settle."
+    },
+    "customer": {
+      "cannot_erase_customer_with_active_or": "Cannot erase a customer with an active or upcoming reservation.",
+      "customer_data_already_erased": "Customer data has already been erased.",
+      "erased": "This customer's data has been erased.",
+      "erased_not_editable": "Customer data has been erased and can no longer be edited.",
+      "not_found": "Customer not found.",
+      "reservation_not_found": "Reservation not found for this customer."
+    },
+    "date_range": {
+      "start_after_end": "start_date must not be after end_date.",
+      "too_long": "Date range must not exceed {max_days, number} days."
+    },
+    "deposit": {
+      "deposit_already_settled": "This deposit has already been settled.",
+      "no_deposit_started_reservation": "No deposit has been started for this reservation.",
+      "security_deposit_already_held": "The security deposit is already held.",
+      "security_deposits_are_not_enabled": "Security deposits are not enabled.",
+      "take_rental_payment_before_security_deposit": "Take the rental payment before the security deposit."
+    },
+    "extra": {
+      "max_quantity": "At most {max, number} x {name} can be added.",
+      "new_order_must_list_every_extra": "The new order must list every extra exactly once.",
+      "no_longer_available": "{name} is no longer available.",
+      "not_found": "Extra not found.",
+      "price_cannot_empty": "The price cannot be empty.",
+      "same_extra_was_selected_more_than": "The same extra was selected more than once.",
+      "unknown_extra_selected": "Unknown extra selected."
+    },
+    "generic": {
+      "delete": "Could not delete this. Please try again.",
+      "download": "Could not download the file. Please try again.",
+      "failed": "Something went wrong. Please try again.",
+      "load": "Could not load this. Please try again.",
+      "network": "Could not reach the server. Check your connection and try again.",
+      "save": "Could not save your changes. Please try again."
+    },
+    "handover": {
+      "agreement_missing": "Agreement has not been generated yet.",
+      "cannot_generate_status": "Cannot generate agreement for a {status} reservation.",
+      "cannot_sign_status": "Cannot sign for a {status} reservation.",
+      "customer_must_sign_before_employee": "The customer must sign before the employee.",
+      "customer_signature_required_before_generating_agreement": "Customer signature is required before generating the agreement.",
+      "employee_signature_required_before_generating_agreement": "Employee signature is required before generating the agreement.",
+      "handover_only_available_confirmed_reservations": "Handover is only available for confirmed reservations.",
+      "identity_incomplete": "Identity check incomplete: {problem}",
+      "no_payment_initiated_reservation": "No payment has been initiated for this reservation.",
+      "payment_must_completed_before_generating_agreement": "Payment must be completed before generating the agreement.",
+      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement."
+    },
+    "http": {
+      "400": "The request was not valid.",
+      "401": "You are not signed in.",
+      "403": "You do not have permission to perform this action.",
+      "404": "Not found.",
+      "405": "That action is not allowed here.",
+      "413": "That is too large to send.",
+      "429": "Too many requests. Try again later.",
+      "500": "Something went wrong on the server.",
+      "503": "The service is not available right now."
+    },
+    "identity": {
+      "confirm_you_checked_customer_original_documents": "Confirm that you checked the customer's original documents.",
+      "documents_not_checked": "An employee must confirm the original documents were checked.",
+      "driving_licence_expired": "The driving licence has expired.",
+      "driving_licence_number_required": "The driving licence number is required.",
+      "enter_customer_id_number_or_number": "Enter the customer's ID number, or the number of an ID document such as a passport.",
+      "licence_details_missing": "Enter the customer's driving licence number and expiry date.",
+      "licence_expires_before_rental_ends": "The driving licence expires before the rental ends.",
+      "licence_must_issued_before_expires": "The licence must be issued before it expires.",
+      "not_valid_pesel": "That is not a valid PESEL.",
+      "select_id_document_type": "Select the ID document type.",
+      "use_2_letter_country_code_licence": "Use a 2-letter country code for the licence."
+    },
+    "invoice": {
+      "not_found": "Invoice not found."
+    },
+    "location": {
+      "code_taken": "A location with this code already exists.",
+      "in_use": "This location is still in use: {vehicles, plural, =0 {} one {# vehicle based or parked there} other {# vehicles based or parked there}}{both, select, yes { and } other {}}{reservations, plural, =0 {} one {# open reservation} other {# open reservations}}. Move the vehicles and finish or cancel the reservations first.",
+      "not_found": "Location not found.",
+      "pickup_not_found": "The pickup location was not found.",
+      "pickup_not_in_use": "The pickup location is no longer in use.",
+      "return_not_found": "The return location was not found.",
+      "return_not_in_use": "The return location is no longer in use."
+    },
+    "logo": {
+      "corrupted": "The logo file is corrupted.",
+      "dimensions_too_large": "The logo dimensions are too large.",
+      "too_large": "The logo is too large. The limit is {limit_kb, number} KB.",
+      "unreadable": "The logo file could not be read as an image.",
+      "wrong_type": "The logo must be a PNG or JPEG image."
+    },
+    "maintenance": {
+      "car_already_maintenance_or_cleaning_scheduled": "This car already has maintenance or cleaning scheduled during this period.",
+      "car_reservation_during_period_cancel_or": "This car has a reservation during this period. Cancel or move the reservation first.",
+      "end_time_must_after_start_time": "End time must be after start time.",
+      "enter_when_next_technical_inspection_due": "Enter when the next technical inspection is due.",
+      "invalid_task_type": "Invalid task type.",
+      "maintenance_window_must_end_future": "The maintenance window must end in the future.",
+      "next_inspection_must_due_after_today": "The next inspection must be due after today.",
+      "only_maintenance_tasks_have_category": "Only maintenance tasks have a category.",
+      "only_open_task_can_closed": "Only an open task can be closed.",
+      "select_maintenance_category": "Select a maintenance category.",
+      "task_not_found": "Maintenance task not found."
+    },
+    "reservation": {
+      "cannot_change_status": "Cannot change reservation status from {from_status} to {to_status}.",
+      "cannot_edit_status": "Cannot edit a {status} reservation.",
+      "car_already_reserved_part_period": "Car is already reserved for part of this period.",
+      "car_not_currently_available": "Car is not currently available.",
+      "car_not_located_at_selected_pickup": "Car is not located at the selected pickup location.",
+      "car_scheduled_maintenance_or_cleaning_during": "Car is scheduled for maintenance or cleaning during this period.",
+      "completed_reservations_cannot_cancelled": "Completed reservations cannot be cancelled.",
+      "extras_cannot_changed_after_payment_taken": "Extras cannot be changed after payment has been taken.",
+      "not_found": "Reservation not found.",
+      "reservation_already_cancelled": "Reservation is already cancelled.",
+      "return_before_pickup": "Return time must be after pickup time."
+    },
+    "return_charge": {
+      "damage_charge_cannot_negative": "The damage charge cannot be negative.",
+      "damage_over_maximum": "The damage charge cannot exceed the configured maximum of {maximum}.",
+      "fuel_level_must_between_0_and": "The fuel level must be between 0 and 8 eighths."
+    },
+    "stripe": {
+      "error": "Stripe error: {reason}",
+      "not_configured": "Stripe is not configured on the server. Set STRIPE_SECRET_KEY in backend/.env to enable payments.",
+      "webhook_bad_signature": "Invalid signature.",
+      "webhook_failed": "Could not process event.",
+      "webhook_not_configured": "Webhook is not configured.",
+      "webhook_too_large": "Payload too large."
+    },
+    "user": {
+      "email_taken": "A user with this email already exists.",
+      "not_found": "User not found.",
+      "you_cannot_change_your_own_role": "You cannot change your own role.",
+      "you_cannot_deactivate_your_own_account": "You cannot deactivate your own account."
+    },
+    "validation": {
+      "bool_parsing": "Choose yes or no.",
+      "business_name_empty": "The business name cannot be empty.",
+      "currency_code": "Currency must be a 3-letter code, e.g. 'eur'.",
+      "date_from_datetime_parsing": "Enter a valid date.",
+      "date_parsing": "Enter a valid date.",
+      "datetime_from_date_parsing": "Enter a valid date and time.",
+      "datetime_parsing": "Enter a valid date and time.",
+      "decimal_parsing": "Enter a number.",
+      "dict_type": "That is not valid data.",
+      "enum": "That is not one of the allowed choices.",
+      "failed": "Some of the information is not valid.",
+      "fee_negative": "Fees cannot be negative.",
+      "float_parsing": "Enter a number.",
+      "grace_negative": "The grace period cannot be negative.",
+      "greater_than": "This value is too small.",
+      "greater_than_equal": "This value is too small.",
+      "int_parsing": "Enter a whole number.",
+      "invoice_prefix_invalid": "The invoice prefix must be 1 to 10 letters, digits or dashes.",
+      "json_invalid": "That is not valid data.",
+      "language_unsupported": "Language must be one of: {allowed}.",
+      "less_than": "This value is too large.",
+      "less_than_equal": "This value is too large.",
+      "list_type": "That is not a valid list.",
+      "literal_error": "That is not one of the allowed choices.",
+      "locale_unsupported": "Locale must be one of: {allowed}.",
+      "location_code_invalid": "The code must be 2 to 10 letters or digits.",
+      "missing": "This field is required.",
+      "model_attributes_type": "That is not valid data.",
+      "name_empty": "The name cannot be empty.",
+      "password_too_short": "Password must be at least 8 characters.",
+      "role_invalid": "Role must be one of: {allowed}.",
+      "string_too_long": "This is too long.",
+      "string_too_short": "This is too short.",
+      "string_type": "Enter text.",
+      "threshold_min": "Short-term threshold must be at least 1 day.",
+      "timezone_unknown": "Unknown timezone. Use an IANA name such as 'Europe/Rome'.",
+      "token_expiry_min": "Access token expiry must be at least 1 day.",
+      "too_long": "There are too many items.",
+      "too_short": "Add at least one item.",
+      "url_parsing": "Enter a valid web address.",
+      "uuid_parsing": "That is not a valid identifier.",
+      "value_error": "This value is not valid.",
+      "vat_rate_range": "The VAT rate must be between 0 and 100 percent."
+    }
   }
 }

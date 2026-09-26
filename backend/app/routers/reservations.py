@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user
 from app.schemas.pricing import PriceBreakdownFields
@@ -54,24 +55,17 @@ def create_reservation_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        reservation = create_reservation(
-            db=db,
-            customer_data=data.customer,
-            car_id=data.car_id,
-            pickup_location_id=data.pickup_location_id,
-            return_location_id=data.return_location_id,
-            pickup_at=data.pickup_at,
-            return_at=data.return_at,
-            extras=data.extras,
-            actor=current_user,
-        )
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    reservation = create_reservation(
+        db=db,
+        customer_data=data.customer,
+        car_id=data.car_id,
+        pickup_location_id=data.pickup_location_id,
+        return_location_id=data.return_location_id,
+        pickup_at=data.pickup_at,
+        return_at=data.return_at,
+        extras=data.extras,
+        actor=current_user,
+    )
 
     return reservation
 
@@ -89,14 +83,7 @@ def quote_reservation_endpoint(
     the pricing rules client-side.
     """
 
-    try:
-        breakdown, rental_days, available, message = quote_reservation(db, data)
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    breakdown, rental_days, available, message = quote_reservation(db, data)
 
     currency = get_configuration(db).default_currency
 
@@ -117,24 +104,11 @@ def cancel_reservation_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        reservation = cancel_reservation(
-            db=db,
-            reservation_id=reservation_id,
-            actor=current_user,
-        )
-
-    except ValueError as exc:
-        if str(exc) == "Reservation not found.":
-            raise HTTPException(
-                status_code=404,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    reservation = cancel_reservation(
+        db=db,
+        reservation_id=reservation_id,
+        actor=current_user,
+    )
 
     return reservation
 
@@ -210,10 +184,7 @@ def get_reservation(
     )
 
     if reservation is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Reservation not found.",
-        )
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     return reservation
 
@@ -227,25 +198,12 @@ def update_reservation_status_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        reservation = update_reservation_status(
-            db=db,
-            reservation_id=reservation_id,
-            new_status=data.status,
-            actor=current_user,
-        )
-
-    except ValueError as exc:
-        if str(exc) == "Reservation not found.":
-            raise HTTPException(
-                status_code=404,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    reservation = update_reservation_status(
+        db=db,
+        reservation_id=reservation_id,
+        new_status=data.status,
+        actor=current_user,
+    )
 
     return reservation
 
@@ -259,24 +217,11 @@ def update_reservation_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        reservation = update_reservation(
-            db=db,
-            reservation_id=reservation_id,
-            data=data,
-            actor=current_user,
-        )
-
-    except ValueError as exc:
-        if str(exc) == "Reservation not found.":
-            raise HTTPException(
-                status_code=404,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    reservation = update_reservation(
+        db=db,
+        reservation_id=reservation_id,
+        data=data,
+        actor=current_user,
+    )
 
     return reservation

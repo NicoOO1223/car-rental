@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.errors import AppError, NotFoundError
 from app.models import Customer, Reservation, User
 from app.schemas.customer import IdentityDetailsResponse, IdentityDetailsUpdate
 from app.services.audit import audit_log
@@ -40,12 +41,12 @@ def _get_customer(db: Session, customer_id: UUID) -> Customer:
     customer = db.get(Customer, customer_id)
 
     if customer is None:
-        raise ValueError("Customer not found.")
+        raise NotFoundError("customer.not_found", "Customer not found.")
 
     return customer
 
 
-def identity_problem(customer: Customer, return_at: datetime | None = None) -> str | None:
+def identity_issue(customer: Customer, return_at: datetime | None = None) -> AppError | None:
     """
     Why this customer's recorded identity can't yet back a rental, or None
     when it can. A customer verified through the old Stripe Identity flow
@@ -62,23 +63,43 @@ def identity_problem(customer: Customer, return_at: datetime | None = None) -> s
         return None
 
     if customer.anonymized_at is not None:
-        return "This customer's data has been erased."
+        return AppError("customer.erased", "This customer's data has been erased.")
 
     if not (customer.national_id_number or customer.id_document_number):
-        return "Enter the customer's ID number, or the number of an ID document such as a passport."
+        return AppError(
+            "identity.enter_customer_id_number_or_number",
+            "Enter the customer's ID number, or the number of an ID document such as a passport.",
+        )
 
     if not customer.driving_license_number or customer.driving_license_expires_at is None:
-        return "Enter the customer's driving licence number and expiry date."
+        return AppError(
+            "identity.licence_details_missing",
+            "Enter the customer's driving licence number and expiry date.",
+        )
 
     if customer.identity_checked_at is None:
-        return "An employee must confirm the original documents were checked."
+        return AppError(
+            "identity.documents_not_checked",
+            "An employee must confirm the original documents were checked.",
+        )
 
     last_day = (return_at or datetime.now(timezone.utc)).date()
 
     if customer.driving_license_expires_at < last_day:
-        return "The driving licence expires before the rental ends."
+        return AppError(
+            "identity.licence_expires_before_rental_ends",
+            "The driving licence expires before the rental ends.",
+        )
 
     return None
+
+
+def identity_problem(customer: Customer, return_at: datetime | None = None) -> str | None:
+    """The English text of identity_issue(), for screens that show the problem."""
+
+    issue = identity_issue(customer, return_at)
+
+    return issue.message if issue is not None else None
 
 
 def _build_response(
@@ -101,6 +122,7 @@ def _build_response(
         identity_checked_by_email=checker.email if checker is not None else None,
         legacy_stripe_verified=customer.identity_verification_status == "verified",
         problem=identity_problem(customer, return_at),
+        problem_code=(lambda issue: issue.code if issue else None)(identity_issue(customer, return_at)),
     )
 
 
@@ -122,7 +144,7 @@ def _return_at_for(
     reservation = db.get(Reservation, reservation_id)
 
     if reservation is None or reservation.customer_id != customer_id:
-        raise ValueError("Reservation not found for this customer.")
+        raise AppError("customer.reservation_not_found", "Reservation not found for this customer.")
 
     return reservation.return_at
 
@@ -161,45 +183,43 @@ def save_identity_details(
     return_at = _return_at_for(db, customer_id, reservation_id)
 
     if customer.anonymized_at is not None:
-        raise ValueError("This customer's data has been erased.")
+        raise AppError("customer.erased", "This customer's data has been erased.")
 
     if not data.documents_checked:
-        raise ValueError("Confirm that you checked the customer's original documents.")
+        raise AppError("identity.confirm_you_checked_customer_original_documents", "Confirm that you checked the customer's original documents.")
 
     national_id = (data.national_id_number or "").strip().replace(" ", "")
     document_number = (data.id_document_number or "").strip() or None
 
     if not (national_id or document_number):
-        raise ValueError(
-            "Enter the customer's ID number, or the number of an ID document such as a passport."
-        )
+        raise AppError("identity.enter_customer_id_number_or_number", "Enter the customer's ID number, or the number of an ID document such as a passport.")
 
     # The one country-specific rule: a Polish customer's national number is
     # a PESEL, which has a checksum. Only checked when one is entered.
     if national_id and customer.nationality == "PL" and not is_valid_pesel(national_id):
-        raise ValueError("That is not a valid PESEL.")
+        raise AppError("identity.not_valid_pesel", "That is not a valid PESEL.")
 
     license_number = data.driving_license_number.strip()
 
     if not license_number:
-        raise ValueError("The driving licence number is required.")
+        raise AppError("identity.driving_licence_number_required", "The driving licence number is required.")
 
     if data.driving_license_expires_at < datetime.now(timezone.utc).date():
-        raise ValueError("The driving licence has expired.")
+        raise AppError("identity.driving_licence_expired", "The driving licence has expired.")
 
     if (
         data.driving_license_issued_at is not None
         and data.driving_license_issued_at >= data.driving_license_expires_at
     ):
-        raise ValueError("The licence must be issued before it expires.")
+        raise AppError("identity.licence_must_issued_before_expires", "The licence must be issued before it expires.")
 
     if document_number and data.id_document_type not in DOCUMENT_TYPES:
-        raise ValueError("Select the ID document type.")
+        raise AppError("identity.select_id_document_type", "Select the ID document type.")
 
     country = (data.driving_license_country or "").strip().upper() or None
 
     if country is not None and len(country) != 2:
-        raise ValueError("Use a 2-letter country code for the licence.")
+        raise AppError("identity.use_2_letter_country_code_licence", "Use a 2-letter country code for the licence.")
 
     new_values = {
         "national_id_number": national_id or None,

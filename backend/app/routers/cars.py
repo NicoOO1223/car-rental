@@ -1,10 +1,11 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user
 from app.models import Car, Reservation, User
@@ -70,19 +71,12 @@ def available_cars(
     return_at: datetime,
     db: Session = Depends(get_db),
 ):
-    try:
-        cars = get_available_cars(
-            db=db,
-            pickup_location_id=location_id,
-            pickup_at=pickup_at,
-            return_at=return_at,
-        )
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    cars = get_available_cars(
+        db=db,
+        pickup_location_id=location_id,
+        pickup_at=pickup_at,
+        return_at=return_at,
+    )
 
     return cars
 
@@ -98,10 +92,7 @@ def daily_rates(
     Registered before /{car_id} so "daily-rates" isn't read as a car id.
     """
 
-    try:
-        rates = get_daily_rates(db, location_id, start_date, end_date)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    rates = get_daily_rates(db, location_id, start_date, end_date)
 
     return [DailyRateResponse(date=day, price=price) for day, price in rates]
 
@@ -157,10 +148,7 @@ def get_car_reservations(
     car = db.get(Car, car_id)
 
     if car is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Car not found.",
-        )
+        raise NotFoundError("car.not_found", "Car not found.")
 
     reservations = db.scalars(
         select(Reservation)
@@ -183,13 +171,7 @@ def get_car_maintenance_tasks(
     car_id: UUID,
     db: Session = Depends(get_db),
 ):
-    try:
-        tasks = list_tasks_for_car(db, car_id)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        )
+    tasks = list_tasks_for_car(db, car_id)
 
     return tasks
 
@@ -199,13 +181,7 @@ def return_to_home_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        car = return_car_to_home(db, car_id, current_user)
-    except ValueError as exc:
-        if str(exc) == "Car not found.":
-            raise HTTPException(status_code=404, detail=str(exc))
-
-        raise HTTPException(status_code=400, detail=str(exc))
+    car = return_car_to_home(db, car_id, current_user)
 
     return _with_current_status(car, get_current_maintenance_by_car(db))
 
@@ -225,10 +201,7 @@ def get_car(
     )
 
     if car is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Car not found.",
-        )
+        raise NotFoundError("car.not_found", "Car not found.")
 
     return _with_current_status(car, get_current_maintenance_by_car(db))
 
@@ -238,23 +211,10 @@ def update_car_endpoint(
     data: CarUpdate,
     db: Session = Depends(get_db),
 ):
-    try:
-        car = update_car(
-            db=db,
-            car_id=car_id,
-            data=data,
-        )
-
-    except ValueError as exc:
-        if str(exc) == "Car not found.":
-            raise HTTPException(
-                status_code=404,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    car = update_car(
+        db=db,
+        car_id=car_id,
+        data=data,
+    )
 
     return car

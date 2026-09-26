@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import get_current_user, require_authenticated_user, require_role
 from app.models import Location, User
@@ -38,10 +39,7 @@ def create_location_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return create_location(db, actor=current_user, **data.model_dump())
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return create_location(db, actor=current_user, **data.model_dump())
 
 
 @router.patch(
@@ -58,14 +56,11 @@ def update_location_endpoint(
     location = db.get(Location, location_id)
 
     if location is None:
-        raise HTTPException(status_code=404, detail="Location not found.")
+        raise NotFoundError("location.not_found", "Location not found.")
 
-    try:
-        return update_location(
-            db,
-            actor=current_user,
-            location=location,
-            **data.model_dump(exclude_unset=True),
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return update_location(
+        db,
+        actor=current_user,
+        location=location,
+        **data.model_dump(exclude_unset=True),
+    )

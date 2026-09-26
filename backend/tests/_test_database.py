@@ -107,8 +107,53 @@ def _seed_if_empty() -> None:
         seed()
 
 
+# Many tests book a car for a random date thousands of days ahead and leave
+# some of those bookings behind (a completed rental cannot be removed). Over
+# many runs they crowd that range, and a new booking can land on an old one
+# and fail for a reason unrelated to what it tests. Past this many leftovers
+# the database is simply rebuilt, which takes seconds. The bar is low on
+# purpose: a couple of dozen leftovers already make a collision likely in a
+# test file that books twenty cars.
+FAR_FUTURE_DAYS = 2500
+MAX_LEFTOVERS = 20
+
+
+def _too_many_leftovers(url: URL) -> bool:
+    engine = create_engine(url)
+
+    try:
+        with engine.connect() as conn:
+            exists = conn.execute(
+                text("SELECT to_regclass('public.reservations') IS NOT NULL")
+            ).scalar()
+
+            if not exists:
+                return False
+
+            count = conn.execute(
+                text(
+                    "SELECT count(*) FROM reservations "
+                    "WHERE status <> 'CANCELLED' "
+                    "AND pickup_at > now() + make_interval(days => :days)"
+                ),
+                {"days": FAR_FUTURE_DAYS},
+            ).scalar()
+
+            return count > MAX_LEFTOVERS
+    except Exception:
+        return False
+    finally:
+        engine.dispose()
+
+
 def prepare() -> None:
     url = _test_url()
+
+    try:
+        if _too_many_leftovers(url):
+            os.environ["RESET_TEST_DB"] = "1"
+    except Exception:
+        pass
 
     # Everything that imports app.database from here on sees the test database.
     os.environ["DATABASE_URL"] = url.render_as_string(hide_password=False)

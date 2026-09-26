@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
@@ -51,7 +52,7 @@ def get_branding_logo(
     logo = get_logo(db)
 
     if logo is None:
-        raise HTTPException(status_code=404, detail="No logo has been uploaded.")
+        raise NotFoundError("branding.no_logo", "No logo has been uploaded.")
 
     etag = f'"{_version(logo)}"'
     headers = {

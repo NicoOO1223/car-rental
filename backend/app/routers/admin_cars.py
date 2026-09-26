@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -27,12 +27,6 @@ def update_car_price_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        car = update_car_price(db, car_id, data, current_user)
-    except ValueError as exc:
-        if str(exc) == "Car not found.":
-            raise HTTPException(status_code=404, detail=str(exc))
-
-        raise HTTPException(status_code=400, detail=str(exc))
+    car = update_car_price(db, car_id, data, current_user)
 
     return _with_current_status(car, get_current_maintenance_by_car(db))

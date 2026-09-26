@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.models import User
 from app.services.audit import audit_log
 from app.services.auth import hash_password, normalize_email
@@ -32,7 +33,7 @@ def create_user(
     )
 
     if existing is not None:
-        raise ValueError("A user with this email already exists.")
+        raise AppError("user.email_taken", "A user with this email already exists.")
 
     user = User(
         email=normalized_email,
@@ -70,10 +71,10 @@ def update_user(
     is_self = target_user.id == actor.id
 
     if is_self and is_active is False:
-        raise ValueError("You cannot deactivate your own account.")
+        raise AppError("user.you_cannot_deactivate_your_own_account", "You cannot deactivate your own account.")
 
     if is_self and role is not None and role != actor.role:
-        raise ValueError("You cannot change your own role.")
+        raise AppError("user.you_cannot_change_your_own_role", "You cannot change your own role.")
 
     if email is not None:
         normalized_email = normalize_email(email)
@@ -87,7 +88,7 @@ def update_user(
             )
 
             if existing is not None:
-                raise ValueError("A user with this email already exists.")
+                raise AppError("user.email_taken", "A user with this email already exists.")
 
             audit_log(
                 db,

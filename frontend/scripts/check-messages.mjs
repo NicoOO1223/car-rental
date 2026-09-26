@@ -46,15 +46,83 @@ function flatten(object, prefix = "") {
   return out;
 }
 
-// ICU selector words are not placeholders.
-const SELECTORS = new Set(["zero", "one", "two", "few", "many", "other", "plural", "select", "selectordinal"]);
-
+// The names of the arguments a message uses ({count}, {name, plural, ...}),
+// found by reading the ICU syntax rather than pattern matching: the words
+// inside a plural or select branch are text, not arguments.
 function placeholders(message) {
   const names = new Set();
+  let position = 0;
 
-  for (const match of message.matchAll(/\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?=[,}])/g)) {
-    if (!SELECTORS.has(match[1])) names.add(match[1]);
+  function skipSpaces() {
+    while (position < message.length && /\s/.test(message[position])) position++;
   }
+
+  function readWord() {
+    skipSpaces();
+    const from = position;
+
+    while (position < message.length && /[A-Za-z0-9_=.#-]/.test(message[position])) position++;
+
+    return message.slice(from, position);
+  }
+
+  // Text up to the closing brace of the enclosing branch (or the end).
+  function parseText() {
+    while (position < message.length) {
+      const char = message[position];
+
+      if (char === "}") return;
+
+      if (char === "{") {
+        position++;
+        parseArgument();
+      } else {
+        position++;
+      }
+    }
+  }
+
+  function parseArgument() {
+    const name = readWord();
+
+    if (name) names.add(name);
+
+    skipSpaces();
+
+    if (message[position] === ",") {
+      position++;
+      const type = readWord();
+      skipSpaces();
+
+      if (message[position] === ",") position++;
+
+      if (["plural", "select", "selectordinal"].includes(type)) {
+        // selector { text } selector { text } ...
+        for (;;) {
+          skipSpaces();
+
+          if (position >= message.length || message[position] === "}") break;
+
+          readWord(); // the selector: one, other, =0, yes ...
+          skipSpaces();
+
+          if (message[position] !== "{") break;
+
+          position++;
+          parseText();
+
+          if (message[position] === "}") position++;
+        }
+      } else {
+        // {n, number} and friends: skip to the end of the argument.
+        while (position < message.length && message[position] !== "}") position++;
+      }
+    }
+
+    if (message[position] === "}") position++;
+  }
+
+  parseText();
 
   return [...names].sort();
 }

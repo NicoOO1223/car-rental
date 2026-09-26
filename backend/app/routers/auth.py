@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
@@ -17,10 +18,11 @@ router = APIRouter(
     tags=["Auth"],
 )
 
-def _too_many_attempts() -> HTTPException:
-    return HTTPException(
+def _too_many_attempts() -> AppError:
+    return AppError(
+        "auth.too_many_attempts",
+        "Too many login attempts. Try again later.",
         status_code=429,
-        detail="Too many login attempts. Try again later.",
         headers={"Retry-After": "900"},
     )
 
@@ -48,7 +50,7 @@ def login(
 
     if user is None:
         record_ip_failure(client_ip)
-        raise HTTPException(status_code=401, detail="Incorrect email or password.")
+        raise AppError("auth.invalid_credentials", "Incorrect email or password.", status_code=401)
 
     expire_days = get_configuration(db).access_token_expire_days
 

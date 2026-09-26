@@ -5,6 +5,8 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.services.stripe_errors import stripe_app_error
+from app.errors import AppError, NotFoundError
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, Handover, Reservation, User
 from app.services.invoices import issue_credit_note_for_handover, issue_invoice_for_handover
@@ -15,7 +17,7 @@ from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 from app.services.configuration import get_configuration, vat_terms
-from app.services.identity_details import identity_problem
+from app.services.identity_details import identity_issue
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -42,12 +44,10 @@ def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover
     reservation = db.get(Reservation, reservation_id)
 
     if reservation is None:
-        raise ValueError("Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     if reservation.status != "CONFIRMED":
-        raise ValueError(
-            "Handover is only available for confirmed reservations."
-        )
+        raise AppError("handover.handover_only_available_confirmed_reservations", "Handover is only available for confirmed reservations.")
 
     handover = Handover(
         reservation_id=reservation_id,
@@ -64,10 +64,8 @@ def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover
 
 def _require_stripe_configured() -> None:
     if not stripe.api_key:
-        raise ValueError(
-            "Stripe is not configured on the server. Set STRIPE_SECRET_KEY "
-            "in backend/.env to enable payments."
-        )
+        raise AppError("stripe.not_configured", "Stripe is not configured on the server. Set STRIPE_SECRET_KEY "
+            "in backend/.env to enable payments.")
 
 
 def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
@@ -154,7 +152,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
             ),
         )
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     handover.stripe_payment_intent_id = intent.id
     handover.payment_amount = amount
@@ -180,12 +178,12 @@ def confirm_payment(db: Session, reservation_id, actor: User) -> Handover:
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if not handover.stripe_payment_intent_id:
-        raise ValueError("No payment has been initiated for this reservation.")
+        raise AppError("handover.no_payment_initiated_reservation", "No payment has been initiated for this reservation.")
 
     try:
         intent = stripe.PaymentIntent.retrieve(handover.stripe_payment_intent_id)
     except stripe.StripeError as exc:
-        raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+        raise stripe_app_error(exc)
 
     # Shared with the webhook. Never moves a SUCCEEDED or REFUNDED payment
     # backwards, so re-confirming a refunded booking cannot resurrect it.
@@ -311,7 +309,7 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
                 idempotency_key=f"handover-refund:{handover.id}",
             )
         except stripe.StripeError as exc:
-            raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
+            raise stripe_app_error(exc)
 
         handover.stripe_refund_id = refund.id
 
@@ -366,13 +364,15 @@ def submit_employee_signature(
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if not handover.signature_image:
-        raise ValueError("The customer must sign before the employee.")
+        raise AppError("handover.customer_must_sign_before_employee", "The customer must sign before the employee.")
 
     reservation = db.get(Reservation, reservation_id)
 
     if reservation.status != "CONFIRMED":
-        raise ValueError(
-            f"Cannot sign for a {reservation.status.lower()} reservation."
+        raise AppError(
+            "handover.cannot_sign_status",
+            f"Cannot sign for a {reservation.status.lower()} reservation.",
+            status=reservation.status,
         )
 
     handover.employee_signature_image = signature_image
@@ -406,32 +406,37 @@ def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     if handover.payment_status != "SUCCEEDED":
-        raise ValueError("Payment must be completed before generating the agreement.")
+        raise AppError("handover.payment_must_completed_before_generating_agreement", "Payment must be completed before generating the agreement.")
 
     if (
         get_configuration(db).security_deposit_amount > 0
         and handover.deposit_status != "HELD"
     ):
-        raise ValueError(
-            "A security deposit is required before generating the agreement."
-        )
+        raise AppError("handover.security_deposit_required_before_generating_agreement", "A security deposit is required before generating the agreement.")
 
     if not handover.signature_image:
-        raise ValueError("Customer signature is required before generating the agreement.")
+        raise AppError("handover.customer_signature_required_before_generating_agreement", "Customer signature is required before generating the agreement.")
 
     if not handover.employee_signature_image:
-        raise ValueError("Employee signature is required before generating the agreement.")
+        raise AppError("handover.employee_signature_required_before_generating_agreement", "Employee signature is required before generating the agreement.")
 
     reservation = db.get(Reservation, reservation_id)
 
-    problem = identity_problem(reservation.customer, reservation.return_at)
+    issue = identity_issue(reservation.customer, reservation.return_at)
 
-    if problem is not None:
-        raise ValueError(f"Identity check incomplete: {problem}")
+    if issue is not None:
+        raise AppError(
+            "handover.identity_incomplete",
+            f"Identity check incomplete: {issue.message}",
+            # The nested reason has its own translation.
+            problem_code=issue.code,
+        )
 
     if reservation.status != "CONFIRMED":
-        raise ValueError(
-            f"Cannot generate agreement for a {reservation.status.lower()} reservation."
+        raise AppError(
+            "handover.cannot_generate_status",
+            f"Cannot generate agreement for a {reservation.status.lower()} reservation.",
+            status=reservation.status,
         )
 
     car = db.get(Car, reservation.car_id)

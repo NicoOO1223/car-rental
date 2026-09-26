@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import get_current_user, require_role
 from app.models import User
@@ -32,16 +33,13 @@ def create_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        return create_user(
-            db,
-            actor=current_user,
-            email=data.email,
-            password=data.password,
-            role=data.role,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return create_user(
+        db,
+        actor=current_user,
+        email=data.email,
+        password=data.password,
+        role=data.role,
+    )
 
 
 @router.patch("/{user_id}", response_model=UserListItem)
@@ -54,17 +52,14 @@ def update_user_endpoint(
     target_user = db.get(User, user_id)
 
     if target_user is None:
-        raise HTTPException(status_code=404, detail="User not found.")
+        raise NotFoundError("user.not_found", "User not found.")
 
-    try:
-        return update_user(
-            db,
-            actor=current_user,
-            target_user=target_user,
-            **data.model_dump(exclude_unset=True),
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    return update_user(
+        db,
+        actor=current_user,
+        target_user=target_user,
+        **data.model_dump(exclude_unset=True),
+    )
 
 
 @router.post("/{user_id}/reset-password", response_model=UserListItem)
@@ -77,7 +72,7 @@ def reset_password_endpoint(
     target_user = db.get(User, user_id)
 
     if target_user is None:
-        raise HTTPException(status_code=404, detail="User not found.")
+        raise NotFoundError("user.not_found", "User not found.")
 
     return reset_password(
         db,

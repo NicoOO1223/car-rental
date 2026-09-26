@@ -1,10 +1,11 @@
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.database import get_db
 from app.models import User
 from app.services.auth import decode_access_token
@@ -18,9 +19,10 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    unauthorized = HTTPException(
+    unauthorized = AppError(
+        "auth.not_authenticated",
+        "Not authenticated.",
         status_code=401,
-        detail="Not authenticated.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -58,10 +60,7 @@ def require_authenticated_user(user: User = Depends(get_current_user)) -> User:
 def require_any_role(*roles: str):
     def dependency(user: User = Depends(get_current_user)) -> User:
         if user.role not in roles:
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have permission to perform this action.",
-            )
+            raise AppError("auth.forbidden", "You do not have permission to perform this action.", status_code=403)
 
         return user
 

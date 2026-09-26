@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.models import Car, Location, MaintenanceTask, Reservation
 from app.services.timezones import day_bounds, zone
 
@@ -146,7 +147,7 @@ def get_available_cars(
 
     # Basic validation
     if return_at <= pickup_at:
-        raise ValueError("Return time must be after pickup time.")
+        raise AppError("reservation.return_before_pickup", "Return time must be after pickup time.")
 
     # One query for the whole location, with the two conflict checks as
     # correlated NOT EXISTS clauses. (This used to loop over the cars and

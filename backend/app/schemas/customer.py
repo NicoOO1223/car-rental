@@ -63,6 +63,9 @@ class IdentityDetailsResponse(BaseModel):
 
     # Why the recorded details can't yet back a rental; None when they can.
     problem: str | None
+    # A stable code for `problem`, so the interface can show it in the
+    # user's language (see app/errors.py).
+    problem_code: str | None = None
 
 
 class CustomerResponse(BaseModel):

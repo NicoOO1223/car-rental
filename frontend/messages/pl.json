@@ -112,5 +112,232 @@
       "documentLanguage": "Język dokumentów",
       "documentLanguageHint": "Język, w którym drukowane są umowa najmu i faktury, niezależnie od języka pracowników."
     }
+  },
+  "errors": {
+    "auth": {
+      "forbidden": "Nie masz uprawnień do wykonania tej czynności.",
+      "invalid_credentials": "Nieprawidłowy e-mail lub hasło.",
+      "not_authenticated": "Nie jesteś zalogowany.",
+      "too_many_attempts": "Zbyt wiele prób logowania. Spróbuj ponownie później."
+    },
+    "branding": {
+      "no_logo": "Nie przesłano żadnego logo."
+    },
+    "car": {
+      "cannot_move_yet": "Tego pojazdu nie można jeszcze przenieść: ma trwający wynajem lub rezerwacje odbierające go w {airport} ({references}). Najpierw je anuluj lub zakończ.",
+      "car_already_at_its_home_airport": "Ten pojazd jest już w swojej bazie.",
+      "invalid_tire_condition_value": "Nieprawidłowa wartość stanu opon.",
+      "license_plate_already_use": "Ta tablica rejestracyjna jest już używana.",
+      "not_found": "Nie znaleziono pojazdu."
+    },
+    "check_out": {
+      "car_already_maintenance_or_cleaning_scheduled": "Pojazd ma już zaplanowany serwis lub czyszczenie w tym okresie.",
+      "car_reservation_period_cancel_or_move": "Pojazd ma rezerwację w tym okresie. Najpierw anuluj lub przenieś rezerwację.",
+      "charges_have_already_paid": "Opłaty zostały już zapłacone.",
+      "check_out_already_completed": "Ten zwrot został już zakończony.",
+      "choose_when_car_out_service_repair": "Wybierz, kiedy pojazd jest wyłączony z użytku na czas naprawy.",
+      "collect_charges_before_completing_check_out": "Pobierz opłaty przed zakończeniem zwrotu.",
+      "collect_charges_before_signing": "Pobierz opłaty przed podpisaniem.",
+      "damage_charge_needs_damage_reported": "Aby naliczyć opłatę za szkodę, najpierw ją zgłoś.",
+      "describe_damage": "Opisz uszkodzenie.",
+      "employee_already_signed_check_out": "Pracownik już podpisał ten zwrot.",
+      "employee_signature_required_before_completing": "Przed zakończeniem wymagany jest podpis pracownika.",
+      "give_reason_waiving_charge": "Podaj powód anulowania opłaty.",
+      "mileage_below_recorded": "Przebieg nie może być niższy niż zapisany dla pojazdu ({km, number} km).",
+      "mileage_cannot_negative": "Przebieg nie może być ujemny.",
+      "no_payment_initiated_check_out": "Dla tego zwrotu nie rozpoczęto żadnej płatności.",
+      "only_rental_out_with_customer_can": "Zwrot można przyjąć tylko dla wynajmu, który jest u klienta.",
+      "record_vehicle_condition_first": "Najpierw zapisz stan pojazdu.",
+      "repair_must_end_after_starts": "Naprawa musi zakończyć się po jej rozpoczęciu.",
+      "repair_window_must_end_future": "Okres naprawy musi kończyć się w przyszłości.",
+      "security_deposit_already_settled": "Kaucja została już rozliczona.",
+      "settle_security_deposit_first": "Najpierw rozlicz kaucję.",
+      "there_are_no_charges_collect": "Nie ma opłat do pobrania.",
+      "there_no_fuel_fee_waive": "Nie ma opłaty za paliwo do anulowania.",
+      "there_no_late_fee_waive": "Nie ma opłaty za opóźnienie do anulowania.",
+      "there_no_security_deposit_settle": "Nie ma kaucji do rozliczenia."
+    },
+    "customer": {
+      "cannot_erase_customer_with_active_or": "Nie można usunąć klienta z trwającą lub przyszłą rezerwacją.",
+      "customer_data_already_erased": "Dane klienta zostały już usunięte.",
+      "erased": "Dane tego klienta zostały usunięte.",
+      "erased_not_editable": "Dane klienta zostały usunięte i nie można ich już edytować.",
+      "not_found": "Nie znaleziono klienta.",
+      "reservation_not_found": "Nie znaleziono rezerwacji tego klienta."
+    },
+    "date_range": {
+      "start_after_end": "Data początkowa nie może być późniejsza niż końcowa.",
+      "too_long": "Zakres dat nie może przekraczać {max_days, number} dni."
+    },
+    "deposit": {
+      "deposit_already_settled": "Ta kaucja została już rozliczona.",
+      "no_deposit_started_reservation": "Dla tej rezerwacji nie rozpoczęto kaucji.",
+      "security_deposit_already_held": "Kaucja jest już zablokowana.",
+      "security_deposits_are_not_enabled": "Kaucje nie są włączone.",
+      "take_rental_payment_before_security_deposit": "Przyjmij płatność za wynajem przed kaucją."
+    },
+    "extra": {
+      "max_quantity": "Można dodać najwyżej {max, number} x {name}.",
+      "new_order_must_list_every_extra": "Nowa kolejność musi zawierać każdy dodatek dokładnie raz.",
+      "no_longer_available": "{name} nie jest już dostępny.",
+      "not_found": "Nie znaleziono dodatku.",
+      "price_cannot_empty": "Cena nie może być pusta.",
+      "same_extra_was_selected_more_than": "Ten sam dodatek wybrano więcej niż raz.",
+      "unknown_extra_selected": "Wybrano nieznany dodatek."
+    },
+    "generic": {
+      "delete": "Nie udało się usunąć. Spróbuj ponownie.",
+      "download": "Nie udało się pobrać pliku. Spróbuj ponownie.",
+      "failed": "Coś poszło nie tak. Spróbuj ponownie.",
+      "load": "Nie udało się wczytać danych. Spróbuj ponownie.",
+      "network": "Nie można połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie.",
+      "save": "Nie udało się zapisać zmian. Spróbuj ponownie."
+    },
+    "handover": {
+      "agreement_missing": "Umowa nie została jeszcze wygenerowana.",
+      "cannot_generate_status": "Nie można wygenerować umowy dla rezerwacji o statusie: {status}.",
+      "cannot_sign_status": "Nie można podpisać rezerwacji o statusie: {status}.",
+      "customer_must_sign_before_employee": "Klient musi podpisać przed pracownikiem.",
+      "customer_signature_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagany jest podpis klienta.",
+      "employee_signature_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagany jest podpis pracownika.",
+      "handover_only_available_confirmed_reservations": "Wydanie jest dostępne tylko dla potwierdzonych rezerwacji.",
+      "identity_incomplete": "Weryfikacja tożsamości jest niekompletna: {problem}",
+      "no_payment_initiated_reservation": "Dla tej rezerwacji nie rozpoczęto żadnej płatności.",
+      "payment_must_completed_before_generating_agreement": "Przed wygenerowaniem umowy płatność musi zostać zakończona.",
+      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja."
+    },
+    "http": {
+      "400": "Żądanie jest nieprawidłowe.",
+      "401": "Nie jesteś zalogowany.",
+      "403": "Nie masz uprawnień do wykonania tej czynności.",
+      "404": "Nie znaleziono.",
+      "405": "Ta czynność jest tutaj niedozwolona.",
+      "413": "Zawartość jest zbyt duża, aby ją wysłać.",
+      "429": "Zbyt wiele żądań. Spróbuj ponownie później.",
+      "500": "Coś poszło nie tak na serwerze.",
+      "503": "Usługa jest teraz niedostępna."
+    },
+    "identity": {
+      "confirm_you_checked_customer_original_documents": "Potwierdź, że sprawdzono oryginały dokumentów klienta.",
+      "documents_not_checked": "Pracownik musi potwierdzić, że sprawdzono oryginały dokumentów.",
+      "driving_licence_expired": "Prawo jazdy straciło ważność.",
+      "driving_licence_number_required": "Numer prawa jazdy jest wymagany.",
+      "enter_customer_id_number_or_number": "Podaj numer identyfikacyjny klienta lub numer dokumentu, na przykład paszportu.",
+      "licence_details_missing": "Podaj numer i datę ważności prawa jazdy klienta.",
+      "licence_expires_before_rental_ends": "Prawo jazdy traci ważność przed końcem wynajmu.",
+      "licence_must_issued_before_expires": "Prawo jazdy musi być wydane przed datą ważności.",
+      "not_valid_pesel": "To nie jest prawidłowy numer PESEL.",
+      "select_id_document_type": "Wybierz rodzaj dokumentu.",
+      "use_2_letter_country_code_licence": "Użyj dwuliterowego kodu kraju dla prawa jazdy."
+    },
+    "invoice": {
+      "not_found": "Nie znaleziono faktury."
+    },
+    "location": {
+      "code_taken": "Lokalizacja o tym kodzie już istnieje.",
+      "in_use": "Ta lokalizacja jest nadal używana: {vehicles, plural, =0 {} one {# pojazd stacjonuje tu lub jest tu zaparkowany} few {# pojazdy stacjonują tu lub są tu zaparkowane} many {# pojazdów stacjonuje tu lub jest tu zaparkowanych} other {# pojazdu stacjonuje tu lub jest tu zaparkowanego}}{both, select, yes { oraz } other {}}{reservations, plural, =0 {} one {# otwarta rezerwacja} few {# otwarte rezerwacje} many {# otwartych rezerwacji} other {# otwartej rezerwacji}}. Najpierw przenieś pojazdy oraz zakończ lub anuluj rezerwacje.",
+      "not_found": "Nie znaleziono lokalizacji.",
+      "pickup_not_found": "Nie znaleziono lokalizacji odbioru.",
+      "pickup_not_in_use": "Lokalizacja odbioru nie jest już używana.",
+      "return_not_found": "Nie znaleziono lokalizacji zwrotu.",
+      "return_not_in_use": "Lokalizacja zwrotu nie jest już używana."
+    },
+    "logo": {
+      "corrupted": "Plik logo jest uszkodzony.",
+      "dimensions_too_large": "Wymiary logo są zbyt duże.",
+      "too_large": "Logo jest zbyt duże. Limit wynosi {limit_kb, number} KB.",
+      "unreadable": "Nie udało się odczytać pliku jako obrazu.",
+      "wrong_type": "Logo musi być obrazem PNG lub JPEG."
+    },
+    "maintenance": {
+      "car_already_maintenance_or_cleaning_scheduled": "Ten pojazd ma już zaplanowany serwis lub czyszczenie w tym okresie.",
+      "car_reservation_during_period_cancel_or": "Ten pojazd ma rezerwację w tym okresie. Najpierw anuluj lub przenieś rezerwację.",
+      "end_time_must_after_start_time": "Godzina zakończenia musi być późniejsza niż rozpoczęcia.",
+      "enter_when_next_technical_inspection_due": "Podaj termin następnego przeglądu technicznego.",
+      "invalid_task_type": "Nieprawidłowy rodzaj zadania.",
+      "maintenance_window_must_end_future": "Okres serwisu musi kończyć się w przyszłości.",
+      "next_inspection_must_due_after_today": "Następny przegląd musi przypadać po dzisiejszym dniu.",
+      "only_maintenance_tasks_have_category": "Tylko zadania serwisowe mają kategorię.",
+      "only_open_task_can_closed": "Można zamknąć tylko otwarte zadanie.",
+      "select_maintenance_category": "Wybierz kategorię serwisu.",
+      "task_not_found": "Nie znaleziono zadania serwisowego."
+    },
+    "reservation": {
+      "cannot_change_status": "Nie można zmienić statusu rezerwacji z {from_status} na {to_status}.",
+      "cannot_edit_status": "Nie można edytować rezerwacji o statusie: {status}.",
+      "car_already_reserved_part_period": "Pojazd jest już zarezerwowany na część tego okresu.",
+      "car_not_currently_available": "Pojazd nie jest teraz dostępny.",
+      "car_not_located_at_selected_pickup": "Pojazd nie znajduje się w wybranej lokalizacji odbioru.",
+      "car_scheduled_maintenance_or_cleaning_during": "Pojazd ma zaplanowany serwis lub czyszczenie w tym okresie.",
+      "completed_reservations_cannot_cancelled": "Zakończonych rezerwacji nie można anulować.",
+      "extras_cannot_changed_after_payment_taken": "Dodatków nie można zmieniać po przyjęciu płatności.",
+      "not_found": "Nie znaleziono rezerwacji.",
+      "reservation_already_cancelled": "Rezerwacja została już anulowana.",
+      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru."
+    },
+    "return_charge": {
+      "damage_charge_cannot_negative": "Opłata za szkodę nie może być ujemna.",
+      "damage_over_maximum": "Opłata za szkodę nie może przekraczać skonfigurowanego maksimum {maximum}.",
+      "fuel_level_must_between_0_and": "Poziom paliwa musi mieścić się między 0 a 8 ósmymi."
+    },
+    "stripe": {
+      "error": "Błąd Stripe: {reason}",
+      "not_configured": "Stripe nie jest skonfigurowany na serwerze. Ustaw STRIPE_SECRET_KEY, aby włączyć płatności.",
+      "webhook_bad_signature": "Nieprawidłowy podpis.",
+      "webhook_failed": "Nie udało się przetworzyć zdarzenia.",
+      "webhook_not_configured": "Webhook nie jest skonfigurowany.",
+      "webhook_too_large": "Zawartość jest zbyt duża."
+    },
+    "user": {
+      "email_taken": "Użytkownik z tym adresem e-mail już istnieje.",
+      "not_found": "Nie znaleziono użytkownika.",
+      "you_cannot_change_your_own_role": "Nie możesz zmienić własnej roli.",
+      "you_cannot_deactivate_your_own_account": "Nie możesz dezaktywować własnego konta."
+    },
+    "validation": {
+      "bool_parsing": "Wybierz tak lub nie.",
+      "business_name_empty": "Nazwa firmy nie może być pusta.",
+      "currency_code": "Waluta musi być 3-literowym kodem, na przykład 'eur'.",
+      "date_from_datetime_parsing": "Wpisz prawidłową datę.",
+      "date_parsing": "Wpisz prawidłową datę.",
+      "datetime_from_date_parsing": "Wpisz prawidłową datę i godzinę.",
+      "datetime_parsing": "Wpisz prawidłową datę i godzinę.",
+      "decimal_parsing": "Wpisz liczbę.",
+      "dict_type": "Te dane są nieprawidłowe.",
+      "enum": "To nie jest jedna z dozwolonych opcji.",
+      "failed": "Niektóre informacje są nieprawidłowe.",
+      "fee_negative": "Opłaty nie mogą być ujemne.",
+      "float_parsing": "Wpisz liczbę.",
+      "grace_negative": "Okres tolerancji nie może być ujemny.",
+      "greater_than": "Wartość jest zbyt mała.",
+      "greater_than_equal": "Wartość jest zbyt mała.",
+      "int_parsing": "Wpisz liczbę całkowitą.",
+      "invoice_prefix_invalid": "Prefiks faktur musi mieć od 1 do 10 liter, cyfr lub myślników.",
+      "json_invalid": "Te dane są nieprawidłowe.",
+      "language_unsupported": "Język musi być jednym z: {allowed}.",
+      "less_than": "Wartość jest zbyt duża.",
+      "less_than_equal": "Wartość jest zbyt duża.",
+      "list_type": "To nie jest prawidłowa lista.",
+      "literal_error": "To nie jest jedna z dozwolonych opcji.",
+      "locale_unsupported": "Format musi być jednym z: {allowed}.",
+      "location_code_invalid": "Kod musi mieć od 2 do 10 liter lub cyfr.",
+      "missing": "To pole jest wymagane.",
+      "model_attributes_type": "Te dane są nieprawidłowe.",
+      "name_empty": "Nazwa nie może być pusta.",
+      "password_too_short": "Hasło musi mieć co najmniej 8 znaków.",
+      "role_invalid": "Rola musi być jedną z: {allowed}.",
+      "string_too_long": "Tekst jest zbyt długi.",
+      "string_too_short": "Tekst jest zbyt krótki.",
+      "string_type": "Wpisz tekst.",
+      "threshold_min": "Próg krótkiego wynajmu musi wynosić co najmniej 1 dzień.",
+      "timezone_unknown": "Nieznana strefa czasowa. Użyj nazwy IANA, na przykład 'Europe/Rome'.",
+      "token_expiry_min": "Ważność logowania musi wynosić co najmniej 1 dzień.",
+      "too_long": "Elementów jest zbyt wiele.",
+      "too_short": "Dodaj co najmniej jeden element.",
+      "url_parsing": "Wpisz prawidłowy adres internetowy.",
+      "uuid_parsing": "To nie jest prawidłowy identyfikator.",
+      "value_error": "Ta wartość jest nieprawidłowa.",
+      "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent."
+    }
   }
 }

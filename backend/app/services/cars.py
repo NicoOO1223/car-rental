@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.errors import AppError, NotFoundError
 from app.models import Car, Location, Reservation, User
 from app.schemas.car import CarPriceUpdate, CarUpdate
 from app.services.audit import audit_log
@@ -25,7 +26,7 @@ def update_car(
     car = db.get(Car, car_id)
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     updates = data.model_dump(exclude_unset=True)
 
@@ -38,20 +39,20 @@ def update_car(
         )
 
         if conflict is not None:
-            raise ValueError("License plate already in use.")
+            raise AppError("car.license_plate_already_use", "License plate already in use.")
 
     if "home_location_id" in updates:
         location = db.get(Location, updates["home_location_id"])
 
         if location is None:
-            raise ValueError("Location not found.")
+            raise AppError("location.not_found", "Location not found.")
 
     if (
         "tire_condition" in updates
         and updates["tire_condition"] is not None
         and updates["tire_condition"] not in VALID_TIRE_CONDITIONS
     ):
-        raise ValueError("Invalid tire condition value.")
+        raise AppError("car.invalid_tire_condition_value", "Invalid tire condition value.")
 
     for field, value in updates.items():
         setattr(car, field, value)
@@ -80,10 +81,10 @@ def return_car_to_home(db: Session, car_id: UUID, actor: User) -> Car:
     )
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     if not car.is_away_from_home:
-        raise ValueError("This car is already at its home airport.")
+        raise AppError("car.car_already_at_its_home_airport", "This car is already at its home airport.")
 
     now = datetime.now(timezone.utc)
 
@@ -102,10 +103,13 @@ def return_car_to_home(db: Session, car_id: UUID, actor: User) -> Car:
     if blocking:
         references = ", ".join(str(r.id)[:8].upper() for r in blocking[:5])
 
-        raise ValueError(
+        raise AppError(
+            "car.cannot_move_yet",
             "This car can't be moved yet: it has an active rental or "
             f"reservations that pick it up at {car.current_location.airport_code} "
-            f"({references}). Cancel or complete them first."
+            f"({references}). Cancel or complete them first.",
+            airport=car.current_location.airport_code,
+            references=references,
         )
 
     from_code = car.current_location.airport_code
@@ -150,7 +154,7 @@ def update_car_price(
     )
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     if data.price_per_day != car.price_per_day:
         audit_log(

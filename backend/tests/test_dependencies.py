@@ -1,7 +1,7 @@
 import uuid
 
 import pytest
-from fastapi import HTTPException
+from app.errors import AppError
 
 from app.database import SessionLocal
 from app.dependencies import require_any_role, require_role
@@ -27,7 +27,7 @@ def test_require_role_allows_matching_role():
 def test_require_role_rejects_other_role():
     staff = _make_user("staff")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
         require_role("admin")(staff)
 
     assert exc_info.value.status_code == 403
@@ -42,7 +42,7 @@ def test_require_any_role_allows_any_listed_role():
 def test_require_any_role_rejects_unlisted_role():
     staff = _make_user("staff")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AppError) as exc_info:
         require_any_role("admin")(staff)
 
     assert exc_info.value.status_code == 403

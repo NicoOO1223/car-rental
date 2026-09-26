@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError
 from app.models import Car
 
 MAX_RANGE_DAYS = 400
@@ -29,10 +30,14 @@ def get_daily_rates(
     """
 
     if end_date < start_date:
-        raise ValueError("end_date must not be before start_date.")
+        raise AppError("date_range.start_after_end", "end_date must not be before start_date.")
 
     if (end_date - start_date).days > MAX_RANGE_DAYS:
-        raise ValueError(f"Date range must not exceed {MAX_RANGE_DAYS} days.")
+        raise AppError(
+            "date_range.too_long",
+            f"Date range must not exceed {MAX_RANGE_DAYS} days.",
+            max_days=MAX_RANGE_DAYS,
+        )
 
     average = db.scalar(
         select(func.avg(Car.price_per_day)).where(

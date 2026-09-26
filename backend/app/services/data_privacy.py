@@ -5,6 +5,7 @@ import stripe
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.errors import AppError, NotFoundError
 from app.config import STRIPE_SECRET_KEY
 from app.models import CheckOut, Customer, Handover, Reservation, User
 from app.schemas.customer import CustomerDataExport, CustomerExportReservation
@@ -31,7 +32,7 @@ def _get_customer(db: Session, customer_id: UUID) -> Customer:
     customer = db.get(Customer, customer_id)
 
     if customer is None:
-        raise ValueError("Customer not found.")
+        raise NotFoundError("customer.not_found", "Customer not found.")
 
     return customer
 
@@ -52,7 +53,7 @@ def anonymize_customer(db: Session, customer_id: UUID, actor: User) -> Customer:
     customer = _get_customer(db, customer_id)
 
     if customer.anonymized_at is not None:
-        raise ValueError("Customer data has already been erased.")
+        raise AppError("customer.customer_data_already_erased", "Customer data has already been erased.")
 
     blocking_reservation = db.scalar(
         select(Reservation.id).where(
@@ -62,9 +63,7 @@ def anonymize_customer(db: Session, customer_id: UUID, actor: User) -> Customer:
     )
 
     if blocking_reservation is not None:
-        raise ValueError(
-            "Cannot erase a customer with an active or upcoming reservation."
-        )
+        raise AppError("customer.cannot_erase_customer_with_active_or", "Cannot erase a customer with an active or upcoming reservation.")
 
     reservation_count = db.scalar(
         select(func.count(Reservation.id)).where(

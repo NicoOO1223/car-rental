@@ -146,6 +146,11 @@ export function t(key: string, values?: Values): string {
   return translator ? translator(key, values) : key;
 }
 
+/** Whether the active language has a message for this key. */
+export function hasMessage(key: string): boolean {
+  return translator ? translator.has(key) : false;
+}
+
 /** Title-cases an enum value nobody has written a label for, rather than shouting it. */
 export function humanize(value: string): string {
   return value

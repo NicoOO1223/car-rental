@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.errors import AppError, NotFoundError
 from app.models import Car, Customer, Handover, Reservation, User
 from app.schemas.reservation import ReservationUpdate
 from app.services.audit import audit_log
@@ -41,9 +42,7 @@ def create_reservation(
     # ---------------------------------------------------------
 
     if return_at <= pickup_at:
-        raise ValueError(
-            "Return time must be after pickup time."
-        )
+        raise AppError("reservation.return_before_pickup", "Return time must be after pickup time.")
 
     # ---------------------------------------------------------
     # 2. Find car
@@ -52,7 +51,7 @@ def create_reservation(
     car = db.get(Car, car_id)
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     # ---------------------------------------------------------
     # 3. Validate car location
@@ -62,32 +61,24 @@ def create_reservation(
     require_bookable_location(db, return_location_id, "return")
 
     if car.current_location_id != pickup_location_id:
-        raise ValueError(
-            "Car is not located at the selected pickup location."
-        )
+        raise AppError("reservation.car_not_located_at_selected_pickup", "Car is not located at the selected pickup location.")
 
     # ---------------------------------------------------------
     # 4. Validate car status
     # ---------------------------------------------------------
 
     if car.status != "AVAILABLE":
-        raise ValueError(
-            "Car is not currently available."
-        )
+        raise AppError("reservation.car_not_currently_available", "Car is not currently available.")
 
     # ---------------------------------------------------------
     # 5. Check reservation overlap
     # ---------------------------------------------------------
 
     if has_conflicting_reservation(db, car_id, pickup_at, return_at):
-        raise ValueError(
-            "Car is already reserved for part of this period."
-        )
+        raise AppError("reservation.car_already_reserved_part_period", "Car is already reserved for part of this period.")
 
     if has_conflicting_maintenance(db, car_id, pickup_at, return_at):
-        raise ValueError(
-            "Car is scheduled for maintenance or cleaning during this period."
-        )
+        raise AppError("reservation.car_scheduled_maintenance_or_cleaning_during", "Car is scheduled for maintenance or cleaning during this period.")
 
     # ---------------------------------------------------------
     # 6. Validate selected extras
@@ -177,12 +168,12 @@ def quote_reservation(
     """
 
     if data.return_at <= data.pickup_at:
-        raise ValueError("Return time must be after pickup time.")
+        raise AppError("reservation.return_before_pickup", "Return time must be after pickup time.")
 
     car = db.get(Car, data.car_id)
 
     if car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     resolved = resolve_extra_selections(db, data.extras)
     configuration = get_configuration(db)
@@ -232,17 +223,13 @@ def cancel_reservation(
     )
 
     if reservation is None:
-        raise ValueError("Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     if reservation.status == "CANCELLED":
-        raise ValueError(
-            "Reservation is already cancelled."
-        )
+        raise AppError("reservation.reservation_already_cancelled", "Reservation is already cancelled.")
 
     if reservation.status == "COMPLETED":
-        raise ValueError(
-            "Completed reservations cannot be cancelled."
-        )
+        raise AppError("reservation.completed_reservations_cannot_cancelled", "Completed reservations cannot be cancelled.")
 
     # Refund whatever was actually paid before flipping the status, so a
     # refund failure (e.g. a Stripe error) leaves the reservation
@@ -278,7 +265,7 @@ def update_reservation_status(
     )
 
     if reservation is None:
-        raise ValueError("Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     current_status = reservation.status
 
@@ -307,9 +294,12 @@ def update_reservation_status(
     )
 
     if new_status not in allowed_statuses:
-        raise ValueError(
+        raise AppError(
+            "reservation.cannot_change_status",
             f"Cannot change reservation status "
-            f"from {current_status} to {new_status}."
+            f"from {current_status} to {new_status}.",
+            from_status=current_status,
+            to_status=new_status,
         )
 
     reservation.status = new_status
@@ -343,11 +333,13 @@ def update_reservation(
     reservation = db.get(Reservation, reservation_id)
 
     if reservation is None:
-        raise ValueError("Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     if reservation.status in ("CANCELLED", "COMPLETED"):
-        raise ValueError(
-            f"Cannot edit a {reservation.status.lower()} reservation."
+        raise AppError(
+            "reservation.cannot_edit_status",
+            f"Cannot edit a {reservation.status.lower()} reservation.",
+            status=reservation.status,
         )
 
     # ---------------------------------------------------------
@@ -358,9 +350,7 @@ def update_reservation(
     effective_return_at = data.return_at or reservation.return_at
 
     if effective_return_at <= effective_pickup_at:
-        raise ValueError(
-            "Return time must be after pickup time."
-        )
+        raise AppError("reservation.return_before_pickup", "Return time must be after pickup time.")
 
     effective_pickup_location_id = (
         data.pickup_location_id or reservation.pickup_location_id
@@ -381,7 +371,7 @@ def update_reservation(
     target_car = db.get(Car, target_car_id)
 
     if target_car is None:
-        raise ValueError("Car not found.")
+        raise NotFoundError("car.not_found", "Car not found.")
 
     # Only a location the booking is being moved to has to be in use; a
     # reservation already at a since-retired location stays editable.
@@ -392,14 +382,10 @@ def update_reservation(
         require_bookable_location(db, effective_return_location_id, "return")
 
     if target_car.current_location_id != effective_pickup_location_id:
-        raise ValueError(
-            "Car is not located at the selected pickup location."
-        )
+        raise AppError("reservation.car_not_located_at_selected_pickup", "Car is not located at the selected pickup location.")
 
     if is_reassignment and target_car.status != "AVAILABLE":
-        raise ValueError(
-            "Car is not currently available."
-        )
+        raise AppError("reservation.car_not_currently_available", "Car is not currently available.")
 
     # ---------------------------------------------------------
     # 3. Check reservation overlap (excluding this reservation)
@@ -412,9 +398,7 @@ def update_reservation(
         effective_return_at,
         exclude_reservation_id=reservation_id,
     ):
-        raise ValueError(
-            "Car is already reserved for part of this period."
-        )
+        raise AppError("reservation.car_already_reserved_part_period", "Car is already reserved for part of this period.")
 
     # Only when the car or the dates actually change — editing something
     # unrelated (e.g. the customer's details) on a booking that already
@@ -430,9 +414,7 @@ def update_reservation(
         effective_pickup_at,
         effective_return_at,
     ):
-        raise ValueError(
-            "Car is scheduled for maintenance or cleaning during this period."
-        )
+        raise AppError("reservation.car_scheduled_maintenance_or_cleaning_during", "Car is scheduled for maintenance or cleaning during this period.")
 
     # ---------------------------------------------------------
     # 4. Apply changes
@@ -466,9 +448,7 @@ def update_reservation(
         # PaymentIntent amount would no longer match the itemization
         # printed on the rental agreement.
         if handover is not None and handover.payment_status == "SUCCEEDED":
-            raise ValueError(
-                "Extras cannot be changed after payment has been taken."
-            )
+            raise AppError("reservation.extras_cannot_changed_after_payment_taken", "Extras cannot be changed after payment has been taken.")
 
         resolved = resolve_extra_selections(
             db,

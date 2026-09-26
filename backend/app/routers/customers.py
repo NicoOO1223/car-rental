@@ -2,10 +2,11 @@ from uuid import UUID
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
 from app.models import Customer, Reservation, User
@@ -95,10 +96,7 @@ def get_customer_reservations(
     customer = db.get(Customer, customer_id)
 
     if customer is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Customer not found.",
-        )
+        raise NotFoundError("customer.not_found", "Customer not found.")
 
     reservations = db.scalars(
         select(Reservation)
@@ -126,10 +124,7 @@ def get_customer(
     customer = db.get(Customer, customer_id)
 
     if customer is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Customer not found.",
-        )
+        raise NotFoundError("customer.not_found", "Customer not found.")
 
     # A deliberate look-up of one person's full PII record — unlike the
     # list endpoint above, this is worth its own audit trail entry rather
@@ -156,34 +151,14 @@ def update_customer_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        customer = update_customer(
-            db=db,
-            customer_id=customer_id,
-            data=data,
-            actor=current_user,
-        )
-
-    except ValueError as exc:
-        if str(exc) == "Customer not found.":
-            raise HTTPException(
-                status_code=404,
-                detail=str(exc),
-            )
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        )
+    customer = update_customer(
+        db=db,
+        customer_id=customer_id,
+        data=data,
+        actor=current_user,
+    )
 
     return customer
-
-
-def _raise_for_customer_error(exc: ValueError):
-    if str(exc) in ("Customer not found.", "Reservation not found for this customer."):
-        raise HTTPException(status_code=404, detail=str(exc))
-
-    raise HTTPException(status_code=400, detail=str(exc))
 
 
 # Identity and driving licence, typed in by staff at the counter. Sensitive,
@@ -200,10 +175,7 @@ def get_identity_details_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        return get_identity_details(db, customer_id, current_user, reservation_id)
-    except ValueError as exc:
-        _raise_for_customer_error(exc)
+    return get_identity_details(db, customer_id, current_user, reservation_id)
 
 
 @router.put(
@@ -217,12 +189,9 @@ def save_identity_details_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        return save_identity_details(
-            db, customer_id, data, current_user, reservation_id
-        )
-    except ValueError as exc:
-        _raise_for_customer_error(exc)
+    return save_identity_details(
+        db, customer_id, data, current_user, reservation_id
+    )
 
 
 # Right to erasure / right to access (GDPR Art. 17, 15/20) — meaningfully
@@ -238,14 +207,11 @@ def erase_customer_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        customer = anonymize_customer(
-            db=db,
-            customer_id=customer_id,
-            actor=current_user,
-        )
-    except ValueError as exc:
-        _raise_for_customer_error(exc)
+    customer = anonymize_customer(
+        db=db,
+        customer_id=customer_id,
+        actor=current_user,
+    )
 
     return customer
 
@@ -260,13 +226,10 @@ def export_customer_data_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    try:
-        bundle = export_customer_data(
-            db=db,
-            customer_id=customer_id,
-            actor=current_user,
-        )
-    except ValueError as exc:
-        _raise_for_customer_error(exc)
+    bundle = export_customer_data(
+        db=db,
+        customer_id=customer_id,
+        actor=current_user,
+    )
 
     return bundle

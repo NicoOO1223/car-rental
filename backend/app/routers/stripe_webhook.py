@@ -1,10 +1,11 @@
 import logging
 
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app import config
+from app.errors import AppError
 from app.database import get_db
 from app.services.stripe_sync import handle_event
 
@@ -23,12 +24,12 @@ MAX_BODY_BYTES = 1_000_000
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not config.STRIPE_WEBHOOK_SECRET:
         # Not configured: refuse rather than accept unverifiable payloads.
-        raise HTTPException(status_code=503, detail="Webhook is not configured.")
+        raise AppError("stripe.webhook_not_configured", "Webhook is not configured.", status_code=503)
 
     declared = request.headers.get("content-length")
 
     if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Payload too large.")
+        raise AppError("stripe.webhook_too_large", "Payload too large.", status_code=413)
 
     # The signature covers the exact bytes Stripe sent, so this must be the
     # raw body, never a parsed-and-reserialized one.
@@ -40,7 +41,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             payload, signature, config.STRIPE_WEBHOOK_SECRET
         )
     except (ValueError, stripe.SignatureVerificationError):
-        raise HTTPException(status_code=400, detail="Invalid signature.")
+        raise AppError("stripe.webhook_bad_signature", "Invalid signature.")
 
     try:
         result = handle_event(db, event)
@@ -49,6 +50,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         # handle_event), so the retry starts clean.
         db.rollback()
         logger.exception("Failed to process Stripe event %s", event["id"])
-        raise HTTPException(status_code=500, detail="Could not process event.")
+        raise AppError("stripe.webhook_failed", "Could not process event.", status_code=500)
 
     return {"received": True, "result": result}

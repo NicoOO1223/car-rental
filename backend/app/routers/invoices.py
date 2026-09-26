@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user
 from app.models import Reservation
@@ -23,7 +24,7 @@ router = APIRouter(
 )
 def get_reservation_invoices(reservation_id: UUID, db: Session = Depends(get_db)):
     if db.get(Reservation, reservation_id) is None:
-        raise HTTPException(status_code=404, detail="Reservation not found.")
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     return [
         InvoiceResponse.from_model(invoice)
@@ -36,7 +37,7 @@ def download_invoice_pdf(invoice_id: UUID, db: Session = Depends(get_db)):
     invoice = get_invoice(db, invoice_id)
 
     if invoice is None:
-        raise HTTPException(status_code=404, detail="Invoice not found.")
+        raise NotFoundError("invoice.not_found", "Invoice not found.")
 
     return Response(
         content=render_invoice_pdf(db, invoice),
