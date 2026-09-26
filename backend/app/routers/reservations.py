@@ -118,7 +118,7 @@ def cancel_reservation_endpoint(
 )
 def get_reservations(
     q: str | None = Query(default=None, max_length=100),
-    status: Literal["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"]
+    status: Literal["PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED", "EXPIRED"]
     | None = Query(default=None),
     location: str | None = Query(default=None, max_length=10),
     window: Literal["TODAY", "ACTIVE", "UPCOMING", "NEXT_7_DAYS"] | None = Query(

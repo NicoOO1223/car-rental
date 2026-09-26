@@ -311,6 +311,7 @@
     "validation": {
       "bool_parsing": "Choose yes or no.",
       "business_name_empty": "The business name cannot be empty.",
+      "cancellation_hours_range": "Free cancellation hours must be between 0 and 720.",
       "currency_code": "Currency must be a 3-letter code, e.g. 'eur'.",
       "date_from_datetime_parsing": "Enter a valid date.",
       "date_parsing": "Enter a valid date.",
@@ -325,10 +326,12 @@
       "grace_negative": "The grace period cannot be negative.",
       "greater_than": "This value is too small.",
       "greater_than_equal": "This value is too small.",
+      "hold_minutes_range": "The payment hold must be between 5 and 60 minutes.",
       "int_parsing": "Enter a whole number.",
       "invoice_prefix_invalid": "The invoice prefix must be 1 to 10 letters, digits or dashes.",
       "json_invalid": "That is not valid data.",
       "language_unsupported": "Language must be one of: {allowed}.",
+      "lead_hours_range": "The minimum booking lead time must be between 0 and 720 hours.",
       "less_than": "This value is too large.",
       "less_than_equal": "This value is too large.",
       "list_type": "That is not a valid list.",
@@ -338,7 +341,9 @@
       "missing": "This field is required.",
       "model_attributes_type": "That is not valid data.",
       "name_empty": "The name cannot be empty.",
+      "online_share_range": "The online share must be between 1 and 100 percent.",
       "password_too_short": "Password must be at least 8 characters.",
+      "reminder_days_range": "Reminders must start between 1 and 365 days ahead.",
       "role_invalid": "Role must be one of: {allowed}.",
       "string_too_long": "This is too long.",
       "string_too_short": "This is too short.",
@@ -348,11 +353,11 @@
       "token_expiry_min": "Access token expiry must be at least 1 day.",
       "too_long": "There are too many items.",
       "too_short": "Add at least one item.",
+      "url_invalid": "Enter a full web address starting with http:// or https://.",
       "url_parsing": "Enter a valid web address.",
       "uuid_parsing": "That is not a valid identifier.",
       "value_error": "This value is not valid.",
-      "vat_rate_range": "The VAT rate must be between 0 and 100 percent.",
-      "reminder_days_range": "Reminders must start between 1 and 365 days ahead."
+      "vat_rate_range": "The VAT rate must be between 0 and 100 percent."
     }
   },
   "c": {

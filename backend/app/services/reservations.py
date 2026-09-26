@@ -5,6 +5,7 @@ from app.errors import AppError, NotFoundError
 from app.models import Car, Customer, Handover, Reservation, User
 from app.schemas.reservation import ReservationUpdate
 from app.services.audit import audit_log
+from app.services.booking_prices import stamp_agreed_prices
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
@@ -148,6 +149,9 @@ def create_reservation(
         updated_by=actor.id,
     )
 
+    # The price agreed now is what will be charged, whatever rates do later.
+    stamp_agreed_prices(db, reservation, car)
+
     db.add(reservation)
     db.flush()
 
@@ -246,6 +250,9 @@ def cancel_reservation(
     if reservation.status == "COMPLETED":
         raise AppError("reservation.completed_reservations_cannot_cancelled", "Completed reservations cannot be cancelled.")
 
+    if reservation.status == "EXPIRED":
+        raise AppError("reservation.reservation_already_cancelled", "Reservation is already cancelled.")
+
     # Refund whatever was actually paid before flipping the status, so a
     # refund failure (e.g. a Stripe error) leaves the reservation
     # un-cancelled rather than cancelled with the money never returned.
@@ -296,6 +303,12 @@ def update_reservation_status(
         "CONFIRMED": {
             "CANCELLED",
         },
+        # An online booking waiting for its payment: staff can only cancel it.
+        # It becomes CONFIRMED when the payment arrives, never by hand.
+        "AWAITING_PAYMENT": {
+            "CANCELLED",
+        },
+        "EXPIRED": set(),
         "ACTIVE": {
             "COMPLETED",
         },
@@ -355,7 +368,7 @@ def update_reservation(
     if reservation is None:
         raise NotFoundError("reservation.not_found", "Reservation not found.")
 
-    if reservation.status in ("CANCELLED", "COMPLETED"):
+    if reservation.status in ("CANCELLED", "COMPLETED", "EXPIRED"):
         raise AppError(
             "reservation.cannot_edit_status",
             f"Cannot edit a {reservation.status.lower()} reservation.",
@@ -520,6 +533,13 @@ def update_reservation(
 
         # delete-orphan on Reservation.extras removes the dropped lines.
         reservation.extras = rebuilt
+
+    # An unpaid booking that changed car, dates, places or extras is re-priced
+    # at today's rates; nothing has been charged yet, so the agreed price
+    # should describe what it is now. (Older bookings without an agreed price
+    # keep pricing from the live rates.)
+    if reservation.agreed_price_per_day is not None and (booking_moved or data.extras is not None):
+        stamp_agreed_prices(db, reservation, target_car)
 
     db.commit()
     db.refresh(reservation)

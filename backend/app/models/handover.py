@@ -159,7 +159,7 @@ class Handover(Base):
             name="valid_handover_payment_status",
         ),
         CheckConstraint(
-            "payment_method IN ('CARD','CASH')",
+            "payment_method IN ('CARD','CASH','PREPAID')",
             name="valid_handover_payment_method",
         ),
         CheckConstraint(

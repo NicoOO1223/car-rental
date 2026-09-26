@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
@@ -14,6 +14,46 @@ ACTIVE_RESERVATION_STATUSES = {
     "CONFIRMED",
     "ACTIVE",
 }
+
+# How long a rental that is past its return time keeps blocking the car. The
+# car is not back yet, so it cannot be promised to someone else for the next
+# few hours. A rental more than OVERDUE_LIMIT past its return time is a matter
+# for staff (a lost or stolen car, or a return nobody recorded) and no longer
+# blocks anything by itself, so one forgotten rental cannot lock a car forever.
+OVERDUE_BUFFER = timedelta(hours=2)
+OVERDUE_LIMIT = timedelta(days=3)
+
+
+def blocking_reservation_clause(now: datetime | None = None):
+    """
+    The one definition of "this reservation is in the way of a new booking":
+    pending, confirmed and active ones, plus an online booking that is still
+    waiting for payment and whose hold has not run out. An expired hold stops
+    blocking the moment it expires, whether or not anything has cleaned it up.
+    """
+
+    now = now or datetime.now(timezone.utc)
+
+    return or_(
+        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+        and_(Reservation.status == "AWAITING_PAYMENT", Reservation.hold_expires_at > now),
+    )
+
+
+def blocking_end(now: datetime | None = None):
+    """When a reservation stops blocking its car: its return time, or for a
+    rental still out past that time, a little later (OVERDUE_BUFFER)."""
+
+    now = now or datetime.now(timezone.utc)
+
+    return case(
+        (
+            and_(Reservation.status == "ACTIVE", Reservation.return_at > now - OVERDUE_LIMIT),
+            func.greatest(Reservation.return_at, now + OVERDUE_BUFFER),
+        ),
+        else_=Reservation.return_at,
+    )
+
 
 # Narrower than ACTIVE_RESERVATION_STATUSES: the fleet overview's
 # "status as of date" only reflects reservations an employee has actually
@@ -56,9 +96,9 @@ def has_conflicting_reservation(
 
     query = select(Reservation.id).where(
         Reservation.car_id == car_id,
-        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+        blocking_reservation_clause(),
         Reservation.pickup_at < return_at,
-        Reservation.return_at > pickup_at,
+        blocking_end() > pickup_at,
     )
 
     if exclude_reservation_id is not None:
@@ -171,9 +211,9 @@ def get_available_cars(
     # single car.
     reservation_conflict = exists().where(
         Reservation.car_id == Car.id,
-        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+        blocking_reservation_clause(),
         Reservation.pickup_at < return_at,
-        Reservation.return_at > pickup_at,
+        blocking_end() > pickup_at,
     )
 
     maintenance_conflict = exists().where(

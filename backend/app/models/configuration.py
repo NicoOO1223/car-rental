@@ -56,6 +56,23 @@ class Configuration(Base):
     # inspection or an insurance period is about to end.
     reminder_days: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
 
+    # The public storefront. Off until an admin turns it on.
+    storefront_enabled: Mapped[bool] = mapped_column(nullable=False, default=False, server_default="false")
+    # The share of a rental paid online when booking (100 = all of it).
+    online_share_percent: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
+    # A cancellation up to this many hours before pickup is refunded in full.
+    free_cancellation_hours: Mapped[int] = mapped_column(nullable=False, default=48, server_default="48")
+    # How long an unpaid online booking holds the car.
+    hold_minutes: Mapped[int] = mapped_column(nullable=False, default=15, server_default="15")
+    # The soonest pickup a renter can book, in hours from now.
+    min_booking_lead_hours: Mapped[int] = mapped_column(nullable=False, default=24, server_default="24")
+    terms_text: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    terms_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    privacy_text: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    privacy_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    # Bumped when the terms or privacy text changes.
+    legal_version: Mapped[int] = mapped_column(nullable=False, default=1, server_default="1")
+
     # Business profile. Shown on the login page, the sidebar and the tab
     # title, and printed on the agreement. Text fields are never NULL: an
     # empty string means "not set", which keeps the update path (where None

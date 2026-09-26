@@ -68,8 +68,13 @@ class Invoice(Base):
     )
     # The rental payment this document is about. Together with `kind` it is
     # unique, so a payment gets at most one invoice and one credit note.
-    handover_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("handovers.id"), nullable=False
+    handover_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("handovers.id"), nullable=True
+    )
+    # Or, for the share paid online at booking, that payment. Exactly one of
+    # handover_id and payment_id is set.
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reservation_payments.id"), nullable=True
     )
     # For a credit note: the invoice it reverses.
     original_invoice_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -112,4 +117,6 @@ class Invoice(Base):
     __table_args__ = (
         CheckConstraint("kind IN ('INVOICE','CREDIT_NOTE')", name="valid_invoice_kind"),
         UniqueConstraint("handover_id", "kind", name="unique_invoice_per_payment_and_kind"),
+        UniqueConstraint("payment_id", "kind", name="unique_invoice_per_online_payment_and_kind"),
+        CheckConstraint("num_nonnulls(handover_id, payment_id) = 1", name="invoice_has_one_payment"),
     )

@@ -12,6 +12,7 @@ from app.models.configuration import Configuration
 from app.models.processed_stripe_event import ProcessedStripeEvent
 from app.models.reservation import Reservation
 from app.models.reservation_extra import ReservationExtra
+from app.models.reservation_payment import ReservationPayment
 from app.models.user import User
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     "ProcessedStripeEvent",
     "Reservation",
     "ReservationExtra",
+    "ReservationPayment",
     "User",
 ]

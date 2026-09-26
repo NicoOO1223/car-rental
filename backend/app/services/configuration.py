@@ -70,6 +70,12 @@ def update_configuration(db: Session, *, actor: User, **fields) -> Configuration
             }
             setattr(configuration, field, value)
 
+    # A change to the terms or privacy text is a new version, so a booking can
+    # record which one the renter accepted.
+    if any(field in changes for field in ("terms_text", "terms_url", "privacy_text", "privacy_url")):
+        configuration.legal_version += 1
+        changes["legal_version"] = {"old": configuration.legal_version - 1, "new": configuration.legal_version}
+
     if changes:
         audit_log(
             db,

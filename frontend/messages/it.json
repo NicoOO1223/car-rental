@@ -311,6 +311,7 @@
     "validation": {
       "bool_parsing": "Scegli sì o no.",
       "business_name_empty": "Il nome dell'attività non può essere vuoto.",
+      "cancellation_hours_range": "Le ore di cancellazione gratuita devono essere tra 0 e 720.",
       "currency_code": "La valuta deve essere un codice di 3 lettere, ad esempio 'eur'.",
       "date_from_datetime_parsing": "Inserisci una data valida.",
       "date_parsing": "Inserisci una data valida.",
@@ -325,10 +326,12 @@
       "grace_negative": "Il periodo di tolleranza non può essere negativo.",
       "greater_than": "Il valore è troppo basso.",
       "greater_than_equal": "Il valore è troppo basso.",
+      "hold_minutes_range": "L'attesa per il pagamento deve essere tra 5 e 60 minuti.",
       "int_parsing": "Inserisci un numero intero.",
       "invoice_prefix_invalid": "Il prefisso delle fatture deve avere da 1 a 10 lettere, cifre o trattini.",
       "json_invalid": "Questi dati non sono validi.",
       "language_unsupported": "La lingua deve essere una tra: {allowed}.",
+      "lead_hours_range": "Il preavviso minimo di prenotazione deve essere tra 0 e 720 ore.",
       "less_than": "Il valore è troppo alto.",
       "less_than_equal": "Il valore è troppo alto.",
       "list_type": "Questo non è un elenco valido.",
@@ -338,7 +341,9 @@
       "missing": "Questo campo è obbligatorio.",
       "model_attributes_type": "Questi dati non sono validi.",
       "name_empty": "Il nome non può essere vuoto.",
+      "online_share_range": "La quota online deve essere tra 1 e 100 percento.",
       "password_too_short": "La password deve avere almeno 8 caratteri.",
+      "reminder_days_range": "I promemoria devono partire tra 1 e 365 giorni prima.",
       "role_invalid": "Il ruolo deve essere uno tra: {allowed}.",
       "string_too_long": "Il testo è troppo lungo.",
       "string_too_short": "Il testo è troppo corto.",
@@ -348,11 +353,11 @@
       "token_expiry_min": "La scadenza dell'accesso deve essere di almeno 1 giorno.",
       "too_long": "Ci sono troppi elementi.",
       "too_short": "Aggiungi almeno un elemento.",
+      "url_invalid": "Inserisci un indirizzo web completo che inizia con http:// o https://.",
       "url_parsing": "Inserisci un indirizzo web valido.",
       "uuid_parsing": "Questo non è un identificatore valido.",
       "value_error": "Questo valore non è valido.",
-      "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento.",
-      "reminder_days_range": "I promemoria devono partire tra 1 e 365 giorni prima."
+      "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento."
     }
   },
   "c": {

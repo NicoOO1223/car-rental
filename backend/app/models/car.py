@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Index, Date, DateTime, Integer, Numeric, String, ForeignKey
+from sqlalchemy import Boolean, Index, Date, DateTime, Integer, Numeric, String, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -110,6 +110,10 @@ class Car(Base):
     )  # GOOD | FAIR | WORN | NEEDS_REPLACEMENT
 
     last_oil_change_at: Mapped[date | None] = mapped_column(Date)
+
+    # Whether the public storefront may offer this car. The storefront's own
+    # on/off switch is Configuration.storefront_enabled.
+    offered_online: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
 
     # Technical inspection (the legally required periodic check).
     last_inspection_at: Mapped[date | None] = mapped_column(Date)

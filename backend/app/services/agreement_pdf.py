@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount, label
 from app.services.extras import localized_name, selections_from_reservation, translations_by_code
-from app.services.pricing import calculate_price_breakdown
+from app.services.booking_prices import reservation_price_breakdown
 from app.services.configuration import get_configuration, vat_terms
 from app.services.pdf_common import (
     FONT,
@@ -124,18 +124,7 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
 
     heading(label(language, "agreement.payment"))
     currency = handover.payment_currency.upper() if handover.payment_currency else ""
-    breakdown = calculate_price_breakdown(
-        car.price_per_day,
-        reservation.pickup_at,
-        reservation.return_at,
-        reservation.pickup_location_id,
-        reservation.return_location_id,
-        short_term_threshold_days=configuration.short_term_threshold_days,
-        short_term_fee=configuration.short_term_fee,
-        airport_change_fee=configuration.airport_change_fee,
-        **vat_terms(configuration),
-        extras=selections_from_reservation(reservation),
-    )
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
 
     def money_line(name: str, value) -> None:
         line(f"{name}: {format_amount(value, currency, language)}")

@@ -48,6 +48,16 @@ class ConfigurationResponse(BaseModel):
     invoice_prefix: str
     default_language: str
     document_language: str
+    storefront_enabled: bool
+    online_share_percent: int
+    free_cancellation_hours: int
+    hold_minutes: int
+    min_booking_lead_hours: int
+    terms_text: str
+    terms_url: str
+    privacy_text: str
+    privacy_url: str
+    legal_version: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -79,6 +89,53 @@ class ConfigurationUpdate(BaseModel):
     invoice_prefix: str | None = None
     default_language: str | None = None
     document_language: str | None = None
+    storefront_enabled: bool | None = None
+    online_share_percent: int | None = None
+    free_cancellation_hours: int | None = None
+    hold_minutes: int | None = None
+    min_booking_lead_hours: int | None = None
+    terms_text: str | None = Field(default=None, max_length=20000)
+    terms_url: str | None = Field(default=None, max_length=500)
+    privacy_text: str | None = Field(default=None, max_length=20000)
+    privacy_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator("online_share_percent")
+    @classmethod
+    def share_is_a_percentage(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 100):
+            raise PydanticCustomError("validation.online_share_range", "The online share must be between 1 and 100 percent.")
+        return v
+
+    @field_validator("free_cancellation_hours")
+    @classmethod
+    def cancellation_hours_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not (0 <= v <= 720):
+            raise PydanticCustomError("validation.cancellation_hours_range", "Free cancellation must be between 0 and 720 hours.")
+        return v
+
+    @field_validator("hold_minutes")
+    @classmethod
+    def hold_minutes_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not (5 <= v <= 60):
+            raise PydanticCustomError("validation.hold_minutes_range", "An unpaid booking can hold a car for 5 to 60 minutes.")
+        return v
+
+    @field_validator("min_booking_lead_hours")
+    @classmethod
+    def lead_time_is_not_negative(cls, v: int | None) -> int | None:
+        if v is not None and not (0 <= v <= 720):
+            raise PydanticCustomError("validation.lead_hours_range", "The minimum lead time must be between 0 and 720 hours.")
+        return v
+
+    @field_validator("terms_url", "privacy_url")
+    @classmethod
+    def link_is_web_address(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if v and not v.startswith(("http://", "https://")):
+            raise PydanticCustomError("validation.url_invalid", "A link must start with http:// or https://.")
+        return v
 
     @field_validator("default_language", "document_language")
     @classmethod

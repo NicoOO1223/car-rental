@@ -311,6 +311,7 @@
     "validation": {
       "bool_parsing": "Wybierz tak lub nie.",
       "business_name_empty": "Nazwa firmy nie może być pusta.",
+      "cancellation_hours_range": "Liczba godzin bezpłatnej rezygnacji musi wynosić od 0 do 720.",
       "currency_code": "Waluta musi być 3-literowym kodem, na przykład 'eur'.",
       "date_from_datetime_parsing": "Wpisz prawidłową datę.",
       "date_parsing": "Wpisz prawidłową datę.",
@@ -325,10 +326,12 @@
       "grace_negative": "Okres tolerancji nie może być ujemny.",
       "greater_than": "Wartość jest zbyt mała.",
       "greater_than_equal": "Wartość jest zbyt mała.",
+      "hold_minutes_range": "Czas na płatność musi wynosić od 5 do 60 minut.",
       "int_parsing": "Wpisz liczbę całkowitą.",
       "invoice_prefix_invalid": "Prefiks faktur musi mieć od 1 do 10 liter, cyfr lub myślników.",
       "json_invalid": "Te dane są nieprawidłowe.",
       "language_unsupported": "Język musi być jednym z: {allowed}.",
+      "lead_hours_range": "Minimalny czas do rezerwacji musi wynosić od 0 do 720 godzin.",
       "less_than": "Wartość jest zbyt duża.",
       "less_than_equal": "Wartość jest zbyt duża.",
       "list_type": "To nie jest prawidłowa lista.",
@@ -338,7 +341,9 @@
       "missing": "To pole jest wymagane.",
       "model_attributes_type": "Te dane są nieprawidłowe.",
       "name_empty": "Nazwa nie może być pusta.",
+      "online_share_range": "Udział płatności online musi wynosić od 1 do 100 procent.",
       "password_too_short": "Hasło musi mieć co najmniej 8 znaków.",
+      "reminder_days_range": "Przypomnienia muszą zaczynać się od 1 do 365 dni wcześniej.",
       "role_invalid": "Rola musi być jedną z: {allowed}.",
       "string_too_long": "Tekst jest zbyt długi.",
       "string_too_short": "Tekst jest zbyt krótki.",
@@ -348,11 +353,11 @@
       "token_expiry_min": "Ważność logowania musi wynosić co najmniej 1 dzień.",
       "too_long": "Elementów jest zbyt wiele.",
       "too_short": "Dodaj co najmniej jeden element.",
+      "url_invalid": "Podaj pełny adres internetowy zaczynający się od http:// lub https://.",
       "url_parsing": "Wpisz prawidłowy adres internetowy.",
       "uuid_parsing": "To nie jest prawidłowy identyfikator.",
       "value_error": "Ta wartość jest nieprawidłowa.",
-      "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent.",
-      "reminder_days_range": "Przypomnienia muszą zaczynać się od 1 do 365 dni wcześniej."
+      "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent."
     }
   },
   "c": {

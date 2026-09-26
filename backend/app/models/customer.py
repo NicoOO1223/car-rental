@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, String
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +58,14 @@ class Customer(Base):
     # optional at booking time, same reasoning as phone_number/email —
     # existing rows predate this field.
     nationality: Mapped[str | None] = mapped_column(String(2))
+
+    # What a renter agreed to when booking on the storefront, and which
+    # version of the text it was. A guest is always a new customer row, so
+    # this is effectively recorded per booking.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    terms_version: Mapped[int | None] = mapped_column(Integer)
+    privacy_acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    privacy_version: Mapped[int | None] = mapped_column(Integer)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

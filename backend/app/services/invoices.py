@@ -25,7 +25,7 @@ from app.services.audit import audit_log
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import selections_from_reservation, translations_by_code
 from app.services.money import round_money
-from app.services.pricing import calculate_price_breakdown
+from app.services.booking_prices import reservation_price_breakdown
 
 CREDIT_NOTE_PREFIX = "CN"
 _COUNTER_ID = 1
@@ -152,18 +152,7 @@ def issue_invoice_for_handover(
     car = db.get(Car, reservation.car_id)
     configuration = get_configuration(db)
 
-    breakdown = calculate_price_breakdown(
-        car.price_per_day,
-        reservation.pickup_at,
-        reservation.return_at,
-        reservation.pickup_location_id,
-        reservation.return_location_id,
-        short_term_threshold_days=configuration.short_term_threshold_days,
-        short_term_fee=configuration.short_term_fee,
-        airport_change_fee=configuration.airport_change_fee,
-        extras=selections_from_reservation(reservation),
-        **vat_terms(configuration),
-    )
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
 
     # The money actually collected is the authority for the totals, however
     # the lines were priced: it is what the customer paid. It is always the

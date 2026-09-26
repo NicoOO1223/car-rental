@@ -15,7 +15,7 @@ from app.services.stripe_sync import apply_payment_intent_status
 from app.services.agreement_pdf import render_agreement_pdf
 from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
-from app.services.pricing import calculate_price_breakdown
+from app.services.booking_prices import reservation_price_breakdown
 from app.services.configuration import get_configuration, vat_terms
 from app.services.identity_details import identity_issue
 
@@ -96,20 +96,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
     car = db.get(Car, reservation.car_id)
     configuration = get_configuration(db)
 
-    breakdown = calculate_price_breakdown(
-        car.price_per_day,
-        reservation.pickup_at,
-        reservation.return_at,
-        reservation.pickup_location_id,
-        reservation.return_location_id,
-        short_term_threshold_days=configuration.short_term_threshold_days,
-        short_term_fee=configuration.short_term_fee,
-        airport_change_fee=configuration.airport_change_fee,
-        **vat_terms(configuration),
-        # Snapshotted prices, not the live catalog — a booking is charged
-        # what it was booked at.
-        extras=selections_from_reservation(reservation),
-    )
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
 
     # Quantized before the cents conversion below. Every input today is an
     # exact 2-dp Decimal multiplied by integers, so int() truncation is
@@ -260,18 +247,7 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     car = db.get(Car, reservation.car_id)
     configuration = get_configuration(db)
 
-    breakdown = calculate_price_breakdown(
-        car.price_per_day,
-        reservation.pickup_at,
-        reservation.return_at,
-        reservation.pickup_location_id,
-        reservation.return_location_id,
-        short_term_threshold_days=configuration.short_term_threshold_days,
-        short_term_fee=configuration.short_term_fee,
-        airport_change_fee=configuration.airport_change_fee,
-        **vat_terms(configuration),
-        extras=selections_from_reservation(reservation),
-    )
+    breakdown = reservation_price_breakdown(db, reservation, car, configuration)
 
     amount = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 

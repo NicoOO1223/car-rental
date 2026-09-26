@@ -8,7 +8,7 @@ from app.services.audit import audit_log
 from app.services.configuration import get_configuration
 
 # Reservations that still need the location to exist and work.
-_OPEN_STATUSES = ("PENDING", "CONFIRMED", "ACTIVE")
+_OPEN_STATUSES = ("PENDING", "CONFIRMED", "ACTIVE", "AWAITING_PAYMENT")
 
 
 def list_locations(db: Session, *, include_inactive: bool = False) -> list[Location]:

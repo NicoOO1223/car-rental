@@ -8,6 +8,7 @@ from app.errors import AppError, NotFoundError
 from app.models import Car, Location, Reservation, User
 from app.schemas.car import CarPriceUpdate, CarUpdate
 from app.services.audit import audit_log
+from app.services.availability import blocking_reservation_clause
 
 
 VALID_TIRE_CONDITIONS = {
@@ -102,7 +103,7 @@ def return_car_to_home(db: Session, car_id: UUID, actor: User) -> Car:
         select(Reservation)
         .where(
             Reservation.car_id == car_id,
-            Reservation.status.in_(("ACTIVE", "CONFIRMED", "PENDING")),
+            blocking_reservation_clause(now),
             Reservation.return_at > now,
             (Reservation.status == "ACTIVE")
             | (Reservation.pickup_location_id == car.current_location_id),

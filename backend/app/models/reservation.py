@@ -1,11 +1,14 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Index,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
+    Numeric,
     String,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -111,6 +114,34 @@ class Reservation(Base):
         default="PENDING",
     )
 
+    # Where the booking came from: STAFF (the counter or the admin app) or
+    # STOREFRONT (a renter on the public site).
+    source: Mapped[str] = mapped_column(String(12), nullable=False, default="STAFF", server_default="STAFF")
+
+    # What a renter quotes to find a storefront booking ("ABCD-2345").
+    public_reference: Mapped[str | None] = mapped_column(String(9), unique=True)
+
+    # A storefront booking waits for payment until this moment (status
+    # AWAITING_PAYMENT); after it the car is free again.
+    hold_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Why a booking was cancelled, and until when a cancellation is free.
+    cancellation_reason: Mapped[str | None] = mapped_column(String(20))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancellation_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # The price as agreed when the booking was made. NULL on older bookings,
+    # which keep pricing from the live rates.
+    agreed_price_per_day: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    agreed_short_term_fee: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    agreed_airport_change_fee: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    agreed_total_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    agreed_currency: Mapped[str | None] = mapped_column(String(3))
+    # The share paid online, as set when the booking was made.
+    prepayment_percent: Mapped[int | None] = mapped_column(Integer)
+    # A keyed hash of the booker's address, for limits on live holds.
+    client_ip_hash: Mapped[str | None] = mapped_column(String(64))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
@@ -129,6 +160,8 @@ class Reservation(Base):
             "return_at > pickup_at",
             name="valid_reservation_period",
         ),
+        CheckConstraint("source IN ('STAFF','STOREFRONT')", name="valid_reservation_source"),
+        Index("ix_reservations_status_hold_expires_at", "status", "hold_expires_at"),
         Index("ix_reservations_car_id_pickup_at", "car_id", "pickup_at"),
         Index("ix_reservations_customer_id", "customer_id"),
         Index("ix_reservations_status_pickup_at", "status", "pickup_at"),
