@@ -599,3 +599,81 @@ def test_inspection_dates_are_editable_on_vehicle_condition():
     assert response.status_code == 200
     assert response.json()["last_inspection_at"] == "2026-01-15"
     assert response.json()["next_inspection_due"] == "2028-01-15"
+
+
+# --- cost -----------------------------------------------------------------------
+
+
+def test_a_task_can_carry_a_cost_that_completion_can_replace():
+    car = ensure_car_available("SA-006-AA")
+
+    task = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "MAINTENANCE",
+            "category": "ROUTINE_SERVICE",
+            "notes": None,
+            "cost": "120.50",
+            **window(),
+        },
+    ).json()
+
+    assert task["cost"] == "120.50"
+
+    # Completing without a cost keeps the estimate.
+    kept = client.patch(f"/api/maintenance/tasks/{task['id']}/complete", json={})
+    assert kept.json()["cost"] == "120.50"
+
+    second = client.post(
+        "/api/maintenance/tasks",
+        json={"car_id": car["id"], "task_type": "MAINTENANCE", "category": "OTHER", "notes": None, "cost": "50", **window()},
+    ).json()
+    final = client.patch(f"/api/maintenance/tasks/{second['id']}/complete", json={"cost": "64.90"})
+
+    assert final.json()["cost"] == "64.90"
+
+
+def test_a_task_without_a_cost_has_none_not_zero_and_a_negative_cost_is_rejected():
+    car = ensure_car_available("SA-006-AA")
+
+    payload = {"car_id": car["id"], "task_type": "MAINTENANCE", "category": "OTHER", "notes": None, **window()}
+    rejected = client.post("/api/maintenance/tasks", json={**payload, "cost": "-1"})
+
+    assert rejected.status_code == 422
+
+    task = client.post("/api/maintenance/tasks", json=payload).json()
+
+    assert task["cost"] is None
+
+    client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")
+
+
+# --- insurance ------------------------------------------------------------------
+
+
+def test_a_car_stores_its_insurance_period_and_cost():
+    car = ensure_car_available("SA-006-AA")
+
+    try:
+        response = client.patch(
+            f"/api/cars/{car['id']}",
+            json={"insured_from": "2026-01-01", "insured_until": "2026-12-31", "insurance_cost": "480.00"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["insured_from"] == "2026-01-01"
+        assert response.json()["insured_until"] == "2026-12-31"
+        assert response.json()["insurance_cost"] == "480.00"
+
+        backwards = client.patch(
+            f"/api/cars/{car['id']}", json={"insured_until": "2025-12-31"}
+        )
+
+        assert backwards.status_code == 400
+        assert backwards.json()["code"] == "car.insurance_end_before_start"
+    finally:
+        client.patch(
+            f"/api/cars/{car['id']}",
+            json={"insured_from": None, "insured_until": None, "insurance_cost": None},
+        )

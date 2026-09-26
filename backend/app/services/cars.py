@@ -54,6 +54,16 @@ def update_car(
     ):
         raise AppError("car.invalid_tire_condition_value", "Invalid tire condition value.")
 
+    if "insured_from" in updates or "insured_until" in updates:
+        start = updates.get("insured_from", car.insured_from)
+        end = updates.get("insured_until", car.insured_until)
+
+        if start is not None and end is not None and end < start:
+            raise AppError(
+                "car.insurance_end_before_start",
+                "The insurance end date cannot be before its start date.",
+            )
+
     for field, value in updates.items():
         setattr(car, field, value)
 

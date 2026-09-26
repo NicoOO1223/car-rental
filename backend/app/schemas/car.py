@@ -34,6 +34,9 @@ class CarResponse(BaseModel):
     last_oil_change_at: date | None
     last_inspection_at: date | None
     next_inspection_due: date | None
+    insured_from: date | None
+    insured_until: date | None
+    insurance_cost: Decimal | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,6 +62,9 @@ class CarUpdate(BaseModel):
     last_oil_change_at: date | None = None
     last_inspection_at: date | None = None
     next_inspection_due: date | None = None
+    insured_from: date | None = None
+    insured_until: date | None = None
+    insurance_cost: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
 
 
 class DailyRateResponse(BaseModel):

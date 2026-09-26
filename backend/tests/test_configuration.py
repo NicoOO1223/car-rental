@@ -85,6 +85,7 @@ def test_get_configuration_returns_all_fields():
         "airport_change_fee",
         "default_currency",
         "access_token_expire_days",
+        "reminder_days",
         "late_return_grace_minutes",
         "late_fee_per_hour",
         "fuel_fee_per_eighth",
@@ -219,3 +220,14 @@ def test_staff_can_read_the_default_currency():
         assert "security_deposit_amount" in body
     finally:
         _restore_admin_override()
+
+
+def test_reminder_days_is_configurable_within_range():
+    original = client.get("/api/configuration").json()["reminder_days"]
+
+    try:
+        assert client.patch("/api/configuration", json={"reminder_days": 14}).json()["reminder_days"] == 14
+        assert client.patch("/api/configuration", json={"reminder_days": 0}).status_code == 422
+        assert client.patch("/api/configuration", json={"reminder_days": 400}).status_code == 422
+    finally:
+        client.patch("/api/configuration", json={"reminder_days": original})

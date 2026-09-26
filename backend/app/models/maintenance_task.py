@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import Index, CheckConstraint, DateTime, ForeignKey, String, Text
+from sqlalchemy import Index, CheckConstraint, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,6 +54,12 @@ class MaintenanceTask(Base):
     category: Mapped[str | None] = mapped_column(String(30))
 
     notes: Mapped[str | None] = mapped_column(Text)
+
+    # What the work costs, typed in when the task is logged and adjustable
+    # when it is completed. Optional: NULL means not entered, which is not
+    # the same as a cost of zero. Kept as a plain amount in the business's
+    # currency for the cost tracking that will build on it.
+    cost: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
 
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

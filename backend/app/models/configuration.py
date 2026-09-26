@@ -52,6 +52,10 @@ class Configuration(Base):
     # extends a session already in progress.
     access_token_expire_days: Mapped[int] = mapped_column(nullable=False)
 
+    # How many days ahead the app starts reminding staff that a technical
+    # inspection or an insurance period is about to end.
+    reminder_days: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
+
     # Business profile. Shown on the login page, the sidebar and the tab
     # title, and printed on the agreement. Text fields are never NULL: an
     # empty string means "not set", which keeps the update path (where None

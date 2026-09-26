@@ -20,6 +20,7 @@ type Props = {
  */
 export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
   const [nextDue, setNextDue] = useState("");
+  const [cost, setCost] = useState(task.cost ?? "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +43,7 @@ export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
     setError("");
 
     try {
-      const updated = await completeMaintenanceTask(task.id, nextDue);
+      const updated = await completeMaintenanceTask(task.id, nextDue, cost || null);
 
       onCompleted(updated);
       onClose();
@@ -76,6 +77,16 @@ export function CompleteTaskModal({ task, onClose, onCompleted }: Props) {
           min={minDate}
           value={nextDue}
           onChange={(event) => setNextDue(event.target.value)}
+        />
+
+        <TextField
+          label={t("c.maintenance.CompleteTaskModal.finalCost")}
+          type="number"
+          min={0}
+          step="0.01"
+          hint={t("c.maintenance.CompleteTaskModal.finalCostHint")}
+          value={cost}
+          onChange={(event) => setCost(event.target.value)}
         />
 
         {error && (

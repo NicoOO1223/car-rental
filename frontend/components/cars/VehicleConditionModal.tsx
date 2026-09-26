@@ -30,6 +30,9 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
   const [nextInspectionDue, setNextInspectionDue] = useState(
     car.next_inspection_due ?? "",
   );
+  const [insuredFrom, setInsuredFrom] = useState(car.insured_from ?? "");
+  const [insuredUntil, setInsuredUntil] = useState(car.insured_until ?? "");
+  const [insuranceCost, setInsuranceCost] = useState(car.insurance_cost ?? "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +50,9 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
         last_oil_change_at: lastOilChangeAt || null,
         last_inspection_at: lastInspectionAt || null,
         next_inspection_due: nextInspectionDue || null,
+        insured_from: insuredFrom || null,
+        insured_until: insuredUntil || null,
+        insurance_cost: insuranceCost || null,
       });
 
       onSaved(updated);
@@ -121,6 +127,33 @@ export function VehicleConditionModal({ car, onClose, onSaved }: Props) {
             type="date"
             value={nextInspectionDue}
             onChange={(event) => setNextInspectionDue(event.target.value)}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TextField
+            label={t("c.cars.VehicleConditionModal.insuredSince")}
+            type="date"
+            value={insuredFrom}
+            onChange={(event) => setInsuredFrom(event.target.value)}
+          />
+
+          <TextField
+            label={t("c.cars.VehicleConditionModal.insuredUntil")}
+            type="date"
+            min={insuredFrom || undefined}
+            value={insuredUntil}
+            onChange={(event) => setInsuredUntil(event.target.value)}
+          />
+
+          <TextField
+            label={t("c.cars.VehicleConditionModal.insuranceCost")}
+            type="number"
+            min={0}
+            step="0.01"
+            hint={t("c.cars.VehicleConditionModal.insuranceCostHint")}
+            value={insuranceCost}
+            onChange={(event) => setInsuranceCost(event.target.value)}
           />
         </div>
 

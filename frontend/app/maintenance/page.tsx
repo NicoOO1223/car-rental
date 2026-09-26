@@ -21,7 +21,7 @@ import { Toolbar } from "@/components/ui/Toolbar";
 import { CompleteTaskModal } from "@/components/maintenance/CompleteTaskModal";
 import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 import { maintenanceCategoryLabel } from "@/lib/maintenance";
-import { formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime } from "@/lib/format";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { t } from "@/lib/i18n";
 
@@ -181,6 +181,18 @@ export default function MaintenancePage() {
         }`,
       sortable: true,
       sortAccessor: (task) => new Date(task.starts_at ?? task.opened_at),
+    },
+    {
+      id: "cost",
+      header: t("s.maintenance.cost"),
+      mobileLabel: t("s.maintenance.cost"),
+      cell: (task) => (
+        <span className="text-sm text-ink-muted">
+          {task.cost != null ? formatCurrency(task.cost) : "—"}
+        </span>
+      ),
+      sortable: true,
+      sortAccessor: (task) => (task.cost != null ? Number(task.cost) : -1),
     },
     {
       id: "opened",

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { getToken } from "@/lib/api";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { CurrentUserProvider } from "@/components/CurrentUserProvider";
+import { NotificationsProvider } from "@/components/NotificationsProvider";
 import Sidebar from "@/components/Sidebar";
 import { t } from "@/lib/i18n";
 
@@ -64,6 +65,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   return (
     <CurrentUserProvider>
       <CurrencyProvider>
+      <NotificationsProvider>
       <div className="flex min-h-screen flex-col lg:flex-row">
         {/* Lets a keyboard user jump past the whole nav, which is otherwise
             six links and a button before every page's first control. */}
@@ -78,6 +80,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
+      </NotificationsProvider>
       </CurrencyProvider>
     </CurrentUserProvider>
   );

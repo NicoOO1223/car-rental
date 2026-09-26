@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
@@ -69,6 +70,7 @@ def create_task(
     ends_at: datetime,
     actor: User,
     commit: bool = True,
+    cost: Decimal | None = None,
 ) -> MaintenanceTask:
     """
     With commit=False the task and its audit row are only flushed, so the
@@ -112,6 +114,7 @@ def create_task(
         category=category,
         status="OPEN",
         notes=notes,
+        cost=cost,
         starts_at=starts_at,
         ends_at=ends_at,
     )
@@ -131,6 +134,7 @@ def create_task(
             "task_type": task_type,
             "category": category,
             "notes": notes,
+            "cost": str(cost) if cost is not None else None,
             "starts_at": starts_at.isoformat(),
             "ends_at": ends_at.isoformat(),
         },
@@ -151,6 +155,7 @@ def _close_task(
     new_status: str,
     actor: User,
     next_inspection_due: date | None = None,
+    cost: Decimal | None = None,
 ) -> MaintenanceTask:
     task = db.get(MaintenanceTask, task_id)
 
@@ -173,6 +178,11 @@ def _close_task(
 
     task.status = new_status
     task.completed_at = datetime.now(timezone.utc)
+
+    # A completed task's final cost replaces the estimate; leaving it out
+    # keeps whatever was entered before.
+    if new_status == "DONE" and cost is not None:
+        task.cost = cost
 
     car = db.get(Car, task.car_id)
 
@@ -208,6 +218,7 @@ def _close_task(
             "task_type": task.task_type,
             "category": task.category,
             "notes": task.notes,
+            "cost": str(task.cost) if task.cost is not None else None,
             "starts_at": task.starts_at.isoformat() if task.starts_at else None,
             "ends_at": task.ends_at.isoformat() if task.ends_at else None,
             **(
@@ -232,8 +243,9 @@ def complete_task(
     task_id: UUID,
     actor: User,
     next_inspection_due: date | None = None,
+    cost: Decimal | None = None,
 ) -> MaintenanceTask:
-    return _close_task(db, task_id, "DONE", actor, next_inspection_due)
+    return _close_task(db, task_id, "DONE", actor, next_inspection_due, cost)
 
 
 def cancel_task(db: Session, task_id: UUID, actor: User) -> MaintenanceTask:

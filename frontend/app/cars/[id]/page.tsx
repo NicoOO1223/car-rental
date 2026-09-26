@@ -550,6 +550,36 @@ export default function CarDetailsPage({ params }: Props) {
               </p>
             </div>
 
+            <div>
+              <p className="text-sm text-gray-500">{t("s.cars.id.insuredSince")}</p>
+
+              <p className="mt-1 font-medium">
+                {car.insured_from ? formatDate(car.insured_from) : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">{t("s.cars.id.insuredUntil")}</p>
+
+              <p className="mt-1 font-medium">
+                {car.insured_until ? formatDate(car.insured_until) : "—"}
+                {inspectionStatus(car.insured_until) === "overdue" && (
+                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">{t("s.cars.id.expired")}</span>
+                )}
+                {inspectionStatus(car.insured_until) === "soon" && (
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.id.endsSoon")}</span>
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">{t("s.cars.id.insuranceCost")}</p>
+
+              <p className="mt-1 font-medium">
+                {car.insurance_cost != null ? formatCurrency(car.insurance_cost) : "—"}
+              </p>
+            </div>
+
           </div>
         </section>
 
@@ -604,6 +634,7 @@ export default function CarDetailsPage({ params }: Props) {
                         {task.completed_at && (
                           <>{" "}{t("s.cars.id.closed", { date: formatDateTime(task.completed_at) })}</>
                         )}
+                        {task.cost != null && <>{" · "}{t("s.cars.id.taskCost", { cost: formatCurrency(task.cost) })}</>}
                       </p>
                     </div>
                   </div>

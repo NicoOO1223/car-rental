@@ -25,7 +25,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "main": "Main",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "notifications": "Notifications"
   },
   "auth": {
     "subtitle": "Sign in to the management panel.",
@@ -137,7 +138,8 @@
       "car_already_at_its_home_airport": "This car is already at its home airport.",
       "invalid_tire_condition_value": "Invalid tire condition value.",
       "license_plate_already_use": "License plate already in use.",
-      "not_found": "Car not found."
+      "not_found": "Car not found.",
+      "insurance_end_before_start": "The insurance end date cannot be before its start date."
     },
     "check_out": {
       "car_already_maintenance_or_cleaning_scheduled": "The car already has maintenance or cleaning scheduled in that period.",
@@ -346,7 +348,8 @@
       "url_parsing": "Enter a valid web address.",
       "uuid_parsing": "That is not a valid identifier.",
       "value_error": "This value is not valid.",
-      "vat_rate_range": "The VAT rate must be between 0 and 100 percent."
+      "vat_rate_range": "The VAT rate must be between 0 and 100 percent.",
+      "reminder_days_range": "Reminders must start between 1 and 365 days ahead."
     }
   },
   "c": {
@@ -520,7 +523,11 @@
         "lastInspection": "Last inspection",
         "nextInspectionDue": "Next inspection due",
         "saving": "Saving",
-        "saveChanges": "Save changes"
+        "saveChanges": "Save changes",
+        "insuredSince": "Insured since",
+        "insuredUntil": "Insured until",
+        "insuranceCost": "Insurance cost",
+        "insuranceCostHint": "Optional. The price for the period above."
       }
     },
     "charts": {
@@ -642,7 +649,9 @@
         "cancel": "Cancel",
         "nextInspectionDue": "Next inspection due",
         "saving": "Saving",
-        "markComplete": "Mark complete"
+        "markComplete": "Mark complete",
+        "finalCost": "Final cost",
+        "finalCostHint": "Optional. Replaces the cost entered when the task was logged."
       },
       "NewTaskModal": {
         "selectVehicle": "Select a vehicle.",
@@ -662,7 +671,9 @@
         "notes": "Notes",
         "reasonTask": "Reason for this task...",
         "saving": "Saving",
-        "logTask2": "Log task"
+        "logTask2": "Log task",
+        "cost": "Cost",
+        "costHint": "Optional. What the work costs, if you know it yet."
       }
     },
     "NavigationProgress": {
@@ -892,7 +903,9 @@
           "system": "System",
           "notChargeButPart": "Not a charge, but part of how the app runs.",
           "staffSessionLengthDays": "Staff session length (days)",
-          "staffMemberSLogin": "A staff member's login token is valid for this many days. Changing this only affects sessions started after the change — it does not shorten or extend a session already in progress."
+          "staffMemberSLogin": "A staff member's login token is valid for this many days. Changing this only affects sessions started after the change — it does not shorten or extend a session already in progress.",
+          "reminderWindowDays": "Reminder window (days)",
+          "reminderWindowHint": "How many days ahead technical inspections and insurance are flagged as due soon."
         },
         "vehicles": {
           "failedLoadVehicles": "Failed to load vehicles.",
@@ -1026,7 +1039,13 @@
         "noNotes": "No notes",
         "untilClosed": "until closed",
         "cleaning": "Cleaning",
-        "maintenance": "Maintenance"
+        "maintenance": "Maintenance",
+        "insuredSince": "Insured Since",
+        "insuredUntil": "Insured Until",
+        "insuranceCost": "Insurance Cost",
+        "expired": "Expired",
+        "endsSoon": "Ends soon",
+        "taskCost": "Cost {cost}"
       },
       "standard": "Standard",
       "noPhoneFile": "No phone on file",
@@ -1493,7 +1512,8 @@
       "noTasksFound": "No tasks found",
       "nothingMatchesFilterRight": "Nothing matches this filter right now.",
       "untilClosed": "until closed",
-      "untilDate": "until {date}"
+      "untilDate": "until {date}",
+      "cost": "Cost"
     }
   },
   "common": {
@@ -1589,5 +1609,20 @@
       "invoice": "Invoice",
       "location": "Location"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "What needs attention: vehicles to move back, inspections and insurance. Checked when you open the app and every few minutes.",
+    "emptyTitle": "Nothing needs attention",
+    "emptyDescription": "Vehicles to move back, inspections and insurance appear here when they need action.",
+    "urgent": "Urgent",
+    "soon": "Soon",
+    "viewVehicle": "View vehicle",
+    "count": "{count, plural, one {# notification} other {# notifications}}",
+    "relocation": "{vehicle} is at {airport} but belongs at {home}. Move it back and record it on its page.",
+    "inspectionDue": "{vehicle}: technical inspection due {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
+    "inspectionOverdue": "{vehicle}: technical inspection was due {date}, {days, plural, one {# day} other {# days}} ago.",
+    "insuranceEnding": "{vehicle}: insurance ends {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
+    "insuranceExpired": "{vehicle}: insurance ended {date}, {days, plural, one {# day} other {# days}} ago."
   }
 }

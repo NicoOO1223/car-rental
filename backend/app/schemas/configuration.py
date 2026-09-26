@@ -33,6 +33,7 @@ class ConfigurationResponse(BaseModel):
     security_deposit_amount: float
     default_currency: str
     access_token_expire_days: int
+    reminder_days: int
     business_name: str
     legal_name: str
     address: str
@@ -63,6 +64,7 @@ class ConfigurationUpdate(BaseModel):
     security_deposit_amount: float | None = None
     default_currency: str | None = None
     access_token_expire_days: int | None = None
+    reminder_days: int | None = None
     business_name: str | None = Field(default=None, max_length=100)
     legal_name: str | None = Field(default=None, max_length=150)
     address: str | None = Field(default=None, max_length=500)
@@ -172,6 +174,16 @@ class ConfigurationUpdate(BaseModel):
     def fee_must_not_be_negative(cls, v: float | None) -> float | None:
         if v is not None and v < 0:
             raise PydanticCustomError("validation.fee_negative", "Fees cannot be negative.")
+        return v
+
+    @field_validator("reminder_days")
+    @classmethod
+    def reminder_days_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not 1 <= v <= 365:
+            raise PydanticCustomError(
+                "validation.reminder_days_range",
+                "Reminders must start between 1 and 365 days ahead.",
+            )
         return v
 
     @field_validator("access_token_expire_days")

@@ -25,7 +25,8 @@
     "openMenu": "Otwórz menu",
     "closeMenu": "Zamknij menu",
     "main": "Główna",
-    "navigation": "Nawigacja"
+    "navigation": "Nawigacja",
+    "notifications": "Powiadomienia"
   },
   "auth": {
     "subtitle": "Zaloguj się do panelu zarządzania.",
@@ -137,7 +138,8 @@
       "car_already_at_its_home_airport": "Ten pojazd jest już w swojej bazie.",
       "invalid_tire_condition_value": "Nieprawidłowa wartość stanu opon.",
       "license_plate_already_use": "Ta tablica rejestracyjna jest już używana.",
-      "not_found": "Nie znaleziono pojazdu."
+      "not_found": "Nie znaleziono pojazdu.",
+      "insurance_end_before_start": "Data końca ubezpieczenia nie może być wcześniejsza niż data początku."
     },
     "check_out": {
       "car_already_maintenance_or_cleaning_scheduled": "Pojazd ma już zaplanowany serwis lub czyszczenie w tym okresie.",
@@ -346,7 +348,8 @@
       "url_parsing": "Wpisz prawidłowy adres internetowy.",
       "uuid_parsing": "To nie jest prawidłowy identyfikator.",
       "value_error": "Ta wartość jest nieprawidłowa.",
-      "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent."
+      "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent.",
+      "reminder_days_range": "Przypomnienia muszą zaczynać się od 1 do 365 dni wcześniej."
     }
   },
   "c": {
@@ -520,7 +523,11 @@
         "lastInspection": "Ostatni przegląd",
         "nextInspectionDue": "Następny przegląd do",
         "saving": "Zapisywanie",
-        "saveChanges": "Zapisz zmiany"
+        "saveChanges": "Zapisz zmiany",
+        "insuredSince": "Ubezpieczony od",
+        "insuredUntil": "Ubezpieczony do",
+        "insuranceCost": "Koszt ubezpieczenia",
+        "insuranceCostHint": "Opcjonalne. Cena za powyższy okres."
       }
     },
     "charts": {
@@ -642,7 +649,9 @@
         "cancel": "Anuluj",
         "nextInspectionDue": "Następny przegląd do",
         "saving": "Zapisywanie",
-        "markComplete": "Oznacz jako wykonane"
+        "markComplete": "Oznacz jako wykonane",
+        "finalCost": "Koszt końcowy",
+        "finalCostHint": "Opcjonalne. Zastępuje koszt wpisany przy zapisie zadania."
       },
       "NewTaskModal": {
         "selectVehicle": "Wybierz pojazd.",
@@ -662,7 +671,9 @@
         "notes": "Notatki",
         "reasonTask": "Powód tego zadania...",
         "saving": "Zapisywanie",
-        "logTask2": "Zapisz zadanie"
+        "logTask2": "Zapisz zadanie",
+        "cost": "Koszt",
+        "costHint": "Opcjonalne. Ile kosztuje praca, jeśli już wiesz."
       }
     },
     "NavigationProgress": {
@@ -892,7 +903,9 @@
           "system": "System",
           "notChargeButPart": "To nie jest opłata, lecz element działania aplikacji.",
           "staffSessionLengthDays": "Czas trwania sesji pracownika (dni)",
-          "staffMemberSLogin": "Token logowania pracownika jest ważny przez tyle dni. Zmiana dotyczy tylko sesji rozpoczętych po niej — nie skraca ani nie wydłuża sesji, która już trwa."
+          "staffMemberSLogin": "Token logowania pracownika jest ważny przez tyle dni. Zmiana dotyczy tylko sesji rozpoczętych po niej — nie skraca ani nie wydłuża sesji, która już trwa.",
+          "reminderWindowDays": "Wyprzedzenie przypomnień (dni)",
+          "reminderWindowHint": "Na ile dni z wyprzedzeniem przeglądy techniczne i ubezpieczenia są oznaczane jako wkrótce wygasające."
         },
         "vehicles": {
           "failedLoadVehicles": "Nie udało się wczytać pojazdów.",
@@ -1026,7 +1039,13 @@
         "noNotes": "Brak notatek",
         "untilClosed": "do zamknięcia",
         "cleaning": "Czyszczenie",
-        "maintenance": "Serwis"
+        "maintenance": "Serwis",
+        "insuredSince": "Ubezpieczony od",
+        "insuredUntil": "Ubezpieczony do",
+        "insuranceCost": "Koszt ubezpieczenia",
+        "expired": "Wygasło",
+        "endsSoon": "Wkrótce koniec",
+        "taskCost": "Koszt {cost}"
       },
       "standard": "Standardowa",
       "noPhoneFile": "Brak numeru telefonu",
@@ -1493,7 +1512,8 @@
       "noTasksFound": "Nie znaleziono zadań",
       "nothingMatchesFilterRight": "Obecnie nic nie pasuje do tego filtra.",
       "untilClosed": "do zamknięcia",
-      "untilDate": "do {date}"
+      "untilDate": "do {date}",
+      "cost": "Koszt"
     }
   },
   "common": {
@@ -1589,5 +1609,20 @@
       "invoice": "Faktura",
       "location": "Lokalizacja"
     }
+  },
+  "notifications": {
+    "title": "Powiadomienia",
+    "description": "Co wymaga uwagi: pojazdy do odprowadzenia, przeglądy i ubezpieczenia. Sprawdzane po otwarciu aplikacji i co kilka minut.",
+    "emptyTitle": "Nic nie wymaga uwagi",
+    "emptyDescription": "Pojazdy do odprowadzenia, przeglądy i ubezpieczenia pojawią się tutaj, gdy trzeba działać.",
+    "urgent": "Pilne",
+    "soon": "Wkrótce",
+    "viewVehicle": "Zobacz pojazd",
+    "count": "{count, plural, one {# powiadomienie} few {# powiadomienia} many {# powiadomień} other {# powiadomienia}}",
+    "relocation": "{vehicle} znajduje się w {airport}, ale jego bazą jest {home}. Odprowadź go i zapisz to na jego stronie.",
+    "inspectionDue": "{vehicle}: przegląd techniczny do {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
+    "inspectionOverdue": "{vehicle}: przegląd techniczny był do {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
+    "insuranceEnding": "{vehicle}: ubezpieczenie kończy się {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
+    "insuranceExpired": "{vehicle}: ubezpieczenie skończyło się {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}."
   }
 }

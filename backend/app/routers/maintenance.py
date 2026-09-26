@@ -49,6 +49,7 @@ def create_task_endpoint(
         data.starts_at,
         data.ends_at,
         current_user,
+        cost=data.cost,
     )
 
     return task
@@ -66,6 +67,7 @@ def complete_task_endpoint(
         task_id,
         current_user,
         data.next_inspection_due if data else None,
+        data.cost if data else None,
     )
 
     return task

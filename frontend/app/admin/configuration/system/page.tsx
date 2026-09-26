@@ -16,6 +16,13 @@ export default function SystemConfigurationPage() {
           min: 1,
           hint: t("s.admin.configuration.system.staffMemberSLogin"),
         },
+        {
+          key: "reminder_days",
+          label: t("s.admin.configuration.system.reminderWindowDays"),
+          kind: "integer",
+          min: 1,
+          hint: t("s.admin.configuration.system.reminderWindowHint"),
+        },
       ]}
     />
   );

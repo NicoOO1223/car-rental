@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
+  Bell,
   Car,
   CalendarClock,
   ChevronsLeft,
@@ -29,6 +30,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { useBrand } from "@/components/BrandProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { useNotifications } from "@/components/NotificationsProvider";
 import { t } from "@/lib/i18n";
 
 // Names are keys into the "nav" catalog, translated where they are drawn.
@@ -43,7 +45,10 @@ type NavSection = { labelKey: string | null; items: NavItem[] };
 const BASE_NAV_SECTIONS: NavSection[] = [
   {
     labelKey: null,
-    items: [{ key: "overview", href: "/", icon: LayoutDashboard }],
+    items: [
+      { key: "overview", href: "/", icon: LayoutDashboard },
+      { key: "notifications", href: "/notifications", icon: Bell },
+    ],
   },
   {
     labelKey: "bookings",
@@ -143,6 +148,7 @@ function SidebarContent({
 }) {
   const isNewBooking = pathname.startsWith("/reservations/new");
   const { name: brandName } = useBrand();
+  const { count: notificationCount, urgent: urgentCount } = useNotifications();
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -247,6 +253,17 @@ function SidebarContent({
 
                     {!collapsed && t(`nav.${item.key}`)}
                     {collapsed && <span className="sr-only">{t(`nav.${item.key}`)}</span>}
+
+                    {item.key === "notifications" && notificationCount > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-xs font-semibold text-white ${
+                          urgentCount > 0 ? "bg-red-600" : "bg-amber-600"
+                        } ${collapsed ? "absolute right-1 top-1 px-1 py-0 text-[10px]" : "ml-auto"}`}
+                        aria-label={t("notifications.count", { count: notificationCount })}
+                      >
+                        {notificationCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

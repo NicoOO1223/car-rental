@@ -32,6 +32,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L11 | Visual redesign | Deferred |
 | L12 | Production hardening | Built and committed, not yet deployed. See the deployment checklist below |
 | L13 | Business profile and localization | Built and committed, not yet deployed. See the notes below |
+| L13c | Fleet cost, insurance and notifications | Built and committed, not yet deployed. See the notes below |
 | L13b | Interface and document language | Built and committed, not yet deployed. Italian and Polish are drafts awaiting native review. See the notes below |
 
 ## Next layers
@@ -101,6 +102,13 @@ Deployment notes:
 1. Push. The migrations default everything to English, so nothing changes on deploy.
 2. As an admin, set the default interface language and the document language under Configuration, Business.
 3. Have a native Italian and Polish speaker review the catalogs (`docs/TRANSLATING.md`) before customers rely on them.
+
+**L13c Fleet cost, insurance and notifications.** Built. Nothing below is live until it is pushed.
+- A maintenance task can carry a cost, typed in when it is logged and replaceable when a technical inspection is completed. Empty means not entered, not zero. The maintenance list and each vehicle's history show it. This is the input for the cost tracking to come.
+- A vehicle has an insured-since date, an insured-until date and an insurance cost for that period, edited with the rest of its condition.
+- Notifications are worked out from the data each time, never stored: a vehicle away from its home airport, an inspection due soon or overdue, insurance ending soon or ended. A bell in the sidebar shows the count (red when something is urgent) and opens a list that links to each vehicle. Items disappear when the thing is fixed, so nothing needs marking as read. The lead time is Configuration, System, "Reminder window (days)", 30 by default.
+- Notifications are in-app only. Email and SMS stay deferred with L9, so nobody is told unless they open the app.
+- Not covered: a cost on cleaning or non-inspection completions beyond what was entered when logging, and cost reports.
 
 **L14 Per-customer stack automation.**
 - Parameterize the Bicep and bootstrap script by customer, with one shared registry and one image for all stacks.

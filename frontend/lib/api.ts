@@ -699,7 +699,41 @@ export type Car = {
   last_oil_change_at: string | null;
   last_inspection_at: string | null;
   next_inspection_due: string | null;
+  insured_from: string | null;
+  insured_until: string | null;
+  /** The premium for the insured period, as a decimal string. */
+  insurance_cost: string | null;
 };
+
+export type Notification = {
+  kind:
+    | "relocation"
+    | "inspection_due"
+    | "inspection_overdue"
+    | "insurance_ending"
+    | "insurance_expired";
+  severity: "warning" | "critical";
+  car: { id: string; make: string; model: string; license_plate: string };
+  airport: string | null;
+  home_airport: string | null;
+  date: string | null;
+  /** Days until the date; negative once it has passed. */
+  days: number | null;
+};
+
+/** What needs attention: vehicles to move back, inspections, insurance. */
+export async function getNotifications(): Promise<{
+  reminder_days: number;
+  items: Notification[];
+}> {
+  const response = await apiFetch("/api/notifications");
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
 
 /** Admin only: sets a vehicle's daily rate (audited). */
 export async function updateCarPrice(
@@ -772,6 +806,9 @@ export async function updateCar(
     last_oil_change_at: string | null;
     last_inspection_at: string | null;
     next_inspection_due: string | null;
+    insured_from: string | null;
+    insured_until: string | null;
+    insurance_cost: string | null;
   }>,
 ): Promise<Car> {
   const response = await apiFetch(`/api/cars/${carId}`, {
@@ -873,6 +910,8 @@ export type MaintenanceTask = {
   category: string | null;
   status: string;
   notes: string | null;
+  /** What the work costs; null when not entered (not the same as zero). */
+  cost: string | null;
   // Null only for tasks created before time ranges were required.
   starts_at: string | null;
   ends_at: string | null;
@@ -919,6 +958,7 @@ export async function createMaintenanceTask(data: {
   task_type: string;
   category?: string | null;
   notes?: string | null;
+  cost?: string | null;
   starts_at: string;
   ends_at: string;
 }): Promise<MaintenanceTask> {
@@ -941,14 +981,18 @@ export async function createMaintenanceTask(data: {
 export async function completeMaintenanceTask(
   taskId: string,
   nextInspectionDue?: string,
+  cost?: string | null,
 ): Promise<MaintenanceTask> {
   const response = await apiFetch(
     `/api/maintenance/tasks/${taskId}/complete`,
-    nextInspectionDue
+    nextInspectionDue || cost
       ? {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ next_inspection_due: nextInspectionDue }),
+          body: JSON.stringify({
+            ...(nextInspectionDue ? { next_inspection_due: nextInspectionDue } : {}),
+            ...(cost ? { cost } : {}),
+          }),
         }
       : { method: "PATCH" },
   );
@@ -2108,6 +2152,7 @@ export type Configuration = {
   security_deposit_amount: number;
   default_currency: string;
   access_token_expire_days: number;
+  reminder_days: number;
   business_name: string;
   legal_name: string;
   address: string;

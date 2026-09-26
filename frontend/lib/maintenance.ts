@@ -17,7 +17,13 @@ export function maintenanceCategoryLabel(
   return category ? enumLabel("maintenanceCategory", category) : "";
 }
 
-const INSPECTION_SOON_DAYS = 30;
+// How many days ahead a date counts as "due soon". Configuration decides;
+// this is the value until the server's is known.
+let dueSoonDays = 30;
+
+export function setReminderDays(days: number): void {
+  dueSoonDays = days;
+}
 
 /** How a car's next technical inspection date stands relative to today. */
 export function inspectionStatus(
@@ -35,6 +41,6 @@ export function inspectionStatus(
   const daysLeft = Math.round((due.getTime() - today.getTime()) / 86_400_000);
 
   if (daysLeft < 0) return "overdue";
-  if (daysLeft <= INSPECTION_SOON_DAYS) return "soon";
+  if (daysLeft <= dueSoonDays) return "soon";
   return "ok";
 }

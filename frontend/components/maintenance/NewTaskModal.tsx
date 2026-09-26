@@ -29,6 +29,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
   const [taskType, setTaskType] = useState("MAINTENANCE");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  const [cost, setCost] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
 
@@ -71,6 +72,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
         task_type: taskType,
         category: taskType === "MAINTENANCE" ? category : null,
         notes: notes || null,
+        cost: cost || null,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
       });
@@ -172,6 +174,16 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
             onChange={(event) => setEndsAt(event.target.value)}
           />
         </div>
+
+        <TextField
+          label={t("c.maintenance.NewTaskModal.cost")}
+          type="number"
+          min={0}
+          step="0.01"
+          hint={t("c.maintenance.NewTaskModal.costHint")}
+          value={cost}
+          onChange={(event) => setCost(event.target.value)}
+        />
 
         <Field label={t("c.maintenance.NewTaskModal.notes")}>
           {(fieldProps) => (

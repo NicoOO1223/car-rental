@@ -115,6 +115,12 @@ class Car(Base):
     last_inspection_at: Mapped[date | None] = mapped_column(Date)
     next_inspection_due: Mapped[date | None] = mapped_column(Date)
 
+    # Insurance cover: the period it runs and what it costs for that period.
+    # All optional, and edited by hand like the rest of the condition.
+    insured_from: Mapped[date | None] = mapped_column(Date)
+    insured_until: Mapped[date | None] = mapped_column(Date)
+    insurance_cost: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
