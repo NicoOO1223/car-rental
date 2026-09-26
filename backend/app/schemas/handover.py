@@ -121,6 +121,12 @@ class PaymentIntentResponse(BaseModel):
     extras: list[PriceBreakdownExtraLine] = []
     extras_amount: float = 0.0
 
+    # VAT, so the payment screen shows the same lines as the quote.
+    vat_rate: float = 0.0
+    vat_amount: float = 0.0
+    net_amount: float = 0.0
+    prices_include_vat: bool = True
+
 
 class DepositIntentResponse(BaseModel):
     client_secret: str | None

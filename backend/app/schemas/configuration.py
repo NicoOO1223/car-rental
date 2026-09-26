@@ -39,6 +39,9 @@ class ConfigurationResponse(BaseModel):
     timezone: str
     locale: str
     agreement_terms: str
+    vat_rate: float
+    prices_include_vat: bool
+    invoice_prefix: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,6 +67,26 @@ class ConfigurationUpdate(BaseModel):
     timezone: str | None = None
     locale: str | None = None
     agreement_terms: str | None = Field(default=None, max_length=10000)
+    vat_rate: float | None = None
+    prices_include_vat: bool | None = None
+    invoice_prefix: str | None = None
+
+    @field_validator("vat_rate")
+    @classmethod
+    def vat_rate_is_a_percentage(cls, v: float | None) -> float | None:
+        if v is not None and not (0 <= v <= 100):
+            raise ValueError("The VAT rate must be between 0 and 100 percent.")
+        return v
+
+    @field_validator("invoice_prefix")
+    @classmethod
+    def invoice_prefix_is_short_and_plain(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip().upper()
+        if not (1 <= len(v) <= 10) or not v.replace("-", "").isalnum():
+            raise ValueError("The invoice prefix must be 1 to 10 letters, digits or dashes.")
+        return v
 
     @field_validator(
         "business_name",
@@ -158,5 +181,8 @@ class PublicConfigurationResponse(BaseModel):
     business_name: str
     timezone: str
     locale: str
+    # What a price is: whether it already contains VAT, and how much.
+    vat_rate: float
+    prices_include_vat: bool
 
     model_config = ConfigDict(from_attributes=True)

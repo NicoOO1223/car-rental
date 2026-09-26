@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, CheckOut, Handover, Reservation, User
+from app.services.money import to_cents
 from app.services.stripe_sync import apply_payment_intent_status
 from app.services.audit import audit_log
 from app.services.availability import (
@@ -381,19 +382,19 @@ def create_or_reuse_payment_intent(db: Session, reservation_id: UUID, actor: Use
             if intent.status != "canceled":
                 if (
                     list(intent.payment_method_types) == PAYMENT_METHOD_TYPES
-                    and intent.amount == int(amount * 100)
+                    and intent.amount == to_cents(amount)
                 ):
                     return check_out, intent
 
                 stripe.PaymentIntent.cancel(intent.id)
 
         intent = stripe.PaymentIntent.create(
-            amount=int(amount * 100),
+            amount=to_cents(amount),
             currency=configuration.default_currency,
             payment_method_types=PAYMENT_METHOD_TYPES,
             metadata={"reservation_id": str(reservation_id), "kind": "check_out"},
             idempotency_key=(
-                f"check-out-pi:{reservation_id}:{int(amount * 100)}:"
+                f"check-out-pi:{reservation_id}:{to_cents(amount)}:"
                 f"{check_out.stripe_payment_intent_id or 'none'}"
             ),
         )
@@ -530,7 +531,7 @@ def settle_deposit_step(db: Session, reservation_id: UUID, actor: User) -> Check
             if applied > 0:
                 stripe.PaymentIntent.capture(
                     handover.deposit_stripe_payment_intent_id,
-                    amount_to_capture=int((applied * 100).to_integral_value(ROUND_HALF_UP)),
+                    amount_to_capture=to_cents(applied),
                     idempotency_key=f"deposit-capture:{handover.deposit_stripe_payment_intent_id}",
                 )
             else:

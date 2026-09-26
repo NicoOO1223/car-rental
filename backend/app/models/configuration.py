@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Numeric, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -73,6 +73,16 @@ class Configuration(Base):
     # Free text printed on the rental agreement. Empty falls back to the
     # built-in placeholder wording.
     agreement_terms: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # VAT. A single rate for everything sold. When prices_include_vat is true
+    # (the default, matching how prices were always entered) the price shown
+    # is what the customer pays and VAT is the part of it that is tax; when
+    # false, VAT is added on top of the price. 0 means no VAT is shown.
+    vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    prices_include_vat: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    # Starts every invoice number: "INV" gives INV-000001, INV-000002, ...
+    invoice_prefix: Mapped[str] = mapped_column(String(10), nullable=False)
 
     __table_args__ = (
         CheckConstraint("id = 1", name="configuration_singleton"),

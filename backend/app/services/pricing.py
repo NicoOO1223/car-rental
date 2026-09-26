@@ -4,6 +4,8 @@ from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
+from app.services.money import round_money
+
 # Surcharges applied on top of the base day-rate are admin-editable via the
 # configuration table (app/models/configuration.py,
 # app/services/configuration.py) rather than constants, unlike
@@ -76,6 +78,10 @@ class PriceBreakdown:
     # Defaulted so every call site and test that predates add-ons keeps
     # constructing a valid, extras-free breakdown unchanged.
     extras: list[ExtraLine] = field(default_factory=list)
+    # VAT. The defaults (0%, prices include VAT) leave every total exactly
+    # what it was before VAT existed.
+    vat_rate: Decimal = Decimal("0.00")
+    prices_include_vat: bool = True
 
     @property
     def extras_amount(self) -> Decimal:
@@ -85,13 +91,52 @@ class PriceBreakdown:
         )
 
     @property
-    def total_amount(self) -> Decimal:
+    def lines_amount(self) -> Decimal:
+        """The itemized lines added up, in the price basis they were entered
+        in: gross when prices include VAT, net when they do not."""
+
         return (
             self.base_amount
             + self.short_term_fee
             + self.airport_change_fee
             + self.extras_amount
         )
+
+    @property
+    def vat_amount(self) -> Decimal:
+        """
+        The VAT in this booking, worked out once on the whole amount and
+        rounded once, never per line (per-line rounding can drift a cent
+        from the total).
+
+        - Prices include VAT: the VAT is the part of the total that is tax,
+          total x rate / (100 + rate).
+        - Prices exclude VAT: the VAT is added on top, lines x rate / 100.
+        """
+
+        if self.vat_rate <= 0:
+            return Decimal("0.00")
+
+        if self.prices_include_vat:
+            return round_money(self.lines_amount * self.vat_rate / (100 + self.vat_rate))
+
+        return round_money(self.lines_amount * self.vat_rate / 100)
+
+    @property
+    def total_amount(self) -> Decimal:
+        """What the customer pays. Unchanged by VAT when prices include it;
+        VAT is added when they do not."""
+
+        if self.prices_include_vat:
+            return self.lines_amount
+
+        return self.lines_amount + self.vat_amount
+
+    @property
+    def net_amount(self) -> Decimal:
+        """The total before VAT."""
+
+        return self.total_amount - self.vat_amount
 
 
 def calculate_extra_line(selection: ExtraSelection, rental_days: int) -> ExtraLine:
@@ -125,6 +170,8 @@ def calculate_price_breakdown(
     short_term_fee: Decimal,
     airport_change_fee: Decimal,
     extras: Sequence[ExtraSelection] = (),
+    vat_rate: Decimal = Decimal("0.00"),
+    prices_include_vat: bool = True,
 ) -> PriceBreakdown:
     """
     Itemized reservation cost, applied at handover-payment time (so it
@@ -147,6 +194,9 @@ def calculate_price_breakdown(
 
     Extras share calculate_rental_duration_days with the base rental, so
     the two can never disagree about how long the rental is.
+
+    vat_rate and prices_include_vat (Configuration) decide how VAT is shown
+    and whether it is added to the total; see PriceBreakdown.vat_amount.
     """
 
     rental_days = calculate_rental_duration_days(pickup_at, return_at)
@@ -173,4 +223,6 @@ def calculate_price_breakdown(
             calculate_extra_line(selection, rental_days)
             for selection in extras
         ],
+        vat_rate=Decimal(vat_rate),
+        prices_include_vat=prices_include_vat,
     )

@@ -5,6 +5,7 @@ from app.models.check_out import CheckOut
 from app.models.customer import Customer
 from app.models.extra import Extra
 from app.models.handover import Handover
+from app.models.invoice import Invoice, InvoiceCounter
 from app.models.location import Location
 from app.models.maintenance_task import MaintenanceTask
 from app.models.configuration import Configuration
@@ -22,6 +23,8 @@ __all__ = [
     "Customer",
     "Extra",
     "Handover",
+    "Invoice",
+    "InvoiceCounter",
     "Location",
     "MaintenanceTask",
     "ProcessedStripeEvent",

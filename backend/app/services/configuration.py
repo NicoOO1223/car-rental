@@ -19,6 +19,7 @@ _DECIMAL_FIELDS = {
     "refuel_service_fee",
     "max_damage_charge",
     "security_deposit_amount",
+    "vat_rate",
 }
 
 
@@ -32,6 +33,16 @@ def get_configuration(db: Session) -> Configuration:
     """
 
     return db.get(Configuration, CONFIGURATION_ID)
+
+
+def vat_terms(configuration: Configuration) -> dict:
+    """The VAT settings as the keyword arguments calculate_price_breakdown
+    takes, so every place that prices a booking applies the same rule."""
+
+    return {
+        "vat_rate": configuration.vat_rate,
+        "prices_include_vat": configuration.prices_include_vat,
+    }
 
 
 def _json_safe(value):

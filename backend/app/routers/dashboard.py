@@ -28,7 +28,7 @@ from app.services.availability import (
     get_fleet_status_counts,
     get_fleet_status_counts_by_location,
 )
-from app.services.configuration import get_configuration
+from app.services.configuration import get_configuration, vat_terms
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
@@ -58,6 +58,7 @@ def _to_dashboard_reservation(reservation: Reservation, configuration) -> Dashbo
         short_term_threshold_days=configuration.short_term_threshold_days,
         short_term_fee=configuration.short_term_fee,
         airport_change_fee=configuration.airport_change_fee,
+        **vat_terms(configuration),
         extras=selections_from_reservation(reservation),
     )
     total_price = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

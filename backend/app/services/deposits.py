@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Handover, User
 from app.services.audit import audit_log
+from app.services.money import to_cents as _cents
 from app.services.configuration import get_configuration
 from app.services.handovers import (
     _require_stripe_configured,
@@ -30,10 +31,6 @@ _CENTS = Decimal("0.01")
 
 # The hold can't be replaced or re-taken once it is in one of these.
 _HOLD_ACTIVE = ("HELD",)
-
-
-def _cents(amount: Decimal) -> int:
-    return int((amount * 100).to_integral_value(rounding=ROUND_HALF_UP))
 
 
 def _require_deposit_stage(db: Session, handover: Handover) -> Decimal:

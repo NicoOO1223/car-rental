@@ -38,6 +38,7 @@ from app.routers.maintenance import router as maintenance_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.users import router as users_router
 from app.routers.branding import router as branding_router
+from app.routers.invoices import router as invoices_router
 from app.routers.configuration import public_router as public_configuration_router
 from app.routers.configuration import router as configuration_router
 from app.routers.stripe_webhook import router as stripe_webhook_router
@@ -93,6 +94,7 @@ app.include_router(audit_logs_router)
 app.include_router(users_router)
 app.include_router(public_configuration_router)
 app.include_router(branding_router)
+app.include_router(invoices_router)
 app.include_router(configuration_router)
 app.include_router(stripe_webhook_router)
 

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
-from app.services.configuration import get_configuration
+from app.services.configuration import get_configuration, vat_terms
 from app.services.pdf_common import draw_business_header, format_local, wrap_text
 
 # Placeholder rental terms — not real legal copy. Review/replace with actual
@@ -104,6 +104,7 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         short_term_threshold_days=configuration.short_term_threshold_days,
         short_term_fee=configuration.short_term_fee,
         airport_change_fee=configuration.airport_change_fee,
+        **vat_terms(configuration),
         extras=selections_from_reservation(reservation),
     )
     line(f"Base rental: {breakdown.base_amount:.2f} {currency}".strip())

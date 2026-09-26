@@ -265,3 +265,29 @@ def test_extras_do_not_affect_surcharge_rules():
 
     assert breakdown.short_term_fee == Decimal("0.00")
     assert breakdown.airport_change_fee == Decimal("0.00")
+
+
+# --- money ---------------------------------------------------------------
+
+
+def test_to_cents_is_exact_where_float_arithmetic_is_not():
+    from decimal import Decimal
+
+    from app.services.money import to_cents
+
+    # int(19.99 * 100) is 1998: the classic floating point trap.
+    assert int(19.99 * 100) == 1998
+    assert to_cents(Decimal("19.99")) == 1999
+    assert to_cents(Decimal("0.01")) == 1
+    assert to_cents(Decimal("1234.56")) == 123456
+    assert to_cents(0) == 0
+
+
+def test_to_cents_rounds_half_up():
+    from decimal import Decimal
+
+    from app.services.money import to_cents
+
+    assert to_cents(Decimal("0.005")) == 1
+    assert to_cents(Decimal("0.004")) == 0
+    assert to_cents(Decimal("2.675")) == 268

@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models import CheckOut, Handover, ProcessedStripeEvent
 from app.services.audit import audit_log
+from app.services.invoices import issue_invoice_for_handover
 
 # Payment states that a later Stripe status must never overwrite. A
 # refunded payment stays refunded, and a payment that succeeded cannot
@@ -148,6 +149,11 @@ def _apply_to_records(db: Session, intent_id: str, intent_status: str) -> bool:
         matched = True
 
         if apply_payment_intent_status(handover, intent_status):
+            # The webhook is one of the ways a rental payment is recorded, so
+            # it issues the invoice too (idempotently: the staff confirm
+            # button may have got there first).
+            issue_invoice_for_handover(db, handover, None)
+
             audit_log(
                 db,
                 user=None,

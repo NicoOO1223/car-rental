@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, Handover, Reservation, User
+from app.services.invoices import issue_credit_note_for_handover, issue_invoice_for_handover
+from app.services.money import to_cents
 from app.services.stripe_sync import apply_payment_intent_status
 from app.services.agreement_pdf import render_agreement_pdf
 from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
-from app.services.configuration import get_configuration
+from app.services.configuration import get_configuration, vat_terms
 from app.services.identity_details import identity_problem
 
 stripe.api_key = STRIPE_SECRET_KEY
@@ -100,6 +102,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
         short_term_threshold_days=configuration.short_term_threshold_days,
         short_term_fee=configuration.short_term_fee,
         airport_change_fee=configuration.airport_change_fee,
+        **vat_terms(configuration),
         # Snapshotted prices, not the live catalog — a booking is charged
         # what it was booked at.
         extras=selections_from_reservation(reservation),
@@ -124,7 +127,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
             if intent.status != "canceled":
                 if (
                     list(intent.payment_method_types) == PAYMENT_METHOD_TYPES
-                    and intent.amount == int(amount * 100)
+                    and intent.amount == to_cents(amount)
                 ):
                     return handover, intent, breakdown
 
@@ -137,7 +140,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
                 stripe.PaymentIntent.cancel(intent.id)
 
         intent = stripe.PaymentIntent.create(
-            amount=int(amount * 100),
+            amount=to_cents(amount),
             currency=configuration.default_currency,
             payment_method_types=PAYMENT_METHOD_TYPES,
             metadata={"reservation_id": str(reservation_id)},
@@ -146,7 +149,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
             # the key so that replacing a cancelled intent still creates a
             # new one.
             idempotency_key=(
-                f"handover-pi:{reservation_id}:{int(amount * 100)}:"
+                f"handover-pi:{reservation_id}:{to_cents(amount)}:"
                 f"{handover.stripe_payment_intent_id or 'none'}"
             ),
         )
@@ -189,6 +192,10 @@ def confirm_payment(db: Session, reservation_id, actor: User) -> Handover:
     apply_payment_intent_status(handover, intent.status)
 
     handover.updated_by = actor.id
+
+    # A payment that has just succeeded gets its invoice, in this same
+    # transaction. Safe if the webhook got there first: issuing is idempotent.
+    issue_invoice_for_handover(db, handover, actor)
 
     audit_log(
         db,
@@ -235,6 +242,7 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
         short_term_threshold_days=configuration.short_term_threshold_days,
         short_term_fee=configuration.short_term_fee,
         airport_change_fee=configuration.airport_change_fee,
+        **vat_terms(configuration),
         extras=selections_from_reservation(reservation),
     )
 
@@ -246,6 +254,8 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     handover.payment_method = "CASH"
     handover.paid_at = datetime.now(timezone.utc)
     handover.updated_by = actor.id
+
+    issue_invoice_for_handover(db, handover, actor)
 
     audit_log(
         db,
@@ -309,6 +319,9 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
     handover.refunded_at = datetime.now(timezone.utc)
     handover.payment_status = "REFUNDED"
     handover.updated_by = actor.id
+
+    # The invoice is reversed with a credit note rather than altered.
+    issue_credit_note_for_handover(db, handover, actor)
 
     audit_log(
         db,

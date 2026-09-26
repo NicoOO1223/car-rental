@@ -2,6 +2,7 @@
 invoices): the business letterhead and wrapped free text."""
 
 from io import BytesIO
+from types import SimpleNamespace
 
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
@@ -50,14 +51,20 @@ def wrap_text(text: str, *, font: str = "Helvetica", size: float = 10, width: fl
     return lines
 
 
-def draw_business_header(doc, db: Session, *, left: float, top: float) -> float:
+def draw_business_header(
+    doc, db: Session, *, left: float, top: float, seller: dict | None = None
+) -> float:
     """
     Draws the letterhead: logo (if uploaded), trading name, and whichever of
     legal name, address, phone, email and VAT id are filled in. Returns the
     y position just below it, for the caller to continue from.
+
+    `seller` overrides the current Configuration with a stored copy, which is
+    what an invoice uses so it always shows the details it was issued with.
+    The logo is always the current one.
     """
 
-    configuration = get_configuration(db)
+    configuration = SimpleNamespace(**seller) if seller else get_configuration(db)
     logo = get_logo(db)
 
     text_left = left

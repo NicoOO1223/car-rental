@@ -34,6 +34,13 @@ class PriceBreakdownFields(BaseModel):
     extras: list[PriceBreakdownExtraLine]
     extras_amount: float
 
+    # VAT. With prices_include_vat the total already contains it; without,
+    # it has been added to the total. vat_rate 0 means none is shown.
+    vat_rate: float
+    vat_amount: float
+    net_amount: float
+    prices_include_vat: bool
+
     total_amount: float
 
     @classmethod
@@ -61,5 +68,9 @@ class PriceBreakdownFields(BaseModel):
                 for line in breakdown.extras
             ],
             extras_amount=float(breakdown.extras_amount),
+            vat_rate=float(breakdown.vat_rate),
+            vat_amount=float(breakdown.vat_amount),
+            net_amount=float(breakdown.net_amount),
+            prices_include_vat=breakdown.prices_include_vat,
             total_amount=float(breakdown.total_amount),
         )

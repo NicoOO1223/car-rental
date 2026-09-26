@@ -21,7 +21,7 @@ from app.services.pricing import (
     calculate_price_breakdown,
     calculate_rental_duration_days,
 )
-from app.services.configuration import get_configuration
+from app.services.configuration import get_configuration, vat_terms
 from app.services.locations import require_bookable_location
 
 
@@ -196,6 +196,7 @@ def quote_reservation(
         short_term_threshold_days=configuration.short_term_threshold_days,
         short_term_fee=configuration.short_term_fee,
         airport_change_fee=configuration.airport_change_fee,
+        **vat_terms(configuration),
         extras=selections_from_catalog(resolved),
     )
 
