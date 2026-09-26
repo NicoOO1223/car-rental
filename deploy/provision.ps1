@@ -13,7 +13,10 @@
 #   2. Generates the stack's secrets once and keeps them in deploy/.stacks/<slug>/
 #      (gitignored) and in the stack's Container App secrets, never in the repo.
 #   3. Builds the images locally (ACR Tasks is not available on trial
-#      subscriptions) and creates/updates the two Container Apps.
+#      subscriptions) and creates/updates the Container Apps: the backend,
+#      the staff frontend and, when the manifest has "storefront": {"enabled":
+#      true}, the public storefront plus the scheduled job that expires unpaid
+#      holds.
 #   4. Registers the Stripe webhook endpoint with the customer's own key.
 #   5. Creates the GitHub Environment stack-<slug> that the release pipeline
 #      deploys through, with its OIDC login and just the Azure roles it needs.
@@ -33,6 +36,12 @@ param(
     [string]$StripeSecretKey = "",
     [string]$StripePublishableKey = "",
     [string]$SentryDsn = "",
+    # Cloudflare Turnstile (the bot check on the public storefront): the public
+    # site key for the browser and the secret key for the backend. Empty leaves
+    # what is already set alone; a production backend refuses to take online
+    # bookings without the secret.
+    [string]$TurnstileSiteKey = "",
+    [string]$TurnstileSecretKey = "",
     # Switch the running app to the DML-only database role once it exists.
     [switch]$UseAppRole,
     # Print every step without changing anything.
@@ -74,6 +83,10 @@ $rg = $manifest.resourceGroup
 $region = $manifest.region
 $minReplicas = [int]$manifest.backendMinReplicas
 $envName = "stack-$Stack"
+
+# The public storefront is optional per stack.
+$storefrontEnabled = [bool]($manifest.storefront -and $manifest.storefront.enabled)
+$storefrontMinReplicas = if ($manifest.storefront -and $null -ne $manifest.storefront.minReplicas) { [int]$manifest.storefront.minReplicas } else { 0 }
 
 # --- per-stack secrets, generated once and kept outside the repo ---------------
 
@@ -184,6 +197,11 @@ Invoke-Checked { docker push "$acrLoginServer/backend:$ImageTag" } "push backend
 # One frontend image for every stack: nothing stack-specific is baked in.
 Invoke-Checked { docker build -t "$acrLoginServer/frontend:$ImageTag" -f "$repoRoot\frontend\Dockerfile" "$repoRoot\frontend" } "build frontend image"
 Invoke-Checked { docker push "$acrLoginServer/frontend:$ImageTag" } "push frontend image"
+if ($storefrontEnabled) {
+    # Built from the repository root: the storefront imports the shared/ folder.
+    Invoke-Checked { docker build -t "$acrLoginServer/storefront:$ImageTag" -f "$repoRoot\storefront\Dockerfile" $repoRoot } "build storefront image"
+    Invoke-Checked { docker push "$acrLoginServer/storefront:$ImageTag" } "push storefront image"
+}
 
 # --- 3. the backend ------------------------------------------------------------------
 
@@ -253,7 +271,8 @@ if ($exists -and -not $DryRun) { $existingSecrets = @(az containerapp secret lis
 $optionalSecrets = @(
     @{ Name = "stripe-secret-key";     Value = $StripeSecretKey; Env = "STRIPE_SECRET_KEY" },
     @{ Name = "stripe-webhook-secret"; Value = $webhookSecret;   Env = "STRIPE_WEBHOOK_SECRET" },
-    @{ Name = "sentry-dsn";            Value = $SentryDsn;       Env = "SENTRY_DSN" }
+    @{ Name = "sentry-dsn";            Value = $SentryDsn;       Env = "SENTRY_DSN" },
+    @{ Name = "turnstile-secret-key";  Value = $TurnstileSecretKey; Env = "TURNSTILE_SECRET_KEY" }
 )
 $optionalEnv = @()
 foreach ($secret in $optionalSecrets) {
@@ -328,9 +347,83 @@ Invoke-Checked {
 $frontendFqdn = if ($DryRun) { "<frontend fqdn>" } else { az containerapp show --name car-rental-frontend --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
 $frontendUrl = "https://$frontendFqdn"
 
+# --- 4b. the public storefront and the hold sweeper ---------------------------------------
+
+$storefrontUrl = ""
+if ($storefrontEnabled) {
+    Write-Step "Storefront"
+    $storefrontImage = "$acrLoginServer/storefront:$ImageTag"
+    $sexists = $false
+    if (-not $DryRun) { az containerapp show --name car-rental-storefront --resource-group $rg --output none 2>$null; $sexists = ($LASTEXITCODE -eq 0) }
+    if (-not $sexists) {
+        Invoke-Checked {
+            az containerapp create --name car-rental-storefront --resource-group $rg --environment $containerAppsEnvId `
+                --image "mcr.microsoft.com/k8se/quickstart:latest" --target-port 3000 --ingress external `
+                --min-replicas $storefrontMinReplicas --max-replicas 2 --cpu 0.25 --memory 0.5Gi --system-assigned --output none
+        } "create storefront container app"
+    }
+    if (-not $DryRun) { Grant-AcrPull "car-rental-storefront" }
+
+    # Its own address is part of its settings, so it is read first and the
+    # settings are applied together with the real image.
+    $storefrontFqdn = if ($DryRun) { "<storefront fqdn>" } else { az containerapp show --name car-rental-storefront --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
+    $storefrontUrl = "https://$storefrontFqdn"
+
+    $storefrontEnv = @("API_URL=$apiUrl", "STOREFRONT_URL=$storefrontUrl")
+    if (-not $sexists -or $StripePublishableKey) { $storefrontEnv += "STRIPE_PUBLISHABLE_KEY=$StripePublishableKey" }
+    if (-not $sexists -or $TurnstileSiteKey) { $storefrontEnv += "TURNSTILE_SITE_KEY=$TurnstileSiteKey" }
+    if (-not $sexists -or $SentryDsn) { $storefrontEnv += "SENTRY_DSN=$SentryDsn" }
+    Invoke-Checked {
+        az containerapp update --name car-rental-storefront --resource-group $rg --image $storefrontImage `
+            --min-replicas $storefrontMinReplicas --set-env-vars @storefrontEnv --output none
+    } "deploy storefront image and settings"
+
+    Write-Step "Hold sweeper"
+    # A scheduled job on the backend image that expires unpaid holds every five
+    # minutes. It bypasses the image entrypoint (no migrations, no server) by
+    # giving its own command.
+    $jobExists = $false
+    if (-not $DryRun) { az containerapp job show --name car-rental-sweeper --resource-group $rg --output none 2>$null; $jobExists = ($LASTEXITCODE -eq 0) }
+    if (-not $jobExists) {
+        Invoke-Checked {
+            az containerapp job create --name car-rental-sweeper --resource-group $rg --environment $containerAppsEnvId `
+                --trigger-type Schedule --cron-expression "*/5 * * * *" --replica-timeout 300 --replica-retry-limit 0 `
+                --replica-completion-count 1 --parallelism 1 --image "mcr.microsoft.com/k8se/quickstart-jobs:latest" `
+                --cpu 0.25 --memory 0.5Gi --mi-system-assigned --output none
+        } "create sweeper job"
+    }
+    if (-not $DryRun) {
+        $jobPrincipal = az containerapp job show --name car-rental-sweeper --resource-group $rg --query identity.principalId -o tsv
+        az role assignment create --assignee $jobPrincipal --role AcrPull --scope $acrId --output none 2>$null
+        az containerapp job registry set --name car-rental-sweeper --resource-group $rg --server $acrLoginServer --identity system --output none
+        if ($LASTEXITCODE -ne 0) { throw "FAILED: set sweeper registry identity" }
+    }
+
+    # The job sees the same database and payment settings as the backend. The
+    # Stripe key of an existing stack is read back from the backend when it was
+    # not given again.
+    $sweeperStripeKey = $StripeSecretKey
+    if (-not $sweeperStripeKey -and -not $DryRun -and ($existingSecrets -contains "stripe-secret-key")) {
+        $sweeperStripeKey = (az containerapp secret show --name car-rental-backend --resource-group $rg --secret-name stripe-secret-key --query value -o tsv)
+    }
+    $jobSecrets = @("database-url=$databaseUrl", "secret-key=$secretKey")
+    $jobEnv = @("DATABASE_URL=secretref:database-url", "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production")
+    if ($sweeperStripeKey) {
+        $jobSecrets += "stripe-secret-key=$sweeperStripeKey"
+        $jobEnv += "STRIPE_SECRET_KEY=secretref:stripe-secret-key"
+    }
+    Invoke-Checked { az containerapp job secret set --name car-rental-sweeper --resource-group $rg --secrets @jobSecrets --output none } "set sweeper secrets"
+    Invoke-Checked {
+        az containerapp job update --name car-rental-sweeper --resource-group $rg --image $backendImage `
+            --command "python" --args "-m" "app.jobs.expire_holds" --set-env-vars @jobEnv --output none
+    } "deploy sweeper job"
+}
+
+# The backend answers the staff app and, when there is one, the storefront.
+$corsOrigins = if ($storefrontUrl) { "$frontendUrl,$storefrontUrl" } else { $frontendUrl }
 Invoke-Checked {
-    az containerapp update --name car-rental-backend --resource-group $rg --set-env-vars "CORS_ORIGINS=$frontendUrl" --output none
-} "point the backend's CORS at the frontend"
+    az containerapp update --name car-rental-backend --resource-group $rg --set-env-vars "CORS_ORIGINS=$corsOrigins" --output none
+} "point the backend CORS at the frontends"
 
 # --- 5. Stripe webhook ---------------------------------------------------------------
 
@@ -373,6 +466,7 @@ $vars = @{
     POSTGRES_HOST = $postgresFqdn; POSTGRES_DB_NAME = $postgresDb; POSTGRES_ADMIN_USER = "carrentaladmin"
     BACKUP_STORAGE_ACCOUNT = $backupAccount; BACKUP_CONTAINER_NAME = "pg-backups"
     API_URL = $apiUrl; FRONTEND_URL = $frontendUrl; STRIPE_PUBLISHABLE_KEY = $StripePublishableKey
+    STOREFRONT_URL = $storefrontUrl; TURNSTILE_SITE_KEY = $TurnstileSiteKey
     SENTRY_DSN = $SentryDsn; BUSINESS_NAME = [string]$manifest.business.name
 }
 foreach ($name in $vars.Keys) {
@@ -451,12 +545,12 @@ if (-not $DryRun -and ($isNew -or $UseAppRole) -and -not $appRoleDone) {
 Write-Step "Smoke test"
 $expectedName = [string]$manifest.business.name
 if ($DryRun) {
-    Write-Host "[dry-run] bash deploy/smoke-test.sh $apiUrl $frontendUrl '$expectedName'" -ForegroundColor DarkGray
+    Write-Host "[dry-run] bash deploy/smoke-test.sh $apiUrl $frontendUrl '$expectedName' $storefrontUrl" -ForegroundColor DarkGray
 } else {
     # Git's bash, not the bash.exe Windows ships (which starts WSL).
     $gitBash = @("$env:ProgramFiles\Git\bin\bash.exe", "${env:ProgramFiles(x86)}\Git\bin\bash.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $gitBash) { throw "Git Bash was not found. Install Git for Windows to run the smoke test." }
-    & $gitBash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedName
+    & $gitBash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedName $storefrontUrl
     if ($LASTEXITCODE -ne 0) { throw "FAILED: smoke test" }
 }
 
@@ -468,7 +562,7 @@ if ($firstAdmin -and -not $DryRun) {
 }
 
 if (-not $DryRun) {
-    @{ slug = $Stack; resourceGroup = $rg; backendUrl = $apiUrl; frontendUrl = $frontendUrl; postgresHost = $postgresFqdn } |
+    @{ slug = $Stack; resourceGroup = $rg; backendUrl = $apiUrl; frontendUrl = $frontendUrl; storefrontUrl = $storefrontUrl; postgresHost = $postgresFqdn } |
         ConvertTo-Json | Set-Content "$stateDir\outputs.json"
 }
 
@@ -476,6 +570,7 @@ Write-Host ""
 Write-Host "== Done: $Stack ==" -ForegroundColor Green
 Write-Host "Frontend: $frontendUrl"
 Write-Host "Backend:  $apiUrl"
+if ($storefrontUrl) { Write-Host "Storefront: $storefrontUrl" }
 if ($firstAdmin) {
     Write-Host ""
     Write-Host "First administrator (shown once, kept in deploy/.stacks/$Stack/adminpassword):" -ForegroundColor Yellow

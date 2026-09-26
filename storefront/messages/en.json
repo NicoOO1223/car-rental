@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "{name} | Book online",
+    "titleNeutral": "Book online",
+    "description": "Choose a car, book it and pay a share online."
+  },
+  "unavailable": {
+    "title": "Online booking is not available",
+    "body": "Please contact us directly to book a car."
+  },
+  "unreachable": {
+    "title": "We are having trouble right now",
+    "body": "Online booking is temporarily unavailable. Please try again in a few minutes."
+  },
+  "home": {
+    "comingSoon": "Online booking opens soon."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist."
+  }
+}

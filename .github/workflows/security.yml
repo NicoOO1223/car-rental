@@ -11,6 +11,8 @@ on:
       - backend/requirements*.txt
       - frontend/package.json
       - frontend/package-lock.json
+      - storefront/package.json
+      - storefront/package-lock.json
   workflow_dispatch: {}
 
 permissions:
@@ -30,9 +32,12 @@ jobs:
 
   node:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [frontend, storefront]
     defaults:
       run:
-        working-directory: frontend
+        working-directory: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

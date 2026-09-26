@@ -31,6 +31,13 @@ inputs:
   business-name:
     required: false
     default: ""
+  # Set only on a stack that has a public storefront (provision.ps1 records it).
+  storefront-url:
+    required: false
+    default: ""
+  turnstile-site-key:
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -74,6 +81,30 @@ runs:
           --image "${{ inputs.acr-login-server }}/frontend:${{ inputs.image-tag }}" \
           --set-env-vars "${vars[@]}"
 
+    # A stack without a storefront skips these. The sweeper job runs the same
+    # image as the backend, so it is rolled out with it.
+    - name: Deploy storefront and hold sweeper
+      if: inputs.storefront-url != ''
+      shell: bash
+      env:
+        STRIPE_PUBLISHABLE_KEY: ${{ inputs.stripe-publishable-key }}
+        TURNSTILE_SITE_KEY: ${{ inputs.turnstile-site-key }}
+        SENTRY_DSN: ${{ inputs.sentry-dsn }}
+      run: |
+        vars=("API_URL=${{ inputs.api-url }}" "STOREFRONT_URL=${{ inputs.storefront-url }}")
+        [ -n "$STRIPE_PUBLISHABLE_KEY" ] && vars+=("STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY")
+        [ -n "$TURNSTILE_SITE_KEY" ] && vars+=("TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY")
+        [ -n "$SENTRY_DSN" ] && vars+=("SENTRY_DSN=$SENTRY_DSN")
+        az containerapp update \
+          --name car-rental-storefront \
+          --resource-group "${{ inputs.resource-group }}" \
+          --image "${{ inputs.acr-login-server }}/storefront:${{ inputs.image-tag }}" \
+          --set-env-vars "${vars[@]}"
+        az containerapp job update \
+          --name car-rental-sweeper \
+          --resource-group "${{ inputs.resource-group }}" \
+          --image "${{ inputs.acr-login-server }}/backend:${{ inputs.image-tag }}"
+
     - name: Smoke test
       shell: bash
-      run: bash deploy/smoke-test.sh "${{ inputs.api-url }}" "${{ inputs.frontend-url }}" "${{ inputs.business-name }}"
+      run: bash deploy/smoke-test.sh "${{ inputs.api-url }}" "${{ inputs.frontend-url }}" "${{ inputs.business-name }}" "${{ inputs.storefront-url }}"

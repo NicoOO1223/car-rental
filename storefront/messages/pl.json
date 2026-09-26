@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "{name} | Rezerwuj online",
+    "titleNeutral": "Rezerwuj online",
+    "description": "Wybierz auto, zarezerwuj je i zapłać część online."
+  },
+  "unavailable": {
+    "title": "Rezerwacja online jest niedostępna",
+    "body": "Skontaktuj się z nami bezpośrednio, aby zarezerwować auto."
+  },
+  "unreachable": {
+    "title": "Mamy teraz problem",
+    "body": "Rezerwacja online jest chwilowo niedostępna. Spróbuj ponownie za kilka minut."
+  },
+  "home": {
+    "comingSoon": "Rezerwacja online wkrótce ruszy."
+  },
+  "notFound": {
+    "title": "Nie znaleziono strony",
+    "body": "Strona, której szukasz, nie istnieje."
+  }
+}

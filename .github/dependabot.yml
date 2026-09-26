@@ -14,6 +14,12 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
+  - package-ecosystem: npm
+    directory: /storefront
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
   - package-ecosystem: docker
     directory: /backend
     schedule:

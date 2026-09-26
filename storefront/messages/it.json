@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "{name} | Prenota online",
+    "titleNeutral": "Prenota online",
+    "description": "Scegli un’auto, prenotala e paga una quota online."
+  },
+  "unavailable": {
+    "title": "La prenotazione online non è disponibile",
+    "body": "Contattaci direttamente per prenotare un’auto."
+  },
+  "unreachable": {
+    "title": "Al momento abbiamo un problema",
+    "body": "La prenotazione online è temporaneamente non disponibile. Riprova tra qualche minuto."
+  },
+  "home": {
+    "comingSoon": "La prenotazione online apre a breve."
+  },
+  "notFound": {
+    "title": "Pagina non trovata",
+    "body": "La pagina che cerchi non esiste."
+  }
+}

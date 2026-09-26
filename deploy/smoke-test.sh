@@ -2,7 +2,7 @@
 # Proves a stack is actually serving. Used by the release pipeline after each
 # deploy and by provision.ps1 after provisioning, so both apply the same bar.
 #
-#   deploy/smoke-test.sh <api-url> <frontend-url> [expected-business-name]
+#   deploy/smoke-test.sh <api-url> <frontend-url> [expected-business-name] [storefront-url]
 #
 # Container Apps keeps a revision that fails its readiness probe out of
 # traffic, so a bad deploy leaves the previous revision serving and
@@ -12,6 +12,7 @@ set -euo pipefail
 API_URL="${1:?usage: smoke-test.sh <api-url> <frontend-url> [expected-business-name]}"
 FRONTEND_URL="${2:?usage: smoke-test.sh <api-url> <frontend-url> [expected-business-name]}"
 EXPECTED_NAME="${3:-}"
+STOREFRONT_URL="${4:-}"
 
 # A scaled-to-zero app needs time to start, and a new revision needs time to
 # become ready.
@@ -58,6 +59,29 @@ if [ -n "$EXPECTED_NAME" ]; then
   branding=$(curl -fsS "$API_URL/api/branding")
   printf '%s' "$branding" | grep -q "\"business_name\":\"$EXPECTED_NAME\"" \
     || { echo "FAILED: /api/branding does not report the business name '$EXPECTED_NAME'"; exit 1; }
+fi
+
+# The public storefront, when this stack has one: it serves, sends a visitor to
+# a language, is talking to THIS stack API, and the API lets it in (CORS).
+if [ -n "$STOREFRONT_URL" ]; then
+  wait_for "$STOREFRONT_URL/health"
+
+  location=$(curl -s -o /dev/null -w '%{redirect_url}' "$STOREFRONT_URL/")
+  case "$location" in
+    "$STOREFRONT_URL"/en|"$STOREFRONT_URL"/it|"$STOREFRONT_URL"/pl) ;;
+    *) echo "FAILED: $STOREFRONT_URL/ redirected to '$location', expected a language page"; exit 1 ;;
+  esac
+
+  curl -fsS -D - -o /dev/null "$STOREFRONT_URL/en" | grep -qi '^content-security-policy-report-only' \
+    || { echo "FAILED: storefront is missing its CSP header"; exit 1; }
+
+  page=$(curl -fsS "$STOREFRONT_URL/en")
+  printf '%s' "$page" | grep -q "apiUrl.*$api_origin" \
+    || { echo "FAILED: the storefront is not configured for $api_origin"; exit 1; }
+
+  curl -fsS -D - -o /dev/null -H "Origin: $STOREFRONT_URL" "$API_URL/api/public/config" \
+    | grep -qi "^access-control-allow-origin: $STOREFRONT_URL" \
+    || { echo "FAILED: the API does not allow the storefront origin $STOREFRONT_URL"; exit 1; }
 fi
 
 echo "Smoke test passed for $API_URL"

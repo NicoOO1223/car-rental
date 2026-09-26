@@ -96,6 +96,29 @@ jobs:
       # translation, error wording, runtime settings).
       - run: npm test
 
+  # The public storefront: types, build, catalogs and its unit tests. The
+  # shared/ folder it imports is checked with it.
+  storefront-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: storefront
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: storefront/package-lock.json
+
+      - run: npm ci
+      # Build first: the generated route types that tsc reads exist only after it.
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run check:messages
+      - run: npm test
+
   # The main flow in a real browser, against a real API and a real database:
   # sign in, book a car, approve, take cash, record identity and signatures,
   # start the rental, return the car, and see it completed. It catches what
@@ -197,7 +220,7 @@ jobs:
 
   # The images are built once and shared by every stack.
   build:
-    needs: [backend-tests, frontend-checks, e2e, plan]
+    needs: [backend-tests, frontend-checks, storefront-checks, e2e, plan]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -212,13 +235,16 @@ jobs:
       - name: Log in to the shared registry
         run: az acr login --name ${{ needs.plan.outputs.registry }}
 
-      - name: Build and push both images
+      - name: Build and push the images
         run: |
           registry=${{ needs.plan.outputs.registry }}.azurecr.io
           docker build -t "$registry/backend:${{ github.sha }}" -f backend/Dockerfile backend
           docker push "$registry/backend:${{ github.sha }}"
           docker build -t "$registry/frontend:${{ github.sha }}" -f frontend/Dockerfile frontend
           docker push "$registry/frontend:${{ github.sha }}"
+          # From the repository root: the storefront imports the shared/ folder.
+          docker build -t "$registry/storefront:${{ github.sha }}" -f storefront/Dockerfile .
+          docker push "$registry/storefront:${{ github.sha }}"
 
   # The operator's own stack first: a bad migration or a broken build stops
   # here, before any customer stack sees it. Each job runs inside its stack's
@@ -246,6 +272,8 @@ jobs:
           stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
           sentry-dsn: ${{ vars.SENTRY_DSN }}
           business-name: ${{ vars.BUSINESS_NAME }}
+          storefront-url: ${{ vars.STOREFRONT_URL }}
+          turnstile-site-key: ${{ vars.TURNSTILE_SITE_KEY }}
 
   # Then the rest, one at a time, stopping at the first failure.
   deploy-others:
@@ -274,3 +302,5 @@ jobs:
           stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
           sentry-dsn: ${{ vars.SENTRY_DSN }}
           business-name: ${{ vars.BUSINESS_NAME }}
+          storefront-url: ${{ vars.STOREFRONT_URL }}
+          turnstile-site-key: ${{ vars.TURNSTILE_SITE_KEY }}
