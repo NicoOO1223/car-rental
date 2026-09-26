@@ -1,9 +1,16 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import User
 from app.services.audit import audit_log
 from app.services.auth import hash_password, normalize_email
+
+
+def _revoke_sessions(user: User) -> None:
+    """Invalidates every token issued to this user so far."""
+    user.token_valid_after = datetime.now(timezone.utc)
 
 
 def list_users(db: Session) -> list[User]:
@@ -102,6 +109,8 @@ def update_user(
             metadata={"old": target_user.role, "new": role},
         )
         target_user.role = role
+        # The old role's session must not keep the old role's access.
+        _revoke_sessions(target_user)
 
     if is_active is not None and is_active != target_user.is_active:
         audit_log(
@@ -112,6 +121,9 @@ def update_user(
             entity_id=target_user.id,
         )
         target_user.is_active = is_active
+
+        if not is_active:
+            _revoke_sessions(target_user)
 
     if hidden_nav_items is not None and set(hidden_nav_items) != set(
         target_user.hidden_nav_items
@@ -140,6 +152,10 @@ def reset_password(
     password: str,
 ) -> User:
     target_user.hashed_password = hash_password(password)
+    _revoke_sessions(target_user)
+    # A reset is also the way out of a lockout.
+    target_user.failed_login_attempts = 0
+    target_user.locked_until = None
 
     audit_log(
         db,

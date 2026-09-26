@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -6,8 +6,9 @@ from app.dependencies import get_current_user
 from app.models import User
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.user import UserResponse
-from app.services.auth import authenticate_user, create_access_token
+from app.services.auth import AccountLocked, authenticate_user, create_access_token
 from app.services.configuration import get_configuration
+from app.services.login_throttle import is_ip_blocked, record_ip_failure
 
 # Deliberately NOT protected by get_current_user — this is how a token
 # is obtained in the first place.
@@ -16,15 +17,37 @@ router = APIRouter(
     tags=["Auth"],
 )
 
+def _too_many_attempts() -> HTTPException:
+    return HTTPException(
+        status_code=429,
+        detail="Too many login attempts. Try again later.",
+        headers={"Retry-After": "900"},
+    )
+
 
 @router.post("/login", response_model=LoginResponse)
 def login(
     data: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    user = authenticate_user(db, data.email, data.password)
+    # Behind the Azure ingress this is the real client address, provided
+    # uvicorn runs with --proxy-headers (see docker-entrypoint.sh).
+    client_ip = request.client.host if request.client else "unknown"
+
+    if is_ip_blocked(client_ip):
+        raise _too_many_attempts()
+
+    try:
+        user = authenticate_user(db, data.email, data.password)
+    except AccountLocked:
+        record_ip_failure(client_ip)
+        # Same response as the per-IP limit: nothing here says whether the
+        # email belongs to a real account.
+        raise _too_many_attempts()
 
     if user is None:
+        record_ip_failure(client_ip)
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
 
     expire_days = get_configuration(db).access_token_expire_days

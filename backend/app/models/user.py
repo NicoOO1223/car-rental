@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -67,6 +67,28 @@ class User(Base):
         JSONB,
         nullable=False,
         default=list,
+    )
+
+    # Brute-force protection (see app/services/auth.py). Reset on a
+    # successful login; locked_until is set once the limit is reached.
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Session revocation: a token issued before this moment is rejected.
+    # Set on password reset, deactivation and role change so an existing
+    # (up to a week long) session cannot outlive the reason it should end.
+    token_valid_after: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     __table_args__ = (

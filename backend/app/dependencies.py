@@ -28,17 +28,24 @@ def get_current_user(
         raise unauthorized
 
     try:
-        user_id = decode_access_token(credentials.credentials)
-    except jwt.PyJWTError:
+        user_id, issued_at = decode_access_token(credentials.credentials)
+        user = db.get(User, UUID(user_id))
+    except (jwt.PyJWTError, ValueError, KeyError):
         raise unauthorized
-
-    user = db.get(User, UUID(user_id))
 
     # A disabled account is rejected the same way as an invalid token
     # (same status code, same message) rather than a distinct error, so
     # a stolen/expired token for a deactivated account doesn't reveal
     # that the account exists.
     if user is None or not user.is_active:
+        raise unauthorized
+
+    # Revoked sessions: password reset, deactivation and role changes set
+    # token_valid_after. A token from before that moment, or one with no
+    # issued-at at all (created before the claim existed), no longer works.
+    if user.token_valid_after is not None and (
+        issued_at is None or issued_at < user.token_valid_after.timestamp()
+    ):
         raise unauthorized
 
     return user

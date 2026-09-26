@@ -72,12 +72,11 @@ def test_disabled_account_rejected_at_login():
             json={"email": email, "password": "a-password"},
         )
 
-        # authenticate_user itself doesn't check is_active — a disabled
-        # account can still obtain a token, but get_current_user rejects
-        # it on every subsequent request (see test below). Login success
-        # here just confirms the account exists with the right password;
-        # the real enforcement point is exercised separately.
-        assert response.status_code == 200
+        # A deactivated account cannot log in at all, and gets the same
+        # response as a wrong password so login does not confirm the
+        # account exists. get_current_user still rejects any token issued
+        # before deactivation (see the test below).
+        assert response.status_code == 401
     finally:
         db.delete(user)
         db.commit()
