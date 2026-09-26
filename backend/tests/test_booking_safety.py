@@ -132,6 +132,11 @@ def test_the_car_dates_and_places_cannot_change_once_paid_but_the_customer_can()
 
         assert renamed.status_code == 200
     finally:
+        # The test customer is shared with other tests, which expect its phone.
+        client.patch(
+            f"/api/reservations/{reservation['id']}",
+            json={"customer": {"phone_number": "+31600000000"}},
+        )
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 
