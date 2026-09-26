@@ -1,20 +1,36 @@
-import type { PublicConfig } from "@shared/publicApi";
+import type { PublicConfig, PublicLocation, PublicVehicle } from "@shared/publicApi";
 
 import { runtimeConfig } from "@/lib/runtime";
+
+async function get<T>(path: string): Promise<T | null> {
+  try {
+    const response = await fetch(`${runtimeConfig().apiUrl}/api/public${path}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+
+    return response.ok ? ((await response.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * The business public settings, or null when the API cannot be reached (the
  * page then says booking is unavailable instead of failing).
  */
-export async function getPublicConfig(): Promise<PublicConfig | null> {
-  try {
-    const response = await fetch(`${runtimeConfig().apiUrl}/api/public/config`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    });
+export const getPublicConfig = () => get<PublicConfig>("/config");
 
-    return response.ok ? ((await response.json()) as PublicConfig) : null;
-  } catch {
-    return null;
-  }
-}
+export const getLocations = () => get<PublicLocation[]>("/locations");
+
+export const getFleet = () => get<PublicVehicle[]>("/fleet");
+
+export type PublicLegal = {
+  legal_version: number;
+  terms_text: string;
+  terms_url: string;
+  privacy_text: string;
+  privacy_url: string;
+};
+
+export const getLegal = () => get<PublicLegal>("/legal");

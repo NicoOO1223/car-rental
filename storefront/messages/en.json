@@ -2,7 +2,21 @@
   "meta": {
     "title": "{name} | Book online",
     "titleNeutral": "Book online",
-    "description": "Choose a car, book it and pay a share online."
+    "description": "Choose a car, book it and pay a share online.",
+    "fleet": "Our cars",
+    "book": "Book a car",
+    "manage": "Manage your booking",
+    "terms": "Terms and conditions",
+    "privacy": "Privacy notice"
+  },
+  "nav": {
+    "fleet": "Our cars",
+    "manage": "My booking",
+    "language": "Language"
+  },
+  "footer": {
+    "terms": "Terms and conditions",
+    "privacy": "Privacy notice"
   },
   "unavailable": {
     "title": "Online booking is not available",
@@ -12,11 +26,267 @@
     "title": "We are having trouble right now",
     "body": "Online booking is temporarily unavailable. Please try again in a few minutes."
   },
-  "home": {
-    "comingSoon": "Online booking opens soon."
-  },
   "notFound": {
     "title": "Page not found",
     "body": "The page you are looking for does not exist."
+  },
+  "home": {
+    "title": "Rent a car in minutes",
+    "subtitle": "Choose where and when, pick a car and book it online.",
+    "point1Title": "Pay a share now",
+    "point1Body": "Pay {percent}% online to secure your car. The rest is paid at pickup.",
+    "point2Title": "Free cancellation",
+    "point2Body": "Cancel up to {hours, plural, one {# hour} other {# hours}} before pickup and get your payment back.",
+    "point3Title": "No account needed",
+    "point3Body": "Keep your booking reference and look your booking up any time.",
+    "browseFleet": "See our cars",
+    "manageBooking": "Already booked? Manage your booking"
+  },
+  "search": {
+    "title": "Find your car",
+    "pickupPlace": "Pick up at",
+    "returnPlace": "Return to",
+    "returnElsewhere": "Return to a different place",
+    "pickupDate": "Pickup date",
+    "pickupTime": "Pickup time",
+    "returnDate": "Return date",
+    "returnTime": "Return time",
+    "submit": "Search cars",
+    "returnBeforePickup": "The return must be after the pickup.",
+    "tooSoon": "Pickup must be at least {hours, plural, one {# hour} other {# hours}} from now.",
+    "choosePlace": "Choose a place"
+  },
+  "fleet": {
+    "title": "Our cars",
+    "intro": "The kinds of car you can book. Exact cars are assigned at booking.",
+    "perDay": "from {price} / day",
+    "empty": "No cars are listed yet.",
+    "search": "Search availability"
+  },
+  "enums": {
+    "category": {
+      "ECONOMY": "Economy",
+      "COMPACT": "Compact",
+      "MIDSIZE": "Midsize",
+      "PREMIUM": "Premium",
+      "SUV": "SUV",
+      "VAN": "Van"
+    },
+    "transmission": {
+      "MANUAL": "Manual",
+      "AUTOMATIC": "Automatic"
+    },
+    "fuel": {
+      "PETROL": "Petrol",
+      "DIESEL": "Diesel",
+      "HYBRID": "Hybrid",
+      "ELECTRIC": "Electric"
+    }
+  },
+  "status": {
+    "AWAITING_PAYMENT": "Waiting for payment",
+    "CONFIRMED": "Confirmed",
+    "ACTIVE": "Car picked up",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "EXPIRED": "Expired"
+  },
+  "wizard": {
+    "steps": {
+      "vehicle": "Car",
+      "extras": "Extras",
+      "details": "Your details",
+      "payment": "Payment"
+    },
+    "loading": "Loading…",
+    "back": "Back",
+    "continue": "Continue",
+    "changeSearch": "Change dates or places",
+    "badLink": "This search link is not valid. Please start again.",
+    "startAgain": "Start a new search"
+  },
+  "vehicles": {
+    "title": "Choose your car",
+    "count": "{count, plural, one {# car available} other {# cars available}}",
+    "none": "No cars are free for these dates and places. Try other dates or another pickup place.",
+    "orSimilar": "or similar",
+    "seats": "{count} seats",
+    "total": "{amount} total",
+    "perDay": "{price} / day",
+    "payNow": "Pay {amount} now",
+    "atPickup": "{amount} at pickup",
+    "select": "Select"
+  },
+  "extras": {
+    "title": "Add extras",
+    "none": "There are no extras to add.",
+    "perDay": "{price} per day",
+    "perRental": "{price} per rental",
+    "quantity": "Quantity"
+  },
+  "summary": {
+    "title": "Your booking",
+    "pickup": "Pickup",
+    "return": "Return",
+    "vehicle": "Car",
+    "rental": "Rental, {days, plural, one {# day} other {# days}}",
+    "shortTermFee": "Short rental fee",
+    "oneWayFee": "One-way fee",
+    "subtotal": "Subtotal",
+    "vat": "VAT {rate}%",
+    "includesVat": "Includes VAT of {amount}",
+    "total": "Total",
+    "payNow": "To pay now ({percent}%)",
+    "atPickup": "To pay at pickup",
+    "freeCancel": "Free cancellation until {date} at {time}. After that the online payment is not refunded.",
+    "dateAtTime": "{date} at {time}",
+    "pricing": "Getting the price…"
+  },
+  "details": {
+    "title": "Your details",
+    "intro": "We need these to prepare your rental. You will show your documents at pickup.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "dateOfBirth": "Date of birth",
+    "email": "Email",
+    "emailHint": "Your payment receipt is sent here.",
+    "phone": "Phone number",
+    "address": "Address",
+    "postalCode": "Postal code",
+    "nationality": "Nationality (optional)",
+    "acceptTerms": "I accept the <link>terms and conditions</link>.",
+    "acceptPrivacy": "I have read the <link>privacy notice</link>.",
+    "submit": "Continue to payment",
+    "submitting": "Holding your car…",
+    "human": "Confirm you are not a robot",
+    "needTerms": "Please accept the terms and read the privacy notice to continue.",
+    "holdNote": "Your car is held for {minutes, plural, one {# minute} other {# minutes}} while you pay."
+  },
+  "pay": {
+    "title": "Pay {amount} to confirm",
+    "timeLeft": "Time left to pay",
+    "remainder": "The remaining {amount} is paid at pickup.",
+    "button": "Pay {amount}",
+    "processing": "Processing…",
+    "notConfigured": "Online payment is not available right now. Please contact us to book.",
+    "expiredTitle": "Your hold has expired",
+    "expiredBody": "The car was released because the payment was not completed in time. Nothing was charged.",
+    "startAgain": "Search again",
+    "reference": "Booking reference",
+    "referenceHint": "Keep this reference. You need it to look your booking up.",
+    "failed": "The payment could not be completed. Please try again."
+  },
+  "returnPage": {
+    "checkingTitle": "Confirming your payment…",
+    "checkingBody": "This takes a few seconds. Please do not close this page.",
+    "slowTitle": "Your payment is still being processed",
+    "slowBody": "We will confirm your booking as soon as the payment arrives. Look it up with your reference in a few minutes.",
+    "refundedTitle": "Your payment was refunded",
+    "refundedBody": "We are sorry: the car was no longer free when your payment arrived, so it has been refunded in full.",
+    "failedTitle": "The payment did not go through",
+    "failedBody": "Nothing was charged. You can search again and try another card.",
+    "lookup": "Look up my booking",
+    "search": "Search again"
+  },
+  "booking": {
+    "title": "Your booking",
+    "reference": "Reference",
+    "confirmedTitle": "Booking confirmed",
+    "confirmedBody": "You paid {paid} online. Pay the remaining {rest} at pickup.",
+    "confirmedFull": "You paid {paid} online. Nothing is due at pickup.",
+    "keepReference": "Keep this reference: it is how you find your booking again.",
+    "waitingTitle": "Waiting for payment",
+    "waitingBody": "Your car is held until {time}. Finish paying to confirm the booking.",
+    "expiredNote": "This booking expired because it was not paid in time.",
+    "cancelledNote": "This booking was cancelled.",
+    "refundedNote": "{amount} was refunded to your card. It can take a few days to show.",
+    "keptNote": "The {amount} paid online was not refunded, because it was cancelled after the free cancellation period.",
+    "car": "Car",
+    "pickup": "Pickup",
+    "return": "Return",
+    "extras": "Extras",
+    "payment": "Payment",
+    "total": "Total",
+    "paidOnline": "Paid online",
+    "dueAtPickup": "To pay at pickup",
+    "policyRefund": "Free cancellation until {date} at {time}: you get your online payment back.",
+    "policyKept": "The free cancellation period ended on {date} at {time}. If you cancel now, the {amount} paid online is not refunded.",
+    "cancel": "Cancel this booking",
+    "cancelTitle": "Cancel this booking?",
+    "cancelRefund": "You will be refunded {amount}.",
+    "cancelKept": "The {amount} you paid online will not be refunded.",
+    "cancelNothing": "You have not been charged.",
+    "cancelConfirm": "Yes, cancel booking",
+    "keep": "Keep my booking",
+    "cancelling": "Cancelling…",
+    "cannotCancel": "To change or cancel this booking, please contact us.",
+    "expiredSession": "Please look your booking up again to see it.",
+    "lookup": "Look up my booking",
+    "loading": "Loading your booking…",
+    "dateAtTime": "{date} at {time}"
+  },
+  "lookup": {
+    "title": "Find your booking",
+    "intro": "Enter the reference you were given when you booked and the email address you used.",
+    "reference": "Booking reference",
+    "referencePlaceholder": "ABCD-2345",
+    "email": "Email",
+    "submit": "Find my booking",
+    "searching": "Searching…"
+  },
+  "legal": {
+    "termsTitle": "Terms and conditions",
+    "privacyTitle": "Privacy notice",
+    "empty": "This text has not been added yet.",
+    "openLink": "Read it on our website",
+    "version": "Version {version}"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "We could not reach the server. Check your connection and try again.",
+    "required": "Please fill in this field.",
+    "validation": {
+      "failed": "Please check the details you entered.",
+      "email_invalid": "Enter a valid email address."
+    },
+    "reservation": {
+      "return_before_pickup": "The return must be after the pickup."
+    },
+    "location": {
+      "pickup_not_in_use": "That pickup place is no longer available.",
+      "return_not_in_use": "That return place is no longer available.",
+      "pickup_not_found": "That pickup place was not found.",
+      "return_not_found": "That return place was not found."
+    },
+    "extra": {
+      "unknown_extra_selected": "One of the extras is not available any more.",
+      "no_longer_available": "One of the extras is not available any more.",
+      "max_quantity": "You chose more of an extra than is allowed.",
+      "same_extra_was_selected_more_than": "The same extra was chosen twice."
+    },
+    "stripe": {
+      "error": "The payment provider said: {reason}",
+      "not_configured": "Online payment is not available right now."
+    },
+    "public": {
+      "storefront_disabled": "Online booking is not available.",
+      "rate_limited": "Too many requests. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
+      "datetime_needs_zone": "The dates could not be read. Please search again.",
+      "pickup_too_soon": "Pickup must be at least {hours, plural, one {# hour} other {# hours}} from now.",
+      "pickup_too_far_ahead": "Pickup is too far ahead to book online.",
+      "rental_too_long": "Online rentals are limited to {days, plural, one {# day} other {# days}}.",
+      "offer_unavailable": "This car is no longer available for these dates. Please choose another.",
+      "price_changed": "The price has changed. Please check the new total.",
+      "terms_required": "Please accept the terms and read the privacy notice to book.",
+      "captcha_failed": "We could not check that you are not a robot. Please try again.",
+      "captcha_not_configured": "Online booking is temporarily unavailable.",
+      "too_many_bookings": "You have too many bookings waiting for payment. Finish them or wait for them to expire.",
+      "busy": "Online booking is very busy right now. Please try again shortly.",
+      "try_again": "Something went wrong. Please try again.",
+      "manage_token_invalid": "This page has expired. Please look your booking up again.",
+      "booking_not_found": "We could not find a booking with that reference and email.",
+      "cannot_cancel": "This booking can no longer be cancelled online. Please contact us.",
+      "nothing_to_pay": "There is nothing to pay for this rental."
+    }
   }
 }

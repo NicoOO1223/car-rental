@@ -2,7 +2,21 @@
   "meta": {
     "title": "{name} | Rezerwuj online",
     "titleNeutral": "Rezerwuj online",
-    "description": "Wybierz auto, zarezerwuj je i zapłać część online."
+    "description": "Wybierz auto, zarezerwuj je i zapłać część online.",
+    "fleet": "Nasze auta",
+    "book": "Zarezerwuj auto",
+    "manage": "Zarządzaj rezerwacją",
+    "terms": "Regulamin",
+    "privacy": "Informacja o prywatności"
+  },
+  "nav": {
+    "fleet": "Nasze auta",
+    "manage": "Moja rezerwacja",
+    "language": "Język"
+  },
+  "footer": {
+    "terms": "Regulamin",
+    "privacy": "Informacja o prywatności"
   },
   "unavailable": {
     "title": "Rezerwacja online jest niedostępna",
@@ -12,11 +26,267 @@
     "title": "Mamy teraz problem",
     "body": "Rezerwacja online jest chwilowo niedostępna. Spróbuj ponownie za kilka minut."
   },
-  "home": {
-    "comingSoon": "Rezerwacja online wkrótce ruszy."
-  },
   "notFound": {
     "title": "Nie znaleziono strony",
     "body": "Strona, której szukasz, nie istnieje."
+  },
+  "home": {
+    "title": "Wynajmij auto w kilka minut",
+    "subtitle": "Wybierz gdzie i kiedy, wybierz auto i zarezerwuj je online.",
+    "point1Title": "Płacisz teraz część",
+    "point1Body": "Zapłać {percent}% online, aby zabezpieczyć auto. Resztę zapłacisz przy odbiorze.",
+    "point2Title": "Bezpłatna rezygnacja",
+    "point2Body": "Zrezygnuj nawet na {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}} przed odbiorem i odzyskaj płatność.",
+    "point3Title": "Bez zakładania konta",
+    "point3Body": "Zachowaj numer rezerwacji i odnajdź ją w dowolnym momencie.",
+    "browseFleet": "Zobacz nasze auta",
+    "manageBooking": "Masz już rezerwację? Zarządzaj nią"
+  },
+  "search": {
+    "title": "Znajdź swoje auto",
+    "pickupPlace": "Odbiór w",
+    "returnPlace": "Zwrot w",
+    "returnElsewhere": "Zwrot w innym miejscu",
+    "pickupDate": "Data odbioru",
+    "pickupTime": "Godzina odbioru",
+    "returnDate": "Data zwrotu",
+    "returnTime": "Godzina zwrotu",
+    "submit": "Szukaj aut",
+    "returnBeforePickup": "Zwrot musi być po odbiorze.",
+    "tooSoon": "Odbiór musi nastąpić za co najmniej {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}}.",
+    "choosePlace": "Wybierz miejsce"
+  },
+  "fleet": {
+    "title": "Nasze auta",
+    "intro": "Rodzaje aut, które możesz zarezerwować. Konkretne auto przydzielamy przy rezerwacji.",
+    "perDay": "od {price} / dzień",
+    "empty": "Nie ma jeszcze aut na liście.",
+    "search": "Sprawdź dostępność"
+  },
+  "enums": {
+    "category": {
+      "ECONOMY": "Ekonomiczne",
+      "COMPACT": "Kompaktowe",
+      "MIDSIZE": "Średnie",
+      "PREMIUM": "Premium",
+      "SUV": "SUV",
+      "VAN": "Van"
+    },
+    "transmission": {
+      "MANUAL": "Manualna",
+      "AUTOMATIC": "Automatyczna"
+    },
+    "fuel": {
+      "PETROL": "Benzyna",
+      "DIESEL": "Diesel",
+      "HYBRID": "Hybryda",
+      "ELECTRIC": "Elektryczny"
+    }
+  },
+  "status": {
+    "AWAITING_PAYMENT": "Oczekuje na płatność",
+    "CONFIRMED": "Potwierdzona",
+    "ACTIVE": "Auto odebrane",
+    "COMPLETED": "Zakończona",
+    "CANCELLED": "Anulowana",
+    "EXPIRED": "Wygasła"
+  },
+  "wizard": {
+    "steps": {
+      "vehicle": "Auto",
+      "extras": "Dodatki",
+      "details": "Twoje dane",
+      "payment": "Płatność"
+    },
+    "loading": "Wczytywanie…",
+    "back": "Wstecz",
+    "continue": "Dalej",
+    "changeSearch": "Zmień daty lub miejsca",
+    "badLink": "Ten link wyszukiwania jest nieprawidłowy. Zacznij od nowa.",
+    "startAgain": "Nowe wyszukiwanie"
+  },
+  "vehicles": {
+    "title": "Wybierz auto",
+    "count": "{count, plural, one {# dostępne auto} few {# dostępne auta} many {# dostępnych aut} other {# dostępnych aut}}",
+    "none": "Brak wolnych aut w tych terminach i miejscach. Spróbuj innych dat lub innego miejsca odbioru.",
+    "orSimilar": "lub podobne",
+    "seats": "{count} miejsc",
+    "total": "{amount} razem",
+    "perDay": "{price} / dzień",
+    "payNow": "Płacisz teraz {amount}",
+    "atPickup": "{amount} przy odbiorze",
+    "select": "Wybierz"
+  },
+  "extras": {
+    "title": "Dodaj dodatki",
+    "none": "Nie ma dodatków do wyboru.",
+    "perDay": "{price} za dzień",
+    "perRental": "{price} za wynajem",
+    "quantity": "Ilość"
+  },
+  "summary": {
+    "title": "Twoja rezerwacja",
+    "pickup": "Odbiór",
+    "return": "Zwrot",
+    "vehicle": "Auto",
+    "rental": "Wynajem, {days, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}}",
+    "shortTermFee": "Opłata za krótki wynajem",
+    "oneWayFee": "Opłata za wynajem w jedną stronę",
+    "subtotal": "Kwota netto",
+    "vat": "VAT {rate}%",
+    "includesVat": "W tym VAT: {amount}",
+    "total": "Razem",
+    "payNow": "Do zapłaty teraz ({percent}%)",
+    "atPickup": "Do zapłaty przy odbiorze",
+    "freeCancel": "Bezpłatna rezygnacja do {date}, godz. {time}. Potem płatność online nie jest zwracana.",
+    "dateAtTime": "{date}, godz. {time}",
+    "pricing": "Obliczanie ceny…"
+  },
+  "details": {
+    "title": "Twoje dane",
+    "intro": "Potrzebujemy ich, aby przygotować wynajem. Dokumenty pokażesz przy odbiorze.",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "dateOfBirth": "Data urodzenia",
+    "email": "E-mail",
+    "emailHint": "Tu wyślemy potwierdzenie płatności.",
+    "phone": "Numer telefonu",
+    "address": "Adres",
+    "postalCode": "Kod pocztowy",
+    "nationality": "Narodowość (opcjonalnie)",
+    "acceptTerms": "Akceptuję <link>regulamin</link>.",
+    "acceptPrivacy": "Zapoznałem(-am) się z <link>informacją o prywatności</link>.",
+    "submit": "Przejdź do płatności",
+    "submitting": "Rezerwuję auto…",
+    "human": "Potwierdź, że nie jesteś robotem",
+    "needTerms": "Aby kontynuować, zaakceptuj regulamin i zapoznaj się z informacją o prywatności.",
+    "holdNote": "Auto jest zarezerwowane na {minutes, plural, one {# minutę} few {# minuty} many {# minut} other {# minuty}}, gdy płacisz."
+  },
+  "pay": {
+    "title": "Zapłać {amount}, aby potwierdzić",
+    "timeLeft": "Pozostały czas na płatność",
+    "remainder": "Pozostałe {amount} zapłacisz przy odbiorze.",
+    "button": "Zapłać {amount}",
+    "processing": "Przetwarzanie…",
+    "notConfigured": "Płatność online jest teraz niedostępna. Skontaktuj się z nami, aby zarezerwować.",
+    "expiredTitle": "Rezerwacja auta wygasła",
+    "expiredBody": "Auto zostało zwolnione, bo płatność nie została dokończona na czas. Nic nie pobrano.",
+    "startAgain": "Szukaj ponownie",
+    "reference": "Numer rezerwacji",
+    "referenceHint": "Zachowaj ten numer. Potrzebujesz go, aby odnaleźć rezerwację.",
+    "failed": "Nie udało się zakończyć płatności. Spróbuj ponownie."
+  },
+  "returnPage": {
+    "checkingTitle": "Potwierdzamy płatność…",
+    "checkingBody": "To potrwa kilka sekund. Nie zamykaj tej strony.",
+    "slowTitle": "Płatność jest nadal przetwarzana",
+    "slowBody": "Potwierdzimy rezerwację, gdy tylko płatność dotrze. Za kilka minut odnajdź ją po numerze rezerwacji.",
+    "refundedTitle": "Płatność została zwrócona",
+    "refundedBody": "Przepraszamy: auto nie było już wolne, gdy dotarła płatność, więc zwróciliśmy ją w całości.",
+    "failedTitle": "Płatność się nie powiodła",
+    "failedBody": "Nic nie pobrano. Możesz szukać ponownie i spróbować inną kartą.",
+    "lookup": "Znajdź moją rezerwację",
+    "search": "Szukaj ponownie"
+  },
+  "booking": {
+    "title": "Twoja rezerwacja",
+    "reference": "Numer rezerwacji",
+    "confirmedTitle": "Rezerwacja potwierdzona",
+    "confirmedBody": "Zapłacono online {paid}. Pozostałe {rest} zapłacisz przy odbiorze.",
+    "confirmedFull": "Zapłacono online {paid}. Przy odbiorze nic nie musisz płacić.",
+    "keepReference": "Zachowaj ten numer: dzięki niemu odnajdziesz rezerwację.",
+    "waitingTitle": "Oczekiwanie na płatność",
+    "waitingBody": "Auto jest zarezerwowane do godz. {time}. Dokończ płatność, aby potwierdzić rezerwację.",
+    "expiredNote": "Ta rezerwacja wygasła, bo nie została opłacona na czas.",
+    "cancelledNote": "Ta rezerwacja została anulowana.",
+    "refundedNote": "Zwrócono {amount} na Twoją kartę. Zwrot może być widoczny po kilku dniach.",
+    "keptNote": "Zapłacone online {amount} nie zostało zwrócone, bo anulowanie nastąpiło po okresie bezpłatnej rezygnacji.",
+    "car": "Auto",
+    "pickup": "Odbiór",
+    "return": "Zwrot",
+    "extras": "Dodatki",
+    "payment": "Płatność",
+    "total": "Razem",
+    "paidOnline": "Zapłacono online",
+    "dueAtPickup": "Do zapłaty przy odbiorze",
+    "policyRefund": "Bezpłatna rezygnacja do {date}, godz. {time}: odzyskasz płatność online.",
+    "policyKept": "Okres bezpłatnej rezygnacji zakończył się {date}, godz. {time}. Jeśli anulujesz teraz, zapłacone online {amount} nie zostanie zwrócone.",
+    "cancel": "Anuluj tę rezerwację",
+    "cancelTitle": "Anulować tę rezerwację?",
+    "cancelRefund": "Zwrócimy Ci {amount}.",
+    "cancelKept": "Zapłacone online {amount} nie zostanie zwrócone.",
+    "cancelNothing": "Nic nie zostało pobrane.",
+    "cancelConfirm": "Tak, anuluj rezerwację",
+    "keep": "Zostaw rezerwację",
+    "cancelling": "Anulowanie…",
+    "cannotCancel": "Aby zmienić lub anulować tę rezerwację, skontaktuj się z nami.",
+    "expiredSession": "Odnajdź rezerwację ponownie, aby ją zobaczyć.",
+    "lookup": "Znajdź moją rezerwację",
+    "loading": "Wczytywanie rezerwacji…",
+    "dateAtTime": "{date}, godz. {time}"
+  },
+  "lookup": {
+    "title": "Znajdź swoją rezerwację",
+    "intro": "Podaj numer otrzymany przy rezerwacji i adres e-mail, którego użyłeś(-aś).",
+    "reference": "Numer rezerwacji",
+    "referencePlaceholder": "ABCD-2345",
+    "email": "E-mail",
+    "submit": "Znajdź rezerwację",
+    "searching": "Szukanie…"
+  },
+  "legal": {
+    "termsTitle": "Regulamin",
+    "privacyTitle": "Informacja o prywatności",
+    "empty": "Ten tekst nie został jeszcze dodany.",
+    "openLink": "Przeczytaj na naszej stronie",
+    "version": "Wersja {version}"
+  },
+  "errors": {
+    "generic": "Coś poszło nie tak. Spróbuj ponownie.",
+    "network": "Nie możemy połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie.",
+    "required": "Wypełnij to pole.",
+    "validation": {
+      "failed": "Sprawdź wpisane dane.",
+      "email_invalid": "Podaj prawidłowy adres e-mail."
+    },
+    "reservation": {
+      "return_before_pickup": "Zwrot musi być po odbiorze."
+    },
+    "location": {
+      "pickup_not_in_use": "To miejsce odbioru nie jest już dostępne.",
+      "return_not_in_use": "To miejsce zwrotu nie jest już dostępne.",
+      "pickup_not_found": "Nie znaleziono miejsca odbioru.",
+      "return_not_found": "Nie znaleziono miejsca zwrotu."
+    },
+    "extra": {
+      "unknown_extra_selected": "Jeden z dodatków nie jest już dostępny.",
+      "no_longer_available": "Jeden z dodatków nie jest już dostępny.",
+      "max_quantity": "Wybrano więcej sztuk dodatku, niż wolno.",
+      "same_extra_was_selected_more_than": "Ten sam dodatek wybrano dwa razy."
+    },
+    "stripe": {
+      "error": "Operator płatności odpowiedział: {reason}",
+      "not_configured": "Płatność online jest teraz niedostępna."
+    },
+    "public": {
+      "storefront_disabled": "Rezerwacja online jest niedostępna.",
+      "rate_limited": "Zbyt wiele żądań. Spróbuj ponownie za {seconds, plural, one {# sekundę} few {# sekundy} many {# sekund} other {# sekundy}}.",
+      "datetime_needs_zone": "Nie udało się odczytać dat. Szukaj ponownie.",
+      "pickup_too_soon": "Odbiór musi nastąpić za co najmniej {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}}.",
+      "pickup_too_far_ahead": "Odbiór jest zbyt odległy, aby rezerwować online.",
+      "rental_too_long": "Wynajem online jest ograniczony do {days, plural, one {# dnia} other {# dni}}.",
+      "offer_unavailable": "To auto nie jest już dostępne w tych terminach. Wybierz inne.",
+      "price_changed": "Cena się zmieniła. Sprawdź nową kwotę.",
+      "terms_required": "Aby zarezerwować, zaakceptuj regulamin i zapoznaj się z informacją o prywatności.",
+      "captcha_failed": "Nie udało się sprawdzić, że nie jesteś robotem. Spróbuj ponownie.",
+      "captcha_not_configured": "Rezerwacja online jest chwilowo niedostępna.",
+      "too_many_bookings": "Masz zbyt wiele rezerwacji oczekujących na płatność. Dokończ je lub poczekaj, aż wygasną.",
+      "busy": "Rezerwacja online jest teraz bardzo oblegana. Spróbuj ponownie za chwilę.",
+      "try_again": "Coś poszło nie tak. Spróbuj ponownie.",
+      "manage_token_invalid": "Ta strona wygasła. Odnajdź rezerwację ponownie.",
+      "booking_not_found": "Nie znaleźliśmy rezerwacji z tym numerem i adresem e-mail.",
+      "cannot_cancel": "Tej rezerwacji nie można już anulować online. Skontaktuj się z nami.",
+      "nothing_to_pay": "Za ten wynajem nie ma nic do zapłaty."
+    }
   }
 }

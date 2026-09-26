@@ -8,8 +8,10 @@ import { runtimeConfigScript } from "@shared/runtimeConfig";
 
 import "../globals.css";
 
+import { Providers } from "@/components/Providers";
+import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { getMessages, getTranslator } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/publicApi";
-import { getTranslator } from "@/lib/i18n";
 import { runtimeConfig } from "@/lib/runtime";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -22,10 +24,16 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const { lang } = await params;
   const t = getTranslator(lang);
   const config = await getPublicConfig();
+  const site = runtimeConfig().storefrontUrl;
 
   return {
+    metadataBase: site ? new URL(site) : undefined,
     title: config?.business_name ? t("meta.title", { name: config.business_name }) : t("meta.titleNeutral"),
     description: t("meta.description"),
+    // Every language is an alternate of the same page.
+    alternates: {
+      languages: Object.fromEntries(LANGUAGES.map((language) => [language, `/${language}`])),
+    },
   };
 }
 
@@ -44,12 +52,20 @@ export default async function LangLayout({
 
   if (!isLanguage(lang)) notFound();
 
+  const config = await getPublicConfig();
+
   return (
     <html lang={lang} className={`${geistSans.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript(runtimeConfig()) }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <Providers language={lang} messages={getMessages(lang)}>
+          <SiteHeader language={lang} config={config} />
+          <div className="flex-1">{children}</div>
+          <SiteFooter language={lang} config={config} />
+        </Providers>
+      </body>
     </html>
   );
 }
