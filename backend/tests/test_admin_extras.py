@@ -328,3 +328,70 @@ def test_extras_are_not_deletable():
         assert client.delete(f"/api/admin/extras/{extra['id']}").status_code == 405
     finally:
         _retire(extra["id"])
+
+
+# --- wording in other languages ------------------------------------------------
+
+
+def _new_extra(**extra_fields):
+    response = client.post(
+        "/api/admin/extras",
+        json={
+            "name": "Roof box",
+            "price": "5.00",
+            "price_unit": "PER_DAY",
+            "max_quantity": 1,
+            **extra_fields,
+        },
+    )
+    assert response.status_code == 201, response.text
+
+    return response.json()
+
+
+def test_an_extra_stores_and_returns_its_other_language_wording():
+    created = _new_extra(
+        translations={
+            "it": {"name": "  Box portapacchi  ", "description": "Per i bagagli"},
+            "pl": {"name": "", "description": None},
+        }
+    )
+
+    # Trimmed, and a language with nothing in it is not stored at all.
+    assert created["translations"] == {"it": {"name": "Box portapacchi", "description": "Per i bagagli"}}
+
+    updated = client.patch(
+        f"/api/admin/extras/{created['id']}",
+        json={"translations": {"pl": {"name": "Box dachowy"}}},
+    ).json()
+
+    assert updated["translations"] == {"pl": {"name": "Box dachowy"}}
+    assert updated["name"] == "Roof box"
+
+    listed = next(item for item in client.get("/api/extras").json() if item["id"] == created["id"])
+    assert listed["translations"] == {"pl": {"name": "Box dachowy"}}
+
+
+def test_extra_wording_rejects_english_and_unknown_languages():
+    for language in ("en", "xx"):
+        response = client.post(
+            "/api/admin/extras",
+            json={
+                "name": "Bad",
+                "price": "1.00",
+                "price_unit": "PER_DAY",
+                "translations": {language: {"name": "x"}},
+            },
+        )
+
+        assert response.status_code == 422, language
+
+
+def test_documents_use_the_other_language_name_and_fall_back_to_english():
+    from app.services.extras import localized_name
+
+    words = {"it": {"name": "Seggiolino"}}
+
+    assert localized_name("Baby seat", words, "it") == "Seggiolino"
+    assert localized_name("Baby seat", words, "pl") == "Baby seat"
+    assert localized_name("Baby seat", None, "it") == "Baby seat"

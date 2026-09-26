@@ -30,7 +30,9 @@ def _line_text(line: dict, language: str) -> str:
     if key:
         return label(language, key, **(line.get("params") or {}))
 
-    return str(line["description"])
+    words = ((line.get("translations") or {}).get(language) or {}).get("name")
+
+    return words or str(line["description"])
 
 
 def render_invoice_pdf(db: Session, invoice: Invoice) -> bytes:

@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount, label
-from app.services.extras import selections_from_reservation
+from app.services.extras import localized_name, selections_from_reservation, translations_by_code
 from app.services.pricing import calculate_price_breakdown
 from app.services.configuration import get_configuration, vat_terms
 from app.services.pdf_common import (
@@ -145,9 +145,12 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         money_line(label(language, "agreement.short_term_fee"), breakdown.short_term_fee)
     if breakdown.airport_change_fee:
         money_line(label(language, "agreement.airport_change_fee"), breakdown.airport_change_fee)
+    extra_words = translations_by_code(db, (line.code for line in breakdown.extras))
+
     for extra_line in breakdown.extras:
         quantity_label = f"{extra_line.quantity} x " if extra_line.quantity > 1 else ""
-        money_line(f"{quantity_label}{extra_line.name}", extra_line.amount)
+        extra_name = localized_name(extra_line.name, extra_words.get(extra_line.code), language)
+        money_line(f"{quantity_label}{extra_name}", extra_line.amount)
     amount = handover.payment_amount if handover.payment_amount is not None else breakdown.total_amount
     money_line(label(language, "agreement.total_paid"), amount)
     line(

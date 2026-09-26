@@ -23,7 +23,7 @@ from app.models import Car, Handover, Invoice, InvoiceCounter, Reservation, User
 from app.models.invoice import KIND_CREDIT_NOTE, KIND_INVOICE
 from app.services.audit import audit_log
 from app.services.configuration import get_configuration, vat_terms
-from app.services.extras import selections_from_reservation
+from app.services.extras import selections_from_reservation, translations_by_code
 from app.services.money import round_money
 from app.services.pricing import calculate_price_breakdown
 
@@ -69,7 +69,7 @@ def _money(value: Decimal) -> str:
     return str(round_money(Decimal(value)))
 
 
-def _lines(reservation: Reservation, car: Car, breakdown) -> list[dict]:
+def _lines(reservation: Reservation, car: Car, breakdown, extra_words: dict | None = None) -> list[dict]:
     """The itemization as printed: one dict per line, amounts as strings so
     they survive JSON exactly."""
 
@@ -112,6 +112,9 @@ def _lines(reservation: Reservation, car: Car, breakdown) -> list[dict]:
         lines.append(
             {
                 "description": extra.name,
+                # The catalog's other-language wording as it was on the day,
+                # so the line can be printed in the invoice's language.
+                "translations": (extra_words or {}).get(extra.code, {}),
                 "quantity": extra.quantity,
                 "unit_price": _money(extra.unit_price),
                 "amount": _money(extra.amount),
@@ -185,7 +188,12 @@ def issue_invoice_for_handover(
                 handover_id=handover.id,
                 currency=handover.payment_currency or configuration.default_currency,
                 language=document_language(configuration.document_language),
-                lines=_lines(reservation, car, breakdown),
+                lines=_lines(
+                    reservation,
+                    car,
+                    breakdown,
+                    translations_by_code(db, (line.code for line in breakdown.extras)),
+                ),
                 prices_include_vat=configuration.prices_include_vat,
                 vat_rate=rate,
                 net_amount=gross - vat,

@@ -11,7 +11,11 @@ import {
   type AdminExtra,
   type PriceUnit,
 } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import type { ExtraWording } from "@/lib/extras";
+import { LANGUAGES, t } from "@/lib/i18n";
+
+// English is the wording on the extra itself; the others are optional.
+const OTHER_LANGUAGES = LANGUAGES.filter((language) => language.code !== "en");
 
 type Props = {
   /** The extra being edited; omit to add a new one. */
@@ -23,6 +27,7 @@ type Props = {
 export function ExtraModal({ extra, onClose, onSaved }: Props) {
   const [name, setName] = useState(extra?.name ?? "");
   const [description, setDescription] = useState(extra?.description ?? "");
+  const [words, setWords] = useState<ExtraWording>(extra?.translations ?? {});
   const [price, setPrice] = useState(extra ? String(extra.price) : "");
   const [priceUnit, setPriceUnit] = useState<PriceUnit>(extra?.price_unit ?? "PER_DAY");
   const [maxQuantity, setMaxQuantity] = useState(
@@ -41,6 +46,7 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
     const payload = {
       name,
       description: description || null,
+      translations: words,
       price,
       price_unit: priceUnit,
       max_quantity: Number(maxQuantity),
@@ -96,6 +102,42 @@ export function ExtraModal({ extra, onClose, onSaved }: Props) {
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
+
+        <fieldset className="space-y-3 rounded-lg border border-border-subtle p-3">
+          <legend className="px-1 text-sm font-medium text-ink">
+            {t("c.admin.ExtraModal.otherLanguages")}
+          </legend>
+
+          <p className="text-xs text-ink-muted">{t("c.admin.ExtraModal.otherLanguagesHint")}</p>
+
+          {OTHER_LANGUAGES.map((language) => (
+            <div key={language.code} className="grid gap-3 sm:grid-cols-2">
+              <TextField
+                label={t("c.admin.ExtraModal.nameIn", { language: language.label })}
+                maxLength={100}
+                value={words[language.code]?.name ?? ""}
+                onChange={(event) =>
+                  setWords({
+                    ...words,
+                    [language.code]: { ...words[language.code], name: event.target.value },
+                  })
+                }
+              />
+
+              <TextField
+                label={t("c.admin.ExtraModal.descriptionIn", { language: language.label })}
+                maxLength={255}
+                value={words[language.code]?.description ?? ""}
+                onChange={(event) =>
+                  setWords({
+                    ...words,
+                    [language.code]: { ...words[language.code], description: event.target.value },
+                  })
+                }
+              />
+            </div>
+          ))}
+        </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField

@@ -390,7 +390,11 @@
         "howManyCustomerCan": "Quanti ne può aggiungere un cliente a una prenotazione.",
         "saving": "Salvataggio in corso",
         "saveChanges": "Salva le modifiche",
-        "addExtra2": "Aggiungi extra"
+        "addExtra2": "Aggiungi extra",
+        "otherLanguages": "Altre lingue",
+        "otherLanguagesHint": "Facoltativo. Ognuno vede il testo nella propria lingua, e l’inglese qui sopra dove un campo è vuoto.",
+        "nameIn": "Nome in {language}",
+        "descriptionIn": "Descrizione in {language}"
       },
       "LocationModal": {
         "failedSaveLocation": "Impossibile salvare la sede.",

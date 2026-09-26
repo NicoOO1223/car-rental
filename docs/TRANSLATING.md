@@ -10,7 +10,7 @@ The app speaks English, Italian and Polish. English is the source. Italian and P
 | Server error messages | `errors.*` in the same three files | Each person |
 | Printed agreement and invoices | `backend/app/i18n/documents.py` | The business document language |
 
-Extras' names and descriptions, and the agreement terms a business writes, are business data and are not translated.
+Extras' names and descriptions are business data. Each extra has optional Italian and Polish fields in its edit form (Configuration, Extras), and English is the fallback. The agreement terms a business writes are printed exactly as written.
 
 ## Reviewing a language
 

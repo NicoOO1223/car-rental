@@ -390,7 +390,11 @@
         "howManyCustomerCan": "Ile sztuk klient może dodać do jednej rezerwacji.",
         "saving": "Zapisywanie",
         "saveChanges": "Zapisz zmiany",
-        "addExtra2": "Dodaj dodatek"
+        "addExtra2": "Dodaj dodatek",
+        "otherLanguages": "Inne języki",
+        "otherLanguagesHint": "Opcjonalne. Każdy widzi tekst w swoim języku, a tam, gdzie pole jest puste, angielski tekst powyżej.",
+        "nameIn": "Nazwa: {language}",
+        "descriptionIn": "Opis: {language}"
       },
       "LocationModal": {
         "failedSaveLocation": "Nie udało się zapisać lokalizacji.",

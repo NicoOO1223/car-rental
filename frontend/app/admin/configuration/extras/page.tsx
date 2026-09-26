@@ -13,6 +13,7 @@ import { ExtraModal } from "@/components/admin/ExtraModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/format";
+import { extraDescription, extraName } from "@/lib/extras";
 import { t } from "@/lib/i18n";
 
 export default function ExtrasConfigurationPage() {
@@ -114,15 +115,15 @@ export default function ExtrasConfigurationPage() {
               >
                 <div className="min-w-0">
                   <p className="font-medium text-ink">
-                    {extra.name}
+                    {extraName(extra)}
                     {!extra.is_active && (
                       <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("s.admin.configuration.extras.retired")}</span>
                     )}
                   </p>
 
-                  {extra.description && (
+                  {extraDescription(extra) && (
                     <p className="mt-0.5 text-sm text-ink-muted">
-                      {extra.description}
+                      {extraDescription(extra)}
                     </p>
                   )}
 
@@ -132,7 +133,7 @@ export default function ExtrasConfigurationPage() {
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    aria-label={t("s.admin.configuration.extras.moveUp", { name: extra.name })}
+                    aria-label={t("s.admin.configuration.extras.moveUp", { name: extraName(extra) })}
                     disabled={index === 0 || busyId !== null}
                     onClick={() => move(index, -1)}
                     className="rounded-md p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:opacity-30"
@@ -142,7 +143,7 @@ export default function ExtrasConfigurationPage() {
 
                   <button
                     type="button"
-                    aria-label={t("s.admin.configuration.extras.moveDown", { name: extra.name })}
+                    aria-label={t("s.admin.configuration.extras.moveDown", { name: extraName(extra) })}
                     disabled={index === extras.length - 1 || busyId !== null}
                     onClick={() => move(index, 1)}
                     className="rounded-md p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:opacity-30"

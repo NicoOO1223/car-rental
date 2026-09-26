@@ -66,6 +66,14 @@ class ReservationExtra(Base):
         default=1,
     )
 
+    @property
+    def translations(self) -> dict:
+        """The catalog's wording in other languages, so a booked line can be
+        shown in the reader's language. Names are labels, unlike prices, so
+        this reads the current catalog rather than a snapshot."""
+
+        return self.extra.translations if self.extra is not None else {}
+
     # --- Snapshot of the catalog row as it was when this was booked ---
 
     extra_code: Mapped[str] = mapped_column(

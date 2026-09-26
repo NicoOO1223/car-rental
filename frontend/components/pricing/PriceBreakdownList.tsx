@@ -1,5 +1,6 @@
 import { formatCurrency, formatDuration } from "@/lib/format";
 import type { PriceBreakdown } from "@/lib/api";
+import { extraName } from "@/lib/extras";
 import { t } from "@/lib/i18n";
 
 /**
@@ -85,7 +86,7 @@ export function PriceBreakdownList({
             className="flex items-baseline justify-between gap-4"
           >
             <dt className="text-ink-secondary">
-              {line.name}
+              {extraName(line)}
               {line.quantity > 1 && (
                 <span className="text-ink-muted"> × {line.quantity}</span>
               )}

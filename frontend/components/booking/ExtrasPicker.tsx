@@ -15,6 +15,7 @@ import {
 
 import { formatCurrency } from "@/lib/format";
 import type { Extra, ExtraSelection } from "@/lib/api";
+import { extraDescription, extraName } from "@/lib/extras";
 import { t } from "@/lib/i18n";
 
 /**
@@ -102,11 +103,11 @@ export function ExtrasPicker({
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-ink">{extra.name}</p>
+                <p className="font-medium text-ink">{extraName(extra)}</p>
 
-                {extra.description && (
+                {extraDescription(extra) && (
                   <p className="mt-0.5 text-sm text-ink-muted">
-                    {extra.description}
+                    {extraDescription(extra)}
                   </p>
                 )}
 
@@ -121,7 +122,7 @@ export function ExtrasPicker({
                     <button
                       type="button"
                       onClick={() => setQuantity(extra.id, quantity - 1)}
-                      aria-label={t("c.booking.ExtrasPicker.removeOne", { name: extra.name })}
+                      aria-label={t("c.booking.ExtrasPicker.removeOne", { name: extraName(extra) })}
                       className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                     >
                       <Minus className="h-4 w-4" aria-hidden="true" />
@@ -138,7 +139,7 @@ export function ExtrasPicker({
                       type="button"
                       disabled={quantity >= extra.max_quantity}
                       onClick={() => setQuantity(extra.id, quantity + 1)}
-                      aria-label={t("c.booking.ExtrasPicker.addOneMore", { name: extra.name })}
+                      aria-label={t("c.booking.ExtrasPicker.addOneMore", { name: extraName(extra) })}
                       className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />

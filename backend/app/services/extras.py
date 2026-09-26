@@ -134,7 +134,47 @@ def build_reservation_extras(resolved) -> list[ReservationExtra]:
 
 # --- Admin management ---------------------------------------------------
 
-_EDITABLE_FIELDS = ("name", "description", "price", "price_unit", "max_quantity")
+_EDITABLE_FIELDS = ("name", "description", "translations", "price", "price_unit", "max_quantity")
+
+
+def clean_translations(value) -> dict:
+    """Keeps only non-empty, trimmed text, and drops languages with nothing
+    left, so "no Italian wording" is stored as no entry at all."""
+
+    cleaned = {}
+
+    for language, wording in (value or {}).items():
+        wording = wording if isinstance(wording, dict) else wording.model_dump()
+        kept = {
+            field: text.strip()
+            for field, text in wording.items()
+            if isinstance(text, str) and text.strip()
+        }
+
+        if kept:
+            cleaned[language] = kept
+
+    return cleaned
+
+
+def translations_by_code(db: Session, codes) -> dict[str, dict]:
+    """Other-language wording for the extras with these codes, for printed
+    documents."""
+
+    codes = list(codes)
+
+    if not codes:
+        return {}
+
+    rows = db.execute(select(Extra.code, Extra.translations).where(Extra.code.in_(codes)))
+
+    return {code: translations or {} for code, translations in rows}
+
+
+def localized_name(name: str, translations: dict | None, language: str) -> str:
+    """The extra's name in `language`, or its English name."""
+
+    return ((translations or {}).get(language) or {}).get("name") or name
 
 
 def _json_safe(value):
@@ -175,6 +215,7 @@ def create_extra(db: Session, data: ExtraCreate, actor: User) -> Extra:
         code=_generate_code(db, data.name),
         name=data.name.strip(),
         description=(data.description or "").strip() or None,
+        translations=clean_translations(data.translations),
         price=data.price,
         price_unit=data.price_unit,
         max_quantity=data.max_quantity,
@@ -231,6 +272,9 @@ def update_extra(db: Session, extra_id: UUID, data: ExtraUpdate, actor: User) ->
 
         if field == "description":
             value = (value or "").strip() or None
+
+        if field == "translations":
+            value = clean_translations(value)
 
         if field == "price" and value is None:
             raise AppError("extra.price_cannot_empty", "The price cannot be empty.")

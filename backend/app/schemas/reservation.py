@@ -64,6 +64,7 @@ class ReservationExtraResponse(BaseModel):
     extra_id: UUID
     extra_code: str
     name: str
+    translations: dict[str, dict[str, str | None]] = {}
     quantity: int
     unit_price: Decimal
     price_unit: str

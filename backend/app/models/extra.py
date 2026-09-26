@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, Numeric, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -49,6 +49,16 @@ class Extra(Base):
 
     description: Mapped[str | None] = mapped_column(
         String(255),
+    )
+
+    # Optional wording in other languages, {"it": {"name": ..., "description":
+    # ...}}. The columns above are the English (source) wording and the
+    # fallback for any language or field left empty.
+    translations: Mapped[dict] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default="{}",
     )
 
     price: Mapped[Decimal] = mapped_column(

@@ -29,6 +29,7 @@ import {
   formatTime,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { extraName } from "@/lib/extras";
 import { enumLabel, t } from "@/lib/i18n";
 
 type Props = {
@@ -382,7 +383,7 @@ export default function ReservationDetailsPage({
                     >
                       <div className="min-w-0">
                         <p className="font-medium">
-                          {line.name}
+                          {extraName({ code: line.extra_code, name: line.name, translations: line.translations })}
                           {line.quantity > 1 && (
                             <span className="text-gray-500">
                               {" × "}

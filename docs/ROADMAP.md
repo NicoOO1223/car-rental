@@ -93,7 +93,7 @@ Deployment notes:
 Decisions and gaps to know about:
 - **Italian and Polish were drafted by Claude and have not been reviewed by a native speaker.** This matters most for the agreement and invoice wording, which can carry legal weight. Some countries require specific phrases on invoices; confirm before the first real invoice.
 - **Dates on screen follow the business format, not the interface language.** Set the business format under Configuration, Business (for example Italiano) so weekdays and months are worded to match.
-- Extras' names and descriptions are business data. Each business writes them in its own language; there is no per-language name.
+- Extras' names and descriptions are business data, so each extra has optional Italian and Polish wording in its edit form, and English is the fallback for any field left empty. The starting extras come with Italian and Polish wording from the migration. Screens, bookings, the agreement and invoices use the wording for the language showing (the document language for printed documents).
 - A custom agreement text is printed exactly as the admin wrote it, in whatever language that is.
 - Not covered: languages beyond these three (adding one is a catalog file, see `docs/TRANSLATING.md`), and right-to-left layout.
 

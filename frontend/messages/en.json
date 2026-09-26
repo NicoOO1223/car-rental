@@ -390,7 +390,11 @@
         "howManyCustomerCan": "How many a customer can add to one booking.",
         "saving": "Saving",
         "saveChanges": "Save changes",
-        "addExtra2": "Add extra"
+        "addExtra2": "Add extra",
+        "otherLanguages": "Other languages",
+        "otherLanguagesHint": "Optional. People see the wording for their language, and the English above wherever a field is left empty.",
+        "nameIn": "Name in {language}",
+        "descriptionIn": "Description in {language}"
       },
       "LocationModal": {
         "failedSaveLocation": "Failed to save the location.",

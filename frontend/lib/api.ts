@@ -1,3 +1,4 @@
+import { rememberExtras, type ExtraWording } from "@/lib/extras";
 import { throwApiError } from "@/lib/apiErrors";
 import { t } from "@/lib/i18n";
 // Baked in at build time (Next.js inlines NEXT_PUBLIC_* vars into the
@@ -188,6 +189,8 @@ export type Extra = {
   code: string;
   name: string;
   description: string | null;
+  /** Optional wording in other languages; empty falls back to the English above. */
+  translations: ExtraWording;
   /** Serialized from a Decimal, so it arrives as a string. */
   price: string;
   price_unit: PriceUnit;
@@ -205,6 +208,7 @@ export type AdminExtra = Extra & {
 export type ExtraInput = {
   name: string;
   description: string | null;
+  translations: ExtraWording;
   /** Sent as a string so a Decimal never passes through a float. */
   price: string;
   price_unit: PriceUnit;
@@ -226,7 +230,13 @@ async function adminExtrasRequest<T>(
 }
 
 export function getAdminExtras(): Promise<AdminExtra[]> {
-  return adminExtrasRequest("", undefined, "errors.generic.load");
+  return adminExtrasRequest<AdminExtra[]>("", undefined, "errors.generic.load").then(
+    (extras) => {
+      rememberExtras(extras);
+
+      return extras;
+    },
+  );
 }
 
 export function createExtra(data: ExtraInput): Promise<AdminExtra> {
@@ -273,6 +283,7 @@ export type ReservationExtra = {
   extra_id: string;
   extra_code: string;
   name: string;
+  translations: ExtraWording;
   quantity: number;
   unit_price: string;
   price_unit: PriceUnit;
@@ -331,7 +342,10 @@ export async function getExtras(): Promise<Extra[]> {
     await throwApiError(response, "errors.generic.load");
   }
 
-  return response.json();
+  const extras: Extra[] = await response.json();
+  rememberExtras(extras);
+
+  return extras;
 }
 
 export async function quoteReservation(data: {
@@ -589,7 +603,10 @@ export async function getReservation(
     await throwApiError(response, "errors.generic.load");
   }
 
-  return response.json();
+  const reservation: Reservation = await response.json();
+  rememberExtras(reservation.extras ?? []);
+
+  return reservation;
 }
 
 export async function updateReservation(
