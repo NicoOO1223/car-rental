@@ -30,7 +30,7 @@ starlette==1.6.0
 stripe==15.6.1
 typing-inspection==0.4.4
 typing_extensions==4.16.0
-tzdata==2026.3
+tzdata==2026.4
 urllib3==2.8.0
 uvicorn==0.52.4
 watchfiles==1.2.0
