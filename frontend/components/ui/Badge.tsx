@@ -11,11 +11,8 @@ import {
   getTaskTypeStyle,
   type ReservationStatusVariant,
 } from "@/lib/status";
+import { enumLabel } from "@/lib/i18n";
 
-/** Statuses are stored as uppercase enums; render them as words. */
-function statusLabel(status: string): string {
-  return status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
-}
 
 export function Badge({
   children,
@@ -45,9 +42,12 @@ export function CarStatusBadge({
   const icon = getCarStatusIcon(status);
 
   return (
-    <Badge colorClass={getCarStatusStyle(status)} className={className}>
+    <Badge
+      colorClass={getCarStatusStyle(status)}
+      className={`uppercase ${className}`}
+    >
       {icon && createElement(icon, { className: "h-3 w-3 shrink-0" })}
-      {status}
+      {enumLabel("carStatus", status)}
     </Badge>
   );
 }
@@ -66,10 +66,10 @@ export function ReservationStatusBadge({
   return (
     <Badge
       colorClass={getReservationStatusStyle(status, variant)}
-      className={className}
+      className={`uppercase ${className}`}
     >
       {icon && createElement(icon, { className: "h-3 w-3 shrink-0" })}
-      {status}
+      {enumLabel("reservationStatus", status)}
     </Badge>
   );
 }
@@ -86,7 +86,7 @@ export function TaskTypeBadge({
   return (
     <Badge colorClass={getTaskTypeStyle(taskType)} className={className}>
       {icon && createElement(icon, { className: "h-3 w-3 shrink-0" })}
-      {statusLabel(taskType)}
+      {enumLabel("taskType", taskType)}
     </Badge>
   );
 }
@@ -103,7 +103,7 @@ export function TaskStatusBadge({
   return (
     <Badge colorClass={getTaskStatusStyle(status)} className={className}>
       {icon && createElement(icon, { className: "h-3 w-3 shrink-0" })}
-      {statusLabel(status)}
+      {enumLabel("taskStatus", status)}
     </Badge>
   );
 }

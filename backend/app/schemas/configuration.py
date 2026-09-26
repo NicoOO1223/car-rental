@@ -1,5 +1,7 @@
 from zoneinfo import available_timezones
 
+from app.languages import SUPPORTED_LANGUAGES
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Formats only: the interface itself is English. A short list keeps every
@@ -42,6 +44,8 @@ class ConfigurationResponse(BaseModel):
     vat_rate: float
     prices_include_vat: bool
     invoice_prefix: str
+    default_language: str
+    document_language: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -70,6 +74,15 @@ class ConfigurationUpdate(BaseModel):
     vat_rate: float | None = None
     prices_include_vat: bool | None = None
     invoice_prefix: str | None = None
+    default_language: str | None = None
+    document_language: str | None = None
+
+    @field_validator("default_language", "document_language")
+    @classmethod
+    def language_must_be_supported(cls, v: str | None) -> str | None:
+        if v is not None and v not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Language must be one of: {', '.join(SUPPORTED_LANGUAGES)}.")
+        return v
 
     @field_validator("vat_rate")
     @classmethod
@@ -184,5 +197,6 @@ class PublicConfigurationResponse(BaseModel):
     # What a price is: whether it already contains VAT, and how much.
     vat_rate: float
     prices_include_vat: bool
+    default_language: str
 
     model_config = ConfigDict(from_attributes=True)

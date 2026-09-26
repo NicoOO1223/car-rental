@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useTranslations } from "use-intl";
 import {
   ChevronDown,
   ChevronUp,
@@ -188,6 +189,7 @@ export function DataTable<Row>({
   empty,
   className = "",
 }: DataTableProps<Row>) {
+  const t = useTranslations("ui");
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort ?? null,
   );
@@ -352,7 +354,7 @@ export function DataTable<Row>({
 
                 {rowActions && rowActions.length > 0 && (
                   <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-ink">
-                    {rowActionsHeader ?? <span className="sr-only">Actions</span>}
+                    {rowActionsHeader ?? <span className="sr-only">{t("actions")}</span>}
                   </th>
                 )}
               </tr>

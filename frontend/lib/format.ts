@@ -17,6 +17,8 @@
  * another country see the same times as the counter they are managing.
  */
 
+import { t } from "@/lib/i18n";
+
 // --- Business locale and timezone ------------------------------------------
 
 let businessLocale: string | undefined;
@@ -172,7 +174,7 @@ export function rentalDays(pickupAt: string, returnAt: string): number {
 
 /** "3 days" / "1 day". */
 export function formatDuration(days: number): string {
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  return t("duration.days", { count: days });
 }
 
 // --- Converting between wall-clock time in a zone and instants ------------------

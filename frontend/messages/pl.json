@@ -1,0 +1,116 @@
+{
+  "language": {
+    "label": "Język",
+    "choose": "Wybierz język"
+  },
+  "nav": {
+    "managementPanel": "Panel zarządzania",
+    "newReservation": "Nowa rezerwacja",
+    "overview": "Przegląd",
+    "bookings": "Rezerwacje",
+    "reservations": "Rezerwacje",
+    "handovers": "Wydania i zwroty",
+    "customers": "Klienci",
+    "fleet": "Flota",
+    "vehicles": "Pojazdy",
+    "maintenance": "Serwis",
+    "admin": "Administracja",
+    "users": "Użytkownicy",
+    "auditLog": "Dziennik zdarzeń",
+    "revenue": "Przychody",
+    "configuration": "Konfiguracja",
+    "signOut": "Wyloguj",
+    "expandSidebar": "Rozwiń panel boczny",
+    "collapseSidebar": "Zwiń panel boczny",
+    "openMenu": "Otwórz menu",
+    "closeMenu": "Zamknij menu",
+    "main": "Główna",
+    "navigation": "Nawigacja"
+  },
+  "auth": {
+    "subtitle": "Zaloguj się do panelu zarządzania.",
+    "email": "E-mail",
+    "password": "Hasło",
+    "signIn": "Zaloguj się",
+    "signingIn": "Logowanie",
+    "failed": "Nie udało się zalogować."
+  },
+  "ui": {
+    "close": "Zamknij",
+    "actions": "Akcje",
+    "pagination": {
+      "noResults": "Brak wyników",
+      "showing": "Wyniki {start}–{end} z {total}",
+      "previous": "Poprzednia",
+      "next": "Następna",
+      "page": "Strona {page} z {pages}"
+    }
+  },
+  "duration": {
+    "days": "{count, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}}"
+  },
+  "vehicle": {
+    "seats": "{count, plural, one {# miejsce} few {# miejsca} many {# miejsc} other {# miejsca}}"
+  },
+  "enums": {
+    "carStatus": {
+      "AVAILABLE": "Dostępny",
+      "RESERVED": "Zarezerwowany",
+      "RENTED": "Wynajęty",
+      "MAINTENANCE": "W serwisie",
+      "CLEANING": "W czyszczeniu"
+    },
+    "reservationStatus": {
+      "PENDING": "Oczekująca",
+      "CONFIRMED": "Potwierdzona",
+      "ACTIVE": "W trakcie",
+      "COMPLETED": "Zakończona",
+      "CANCELLED": "Anulowana"
+    },
+    "taskType": {
+      "MAINTENANCE": "Serwis",
+      "CLEANING": "Czyszczenie"
+    },
+    "taskStatus": {
+      "OPEN": "Otwarte",
+      "DONE": "Wykonane",
+      "CANCELLED": "Anulowane"
+    },
+    "carCategory": {
+      "ECONOMY": "Ekonomiczna",
+      "COMPACT": "Kompaktowa",
+      "MIDSIZE": "Średnia",
+      "PREMIUM": "Premium",
+      "SUV": "SUV",
+      "VAN": "Van"
+    },
+    "transmission": {
+      "MANUAL": "Manualna",
+      "AUTOMATIC": "Automatyczna"
+    },
+    "fuel": {
+      "PETROL": "Benzyna",
+      "DIESEL": "Diesel",
+      "HYBRID": "Hybryda",
+      "ELECTRIC": "Elektryczny"
+    },
+    "maintenanceCategory": {
+      "DAMAGE_REPAIR": "Naprawa uszkodzeń",
+      "TECHNICAL_INSPECTION": "Przegląd techniczny",
+      "ROUTINE_SERVICE": "Przegląd okresowy",
+      "OTHER": "Inne"
+    },
+    "role": {
+      "admin": "Administrator",
+      "staff": "Pracownik"
+    }
+  },
+  "config": {
+    "business": {
+      "defaultLanguage": "Język domyślny",
+      "defaultLanguageHint": "Język interfejsu dla pracowników, którzy nie wybrali własnego. Każdy może go zmienić w panelu bocznym.",
+      "documentLanguage": "Język dokumentów",
+      "documentLanguageHint": "Język, w którym drukowane są umowa najmu i faktury, niezależnie od języka pracowników."
+    }
+  }
+}

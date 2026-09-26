@@ -1,17 +1,20 @@
 import { todayInZone } from "@/lib/format";
-export const MAINTENANCE_CATEGORIES = [
-  { value: "DAMAGE_REPAIR", label: "Damage repair" },
-  { value: "TECHNICAL_INSPECTION", label: "Technical inspection" },
-  { value: "ROUTINE_SERVICE", label: "Routine service" },
-  { value: "OTHER", label: "Other" },
-] as const;
+import { enumLabel } from "@/lib/i18n";
+// The label is a getter so it is worded in the language showing when it is
+// read, not the one showing when this module was first loaded.
+export const MAINTENANCE_CATEGORIES = (
+  ["DAMAGE_REPAIR", "TECHNICAL_INSPECTION", "ROUTINE_SERVICE", "OTHER"] as const
+).map((value) => ({
+  value,
+  get label() {
+    return enumLabel("maintenanceCategory", value);
+  },
+}));
 
 export function maintenanceCategoryLabel(
   category: string | null | undefined,
 ): string {
-  return (
-    MAINTENANCE_CATEGORIES.find((item) => item.value === category)?.label ?? ""
-  );
+  return category ? enumLabel("maintenanceCategory", category) : "";
 }
 
 const INSPECTION_SOON_DAYS = 30;

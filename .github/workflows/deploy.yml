@@ -89,6 +89,9 @@ jobs:
       # set in next.config.ts), so nothing is lost by reordering.
       - run: npm run build
       - run: npm run typecheck
+      # Every language has the same messages with the same placeholders, and
+      # every server error code has a message.
+      - run: npm run check:messages
 
   deploy-backend:
     needs: backend-tests

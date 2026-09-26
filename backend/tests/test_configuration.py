@@ -99,6 +99,8 @@ def test_get_configuration_returns_all_fields():
         "timezone",
         "locale",
         "agreement_terms",
+        "default_language",
+        "document_language",
     ):
         assert field in body
 

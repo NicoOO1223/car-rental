@@ -11,6 +11,8 @@ class UserResponse(BaseModel):
     email: str
     role: str
     hidden_nav_items: list[str]
+    # The language this person chose; None means the business default.
+    language: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

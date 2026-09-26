@@ -10,6 +10,9 @@ import {
   uploadLogo,
   type Configuration,
 } from "@/lib/api";
+import { useTranslations } from "use-intl";
+
+import { LANGUAGES } from "@/lib/i18n";
 import { LOCALES, timezoneOptions } from "@/lib/localization";
 import { BrandMark } from "@/components/BrandMark";
 import { useBrand } from "@/components/BrandProvider";
@@ -26,6 +29,8 @@ const PROFILE_FIELDS = [
   "vat_id",
   "timezone",
   "locale",
+  "default_language",
+  "document_language",
   "agreement_terms",
   "vat_rate",
   "prices_include_vat",
@@ -48,6 +53,7 @@ function readAsDataUrl(file: File): Promise<string> {
 
 export default function BusinessConfigurationPage() {
   const brand = useBrand();
+  const t = useTranslations("config.business");
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -312,6 +318,34 @@ export default function BusinessConfigurationPage() {
               {LOCALES.map((locale) => (
                 <option key={locale.value} value={locale.value}>
                   {locale.label}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label={t("defaultLanguage")}
+              hint={t("defaultLanguageHint")}
+              value={profile.default_language}
+              onChange={set("default_language")}
+            >
+              {LANGUAGES.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {language.label}
+                </option>
+              ))}
+            </SelectField>
+
+            <SelectField
+              label={t("documentLanguage")}
+              hint={t("documentLanguageHint")}
+              value={profile.document_language}
+              onChange={set("document_language")}
+            >
+              {LANGUAGES.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {language.label}
                 </option>
               ))}
             </SelectField>

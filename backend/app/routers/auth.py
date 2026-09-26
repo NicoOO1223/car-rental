@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
-from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.auth import LanguageUpdate, LoginRequest, LoginResponse
 from app.schemas.user import UserResponse
 from app.services.auth import AccountLocked, authenticate_user, create_access_token
 from app.services.configuration import get_configuration
@@ -57,4 +57,21 @@ def login(
 
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_my_language(
+    data: LanguageUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Only the language: a person can change how the app speaks to them
+    without being an admin. Everything else about an account (role, email,
+    activation) stays under /api/users."""
+
+    current_user.language = data.language
+    db.commit()
+    db.refresh(current_user)
+
     return current_user

@@ -7,6 +7,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { enumLabel, t } from "@/lib/i18n";
+
 /**
  * Presentation helpers for a vehicle.
  *
@@ -18,49 +20,16 @@ import {
  * disappears rather than showing up as a defect.
  */
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ECONOMY: "Economy",
-  COMPACT: "Compact",
-  MIDSIZE: "Midsize",
-  PREMIUM: "Premium",
-  SUV: "SUV",
-  VAN: "Van",
-};
-
-const TRANSMISSION_LABELS: Record<string, string> = {
-  MANUAL: "Manual",
-  AUTOMATIC: "Automatic",
-};
-
-const FUEL_LABELS: Record<string, string> = {
-  PETROL: "Petrol",
-  DIESEL: "Diesel",
-  HYBRID: "Hybrid",
-  ELECTRIC: "Electric",
-};
-
-/** Title-cases an unrecognised enum value rather than shouting it. */
-function humanize(value: string): string {
-  return value
-    .toLowerCase()
-    .split(/[\s_]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 export function categoryLabel(category: string | null): string | null {
-  if (!category) return null;
-  return CATEGORY_LABELS[category] ?? humanize(category);
+  return category ? enumLabel("carCategory", category) : null;
 }
 
 export function transmissionLabel(transmission: string | null): string | null {
-  if (!transmission) return null;
-  return TRANSMISSION_LABELS[transmission] ?? humanize(transmission);
+  return transmission ? enumLabel("transmission", transmission) : null;
 }
 
 export function fuelLabel(fuelType: string | null): string | null {
-  if (!fuelType) return null;
-  return FUEL_LABELS[fuelType] ?? humanize(fuelType);
+  return fuelType ? enumLabel("fuel", fuelType) : null;
 }
 
 export type Spec = {
@@ -101,7 +70,7 @@ export function carSpecs(car: {
   if (car.seats) {
     specs.push({
       icon: Users,
-      label: `${car.seats} seats`,
+      label: t("vehicle.seats", { count: car.seats }),
     });
   }
 

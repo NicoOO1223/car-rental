@@ -69,6 +69,10 @@ class User(Base):
         default=list,
     )
 
+    # The interface language this person chose (see app/languages.py). NULL
+    # means they never chose, so they get the business's default.
+    language: Mapped[str | None] = mapped_column(String(5), nullable=True)
+
     # Brute-force protection (see app/services/auth.py). Reset on a
     # successful login; locked_until is set once the limit is reached.
     failed_login_attempts: Mapped[int] = mapped_column(

@@ -59,7 +59,22 @@ export type CurrentUser = {
   email: string;
   role: "admin" | "staff";
   hidden_nav_items: string[];
+  /** The language this person chose; null means the business default. */
+  language: string | null;
 };
+
+/** Saves the signed-in person's own interface language. */
+export async function updateMyLanguage(language: string | null): Promise<void> {
+  const response = await apiFetch("/api/auth/me", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ language }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save the language.");
+  }
+}
 
 export async function getCurrentUser(): Promise<CurrentUser> {
   const response = await apiFetch("/api/auth/me");
@@ -2172,6 +2187,10 @@ export type Configuration = {
   vat_rate: number;
   prices_include_vat: boolean;
   invoice_prefix: string;
+  /** Interface language for anyone who has not chosen their own. */
+  default_language: string;
+  /** Language the agreement and invoices are printed in. */
+  document_language: string;
 };
 
 /** The currency every price is shown in; readable by any signed-in staff. */
@@ -2201,6 +2220,8 @@ export type Branding = {
   has_logo: boolean;
   logo_version: number | null;
   locale: string;
+  /** Interface language for someone who has not chosen their own. */
+  default_language: string;
 };
 
 /** Public: the login page needs this before anyone is signed in. */

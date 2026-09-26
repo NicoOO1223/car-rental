@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BrandProvider } from "@/components/BrandProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 import { NavigationProgressProvider } from "@/components/NavigationProgress";
 
 const geistSans = Geist({
@@ -53,7 +54,9 @@ export default function RootLayout({
       <body className="min-h-full bg-gray-50">
         <NavigationProgressProvider>
           <BrandProvider>
-            <AuthGuard>{children}</AuthGuard>
+            <LanguageProvider>
+              <AuthGuard>{children}</AuthGuard>
+            </LanguageProvider>
           </BrandProvider>
         </NavigationProgressProvider>
       </body>

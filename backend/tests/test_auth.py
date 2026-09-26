@@ -189,6 +189,7 @@ def test_me_returns_authenticated_user():
             "email": TEST_EMAIL,
             "role": "staff",
             "hidden_nav_items": [],
+            "language": None,
         }
     finally:
         _delete_test_user(user.id)

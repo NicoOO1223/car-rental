@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+import { useLanguage } from "@/components/LanguageProvider";
 import { getCurrentUser, type CurrentUser } from "@/lib/api";
 
 type CurrentUserContextValue = {
@@ -17,13 +18,18 @@ const CurrentUserContext = createContext<CurrentUserContextValue | null>(null);
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const { setUserLanguage } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
 
     getCurrentUser()
       .then((result) => {
-        if (!cancelled) setUser(result);
+        if (cancelled) return;
+
+        setUser(result);
+        // The account's own language now decides the interface language.
+        setUserLanguage(result.language);
       })
       // A failure here (e.g. a 401) is already handled globally by
       // apiFetch, which redirects to /login — nothing more to do.
@@ -35,7 +41,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setUserLanguage]);
 
   return (
     <CurrentUserContext.Provider value={{ user, loading }}>

@@ -20,6 +20,9 @@ class BrandingResponse(BaseModel):
     # forever and still pick up a new one.
     logo_version: int | None
     locale: str
+    # The interface language for anyone who has not chosen their own; the
+    # sign-in page needs it before there is a signed-in person to ask.
+    default_language: str
 
 
 def _version(logo) -> int:
@@ -36,6 +39,7 @@ def get_branding(db: Session = Depends(get_db)):
         has_logo=logo is not None,
         logo_version=_version(logo) if logo is not None else None,
         locale=configuration.locale,
+        default_language=configuration.default_language,
     )
 
 

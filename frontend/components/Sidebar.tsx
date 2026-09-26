@@ -24,12 +24,16 @@ import {
 } from "lucide-react";
 
 import { clearToken } from "@/lib/api";
+import { useTranslations } from "use-intl";
+
 import { BrandMark } from "@/components/BrandMark";
+import { LanguagePicker } from "@/components/LanguagePicker";
 import { useBrand } from "@/components/BrandProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
-type NavItem = { name: string; href: string; icon: LucideIcon };
-type NavSection = { label: string | null; items: NavItem[] };
+// Names are keys into the "nav" catalog, translated where they are drawn.
+type NavItem = { key: string; href: string; icon: LucideIcon };
+type NavSection = { labelKey: string | null; items: NavItem[] };
 
 /**
  * Grouped rather than one flat list of six. "Bookings" and "Fleet" are
@@ -38,22 +42,22 @@ type NavSection = { label: string | null; items: NavItem[] };
  */
 const BASE_NAV_SECTIONS: NavSection[] = [
   {
-    label: null,
-    items: [{ name: "Overview", href: "/", icon: LayoutDashboard }],
+    labelKey: null,
+    items: [{ key: "overview", href: "/", icon: LayoutDashboard }],
   },
   {
-    label: "Bookings",
+    labelKey: "bookings",
     items: [
-      { name: "Reservations", href: "/reservations/manage", icon: CalendarClock },
-      { name: "Handovers", href: "/handovers", icon: ArrowLeftRight },
-      { name: "Customers", href: "/customers", icon: Users },
+      { key: "reservations", href: "/reservations/manage", icon: CalendarClock },
+      { key: "handovers", href: "/handovers", icon: ArrowLeftRight },
+      { key: "customers", href: "/customers", icon: Users },
     ],
   },
   {
-    label: "Fleet",
+    labelKey: "fleet",
     items: [
-      { name: "Vehicles", href: "/cars", icon: Car },
-      { name: "Maintenance", href: "/maintenance", icon: Wrench },
+      { key: "vehicles", href: "/cars", icon: Car },
+      { key: "maintenance", href: "/maintenance", icon: Wrench },
     ],
   },
 ];
@@ -62,12 +66,12 @@ const BASE_NAV_SECTIONS: NavSection[] = [
 // the security boundary. Every route/endpoint behind it is independently
 // gated server-side by require_role("admin").
 const ADMIN_NAV_SECTION: NavSection = {
-  label: "Admin",
+  labelKey: "admin",
   items: [
-    { name: "Users", href: "/admin/users", icon: UserCog },
-    { name: "Audit Log", href: "/admin/audit-log", icon: History },
-    { name: "Revenue", href: "/admin/revenue", icon: TrendingUp },
-    { name: "Configuration", href: "/admin/configuration", icon: SlidersHorizontal },
+    { key: "users", href: "/admin/users", icon: UserCog },
+    { key: "auditLog", href: "/admin/audit-log", icon: History },
+    { key: "revenue", href: "/admin/revenue", icon: TrendingUp },
+    { key: "configuration", href: "/admin/configuration", icon: SlidersHorizontal },
   ],
 };
 
@@ -139,6 +143,7 @@ function SidebarContent({
 }) {
   const isNewBooking = pathname.startsWith("/reservations/new");
   const { name: brandName } = useBrand();
+  const t = useTranslations("nav");
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -156,7 +161,7 @@ function SidebarContent({
               <h1 className="min-h-7 truncate text-lg font-bold tracking-tight text-ink">
                 {brandName}
               </h1>
-              <p className="mt-0.5 text-xs text-ink-muted">Management Panel</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{t("managementPanel")}</p>
             </div>
           </div>
         )}
@@ -165,7 +170,7 @@ function SidebarContent({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t("closeMenu")}
             className="-mr-2 -mt-1 rounded-lg p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -174,32 +179,32 @@ function SidebarContent({
       </div>
 
       <nav
-        aria-label="Main"
+        aria-label={t("main")}
         className={`flex-1 overflow-y-auto py-5 ${collapsed ? "px-2" : "px-3"}`}
       >
         <Link
           href="/reservations/new"
           onClick={onNavigate}
-          title={collapsed ? "New Reservation" : undefined}
+          title={collapsed ? t("newReservation") : undefined}
           aria-current={isNewBooking ? "page" : undefined}
           className={`flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
             collapsed ? "px-2" : "px-3"
           } ${isNewBooking ? "ring-2 ring-gray-900 ring-offset-2" : ""}`}
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {!collapsed && "New Reservation"}
-          {collapsed && <span className="sr-only">New Reservation</span>}
+          {!collapsed && t("newReservation")}
+          {collapsed && <span className="sr-only">{t("newReservation")}</span>}
         </Link>
 
         {sections.map((section, sectionIndex) => (
-          <div key={section.label ?? sectionIndex} className="mt-6">
-            {section.label && !collapsed && (
+          <div key={section.labelKey ?? sectionIndex} className="mt-6">
+            {section.labelKey && !collapsed && (
               <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                {section.label}
+                {t(section.labelKey)}
               </p>
             )}
 
-            {section.label && collapsed && (
+            {section.labelKey && collapsed && (
               <div
                 className="mx-2 mb-2 border-t border-border-subtle"
                 aria-hidden="true"
@@ -215,7 +220,7 @@ function SidebarContent({
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    title={collapsed ? item.name : undefined}
+                    title={collapsed ? t(item.key) : undefined}
                     aria-current={active ? "page" : undefined}
                     className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
                       collapsed ? "justify-center px-2" : "px-3"
@@ -241,8 +246,8 @@ function SidebarContent({
                       aria-hidden="true"
                     />
 
-                    {!collapsed && item.name}
-                    {collapsed && <span className="sr-only">{item.name}</span>}
+                    {!collapsed && t(item.key)}
+                    {collapsed && <span className="sr-only">{t(item.key)}</span>}
                   </Link>
                 );
               })}
@@ -262,6 +267,8 @@ function SidebarContent({
           </p>
         )}
 
+        <LanguagePicker compact={collapsed} className="mt-2" />
+
         <div className="mt-2 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -271,21 +278,21 @@ function SidebarContent({
               // stale authenticated state survives into the login page.
               window.location.href = "/login";
             }}
-            title={collapsed ? "Sign out" : undefined}
+            title={collapsed ? t("signOut") : undefined}
             className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
               collapsed ? "mx-auto justify-center px-2" : "px-0"
             }`}
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {!collapsed && "Sign out"}
-            {collapsed && <span className="sr-only">Sign out</span>}
+            {!collapsed && t("signOut")}
+            {collapsed && <span className="sr-only">{t("signOut")}</span>}
           </button>
 
           {onToggleCollapse && (
             <button
               type="button"
               onClick={onToggleCollapse}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={collapsed ? t("expandSidebar") : t("collapseSidebar")}
               className={`rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
                 collapsed ? "mx-auto" : ""
               }`}
@@ -307,6 +314,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { name: brandName } = useBrand();
+  const t = useTranslations("nav");
   const { user } = useCurrentUser();
 
   // Per-employee display preference, configured from /admin/users — not
@@ -403,7 +411,7 @@ export default function Sidebar() {
           ref={menuButtonRef}
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
+          aria-label={t("openMenu")}
           aria-expanded={mobileOpen}
           className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
         >
@@ -422,7 +430,7 @@ export default function Sidebar() {
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Navigation"
+            aria-label={t("navigation")}
             className="absolute inset-y-0 left-0 w-72 max-w-[85vw] shadow-xl animate-[slide-in-left_0.2s_ease-out]"
           >
             <SidebarContent

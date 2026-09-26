@@ -1,3 +1,4 @@
+import { useTranslations } from "use-intl";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -19,13 +20,14 @@ export function Pagination({
   total: number;
   onPageChange: (page: number) => void;
 }) {
+  const t = useTranslations("ui.pagination");
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-muted">
-      <p>{total === 0 ? "No results" : `Showing ${start}–${end} of ${total}`}</p>
+      <p>{total === 0 ? t("noResults") : t("showing", { start, end, total })}</p>
 
       <div className="flex items-center gap-2">
         <Button
@@ -35,11 +37,11 @@ export function Pagination({
           disabled={page <= 1}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          Previous
+          {t("previous")}
         </Button>
 
         <span className="tabular-nums">
-          Page {page} of {pageCount}
+          {t("page", { page, pages: pageCount })}
         </span>
 
         <Button
@@ -48,7 +50,7 @@ export function Pagination({
           onClick={() => onPageChange(page + 1)}
           disabled={page >= pageCount}
         >
-          Next
+          {t("next")}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>

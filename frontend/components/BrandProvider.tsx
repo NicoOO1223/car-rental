@@ -16,6 +16,10 @@ type Brand = {
   /** Empty until the first response arrives. */
   name: string;
   logoUrl: string | null;
+  /** The interface language for someone who has not chosen their own. */
+  defaultLanguage: string;
+  /** True once the branding call has answered, or failed. */
+  loaded: boolean;
   /** Re-reads the branding, e.g. after the admin saves the business page. */
   refresh: () => void;
 };
@@ -23,6 +27,8 @@ type Brand = {
 const BrandContext = createContext<Brand>({
   name: "",
   logoUrl: null,
+  defaultLanguage: "en",
+  loaded: false,
   refresh: () => {},
 });
 
@@ -37,7 +43,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [branding, setBranding] = useState<{
     name: string;
     logoUrl: string | null;
-  }>({ name: "", logoUrl: null });
+    defaultLanguage: string;
+    loaded: boolean;
+  }>({ name: "", logoUrl: null, defaultLanguage: "en", loaded: false });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -50,10 +58,13 @@ export function BrandProvider({ children }: { children: ReactNode }) {
         setBranding({
           name: result.business_name,
           logoUrl: result.has_logo ? brandingLogoUrl(result.logo_version) : null,
+          defaultLanguage: result.default_language,
+          loaded: true,
         });
       })
-      // Branding is cosmetic; the app works without it.
-      .catch(() => {});
+      // Branding is cosmetic; the app works without it. The language still
+      // needs to know the call is over so it can fall back to English.
+      .catch(() => setBranding((current) => ({ ...current, loaded: true })));
 
     return () => {
       cancelled = true;

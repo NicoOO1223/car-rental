@@ -70,6 +70,13 @@ class Configuration(Base):
     # translate the interface.
     locale: Mapped[str] = mapped_column(String(10), nullable=False)
 
+    # The language the interface starts in for someone who has not chosen
+    # their own, and the language printed documents (agreement, invoices) are
+    # written in. Separate on purpose: staff can use the app in any language
+    # while every invoice the business issues stays in one.
+    default_language: Mapped[str] = mapped_column(String(5), nullable=False)
+    document_language: Mapped[str] = mapped_column(String(5), nullable=False)
+
     # Free text printed on the rental agreement. Empty falls back to the
     # built-in placeholder wording.
     agreement_terms: Mapped[str] = mapped_column(Text, nullable=False)

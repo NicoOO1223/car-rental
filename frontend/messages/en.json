@@ -1,0 +1,116 @@
+{
+  "language": {
+    "label": "Language",
+    "choose": "Choose language"
+  },
+  "nav": {
+    "managementPanel": "Management Panel",
+    "newReservation": "New Reservation",
+    "overview": "Overview",
+    "bookings": "Bookings",
+    "reservations": "Reservations",
+    "handovers": "Handovers",
+    "customers": "Customers",
+    "fleet": "Fleet",
+    "vehicles": "Vehicles",
+    "maintenance": "Maintenance",
+    "admin": "Admin",
+    "users": "Users",
+    "auditLog": "Audit Log",
+    "revenue": "Revenue",
+    "configuration": "Configuration",
+    "signOut": "Sign out",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "main": "Main",
+    "navigation": "Navigation"
+  },
+  "auth": {
+    "subtitle": "Sign in to the management panel.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in",
+    "failed": "Failed to log in."
+  },
+  "ui": {
+    "close": "Close",
+    "actions": "Actions",
+    "pagination": {
+      "noResults": "No results",
+      "showing": "Showing {start}–{end} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {pages}"
+    }
+  },
+  "duration": {
+    "days": "{count, plural, one {# day} other {# days}}"
+  },
+  "vehicle": {
+    "seats": "{count, plural, one {# seat} other {# seats}}"
+  },
+  "enums": {
+    "carStatus": {
+      "AVAILABLE": "Available",
+      "RESERVED": "Reserved",
+      "RENTED": "Rented",
+      "MAINTENANCE": "Maintenance",
+      "CLEANING": "Cleaning"
+    },
+    "reservationStatus": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "taskType": {
+      "MAINTENANCE": "Maintenance",
+      "CLEANING": "Cleaning"
+    },
+    "taskStatus": {
+      "OPEN": "Open",
+      "DONE": "Done",
+      "CANCELLED": "Cancelled"
+    },
+    "carCategory": {
+      "ECONOMY": "Economy",
+      "COMPACT": "Compact",
+      "MIDSIZE": "Midsize",
+      "PREMIUM": "Premium",
+      "SUV": "SUV",
+      "VAN": "Van"
+    },
+    "transmission": {
+      "MANUAL": "Manual",
+      "AUTOMATIC": "Automatic"
+    },
+    "fuel": {
+      "PETROL": "Petrol",
+      "DIESEL": "Diesel",
+      "HYBRID": "Hybrid",
+      "ELECTRIC": "Electric"
+    },
+    "maintenanceCategory": {
+      "DAMAGE_REPAIR": "Damage repair",
+      "TECHNICAL_INSPECTION": "Technical inspection",
+      "ROUTINE_SERVICE": "Routine service",
+      "OTHER": "Other"
+    },
+    "role": {
+      "admin": "Administrator",
+      "staff": "Staff"
+    }
+  },
+  "config": {
+    "business": {
+      "defaultLanguage": "Default language",
+      "defaultLanguageHint": "The interface language for staff who have not chosen their own. Everyone can change theirs from the sidebar.",
+      "documentLanguage": "Document language",
+      "documentLanguageHint": "The language the rental agreement and invoices are printed in, whatever language staff use."
+    }
+  }
+}
