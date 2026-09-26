@@ -11,6 +11,13 @@ else
     alembic upgrade head
 fi
 
+# First-run setup of a new stack (its first administrator and business
+# profile), from values the provisioning script sets. Does nothing unless
+# they are set, and nothing once the stack has an administrator. A failure
+# is reported but does not stop the server: the stack is still usable, and
+# the log line says what to fix.
+python setup_business.py || echo "WARNING: stack setup failed, see above"
+
 # The Azure ingress terminates TLS and forwards the real client address in
 # X-Forwarded-For; without these flags every request looks like it comes
 # from the proxy, which would break per-IP login throttling.

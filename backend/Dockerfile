@@ -19,6 +19,7 @@ COPY docker-entrypoint.sh .
 # can seed demo data or create a staff login on a deployed instance.
 COPY seed.py .
 COPY create_staff_user.py .
+COPY setup_business.py .
 COPY create_app_role.py .
 RUN chmod +x docker-entrypoint.sh
 
