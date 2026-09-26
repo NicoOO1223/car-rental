@@ -9,6 +9,7 @@ from app.dependencies import require_authenticated_user
 from app.schemas.maintenance import (
     MaintenanceTaskComplete,
     MaintenanceTaskCreate,
+    MaintenanceTaskPage,
     MaintenanceTaskResponse,
 )
 from app.services.maintenance import (
@@ -16,6 +17,7 @@ from app.services.maintenance import (
     complete_task,
     create_task,
     list_tasks,
+    open_task_counts,
 )
 
 router = APIRouter(
@@ -25,13 +27,25 @@ router = APIRouter(
 )
 
 
-@router.get("/tasks", response_model=list[MaintenanceTaskResponse])
+@router.get("/tasks", response_model=MaintenanceTaskPage)
 def list_tasks_endpoint(
     status: str | None = Query(default=None),
     task_type: str | None = Query(default=None),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    return list_tasks(db, status=status, task_type=task_type)
+    items, total = list_tasks(
+        db, status=status, task_type=task_type, limit=limit, offset=offset
+    )
+
+    return {
+        "items": items,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        **open_task_counts(db),
+    }
 
 
 @router.post("/tasks", response_model=MaintenanceTaskResponse)

@@ -146,24 +146,24 @@ def test_list_tasks_filters_by_status_and_type():
 
     open_cleaning = client.get(
         "/api/maintenance/tasks", params={"status": "OPEN", "task_type": "CLEANING"}
-    ).json()
+    ).json()["items"]
     assert any(item["id"] == task["id"] for item in open_cleaning)
 
     open_maintenance = client.get(
         "/api/maintenance/tasks", params={"status": "OPEN", "task_type": "MAINTENANCE"}
-    ).json()
+    ).json()["items"]
     assert not any(item["id"] == task["id"] for item in open_maintenance)
 
     client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")
 
     still_open = client.get(
         "/api/maintenance/tasks", params={"status": "OPEN"}
-    ).json()
+    ).json()["items"]
     assert not any(item["id"] == task["id"] for item in still_open)
 
     cancelled = client.get(
         "/api/maintenance/tasks", params={"status": "CANCELLED"}
-    ).json()
+    ).json()["items"]
     assert any(item["id"] == task["id"] for item in cancelled)
 
 
@@ -533,13 +533,11 @@ def test_completing_inspection_requires_next_due_date():
         assert in_the_past.status_code == 400
 
         # Neither attempt closed it.
-        assert client.get(
-            "/api/maintenance/tasks", params={"status": "OPEN"}
-        ).json() and any(
+        assert any(
             item["id"] == task["id"]
             for item in client.get(
                 "/api/maintenance/tasks", params={"status": "OPEN"}
-            ).json()
+            ).json()["items"]
         )
     finally:
         client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")
@@ -677,3 +675,45 @@ def test_a_car_stores_its_insurance_period_and_cost():
             f"/api/cars/{car['id']}",
             json={"insured_from": None, "insured_until": None, "insurance_cost": None},
         )
+
+
+# --- paging --------------------------------------------------------------------
+
+
+def test_the_task_list_is_paged_newest_first_with_overall_open_counts():
+    car = ensure_car_available("SA-006-AA")
+    made = []
+
+    try:
+        for _ in range(3):
+            car_free = client.get(f"/api/cars/{car['id']}").json()
+            assert car_free
+            made.append(
+                client.post(
+                    "/api/maintenance/tasks",
+                    json={
+                        "car_id": car["id"],
+                        "task_type": "CLEANING",
+                        "notes": "paging",
+                        **window(start_hours=len(made) * 100 + 1, duration_hours=2),
+                    },
+                ).json()
+            )
+
+        first = client.get("/api/maintenance/tasks", params={"status": "OPEN", "limit": 2}).json()
+
+        assert first["limit"] == 2 and first["offset"] == 0
+        assert len(first["items"]) == 2
+        assert first["total"] >= 3
+        assert first["open_cleaning"] >= 3
+        assert [t["id"] for t in first["items"]][0] == made[-1]["id"]
+
+        second = client.get("/api/maintenance/tasks", params={"status": "OPEN", "limit": 2, "offset": 2}).json()
+        assert second["offset"] == 2
+        assert not {t["id"] for t in first["items"]} & {t["id"] for t in second["items"]}
+
+        assert client.get("/api/maintenance/tasks", params={"limit": 0}).status_code == 422
+        assert client.get("/api/maintenance/tasks", params={"limit": 101}).status_code == 422
+    finally:
+        for task in made:
+            client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")

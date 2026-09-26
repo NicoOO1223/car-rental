@@ -104,6 +104,11 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental_test
+      # The backend refuses to start without these, and the drill runs its
+      # test suite against the restored database. Throwaway values: this
+      # database lives only for the length of the job.
+      SECRET_KEY: drill-placeholder-secret-key-not-for-production
+      CORS_ORIGINS: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
 

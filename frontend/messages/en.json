@@ -1624,5 +1624,13 @@
     "inspectionOverdue": "{vehicle}: technical inspection was due {date}, {days, plural, one {# day} other {# days}} ago.",
     "insuranceEnding": "{vehicle}: insurance ends {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
     "insuranceExpired": "{vehicle}: insurance ended {date}, {days, plural, one {# day} other {# days}} ago."
+  },
+  "errorPages": {
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "That address does not exist, or it has moved.",
+    "backToOverview": "Back to the overview",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "This page could not be shown. The rest of the app still works.",
+    "tryAgain": "Try again"
   }
 }

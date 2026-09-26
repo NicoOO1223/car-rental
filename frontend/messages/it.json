@@ -1624,5 +1624,13 @@
     "inspectionOverdue": "{vehicle}: la revisione tecnica era in scadenza il {date}, {days, plural, one {# giorno} other {# giorni}} fa.",
     "insuranceEnding": "{vehicle}: l’assicurazione termina il {date}, {days, plural, =0 {oggi} one {tra # giorno} other {tra # giorni}}.",
     "insuranceExpired": "{vehicle}: l’assicurazione è terminata il {date}, {days, plural, one {# giorno} other {# giorni}} fa."
+  },
+  "errorPages": {
+    "notFoundTitle": "Pagina non trovata",
+    "notFoundDescription": "Questo indirizzo non esiste o è stato spostato.",
+    "backToOverview": "Torna alla panoramica",
+    "errorTitle": "Qualcosa è andato storto",
+    "errorDescription": "Impossibile mostrare questa pagina. Il resto dell’app funziona ancora.",
+    "tryAgain": "Riprova"
   }
 }

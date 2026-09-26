@@ -1,6 +1,7 @@
 import { rememberExtras, type ExtraWording } from "@/lib/extras";
 import { throwApiError } from "@/lib/apiErrors";
 import { t } from "@/lib/i18n";
+import { hardNavigate } from "@/lib/hardNavigate";
 import { getRuntimeConfig } from "@/lib/runtimeConfig";
 
 // This stack's API address, read when it is needed: it is a runtime value,
@@ -56,7 +57,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
     window.location.pathname !== "/login"
   ) {
     clearToken();
-    window.location.href = "/login";
+    hardNavigate("/login");
   }
 
   return response;
@@ -922,14 +923,28 @@ export type MaintenanceTask = {
   completed_at: string | null;
 };
 
+export type MaintenanceTaskPage = {
+  items: MaintenanceTask[];
+  total: number;
+  limit: number;
+  offset: number;
+  /** Open tasks overall, not only those on this page. */
+  open_maintenance: number;
+  open_cleaning: number;
+};
+
 export async function getMaintenanceTasks(params?: {
   status?: string;
   task_type?: string;
-}): Promise<MaintenanceTask[]> {
+  limit?: number;
+  offset?: number;
+}): Promise<MaintenanceTaskPage> {
   const query = new URLSearchParams();
 
   if (params?.status) query.set("status", params.status);
   if (params?.task_type) query.set("task_type", params.task_type);
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  if (params?.offset != null) query.set("offset", String(params.offset));
 
   const queryString = query.toString();
 

@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.errors import AppError, NotFoundError
@@ -30,18 +30,50 @@ def list_tasks(
     db: Session,
     status: str | None = None,
     task_type: str | None = None,
-) -> list[MaintenanceTask]:
-    query = select(MaintenanceTask).options(joinedload(MaintenanceTask.car))
+    limit: int = 25,
+    offset: int = 0,
+) -> tuple[list[MaintenanceTask], int]:
+    """One page of tasks, newest first, and how many match in all. The history
+    only ever grows, so it is paged on the server."""
+
+    conditions = []
 
     if status is not None:
-        query = query.where(MaintenanceTask.status == status)
+        conditions.append(MaintenanceTask.status == status)
 
     if task_type is not None:
-        query = query.where(MaintenanceTask.task_type == task_type)
+        conditions.append(MaintenanceTask.task_type == task_type)
 
-    query = query.order_by(MaintenanceTask.opened_at.desc())
+    total = db.scalar(select(func.count()).select_from(MaintenanceTask).where(*conditions)) or 0
 
-    return list(db.scalars(query).all())
+    rows = db.scalars(
+        select(MaintenanceTask)
+        .options(joinedload(MaintenanceTask.car))
+        .where(*conditions)
+        .order_by(MaintenanceTask.opened_at.desc(), MaintenanceTask.id)
+        .limit(limit)
+        .offset(offset)
+    ).all()
+
+    return list(rows), total
+
+
+def open_task_counts(db: Session) -> dict[str, int]:
+    """How many maintenance and cleaning tasks are open right now, whatever
+    page or filter is showing."""
+
+    counts = dict(
+        db.execute(
+            select(MaintenanceTask.task_type, func.count())
+            .where(MaintenanceTask.status == "OPEN")
+            .group_by(MaintenanceTask.task_type)
+        ).all()
+    )
+
+    return {
+        "open_maintenance": counts.get("MAINTENANCE", 0),
+        "open_cleaning": counts.get("CLEANING", 0),
+    }
 
 
 def list_tasks_for_car(db: Session, car_id: UUID) -> list[MaintenanceTask]:

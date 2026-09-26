@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { CurrentUserProvider } from "@/components/CurrentUserProvider";
 import { NotificationsProvider } from "@/components/NotificationsProvider";
 import Sidebar from "@/components/Sidebar";
+import { hardNavigate } from "@/lib/hardNavigate";
 import { t } from "@/lib/i18n";
 
 function subscribe(callback: () => void) {
@@ -48,7 +49,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // pass) reads the real value the very first time this runs at all.
   useEffect(() => {
     if (!isLoginPage && !getToken()) {
-      window.location.href = "/login";
+      hardNavigate("/login");
     }
   }, [isLoginPage, token]);
 

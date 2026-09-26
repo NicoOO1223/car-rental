@@ -444,7 +444,7 @@ def test_reported_damage_opens_a_repair_task_on_completion():
 
         tasks = client.get(
             "/api/maintenance/tasks", params={"status": "OPEN"}
-        ).json()
+        ).json()["items"]
         task = next(t for t in tasks if t["id"] == task_id)
         assert task["category"] == "DAMAGE_REPAIR"
         assert task["notes"] == "Scratch on the rear bumper"

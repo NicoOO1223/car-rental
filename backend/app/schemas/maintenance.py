@@ -30,6 +30,16 @@ class MaintenanceTaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MaintenanceTaskPage(BaseModel):
+    items: list[MaintenanceTaskResponse]
+    total: int
+    limit: int
+    offset: int
+    # Open tasks overall, not just on this page.
+    open_maintenance: int
+    open_cleaning: int
+
+
 class MaintenanceTaskCreate(BaseModel):
     car_id: UUID
     task_type: str

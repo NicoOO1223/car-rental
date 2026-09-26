@@ -31,6 +31,7 @@ import { LanguagePicker } from "@/components/LanguagePicker";
 import { useBrand } from "@/components/BrandProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { useNotifications } from "@/components/NotificationsProvider";
+import { hardNavigate } from "@/lib/hardNavigate";
 import { t } from "@/lib/i18n";
 
 // Names are keys into the "nav" catalog, translated where they are drawn.
@@ -292,7 +293,7 @@ function SidebarContent({
               clearToken();
               // A full reload rather than a client transition, so no
               // stale authenticated state survives into the login page.
-              window.location.href = "/login";
+              hardNavigate("/login");
             }}
             title={collapsed ? t("nav.signOut") : undefined}
             className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw, Wrench } from "lucide-react";
 
 import {
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { Field, Select } from "@/components/ui/Field";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
+import { Pagination } from "@/components/ui/Pagination";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { CompleteTaskModal } from "@/components/maintenance/CompleteTaskModal";
@@ -27,13 +28,19 @@ import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   status: "OPEN",
+  page: "1",
 };
+
+const PAGE_SIZE = 25;
 
 export default function MaintenancePage() {
   const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS);
   const statusFilter = filters.status;
+  const page = Number(filters.page) || 1;
 
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ openMaintenance: 0, openCleaning: 0 });
   const [cars, setCars] = useState<Car[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -57,11 +64,17 @@ export default function MaintenancePage() {
       setError("");
 
       try {
-        const data = await getMaintenanceTasks(
-          statusFilter === "ALL" ? undefined : { status: statusFilter },
-        );
+        const data = await getMaintenanceTasks({
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          limit: PAGE_SIZE,
+          offset: (page - 1) * PAGE_SIZE,
+        });
 
-        if (!cancelled) setTasks(data);
+        if (!cancelled) {
+          setTasks(data.items);
+          setTotal(data.total);
+          setCounts({ openMaintenance: data.open_maintenance, openCleaning: data.open_cleaning });
+        }
       } catch {
         if (!cancelled) setError(t("s.maintenance.failedLoadMaintenanceTasks"));
       } finally {
@@ -74,7 +87,7 @@ export default function MaintenancePage() {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   // Used by the Refresh button and by post-action refetches only.
   const refreshTasks = useCallback(async () => {
@@ -82,17 +95,21 @@ export default function MaintenancePage() {
     setError("");
 
     try {
-      setTasks(
-        await getMaintenanceTasks(
-          statusFilter === "ALL" ? undefined : { status: statusFilter },
-        ),
-      );
+      const data = await getMaintenanceTasks({
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
+      });
+
+      setTasks(data.items);
+      setTotal(data.total);
+      setCounts({ openMaintenance: data.open_maintenance, openCleaning: data.open_cleaning });
     } catch {
       setError(t("s.maintenance.failedLoadMaintenanceTasks"));
     } finally {
       setRefreshing(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => {
     getCars()
@@ -102,17 +119,7 @@ export default function MaintenancePage() {
       });
   }, []);
 
-  const statistics = useMemo(
-    () => ({
-      openMaintenance: tasks.filter(
-        (task) => task.status === "OPEN" && task.task_type === "MAINTENANCE",
-      ).length,
-      openCleaning: tasks.filter(
-        (task) => task.status === "OPEN" && task.task_type === "CLEANING",
-      ).length,
-    }),
-    [tasks],
-  );
+  const statistics = counts;
 
   const columns: Column<MaintenanceTask>[] = [
     {
@@ -126,8 +133,6 @@ export default function MaintenancePage() {
         />
       ),
       mobileCell: (task) => `${task.car.make} ${task.car.model}`,
-      sortable: true,
-      sortAccessor: (task) => `${task.car.make} ${task.car.model}`,
     },
     {
       // The table folds the plate into the vehicle cell above; the card
@@ -152,8 +157,6 @@ export default function MaintenancePage() {
           )}
         </div>
       ),
-      sortable: true,
-      sortAccessor: (task) => task.task_type,
     },
     {
       id: "notes",
@@ -179,8 +182,6 @@ export default function MaintenancePage() {
         `${formatDateTime(task.starts_at ?? task.opened_at)} – ${
           task.ends_at ? formatDateTime(task.ends_at) : t("s.maintenance.untilClosed")
         }`,
-      sortable: true,
-      sortAccessor: (task) => new Date(task.starts_at ?? task.opened_at),
     },
     {
       id: "cost",
@@ -191,8 +192,6 @@ export default function MaintenancePage() {
           {task.cost != null ? formatCurrency(task.cost) : "—"}
         </span>
       ),
-      sortable: true,
-      sortAccessor: (task) => (task.cost != null ? Number(task.cost) : -1),
     },
     {
       id: "opened",
@@ -207,17 +206,12 @@ export default function MaintenancePage() {
         </div>
       ),
       mobileCell: (task) => formatDateTime(task.opened_at),
-      sortable: true,
-      sortAccessor: (task) => new Date(task.opened_at),
-      defaultSortDirection: "desc",
     },
     {
       id: "status",
       header: t("s.maintenance.status"),
       mobileLabel: t("s.maintenance.status"),
       cell: (task) => <TaskStatusBadge status={task.status} />,
-      sortable: true,
-      sortAccessor: (task) => task.status,
     },
   ];
 
@@ -262,7 +256,7 @@ export default function MaintenancePage() {
             <Select
               {...fieldProps}
               value={statusFilter}
-              onChange={(event) => setFilters({ status: event.target.value })}
+              onChange={(event) => setFilters({ status: event.target.value, page: "1" })}
             >
               <option value="OPEN">{t("s.maintenance.open")}</option>
               <option value="DONE">{t("s.maintenance.done")}</option>
@@ -317,6 +311,13 @@ export default function MaintenancePage() {
           title: t("s.maintenance.noTasksFound"),
           description: t("s.maintenance.nothingMatchesFilterRight"),
         }}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPageChange={(next) => setFilters({ page: String(next) })}
       />
 
       {completingTask && (

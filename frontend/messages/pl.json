@@ -1624,5 +1624,13 @@
     "inspectionOverdue": "{vehicle}: przegląd techniczny był do {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
     "insuranceEnding": "{vehicle}: ubezpieczenie kończy się {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
     "insuranceExpired": "{vehicle}: ubezpieczenie skończyło się {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}."
+  },
+  "errorPages": {
+    "notFoundTitle": "Nie znaleziono strony",
+    "notFoundDescription": "Ten adres nie istnieje lub został przeniesiony.",
+    "backToOverview": "Wróć do przeglądu",
+    "errorTitle": "Coś poszło nie tak",
+    "errorDescription": "Nie udało się wyświetlić tej strony. Reszta aplikacji nadal działa.",
+    "tryAgain": "Spróbuj ponownie"
   }
 }

@@ -9,6 +9,7 @@ import { useBrand } from "@/components/BrandProvider";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
+import { hardNavigate } from "@/lib/hardNavigate";
 import { t } from "@/lib/i18n";
 
 export default function LoginPage() {
@@ -30,7 +31,7 @@ export default function LoginPage() {
       setToken(access_token);
       // A full load rather than a client transition, so the auth guard
       // re-evaluates from scratch with the new token in place.
-      window.location.href = "/";
+      hardNavigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.failed"));
       setSubmitting(false);
