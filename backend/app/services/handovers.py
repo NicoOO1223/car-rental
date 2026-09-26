@@ -87,6 +87,11 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
 
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
+    # Paid in cash already: a card payment for the same rental would charge the
+    # customer twice.
+    if handover.payment_status == "SUCCEEDED" and not handover.stripe_payment_intent_id:
+        raise AppError("handover.payment_already_taken", "This rental has already been paid.")
+
     reservation = db.get(Reservation, reservation_id)
     car = db.get(Car, reservation.car_id)
     configuration = get_configuration(db)
@@ -226,6 +231,30 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     """
 
     handover = get_or_create_handover(db, reservation_id, actor=actor)
+
+    # A second payment would overwrite the first, and a card payment relabelled
+    # as cash could never be refunded through Stripe.
+    if handover.payment_status == "SUCCEEDED":
+        raise AppError("handover.payment_already_taken", "This rental has already been paid.")
+
+    # A card payment that was started and not finished is closed first, so it
+    # cannot be completed later on top of the cash. If Stripe says it already
+    # went through, the customer has paid: the card payment has to be
+    # confirmed instead.
+    if handover.stripe_payment_intent_id and stripe.api_key:
+        try:
+            open_intent = stripe.PaymentIntent.retrieve(handover.stripe_payment_intent_id)
+
+            if open_intent.status == "succeeded":
+                raise AppError(
+                    "handover.card_payment_already_succeeded",
+                    "The customer has already paid by card. Confirm the card payment instead of taking cash.",
+                )
+
+            if open_intent.status != "canceled":
+                stripe.PaymentIntent.cancel(open_intent.id)
+        except stripe.StripeError as exc:
+            raise stripe_app_error(exc)
 
     reservation = db.get(Reservation, reservation_id)
     car = db.get(Car, reservation.car_id)

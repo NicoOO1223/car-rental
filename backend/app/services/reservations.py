@@ -8,6 +8,7 @@ from app.services.audit import audit_log
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
+    lock_car,
 )
 from app.services.customers import find_matching_customer
 from app.services.deposits import release_deposit_for_cancellation
@@ -73,6 +74,10 @@ def create_reservation(
     # ---------------------------------------------------------
     # 5. Check reservation overlap
     # ---------------------------------------------------------
+
+    # Held until the booking is committed below, so a request booking the same
+    # car at the same moment waits and then sees this one.
+    lock_car(db, car_id)
 
     if has_conflicting_reservation(db, car_id, pickup_at, return_at):
         raise AppError("reservation.car_already_reserved_part_period", "Car is already reserved for part of this period.")
@@ -144,6 +149,16 @@ def create_reservation(
     )
 
     db.add(reservation)
+    db.flush()
+
+    audit_log(
+        db,
+        user=actor,
+        action="reservation.created",
+        entity_type="reservation",
+        entity_id=reservation.id,
+        metadata={"car_id": str(car.id), "source": "staff"},
+    )
 
     db.commit()
     db.refresh(reservation)
@@ -302,6 +317,11 @@ def update_reservation_status(
             to_status=new_status,
         )
 
+    # Cancelling has to give back what was paid and release the deposit, and
+    # only cancel_reservation does that.
+    if new_status == "CANCELLED":
+        return cancel_reservation(db, reservation_id, actor)
+
     reservation.status = new_status
     reservation.updated_by = actor.id
 
@@ -390,6 +410,33 @@ def update_reservation(
     # ---------------------------------------------------------
     # 3. Check reservation overlap (excluding this reservation)
     # ---------------------------------------------------------
+
+    booking_moved = (
+        is_reassignment
+        or effective_pickup_at != reservation.pickup_at
+        or effective_return_at != reservation.return_at
+        or effective_pickup_location_id != reservation.pickup_location_id
+        or effective_return_location_id != reservation.return_location_id
+    )
+
+    if booking_moved:
+        # Once money has been taken the amount is fixed against what was
+        # booked; moving the car, dates or places would leave the payment and
+        # the invoice describing a different rental.
+        taken = db.scalar(
+            select(Handover.id).where(
+                Handover.reservation_id == reservation_id,
+                Handover.payment_status == "SUCCEEDED",
+            )
+        )
+
+        if taken is not None:
+            raise AppError(
+                "reservation.cannot_move_after_payment",
+                "The car, dates and locations cannot be changed after payment has been taken.",
+            )
+
+        lock_car(db, target_car_id)
 
     if has_conflicting_reservation(
         db,

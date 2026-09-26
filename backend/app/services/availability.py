@@ -27,6 +27,21 @@ FLEET_OVERVIEW_RESERVATION_STATUSES = {
 }
 
 
+def lock_car(db: Session, car_id: UUID) -> None:
+    """
+    Takes a row lock on the car until the transaction ends, so two requests that
+    would both book it are handled one after the other: the second one waits
+    here, then sees the first one's booking when it checks for conflicts.
+
+    Call it before checking for conflicts, in every path that creates a booking
+    or moves one to another car or other dates, and commit soon after (never
+    hold it across a call to Stripe). When more than one car is locked, lock
+    them in id order so two requests cannot wait on each other.
+    """
+
+    db.execute(select(Car.id).where(Car.id == car_id).with_for_update()).first()
+
+
 def has_conflicting_reservation(
     db: Session,
     car_id: UUID,

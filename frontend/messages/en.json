@@ -215,7 +215,9 @@
       "identity_incomplete": "Identity check incomplete: {problem}",
       "no_payment_initiated_reservation": "No payment has been initiated for this reservation.",
       "payment_must_completed_before_generating_agreement": "Payment must be completed before generating the agreement.",
-      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement."
+      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement.",
+      "payment_already_taken": "This rental has already been paid.",
+      "card_payment_already_succeeded": "The customer has already paid by card. Confirm the card payment instead of taking cash."
     },
     "http": {
       "400": "The request was not valid.",
@@ -284,7 +286,8 @@
       "extras_cannot_changed_after_payment_taken": "Extras cannot be changed after payment has been taken.",
       "not_found": "Reservation not found.",
       "reservation_already_cancelled": "Reservation is already cancelled.",
-      "return_before_pickup": "Return time must be after pickup time."
+      "return_before_pickup": "Return time must be after pickup time.",
+      "cannot_move_after_payment": "The car, dates and locations cannot be changed after payment has been taken."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "The damage charge cannot be negative.",

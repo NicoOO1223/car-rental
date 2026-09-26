@@ -9,6 +9,7 @@ from app.schemas.auth import LanguageUpdate, LoginRequest, LoginResponse
 from app.schemas.user import UserResponse
 from app.services.auth import AccountLocked, authenticate_user, create_access_token
 from app.services.configuration import get_configuration
+from app.services.client_ip import client_ip as client_ip_of
 from app.services.login_throttle import is_ip_blocked, record_ip_failure
 
 # Deliberately NOT protected by get_current_user — this is how a token
@@ -35,7 +36,7 @@ def login(
 ):
     # Behind the Azure ingress this is the real client address, provided
     # uvicorn runs with --proxy-headers (see docker-entrypoint.sh).
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = client_ip_of(request)
 
     if is_ip_blocked(client_ip):
         raise _too_many_attempts()

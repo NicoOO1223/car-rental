@@ -114,7 +114,12 @@ def test_paying_again_does_not_issue_a_second_invoice(vat):
 
     try:
         _pay_cash(reservation)
-        _pay_cash(reservation)
+
+        # Paying again is refused (it used to overwrite the first payment), so
+        # there is still exactly one invoice.
+        again = client.post(f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment")
+        assert again.status_code == 400
+        assert again.json()["code"] == "handover.payment_already_taken"
 
         assert len(_invoices(reservation["id"])) == 1
     finally:

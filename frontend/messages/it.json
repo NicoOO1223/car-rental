@@ -215,7 +215,9 @@
       "identity_incomplete": "Verifica dell'identità incompleta: {problem}",
       "no_payment_initiated_reservation": "Non è stato avviato alcun pagamento per questa prenotazione.",
       "payment_must_completed_before_generating_agreement": "Il pagamento deve essere completato prima di generare il contratto.",
-      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto."
+      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto.",
+      "payment_already_taken": "Questo noleggio è già stato pagato.",
+      "card_payment_already_succeeded": "Il cliente ha già pagato con carta. Conferma il pagamento con carta invece di incassare in contanti."
     },
     "http": {
       "400": "La richiesta non è valida.",
@@ -284,7 +286,8 @@
       "extras_cannot_changed_after_payment_taken": "Gli extra non si possono modificare dopo l'incasso del pagamento.",
       "not_found": "Prenotazione non trovata.",
       "reservation_already_cancelled": "La prenotazione è già annullata.",
-      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro."
+      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro.",
+      "cannot_move_after_payment": "L’auto, le date e le sedi non possono essere modificate dopo il pagamento."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "L'addebito per danni non può essere negativo.",

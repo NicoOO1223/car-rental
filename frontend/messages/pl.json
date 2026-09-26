@@ -215,7 +215,9 @@
       "identity_incomplete": "Weryfikacja tożsamości jest niekompletna: {problem}",
       "no_payment_initiated_reservation": "Dla tej rezerwacji nie rozpoczęto żadnej płatności.",
       "payment_must_completed_before_generating_agreement": "Przed wygenerowaniem umowy płatność musi zostać zakończona.",
-      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja."
+      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja.",
+      "payment_already_taken": "Ten wynajem został już opłacony.",
+      "card_payment_already_succeeded": "Klient już zapłacił kartą. Potwierdź płatność kartą zamiast przyjmować gotówkę."
     },
     "http": {
       "400": "Żądanie jest nieprawidłowe.",
@@ -284,7 +286,8 @@
       "extras_cannot_changed_after_payment_taken": "Dodatków nie można zmieniać po przyjęciu płatności.",
       "not_found": "Nie znaleziono rezerwacji.",
       "reservation_already_cancelled": "Rezerwacja została już anulowana.",
-      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru."
+      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru.",
+      "cannot_move_after_payment": "Samochodu, dat i lokalizacji nie można zmienić po przyjęciu płatności."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "Opłata za szkodę nie może być ujemna.",
