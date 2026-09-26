@@ -14,7 +14,9 @@ param(
     [switch]$DryRun
 )
 
-$ErrorActionPreference = "Stop"
+# Native tools write warnings to stderr; exit codes are what matter here.
+$ErrorActionPreference = "Continue"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 $manifestPath = "$PSScriptRoot\stacks\$Stack.json"
 if (-not (Test-Path $manifestPath)) { throw "No manifest at $manifestPath" }

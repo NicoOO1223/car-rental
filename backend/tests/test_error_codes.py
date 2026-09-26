@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.dependencies import get_current_user
+from tests._dates import far_future_days
 from app.errors import AppError, NotFoundError
 from app.main import app
 from tests.conftest import _get_fake_user
@@ -188,11 +189,10 @@ def test_retiring_a_location_in_use_reports_the_counts():
 
 def test_an_impossible_status_change_reports_both_statuses():
     from datetime import datetime, timedelta, timezone
-    import random
-
+    
     from tests.test_handovers import create_confirmed_reservation
 
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
     reservation = create_confirmed_reservation(
         "SA-008-AA",
         pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -218,7 +218,7 @@ def test_an_unfinished_identity_check_explains_itself_with_a_code():
 
     from tests.test_handovers import create_confirmed_reservation, _reset_identity_verification
 
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
     reservation = create_confirmed_reservation(
         "SA-008-AA",
         pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),

@@ -1,5 +1,4 @@
 import os
-import random
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -9,6 +8,7 @@ import stripe
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.main import app
 from app.models import AuditLog, Car, Handover, Reservation
 from tests.test_check_outs import (
@@ -60,7 +60,7 @@ def deposit_url(reservation_id: str, path: str) -> str:
 def confirmed_paid(plate="SA-008-AA", day=1):
     """A CONFIRMED reservation whose rental payment was taken in cash."""
 
-    base = datetime.now(timezone.utc) + timedelta(days=3000 + random.randint(0, 2000) + day)
+    base = datetime.now(timezone.utc) + timedelta(days=far_future_days() + day)
     reservation = create_confirmed_reservation(
         plate,
         base.isoformat(),
@@ -188,7 +188,7 @@ def test_deposit_cannot_be_taken_when_disabled():
 
 
 def test_cash_deposit_needs_the_rental_payment_first(deposit_on):
-    base = datetime.now(timezone.utc) + timedelta(days=6000 + random.randint(0, 1000))
+    base = datetime.now(timezone.utc) + timedelta(days=far_future_days())
     reservation = create_confirmed_reservation(
         "SA-008-AA", base.isoformat(), (base + timedelta(days=1)).isoformat()
     )

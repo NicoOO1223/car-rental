@@ -1,10 +1,10 @@
-import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
 from app.dependencies import get_current_user
+from tests._dates import far_future_days
 from app.main import app
 from app.models import User
 from tests.test_handovers import create_confirmed_reservation
@@ -69,7 +69,7 @@ def test_revenue_fresh_completed_reservation_is_attributed_to_pickup_date():
     # ever touched -- this test suite has no fixtures/rollback, and a
     # COMPLETED reservation can never be cancelled/removed afterward,
     # so a fixed date would accumulate revenue across repeated runs.
-    offset_days = random.randint(3000, 8000)
+    offset_days = far_future_days()
     pickup_date = (
         datetime.now(timezone.utc).date() + timedelta(days=offset_days)
     )
@@ -127,7 +127,7 @@ def test_revenue_excludes_non_completed_statuses():
     aho_id = get_location_id("AHO")
     car = ensure_car_available("SA-008-AA")
 
-    offset_days = random.randint(3000, 8000)
+    offset_days = far_future_days()
     pickup_date = (
         datetime.now(timezone.utc).date() + timedelta(days=offset_days)
     )
@@ -194,7 +194,7 @@ def test_revenue_invalid_range_rejected():
 
 
 def _random_dates(days: int = 2) -> tuple[str, str]:
-    offset_days = random.randint(3000, 8000)
+    offset_days = far_future_days()
     pickup = datetime.now(timezone.utc) + timedelta(days=offset_days)
     return_at = pickup + timedelta(days=days)
 

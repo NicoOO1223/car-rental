@@ -4,7 +4,6 @@ the bundled font can print every letter in them, and an issued invoice keeps
 the language it was issued in.
 """
 
-import random
 import re
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -14,6 +13,7 @@ from fastapi.testclient import TestClient
 from reportlab.pdfbase import pdfmetrics
 
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.i18n import documents
 from app.i18n.documents import LABELS, document_language, format_amount, label
 from app.languages import SUPPORTED_LANGUAGES
@@ -100,7 +100,7 @@ def document_language_setting():
 
 
 def _reservation():
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
 
     return create_confirmed_reservation(
         "SA-008-AA",

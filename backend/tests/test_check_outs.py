@@ -1,5 +1,4 @@
 import os
-import random
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -9,6 +8,7 @@ import stripe
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.main import app
 from app.models import AuditLog, Car, Reservation
 from tests.test_handovers import TINY_SIGNATURE
@@ -48,7 +48,7 @@ def make_active_reservation(
 
     car = ensure_car_available(PLATE)
     location_id = car["current_location"]["id"]
-    base = datetime.now(timezone.utc) + timedelta(days=900 + random.randint(0, 3000))
+    base = datetime.now(timezone.utc) + timedelta(days=far_future_days())
 
     payload_customer = {
         "first_name": "Return",
@@ -177,7 +177,7 @@ def test_check_out_is_null_until_started_and_404_for_unknown_reservation():
 
 def test_only_an_active_rental_can_be_checked_out():
     car = ensure_car_available(PLATE)
-    base = datetime.now(timezone.utc) + timedelta(days=5000 + random.randint(0, 500))
+    base = datetime.now(timezone.utc) + timedelta(days=far_future_days())
     reservation = create_reservation(
         car["id"],
         car["current_location"]["id"],

@@ -92,6 +92,9 @@ jobs:
       # Every language has the same messages with the same placeholders, and
       # every server error code has a message.
       - run: npm run check:messages
+      # Unit tests for the frontend helpers that carry logic (time zones,
+      # translation, error wording, runtime settings).
+      - run: npm test
 
   # Which stacks exist comes from deploy/stacks/*.json. The canary goes first.
   plan:

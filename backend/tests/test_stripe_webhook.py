@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import json
-import random
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -13,6 +12,7 @@ from sqlalchemy import select
 
 from app import config
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.main import app
 from app.models import AuditLog, Handover, ProcessedStripeEvent
 from app.services.stripe_sync import (
@@ -62,7 +62,7 @@ def _post(event: dict, signature: str | None = None):
 
 
 def _reservation_with_handover(**handover_fields):
-    offset = random.randint(3000, 8000)
+    offset = far_future_days()
     pickup = datetime.now(timezone.utc) + timedelta(days=offset)
     reservation = create_confirmed_reservation(
         "SA-008-AA",

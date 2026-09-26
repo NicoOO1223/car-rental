@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import json
-import random
 import threading
 import time
 import uuid
@@ -15,6 +14,7 @@ from sqlalchemy import func, select
 
 from app import config
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.dependencies import get_current_user
 from app.main import app
 from app.models import AuditLog, Handover, Invoice
@@ -26,7 +26,7 @@ client = TestClient(app)
 
 
 def _dates(days=2):
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
 
     return (
         pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),

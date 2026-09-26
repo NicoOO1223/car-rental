@@ -1,5 +1,4 @@
 import os
-import random
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -8,6 +7,7 @@ import stripe
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.main import app
 from app.models import AuditLog, Handover
 from tests.test_handovers import create_confirmed_reservation
@@ -26,7 +26,7 @@ def _random_dates(days: int = 2) -> tuple[str, str]:
     # never collide on "car already reserved" against the same shared,
     # persistent dev database — same pattern test_dashboard_revenue.py
     # already uses.
-    offset_days = random.randint(3000, 8000)
+    offset_days = far_future_days()
     pickup = datetime.now(timezone.utc) + timedelta(days=offset_days)
     return_at = pickup + timedelta(days=days)
 

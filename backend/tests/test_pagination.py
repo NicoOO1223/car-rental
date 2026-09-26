@@ -1,17 +1,17 @@
-import random
 import re
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests._dates import far_future_days
 from tests.test_handovers import create_confirmed_reservation
 
 client = TestClient(app)
 
 
 def _far_dates(days=2):
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
 
     return (
         pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),

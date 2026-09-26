@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.database import SessionLocal
+from tests._dates import far_future_days
 from app.dependencies import get_current_user
 from app.main import app
 from app.models import AuditLog, BusinessLogo, User
@@ -287,8 +288,7 @@ def test_agreement_pdf_renders_with_a_logo_and_custom_terms(original_configurati
     from tests.test_handovers import create_confirmed_reservation
     from app.models import Handover, Reservation
     from datetime import datetime, timedelta, timezone
-    import random
-
+    
     client.patch(
         "/api/configuration",
         json={
@@ -301,7 +301,7 @@ def test_agreement_pdf_renders_with_a_logo_and_custom_terms(original_configurati
     )
     _upload(_png(300, 120))
 
-    pickup = datetime.now(timezone.utc) + timedelta(days=random.randint(3000, 8000))
+    pickup = datetime.now(timezone.utc) + timedelta(days=far_future_days())
     reservation = create_confirmed_reservation(
         "SA-008-AA",
         pickup.strftime("%Y-%m-%dT%H:%M:%SZ"),

@@ -41,13 +41,21 @@ param(
     [string]$ImageTag = ""
 )
 
-$ErrorActionPreference = "Stop"
+# Native tools (az, docker, gh) write warnings and progress to stderr, which
+# PowerShell turns into errors under "Stop". Their exit codes are checked
+# explicitly instead, and cmdlets are still made to stop on error.
+$ErrorActionPreference = "Continue"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 $repoRoot = (Resolve-Path "$PSScriptRoot\..").Path
 
 function Invoke-Checked {
     param([ScriptBlock]$Command, [string]$Description)
     if ($DryRun) { Write-Host "[dry-run] $Description" -ForegroundColor DarkGray; return }
-    & $Command
+    # Native tools (docker, az) write progress to stderr, which PowerShell
+    # would treat as a failure under "Stop". Their exit code is what counts.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { & $Command } finally { $ErrorActionPreference = $previous }
     if ($LASTEXITCODE -ne 0) { throw "FAILED: $Description (exit code $LASTEXITCODE)" }
 }
 
