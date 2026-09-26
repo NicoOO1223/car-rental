@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Mail, Phone } from "lucide-react";
 import {
   getCars,
-  getCarReservations,
+  getFleetReservations,
   getCarStatusesByDate,
   type Car,
   type CarReservation,
+  type FleetReservation,
 } from "@/lib/api";
 import { getCarStatusStyle, getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge, ReservationStatusBadge } from "@/components/ui/Badge";
@@ -53,14 +54,25 @@ export default function FleetPage() {
   useEffect(() => {
     async function loadFleet() {
       try {
-        const carData: Car[] = await getCars();
-        const carsWithReservations = await Promise.all(
-          carData.map(async (car) => {
-            const reservations = await getCarReservations(car.id);
-            return { ...car, reservations };
-          })
+        // Two requests in total, however many cars there are (this used to
+        // fetch each car's reservations separately).
+        const [carData, fleetReservations]: [Car[], FleetReservation[]] =
+          await Promise.all([getCars(), getFleetReservations()]);
+
+        const byCar = new Map<string, FleetReservation[]>();
+
+        for (const reservation of fleetReservations) {
+          const list = byCar.get(reservation.car_id) ?? [];
+          list.push(reservation);
+          byCar.set(reservation.car_id, list);
+        }
+
+        setCars(
+          carData.map((car) => ({
+            ...car,
+            reservations: byCar.get(car.id) ?? [],
+          })),
         );
-        setCars(carsWithReservations);
 
         // A link like /cars#CAG only auto-scrolls if that element already
         // exists when the browser processes the URL — since this content

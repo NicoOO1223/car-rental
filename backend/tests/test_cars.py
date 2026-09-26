@@ -259,3 +259,23 @@ def test_daily_rates_rejects_bad_ranges():
         },
     )
     assert too_long.status_code == 400
+
+
+def test_fleet_reservations_returns_only_confirmed_and_active_with_car_ids():
+    response = client.get("/api/cars/reservations")
+
+    assert response.status_code == 200
+
+    rows = response.json()
+    assert all(row["status"] in ("CONFIRMED", "ACTIVE") for row in rows)
+    assert all(row["car_id"] for row in rows)
+
+    pickups = [row["pickup_at"] for row in rows]
+    assert pickups == sorted(pickups)
+
+    # Each row matches what the per-car endpoint reports for that car.
+    if rows:
+        car_id = rows[0]["car_id"]
+        per_car = client.get(f"/api/cars/{car_id}/reservations").json()
+        per_car_ids = {row["id"] for row in per_car}
+        assert rows[0]["id"] in per_car_ids

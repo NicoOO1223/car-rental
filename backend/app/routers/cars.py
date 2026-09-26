@@ -10,7 +10,7 @@ from app.dependencies import require_authenticated_user
 from app.models import Car, Reservation, User
 from app.schemas.car import CarResponse, CarUpdate, DailyRateResponse
 from app.schemas.maintenance import MaintenanceTaskResponse
-from app.schemas.reservation import CarReservationResponse
+from app.schemas.reservation import CarReservationResponse, FleetReservationResponse
 from app.services.availability import (
     get_available_cars,
     get_car_statuses_for_date,
@@ -119,6 +119,30 @@ def get_car_statuses_by_date(
     """
 
     return get_car_statuses_for_date(db, date)
+
+
+# The fleet timeline shows every car's upcoming and current bookings.
+# Fetching them per car was one request per car; this is one request in
+# total. Only the statuses the timeline draws are returned, so completed
+# and cancelled history does not ride along. Declared before
+# "/{car_id}" so "reservations" is not read as an id.
+@router.get(
+    "/reservations",
+    response_model=list[FleetReservationResponse],
+)
+def get_fleet_reservations(
+    db: Session = Depends(get_db),
+):
+    return db.scalars(
+        select(Reservation)
+        .where(Reservation.status.in_(("CONFIRMED", "ACTIVE")))
+        .options(
+            joinedload(Reservation.customer),
+            joinedload(Reservation.pickup_location),
+            joinedload(Reservation.return_location),
+        )
+        .order_by(Reservation.pickup_at.asc())
+    ).all()
 
 
 @router.get(

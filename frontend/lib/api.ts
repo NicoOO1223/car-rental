@@ -750,6 +750,19 @@ export type CarReservation = {
   status: string;
 };
 
+export type FleetReservation = CarReservation & { car_id: string };
+
+/** Every car's confirmed and active bookings in one request. */
+export async function getFleetReservations(): Promise<FleetReservation[]> {
+  const response = await apiFetch("/api/cars/reservations");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch fleet reservations");
+  }
+
+  return response.json();
+}
+
 export async function getCarReservations(
   carId: string,
 ): Promise<CarReservation[]> {

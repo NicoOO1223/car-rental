@@ -190,6 +190,13 @@ class CarReservationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class FleetReservationResponse(CarReservationResponse):
+    """A car's reservation tagged with which car, for views that show every
+    car at once (the fleet timeline)."""
+
+    car_id: UUID
+
+
 class CustomerReservationResponse(BaseModel):
     id: UUID
 
