@@ -13,6 +13,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Car, Customer, Location, Reservation
+from app.services.timezones import business_zone, day_bounds as zoned_day_bounds, local_today
 
 WINDOWS = {"TODAY", "ACTIVE", "UPCOMING", "NEXT_7_DAYS"}
 
@@ -31,20 +32,24 @@ def escape_like(term: str) -> str:
 
 
 def _day_bounds(
-    now: datetime, day_start: datetime | None, day_end: datetime | None
+    db: Session,
+    now: datetime,
+    day_start: datetime | None,
+    day_end: datetime | None,
 ) -> tuple[datetime, datetime]:
-    """The caller's own "today" if it sent one (the browser knows its
-    timezone, the server only knows UTC), otherwise the UTC day."""
+    """An explicit day from the caller if it sent one, otherwise today in
+    the business's timezone (not the server's, and not UTC)."""
 
     if day_start is not None and day_end is not None:
         return day_start, day_end
 
-    start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
+    tz = business_zone(db)
 
-    return start, start + timedelta(days=1)
+    return zoned_day_bounds(local_today(tz, now), tz)
 
 
 def _conditions(
+    db: Session,
     *,
     q: str | None,
     status: str | None,
@@ -84,7 +89,7 @@ def _conditions(
         )
 
     if window == "TODAY":
-        start, end = _day_bounds(now, day_start, day_end)
+        start, end = _day_bounds(db, now, day_start, day_end)
         conditions.append(
             or_(
                 (Reservation.pickup_at >= start) & (Reservation.pickup_at < end),
@@ -126,6 +131,7 @@ def search_reservations(
     now = datetime.now(timezone.utc)
 
     conditions = _conditions(
+        db,
         q=q,
         status=status,
         location=location,
@@ -176,7 +182,7 @@ def reservation_summary(
     """The counts behind the reservation page's stat tiles, in one query."""
 
     now = datetime.now(timezone.utc)
-    start, end = _day_bounds(now, day_start, day_end)
+    start, end = _day_bounds(db, now, day_start, day_end)
 
     not_cancelled = Reservation.status != "CANCELLED"
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Car, CheckOut, Handover, Reservation
 from app.services.pricing import calculate_rental_price
+from app.services.timezones import business_zone, local_date, range_bounds
 
 
 def get_daily_revenue(
@@ -30,10 +31,9 @@ def get_daily_revenue(
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date.")
 
-    range_start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
-    range_end = datetime.combine(end_date, time.min, tzinfo=timezone.utc) + timedelta(
-        days=1
-    )
+    # Days are the business's calendar days, not UTC's.
+    tz = business_zone(db)
+    range_start, range_end = range_bounds(start_date, end_date, tz)
 
     rows = db.execute(
         select(Reservation.pickup_at, Reservation.return_at, Car.price_per_day)
@@ -50,7 +50,7 @@ def get_daily_revenue(
     for pickup_at, return_at, price_per_day in rows:
         revenue = float(calculate_rental_price(price_per_day, pickup_at, return_at))
 
-        day = pickup_at.date()
+        day = local_date(pickup_at, tz)
         revenue_by_day[day] = revenue_by_day.get(day, 0.0) + revenue
 
     points: list[tuple[date, float]] = []
@@ -96,10 +96,9 @@ def get_collected_revenue(
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date.")
 
-    range_start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
-    range_end = datetime.combine(end_date, time.min, tzinfo=timezone.utc) + timedelta(
-        days=1
-    )
+    # Days are the business's calendar days, not UTC's.
+    tz = business_zone(db)
+    range_start, range_end = range_bounds(start_date, end_date, tz)
 
     paid_rows = list(
         db.execute(
@@ -145,7 +144,7 @@ def get_collected_revenue(
 
     for paid_at, payment_amount, payment_method in paid_rows:
         amount = float(payment_amount) if payment_amount is not None else 0.0
-        day = paid_at.date()
+        day = local_date(paid_at, tz)
         collected_by_day[day] = collected_by_day.get(day, 0.0) + amount
 
         if payment_method == "CARD":

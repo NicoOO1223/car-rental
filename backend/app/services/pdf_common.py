@@ -10,9 +10,28 @@ from sqlalchemy.orm import Session
 
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
+from app.services.timezones import zone
 
 LOGO_MAX_WIDTH = 40 * mm
 LOGO_MAX_HEIGHT = 18 * mm
+
+
+def format_local(instant, timezone_name: str | None) -> str:
+    """A moment as people at that place read it: "2040-06-15 10:00 CEST".
+    Printed documents must say which timezone, since the reader may not be
+    where the rental happened."""
+
+    if instant is None:
+        return "N/A"
+
+    from datetime import timezone as _utc
+
+    if instant.tzinfo is None:
+        instant = instant.replace(tzinfo=_utc.utc)
+
+    local = instant.astimezone(zone(timezone_name))
+
+    return f"{local:%Y-%m-%d %H:%M} {local.tzname()}"
 
 
 def wrap_text(text: str, *, font: str = "Helvetica", size: float = 10, width: float) -> list[str]:

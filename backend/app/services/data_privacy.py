@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 import stripe
@@ -101,7 +101,7 @@ def anonymize_customer(db: Session, customer_id: UUID, actor: User) -> Customer:
     customer.identity_issuing_country = None
     customer.identity_verified_at = None
 
-    customer.anonymized_at = datetime.utcnow()
+    customer.anonymized_at = datetime.now(timezone.utc)
 
     handovers = db.scalars(
         select(Handover)
@@ -236,7 +236,7 @@ def export_customer_data(
         identity_verification=customer.identity_verification,
         identity_details=build_identity_details_for_export(customer),
         reservations=export_reservations,
-        exported_at=datetime.utcnow(),
+        exported_at=datetime.now(timezone.utc),
     )
 
     audit_log(

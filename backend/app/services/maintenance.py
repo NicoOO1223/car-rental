@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models import Car, MaintenanceTask, User
 from app.services.audit import audit_log
+from app.services.timezones import assume_zone, business_zone, local_today
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
@@ -87,11 +88,9 @@ def create_task(
     elif category is not None:
         raise ValueError("Only maintenance tasks have a category.")
 
-    if starts_at.tzinfo is None:
-        starts_at = starts_at.replace(tzinfo=timezone.utc)
-
-    if ends_at.tzinfo is None:
-        ends_at = ends_at.replace(tzinfo=timezone.utc)
+    # A time typed without a timezone means local time at the business.
+    starts_at = assume_zone(starts_at, business_zone(db))
+    ends_at = assume_zone(ends_at, business_zone(db))
 
     if ends_at <= starts_at:
         raise ValueError("End time must be after start time.")
@@ -174,20 +173,20 @@ def _close_task(
                 "Enter when the next technical inspection is due."
             )
 
-        if next_inspection_due <= datetime.now(timezone.utc).date():
+        if next_inspection_due <= local_today(business_zone(db)):
             raise ValueError(
                 "The next inspection must be due after today."
             )
 
     task.status = new_status
-    task.completed_at = datetime.utcnow()
+    task.completed_at = datetime.now(timezone.utc)
 
     car = db.get(Car, task.car_id)
 
     # The inspection just happened: record it on the car, and when the
     # next one is due (asked for at the moment of closing).
     if is_inspection_done:
-        car.last_inspection_at = datetime.now(timezone.utc).date()
+        car.last_inspection_at = local_today(business_zone(db))
         car.next_inspection_due = next_inspection_due
 
     # Availability comes from the window, so closing early frees the car on

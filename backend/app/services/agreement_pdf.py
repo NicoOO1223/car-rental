@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 from app.services.configuration import get_configuration
-from app.services.pdf_common import draw_business_header, wrap_text
+from app.services.pdf_common import draw_business_header, format_local, wrap_text
 
 # Placeholder rental terms — not real legal copy. Review/replace with actual
 # terms drafted for this business before relying on this document.
@@ -81,8 +81,15 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
     y -= 4 * mm
 
     heading("Rental Period")
-    line(f"Pickup: {reservation.pickup_at.isoformat()} at {reservation.pickup_location.name}")
-    line(f"Return: {reservation.return_at.isoformat()} at {reservation.return_location.name}")
+    # Each time is written in the timezone of the place it happens at.
+    line(
+        f"Pickup: {format_local(reservation.pickup_at, reservation.pickup_location.timezone)}"
+        f" at {reservation.pickup_location.name}"
+    )
+    line(
+        f"Return: {format_local(reservation.return_at, reservation.return_location.timezone)}"
+        f" at {reservation.return_location.name}"
+    )
     y -= 4 * mm
 
     heading("Payment")
@@ -112,7 +119,7 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         )
     amount = handover.payment_amount if handover.payment_amount is not None else breakdown.total_amount
     line(f"Total paid: {amount:.2f} {currency}".strip())
-    line(f"Paid at: {handover.paid_at.isoformat() if handover.paid_at else 'N/A'}")
+    line(f"Paid at: {format_local(handover.paid_at, configuration.timezone)}")
     y -= 4 * mm
 
     heading("Terms & Conditions")
@@ -168,7 +175,7 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         line(f"Employee: {handover.employee_signer.email}")
 
     if handover.employee_signed_at:
-        line(f"Signed at: {handover.employee_signed_at.isoformat()}")
+        line(f"Signed at: {format_local(handover.employee_signed_at, configuration.timezone)}")
 
     signature_block(
         handover.employee_signature_image, "(no employee signature on file)"

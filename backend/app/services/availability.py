@@ -4,7 +4,8 @@ from uuid import UUID
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Car, MaintenanceTask, Reservation
+from app.models import Car, Location, MaintenanceTask, Reservation
+from app.services.timezones import day_bounds, zone
 
 
 ACTIVE_RESERVATION_STATUSES = {
@@ -207,50 +208,54 @@ def _compute_car_statuses_for_date(
     see ACTIVE_RESERVATION_STATUSES vs FLEET_OVERVIEW_RESERVATION_STATUSES.
     """
 
-    day_start = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
-    day_end = day_start + timedelta(days=1)
-
-    overlap_query = (
-        select(Reservation.car_id, Reservation.status)
-        .join(Car, Car.id == Reservation.car_id)
-        .where(
-            Reservation.status.in_(relevant_statuses),
-            Reservation.pickup_at < day_end,
-            Reservation.return_at > day_start,
-        )
+    # "That day" is the calendar day where the car is: a car in Lisbon and
+    # one in Auckland are asked about different 24-hour windows. Cars are
+    # grouped by their location's timezone so each group is one window.
+    cars_query = (
+        select(Car.id, Car.status, Location.timezone)
+        .join(Location, Location.id == Car.current_location_id)
     )
-
-    if location_id is not None:
-        overlap_query = overlap_query.where(
-            Car.current_location_id == location_id
-        )
-
-    car_bucket: dict[UUID, str] = {}
-
-    for car_id, reservation_status in db.execute(overlap_query).all():
-        bucket = "RENTED" if reservation_status == "ACTIVE" else "RESERVED"
-
-        if car_bucket.get(car_id) != "RENTED":
-            car_bucket[car_id] = bucket
-
-    maintenance_by_car = get_cars_in_maintenance(db, day_start, day_end)
-
-    cars_query = select(Car.id, Car.status)
 
     if location_id is not None:
         cars_query = cars_query.where(Car.current_location_id == location_id)
 
+    cars_by_zone: dict[str, list[tuple[UUID, str]]] = {}
+
+    for car_id, live_status, zone_name in db.execute(cars_query).all():
+        cars_by_zone.setdefault(zone_name, []).append((car_id, live_status))
+
     statuses: dict[UUID, str] = {}
 
-    for car_id, live_status in db.execute(cars_query).all():
-        if car_id in car_bucket:
-            statuses[car_id] = car_bucket[car_id]
-        elif car_id in maintenance_by_car:
-            statuses[car_id] = maintenance_by_car[car_id]
-        elif live_status in ("MAINTENANCE", "CLEANING"):
-            statuses[car_id] = live_status
-        else:
-            statuses[car_id] = "AVAILABLE"
+    for zone_name, cars in cars_by_zone.items():
+        day_start, day_end = day_bounds(target_date, zone(zone_name))
+        car_ids = [car_id for car_id, _ in cars]
+
+        overlap_query = select(Reservation.car_id, Reservation.status).where(
+            Reservation.car_id.in_(car_ids),
+            Reservation.status.in_(relevant_statuses),
+            Reservation.pickup_at < day_end,
+            Reservation.return_at > day_start,
+        )
+
+        car_bucket: dict[UUID, str] = {}
+
+        for car_id, reservation_status in db.execute(overlap_query).all():
+            bucket = "RENTED" if reservation_status == "ACTIVE" else "RESERVED"
+
+            if car_bucket.get(car_id) != "RENTED":
+                car_bucket[car_id] = bucket
+
+        maintenance_by_car = get_cars_in_maintenance(db, day_start, day_end)
+
+        for car_id, live_status in cars:
+            if car_id in car_bucket:
+                statuses[car_id] = car_bucket[car_id]
+            elif car_id in maintenance_by_car:
+                statuses[car_id] = maintenance_by_car[car_id]
+            elif live_status in ("MAINTENANCE", "CLEANING"):
+                statuses[car_id] = live_status
+            else:
+                statuses[car_id] = "AVAILABLE"
 
     return statuses
 

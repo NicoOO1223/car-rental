@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 import stripe
@@ -244,7 +244,7 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     handover.payment_currency = configuration.default_currency
     handover.payment_status = "SUCCEEDED"
     handover.payment_method = "CASH"
-    handover.paid_at = datetime.utcnow()
+    handover.paid_at = datetime.now(timezone.utc)
     handover.updated_by = actor.id
 
     audit_log(
@@ -306,7 +306,7 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
         handover.stripe_refund_id = refund.id
 
     handover.refund_amount = handover.payment_amount
-    handover.refunded_at = datetime.utcnow()
+    handover.refunded_at = datetime.now(timezone.utc)
     handover.payment_status = "REFUNDED"
     handover.updated_by = actor.id
 
@@ -333,7 +333,7 @@ def submit_signature(
     handover = get_or_create_handover(db, reservation_id, actor=actor)
 
     handover.signature_image = signature_image
-    handover.signed_at = datetime.utcnow()
+    handover.signed_at = datetime.now(timezone.utc)
     handover.updated_by = actor.id
 
     db.commit()
@@ -363,7 +363,7 @@ def submit_employee_signature(
         )
 
     handover.employee_signature_image = signature_image
-    handover.employee_signed_at = datetime.utcnow()
+    handover.employee_signed_at = datetime.now(timezone.utc)
     handover.employee_signed_by = actor.id
     handover.updated_by = actor.id
 
@@ -426,7 +426,7 @@ def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
     pdf_bytes = render_agreement_pdf(db, reservation, car, handover)
 
     handover.agreement_pdf = pdf_bytes
-    handover.generated_at = datetime.utcnow()
+    handover.generated_at = datetime.now(timezone.utc)
     handover.updated_by = actor.id
     reservation.status = "ACTIVE"
     reservation.updated_by = actor.id

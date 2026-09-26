@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import require_authenticated_user, require_role
-from app.models import Car, Reservation
+from app.models import Car, Location, Reservation
 from app.schemas.dashboard import (
     DashboardAwayCar,
     DashboardFleetStats,
@@ -32,6 +32,13 @@ from app.services.configuration import get_configuration
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
+from app.services.timezones import (
+    business_zone,
+    day_bounds,
+    local_today,
+    range_bounds,
+    zone,
+)
 
 
 router = APIRouter(
@@ -110,8 +117,11 @@ def get_dashboard(
                 detail="start_date must not be after end_date.",
             )
 
-        range_start = datetime.combine(resolved_start, time.min, tzinfo=timezone.utc)
-        range_end = datetime.combine(resolved_end, time.min, tzinfo=timezone.utc) + timedelta(days=1)
+        # A range of calendar days means days where the pickups happen:
+        # the chosen location's, or the business's when none is chosen.
+        chosen = db.get(Location, location_id) if location_id else None
+        range_zone = zone(chosen.timezone) if chosen else business_zone(db)
+        range_start, range_end = range_bounds(resolved_start, resolved_end, range_zone)
     else:
         range_start = None
         range_end = None
@@ -176,13 +186,9 @@ def get_dashboard(
 
     now = datetime.now(timezone.utc)
 
-    today_start = datetime.combine(
-        now.date(),
-        time.min,
-        tzinfo=timezone.utc,
-    )
-
-    tomorrow_start = today_start + timedelta(days=1)
+    # "Today" is the business's calendar day, not UTC's.
+    business = business_zone(db)
+    today_start, tomorrow_start = day_bounds(local_today(business, now), business)
 
     today_pickups = db.scalar(
         select(func.count(Reservation.id)).where(
@@ -343,7 +349,7 @@ def get_dashboard(
     # app/services/availability.py::_compute_car_statuses_for_date), so
     # the two panels can no longer disagree about the same car.
 
-    today_date = now.date()
+    today_date = local_today(business, now)
 
     locations_by_id = {
         car.current_location.id: car.current_location
@@ -403,7 +409,7 @@ def get_fleet_status(
     location_id: UUID | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    target_date = date or datetime.now(timezone.utc).date()
+    target_date = date or local_today(business_zone(db))
 
     counts = get_fleet_status_counts(db, target_date, location_id)
 
@@ -427,7 +433,7 @@ def get_revenue(
     end_date: date | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    today = datetime.now(timezone.utc).date()
+    today = local_today(business_zone(db))
 
     resolved_end = end_date or today
     resolved_start = start_date or (resolved_end - timedelta(days=29))

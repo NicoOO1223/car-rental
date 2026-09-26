@@ -27,6 +27,7 @@ from app.services.availability import (
 )
 from app.services.configuration import get_configuration
 from app.services.maintenance import create_task
+from app.services.timezones import assume_zone, business_zone
 from app.services.return_charges import (
     calculate_fuel_fee,
     calculate_late_fee,
@@ -193,11 +194,8 @@ def save_condition(
         starts_at = data.damage_task_starts_at
         ends_at = data.damage_task_ends_at
 
-        if starts_at.tzinfo is None:
-            starts_at = starts_at.replace(tzinfo=timezone.utc)
-
-        if ends_at.tzinfo is None:
-            ends_at = ends_at.replace(tzinfo=timezone.utc)
+        starts_at = assume_zone(starts_at, business_zone(db))
+        ends_at = assume_zone(ends_at, business_zone(db))
 
         if ends_at <= starts_at:
             raise ValueError("The repair must end after it starts.")
