@@ -319,6 +319,7 @@
       "datetime_parsing": "Enter a valid date and time.",
       "decimal_parsing": "Enter a number.",
       "dict_type": "That is not valid data.",
+      "email_invalid": "Enter a valid email address.",
       "enum": "That is not one of the allowed choices.",
       "failed": "Some of the information is not valid.",
       "fee_negative": "Fees cannot be negative.",

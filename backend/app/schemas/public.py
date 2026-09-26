@@ -6,10 +6,12 @@ added to a car, a location or the configuration later cannot leak to the public
 by accident. A test pins the exact keys of every response.
 """
 
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.schemas.extra import ExtraSelectionRequest
 from app.schemas.pricing import PriceBreakdownFields
@@ -111,3 +113,61 @@ class PublicQuoteResponse(PriceBreakdownFields):
     online_share_percent: int
     free_cancellation_hours: int
     cancellation_deadline_at: datetime
+
+
+class PublicCustomer(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    date_of_birth: date
+    address: str = Field(min_length=1, max_length=255)
+    postal_code: str = Field(min_length=1, max_length=20)
+    phone_number: str = Field(min_length=3, max_length=30)
+    email: str = Field(min_length=3, max_length=254)
+    nationality: str | None = Field(default=None, max_length=100)
+
+    @field_validator("email")
+    @classmethod
+    def looks_like_an_email(cls, value: str) -> str:
+        value = value.strip()
+
+        if "@" not in value or value.startswith("@") or value.endswith("@") or " " in value:
+            raise PydanticCustomError("validation.email_invalid", "Enter a valid email address.")
+
+        return value
+
+
+class PublicBookingRequest(BaseModel):
+    offer_key: str = Field(min_length=8, max_length=64)
+    pickup_location_id: UUID
+    return_location_id: UUID
+    pickup_at: datetime
+    return_at: datetime
+    extras: list[ExtraSelectionRequest] = []
+    customer: PublicCustomer
+    # The total the renter was shown. If it no longer matches, nothing is held.
+    expected_total: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
+    terms_accepted: bool
+    privacy_acknowledged: bool
+    # Cloudflare Turnstile's token for this attempt.
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+
+class PublicBookingCreated(BaseModel):
+    reference: str
+    status: str
+    hold_expires_at: datetime
+    currency: str
+    total_amount: float
+    online_amount: float
+    due_at_pickup: float
+    # Stripe's secret for confirming this one payment in the browser.
+    client_secret: str
+    # Lets this browser act on the booking for the next hour.
+    manage_token: str
+
+
+class PublicBookingStatus(BaseModel):
+    reference: str
+    status: str
+    hold_expires_at: datetime | None
+    payment_status: str | None

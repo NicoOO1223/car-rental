@@ -319,6 +319,7 @@
       "datetime_parsing": "Wpisz prawidłową datę i godzinę.",
       "decimal_parsing": "Wpisz liczbę.",
       "dict_type": "Te dane są nieprawidłowe.",
+      "email_invalid": "Podaj prawidłowy adres e-mail.",
       "enum": "To nie jest jedna z dozwolonych opcji.",
       "failed": "Niektóre informacje są nieprawidłowe.",
       "fee_negative": "Opłaty nie mogą być ujemne.",

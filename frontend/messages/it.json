@@ -319,6 +319,7 @@
       "datetime_parsing": "Inserisci una data e un'ora valide.",
       "decimal_parsing": "Inserisci un numero.",
       "dict_type": "Questi dati non sono validi.",
+      "email_invalid": "Inserisci un indirizzo email valido.",
       "enum": "Questa non è una delle scelte consentite.",
       "failed": "Alcune informazioni non sono valide.",
       "fee_negative": "Le tariffe non possono essere negative.",

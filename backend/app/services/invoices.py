@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language
-from app.models import Car, Handover, Invoice, InvoiceCounter, Reservation, User
+from app.models import Car, Handover, Invoice, InvoiceCounter, Reservation, ReservationPayment, User
 from app.models.invoice import KIND_CREDIT_NOTE, KIND_INVOICE
 from app.services.audit import audit_log
 from app.services.configuration import get_configuration, vat_terms
@@ -208,6 +208,89 @@ def issue_invoice_for_handover(
         entity_type="invoice",
         entity_id=invoice.id,
         metadata={"number": invoice.number, "total": str(invoice.total_amount)},
+    )
+
+    return invoice
+
+
+def _existing_for_payment(db: Session, payment_id, kind: str) -> Invoice | None:
+    return db.scalar(
+        select(Invoice).where(Invoice.payment_id == payment_id, Invoice.kind == kind)
+    )
+
+
+def issue_invoice_for_prepayment(
+    db: Session, payment: ReservationPayment, actor: User | None = None
+) -> Invoice | None:
+    """
+    The advance invoice for the share a renter paid online. One line, for the
+    amount actually collected, with the VAT it contains. Returns None until the
+    payment has succeeded. Idempotent, and never commits, like
+    issue_invoice_for_handover.
+    """
+
+    if payment.payment_status != "SUCCEEDED" or payment.payment_amount is None:
+        return None
+
+    existing = _existing_for_payment(db, payment.id, KIND_INVOICE)
+
+    if existing is not None:
+        return existing
+
+    reservation = db.get(Reservation, payment.reservation_id)
+    configuration = get_configuration(db)
+
+    gross = round_money(Decimal(payment.payment_amount))
+    rate = Decimal(configuration.vat_rate)
+    vat = round_money(gross * rate / (100 + rate)) if rate > 0 else Decimal("0.00")
+    reference = reservation.public_reference or str(reservation.id)
+
+    try:
+        with db.begin_nested():
+            sequence = _next_sequence(db)
+            invoice = Invoice(
+                number=f"{configuration.invoice_prefix}-{sequence:06d}",
+                sequence=sequence,
+                kind=KIND_INVOICE,
+                reservation_id=reservation.id,
+                payment_id=payment.id,
+                currency=payment.payment_currency or configuration.default_currency,
+                language=document_language(configuration.document_language),
+                lines=[
+                    {
+                        "description": f"Advance payment for booking {reference}",
+                        "key": "line.advance",
+                        "params": {"reference": reference},
+                        "quantity": 1,
+                        "unit_price": _money(gross),
+                        "amount": _money(gross),
+                    }
+                ],
+                prices_include_vat=configuration.prices_include_vat,
+                vat_rate=rate,
+                net_amount=gross - vat,
+                vat_amount=vat,
+                total_amount=gross,
+                seller=_seller_snapshot(configuration),
+                customer=_customer_snapshot(reservation.customer),
+            )
+            db.add(invoice)
+            db.flush()
+    except IntegrityError:
+        existing = _existing_for_payment(db, payment.id, KIND_INVOICE)
+
+        if existing is not None:
+            return existing
+
+        raise
+
+    audit_log(
+        db,
+        user=actor,
+        action="invoice.issued",
+        entity_type="invoice",
+        entity_id=invoice.id,
+        metadata={"number": invoice.number, "total": str(invoice.total_amount), "kind": "advance"},
     )
 
     return invoice

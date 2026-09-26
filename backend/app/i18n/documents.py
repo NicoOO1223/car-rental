@@ -78,6 +78,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.rental": "Vehicle rental: {make} {model} ({plate})",
         "line.short_term_fee": "Short-term rental fee",
         "line.one_way_fee": "One-way rental fee",
+        "line.advance": "Advance payment for booking {reference}",
     },
     "it": {
         "not_available": "N/D",
@@ -133,6 +134,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.rental": "Noleggio veicolo: {make} {model} ({plate})",
         "line.short_term_fee": "Supplemento per noleggio breve",
         "line.one_way_fee": "Supplemento per noleggio di sola andata",
+        "line.advance": "Acconto sulla prenotazione {reference}",
     },
     "pl": {
         "not_available": "brak danych",
@@ -188,6 +190,7 @@ LABELS: dict[str, dict[str, str]] = {
         "line.rental": "Wynajem pojazdu: {make} {model} ({plate})",
         "line.short_term_fee": "Opłata za krótki wynajem",
         "line.one_way_fee": "Opłata za wynajem w jedną stronę",
+        "line.advance": "Zaliczka na rezerwację {reference}",
     },
 }
 

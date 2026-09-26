@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import CheckOut, Handover, ProcessedStripeEvent
+from app.models import CheckOut, Handover, ProcessedStripeEvent, ReservationPayment
 from app.services.audit import audit_log
 from app.services.invoices import issue_invoice_for_handover
 
@@ -164,6 +164,32 @@ def _apply_to_records(db: Session, intent_id: str, intent_status: str) -> bool:
                     "payment_method": "CARD",
                     "stripe_payment_intent_id": intent_id,
                     "payment_status": handover.payment_status,
+                    "source": "stripe_webhook",
+                },
+            )
+
+    prepayment = db.scalar(
+        select(ReservationPayment).where(ReservationPayment.stripe_payment_intent_id == intent_id)
+    )
+
+    if prepayment is not None:
+        matched = True
+
+        # Imported here: the booking service builds on this module.
+        from app.services.public_booking import apply_intent_to_prepayment
+
+        outcome = apply_intent_to_prepayment(db, prepayment, intent_status)
+
+        if outcome is not None:
+            audit_log(
+                db,
+                user=None,
+                action="reservation_payment.payment_confirmed",
+                entity_type="reservation",
+                entity_id=prepayment.reservation_id,
+                metadata={
+                    "stripe_payment_intent_id": intent_id,
+                    "outcome": outcome,
                     "source": "stripe_webhook",
                 },
             )
