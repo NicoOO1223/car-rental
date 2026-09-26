@@ -290,7 +290,10 @@ def get_dashboard(
                 and_(
                     Reservation.pickup_at <= now,
                     Reservation.return_at >= now,
-                    Reservation.status != "CANCELLED",
+                    # A rental already checked in has come back; it is not
+                    # an upcoming return, even if its scheduled time has
+                    # not passed yet.
+                    Reservation.status.notin_(("CANCELLED", "COMPLETED")),
                 ),
                 and_(
                     Reservation.status == "ACTIVE",

@@ -90,6 +90,15 @@ def test_get_configuration_returns_all_fields():
         "fuel_fee_per_eighth",
         "refuel_service_fee",
         "max_damage_charge",
+        "business_name",
+        "legal_name",
+        "address",
+        "phone",
+        "email",
+        "vat_id",
+        "timezone",
+        "locale",
+        "agreement_terms",
     ):
         assert field in body
 

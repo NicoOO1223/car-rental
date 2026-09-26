@@ -3,10 +3,13 @@
 import { useState } from "react";
 
 import { login, setToken } from "@/lib/api";
+import { BrandMark } from "@/components/BrandMark";
+import { useBrand } from "@/components/BrandProvider";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
 
 export default function LoginPage() {
+  const { name: brandName } = useBrand();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -34,12 +37,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-8">
       <div className="w-full max-w-sm rounded-xl bg-surface p-8 shadow-sm">
-        <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
-          CR
-        </div>
+        <BrandMark className="mb-6 h-12 w-12" />
 
-        <h1 className="text-2xl font-bold tracking-tight text-ink">
-          Car Rental
+        <h1 className="min-h-8 text-2xl font-bold tracking-tight text-ink">
+          {brandName}
         </h1>
         <p className="mt-1 text-sm text-ink-muted">
           Sign in to the management panel.

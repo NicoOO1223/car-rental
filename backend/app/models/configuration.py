@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Numeric, String
+from sqlalchemy import CheckConstraint, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -51,6 +51,28 @@ class Configuration(Base):
     # baked in at issue time, so this never retroactively shortens or
     # extends a session already in progress.
     access_token_expire_days: Mapped[int] = mapped_column(nullable=False)
+
+    # Business profile. Shown on the login page, the sidebar and the tab
+    # title, and printed on the agreement. Text fields are never NULL: an
+    # empty string means "not set", which keeps the update path (where None
+    # means "leave unchanged") able to clear a field.
+    business_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    legal_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    address: Mapped[str] = mapped_column(Text, nullable=False)
+    phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(String(150), nullable=False)
+    vat_id: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # The business-wide default timezone (IANA name). A location's own
+    # timezone overrides it where day boundaries depend on the place.
+    timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Formatting locale for dates, times and money (BCP 47). It does not
+    # translate the interface.
+    locale: Mapped[str] = mapped_column(String(10), nullable=False)
+
+    # Free text printed on the rental agreement. Empty falls back to the
+    # built-in placeholder wording.
+    agreement_terms: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (
         CheckConstraint("id = 1", name="configuration_singleton"),

@@ -1,0 +1,67 @@
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.services.branding import get_logo
+from app.services.configuration import get_configuration
+
+# Deliberately unauthenticated: the login page needs the business name and
+# logo before anyone can log in. It exposes only what is printed on the
+# storefront of any business anyway: the trading name, whether a logo
+# exists, and the formatting locale. Nothing else from Configuration.
+router = APIRouter(prefix="/api/branding", tags=["Branding"])
+
+
+class BrandingResponse(BaseModel):
+    business_name: str
+    has_logo: bool
+    # Changes whenever the logo does, so clients can cache the image
+    # forever and still pick up a new one.
+    logo_version: int | None
+    locale: str
+
+
+def _version(logo) -> int:
+    return int(logo.updated_at.timestamp())
+
+
+@router.get("", response_model=BrandingResponse)
+def get_branding(db: Session = Depends(get_db)):
+    configuration = get_configuration(db)
+    logo = get_logo(db)
+
+    return BrandingResponse(
+        business_name=configuration.business_name,
+        has_logo=logo is not None,
+        logo_version=_version(logo) if logo is not None else None,
+        locale=configuration.locale,
+    )
+
+
+@router.get("/logo")
+def get_branding_logo(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    logo = get_logo(db)
+
+    if logo is None:
+        raise HTTPException(status_code=404, detail="No logo has been uploaded.")
+
+    etag = f'"{_version(logo)}"'
+    headers = {
+        "ETag": etag,
+        # Short, because the URL is not versioned for callers that do not
+        # pass ?v=; the ETag makes revalidation cheap.
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=logo.content,
+        media_type=logo.content_type,
+        headers=headers,
+    )

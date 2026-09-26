@@ -8,6 +8,7 @@ import { SubNav } from "@/components/ui/SubNav";
 // Every cost and price the business charges, one section per kind. Each
 // section is its own route so it can be linked to and reloaded.
 const SECTIONS = [
+  { id: "business", label: "Business", href: "/admin/configuration/business" },
   { id: "pricing", label: "General pricing", href: "/admin/configuration/pricing" },
   { id: "extras", label: "Extras", href: "/admin/configuration/extras" },
   { id: "vehicles", label: "Vehicle rates", href: "/admin/configuration/vehicles" },
@@ -30,7 +31,7 @@ export default function ConfigurationLayout({
     <PageShell width="wide">
       <PageHeader
         title="Configuration"
-        description="The costs and prices charged, and the rules behind them."
+        description="Who the business is, the prices it charges, and the rules behind them."
       />
 
       <SubNav

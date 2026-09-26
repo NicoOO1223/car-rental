@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
+import { BrandProvider } from "@/components/BrandProvider";
 import { NavigationProgressProvider } from "@/components/NavigationProgress";
 
 const geistSans = Geist({
@@ -14,10 +15,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Car Rental Management",
-  description: "Car rental management system",
-};
+// The tab title is the business's own name, read from the public branding
+// endpoint on the server and refreshed every minute. If the API cannot be
+// reached (for instance while this page is built) it falls back to a
+// neutral title rather than failing.
+export async function generateMetadata(): Promise<Metadata> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+  let name = "";
+
+  try {
+    const response = await fetch(`${apiUrl}/api/branding`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (response.ok) {
+      name = (await response.json()).business_name ?? "";
+    }
+  } catch {
+    // Keep the neutral title.
+  }
+
+  return {
+    title: name ? `${name} · Management` : "Rental management",
+    description: "Vehicle rental management",
+  };
+}
 
 export default function RootLayout({
   children,
@@ -29,7 +52,9 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-gray-50">
         <NavigationProgressProvider>
-          <AuthGuard>{children}</AuthGuard>
+          <BrandProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </BrandProvider>
         </NavigationProgressProvider>
       </body>
     </html>

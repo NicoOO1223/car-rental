@@ -2032,6 +2032,15 @@ export type Configuration = {
   security_deposit_amount: number;
   default_currency: string;
   access_token_expire_days: number;
+  business_name: string;
+  legal_name: string;
+  address: string;
+  phone: string;
+  email: string;
+  vat_id: string;
+  timezone: string;
+  locale: string;
+  agreement_terms: string;
 };
 
 /** The currency every price is shown in; readable by any signed-in staff. */
@@ -2039,6 +2048,11 @@ export async function getPublicConfiguration(): Promise<{
   default_currency: string;
   /** Deposit taken at check-in; 0 means deposits are off. */
   security_deposit_amount: number;
+  business_name: string;
+  /** IANA name, e.g. "Europe/Rome". */
+  timezone: string;
+  /** BCP 47 tag used for dates, times and money. */
+  locale: string;
 }> {
   const response = await apiFetch("/api/configuration/public");
 
@@ -2047,6 +2061,56 @@ export async function getPublicConfiguration(): Promise<{
   }
 
   return response.json();
+}
+
+export type Branding = {
+  business_name: string;
+  has_logo: boolean;
+  logo_version: number | null;
+  locale: string;
+};
+
+/** Public: the login page needs this before anyone is signed in. */
+export async function getBranding(): Promise<Branding> {
+  const response = await apiFetch("/api/branding");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch branding.");
+  }
+
+  return response.json();
+}
+
+export function brandingLogoUrl(version: number | null): string {
+  return `${API_URL}/api/branding/logo${version ? `?v=${version}` : ""}`;
+}
+
+export async function uploadLogo(dataUrl: string): Promise<void> {
+  const response = await apiFetch("/api/configuration/logo", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data_url: dataUrl }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+
+    throw new Error(
+      typeof errorData?.detail === "string"
+        ? errorData.detail
+        : "Failed to upload the logo.",
+    );
+  }
+}
+
+export async function deleteLogo(): Promise<void> {
+  const response = await apiFetch("/api/configuration/logo", {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to remove the logo.");
+  }
 }
 
 export async function getConfiguration(): Promise<Configuration> {

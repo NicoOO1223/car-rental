@@ -648,3 +648,29 @@ def test_dashboard_location_filter_splits_pickups_and_returns_by_airport():
         assert reservation["id"] in {r["id"] for r in unfiltered["upcoming_pickups"]}
     finally:
         force_reservation_status(reservation["id"], "CANCELLED")
+
+
+def test_upcoming_returns_excludes_rentals_already_checked_in():
+    """
+    A COMPLETED rental whose scheduled return time is still ahead has
+    already come back, so it must not be listed as a return still to come.
+    """
+
+    car = ensure_car_available("SA-004-AA")
+    now = datetime.now(timezone.utc)
+
+    reservation = create_reservation(
+        car["id"],
+        car["current_location"]["id"],
+        (now - timedelta(minutes=5)).isoformat(),
+        (now + timedelta(minutes=20)).isoformat(),
+    )
+
+    force_reservation_status(reservation["id"], "COMPLETED")
+
+    try:
+        body = client.get("/api/dashboard").json()
+
+        assert reservation["id"] not in {r["id"] for r in body["upcoming_returns"]}
+    finally:
+        force_reservation_status(reservation["id"], "CANCELLED")

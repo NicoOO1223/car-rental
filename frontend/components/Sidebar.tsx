@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 
 import { clearToken } from "@/lib/api";
+import { BrandMark } from "@/components/BrandMark";
+import { useBrand } from "@/components/BrandProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 type NavItem = { name: string; href: string; icon: LucideIcon };
@@ -136,6 +138,7 @@ function SidebarContent({
   accountEmail: string | null;
 }) {
   const isNewBooking = pathname.startsWith("/reservations/new");
+  const { name: brandName } = useBrand();
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -145,18 +148,16 @@ function SidebarContent({
         }`}
       >
         {collapsed ? (
-          <span
-            className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white"
-            aria-hidden="true"
-          >
-            CR
-          </span>
+          <BrandMark className="mx-auto h-9 w-9" />
         ) : (
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold tracking-tight text-ink">
-              Car Rental
-            </h1>
-            <p className="mt-0.5 text-xs text-ink-muted">Management Panel</p>
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandMark className="h-9 w-9" />
+            <div className="min-w-0">
+              <h1 className="min-h-7 truncate text-lg font-bold tracking-tight text-ink">
+                {brandName}
+              </h1>
+              <p className="mt-0.5 text-xs text-ink-muted">Management Panel</p>
+            </div>
           </div>
         )}
 
@@ -305,6 +306,7 @@ function SidebarContent({
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { name: brandName } = useBrand();
   const { user } = useCurrentUser();
 
   // Per-employee display preference, configured from /admin/users — not
@@ -390,7 +392,12 @@ export default function Sidebar() {
   return (
     <>
       <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border-subtle bg-surface px-4 py-3 lg:hidden">
-        <h1 className="text-lg font-bold tracking-tight text-ink">Car Rental</h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <BrandMark className="h-8 w-8" />
+          <h1 className="min-h-7 truncate text-lg font-bold tracking-tight text-ink">
+            {brandName}
+          </h1>
+        </div>
 
         <button
           ref={menuButtonRef}

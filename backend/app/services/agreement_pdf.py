@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.services.extras import selections_from_reservation
 from app.services.pricing import calculate_price_breakdown
 from app.services.configuration import get_configuration
+from app.services.pdf_common import draw_business_header, wrap_text
 
 # Placeholder rental terms — not real legal copy. Review/replace with actual
 # terms drafted for this business before relying on this document.
@@ -51,6 +52,8 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         doc.setFont("Helvetica", size)
         doc.drawString(left, y, text)
         y -= gap
+
+    y = draw_business_header(doc, db, left=left, top=y)
 
     doc.setFont("Helvetica-Bold", 16)
     doc.drawString(left, y, "Vehicle Rental Agreement")
@@ -113,7 +116,15 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
     y -= 4 * mm
 
     heading("Terms & Conditions")
-    for terms_line in TERMS_LINES:
+    # The business's own wording if it has set any, else the placeholder.
+    custom_terms = get_configuration(db).agreement_terms
+
+    if custom_terms:
+        terms_lines = wrap_text(custom_terms, size=8, width=width - 2 * left)
+    else:
+        terms_lines = TERMS_LINES
+
+    for terms_line in terms_lines:
         line(terms_line, size=8, gap=4.5 * mm)
     y -= 4 * mm
 

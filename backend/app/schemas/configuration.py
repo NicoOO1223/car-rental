@@ -1,4 +1,21 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from zoneinfo import available_timezones
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Formats only: the interface itself is English. A short list keeps every
+# option one the frontend has been checked against.
+SUPPORTED_LOCALES = (
+    "en",
+    "en-GB",
+    "en-US",
+    "it",
+    "de",
+    "fr",
+    "es",
+    "pt",
+    "nl",
+    "pl",
+)
 
 
 class ConfigurationResponse(BaseModel):
@@ -13,6 +30,15 @@ class ConfigurationResponse(BaseModel):
     security_deposit_amount: float
     default_currency: str
     access_token_expire_days: int
+    business_name: str
+    legal_name: str
+    address: str
+    phone: str
+    email: str
+    vat_id: str
+    timezone: str
+    locale: str
+    agreement_terms: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,6 +55,50 @@ class ConfigurationUpdate(BaseModel):
     security_deposit_amount: float | None = None
     default_currency: str | None = None
     access_token_expire_days: int | None = None
+    business_name: str | None = Field(default=None, max_length=100)
+    legal_name: str | None = Field(default=None, max_length=150)
+    address: str | None = Field(default=None, max_length=500)
+    phone: str | None = Field(default=None, max_length=50)
+    email: str | None = Field(default=None, max_length=150)
+    vat_id: str | None = Field(default=None, max_length=50)
+    timezone: str | None = None
+    locale: str | None = None
+    agreement_terms: str | None = Field(default=None, max_length=10000)
+
+    @field_validator(
+        "business_name",
+        "legal_name",
+        "address",
+        "phone",
+        "email",
+        "vat_id",
+        "agreement_terms",
+    )
+    @classmethod
+    def strip_text(cls, v: str | None) -> str | None:
+        return v.strip() if v is not None else v
+
+    @field_validator("business_name")
+    @classmethod
+    def business_name_is_required(cls, v: str | None) -> str | None:
+        # Shown on the login page and every tab title, so it cannot be blank.
+        if v is not None and not v:
+            raise ValueError("The business name cannot be empty.")
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def timezone_must_be_known(cls, v: str | None) -> str | None:
+        if v is not None and v not in available_timezones():
+            raise ValueError("Unknown timezone. Use an IANA name such as 'Europe/Rome'.")
+        return v
+
+    @field_validator("locale")
+    @classmethod
+    def locale_must_be_supported(cls, v: str | None) -> str | None:
+        if v is not None and v not in SUPPORTED_LOCALES:
+            raise ValueError(f"Locale must be one of: {', '.join(SUPPORTED_LOCALES)}.")
+        return v
 
     @field_validator("short_term_threshold_days")
     @classmethod
@@ -83,5 +153,10 @@ class PublicConfigurationResponse(BaseModel):
     default_currency: str
     # Whether (and how much) a deposit is taken at check-in; 0 means off.
     security_deposit_amount: float
+    # What every screen needs to show names, dates and money the way this
+    # business does.
+    business_name: str
+    timezone: str
+    locale: str
 
     model_config = ConfigDict(from_attributes=True)
