@@ -1,14 +1,18 @@
 """Pieces shared by every PDF this app produces (the rental agreement, and
-invoices): the business letterhead and wrapped free text."""
+invoices): the fonts, the business letterhead and wrapped free text."""
 
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.utils import simpleSplit
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import Session
 
+from app.i18n.documents import label
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
 from app.services.timezones import zone
@@ -16,14 +20,40 @@ from app.services.timezones import zone
 LOGO_MAX_WIDTH = 40 * mm
 LOGO_MAX_HEIGHT = 18 * mm
 
+# DejaVu Sans, bundled with the app, instead of the built-in Helvetica: the
+# built-in fonts cannot print Polish letters such as ł and ą, or the names of
+# customers who have them. See app/assets/fonts/LICENSE-DejaVu.txt.
+FONT = "DejaVuSans"
+FONT_BOLD = "DejaVuSans-Bold"
 
-def format_local(instant, timezone_name: str | None) -> str:
+_FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+_fonts_registered = False
+
+
+def register_fonts() -> None:
+    """Makes the bundled fonts known to reportlab. Safe to call every time."""
+
+    global _fonts_registered
+
+    if _fonts_registered:
+        return
+
+    pdfmetrics.registerFont(TTFont(FONT, str(_FONT_DIR / "DejaVuSans.ttf")))
+    pdfmetrics.registerFont(TTFont(FONT_BOLD, str(_FONT_DIR / "DejaVuSans-Bold.ttf")))
+    _fonts_registered = True
+
+
+register_fonts()
+
+
+def format_local(instant, timezone_name: str | None, language: str = "en") -> str:
     """A moment as people at that place read it: "2040-06-15 10:00 CEST".
     Printed documents must say which timezone, since the reader may not be
-    where the rental happened."""
+    where the rental happened. The layout is the same in every language;
+    only the word for "no date" is translated."""
 
     if instant is None:
-        return "N/A"
+        return label(language, "not_available")
 
     from datetime import timezone as _utc
 
@@ -35,7 +65,7 @@ def format_local(instant, timezone_name: str | None) -> str:
     return f"{local:%Y-%m-%d %H:%M} {local.tzname()}"
 
 
-def wrap_text(text: str, *, font: str = "Helvetica", size: float = 10, width: float) -> list[str]:
+def wrap_text(text: str, *, font: str = FONT, size: float = 10, width: float) -> list[str]:
     """Word-wraps free text (which may contain line breaks) to a width in
     points. Blank lines are kept as paragraph gaps."""
 
@@ -52,7 +82,13 @@ def wrap_text(text: str, *, font: str = "Helvetica", size: float = 10, width: fl
 
 
 def draw_business_header(
-    doc, db: Session, *, left: float, top: float, seller: dict | None = None
+    doc,
+    db: Session,
+    *,
+    left: float,
+    top: float,
+    seller: dict | None = None,
+    language: str = "en",
 ) -> float:
     """
     Draws the letterhead: logo (if uploaded), trading name, and whichever of
@@ -96,11 +132,11 @@ def draw_business_header(
 
     y = top - 4 * mm
 
-    doc.setFont("Helvetica-Bold", 13)
+    doc.setFont(FONT_BOLD, 13)
     doc.drawString(text_left, y, configuration.business_name)
     y -= 5 * mm
 
-    doc.setFont("Helvetica", 8)
+    doc.setFont(FONT, 8)
 
     detail_lines = []
 
@@ -119,7 +155,7 @@ def draw_business_header(
         detail_lines.append(contact)
 
     if configuration.vat_id:
-        detail_lines.append(f"VAT ID: {configuration.vat_id}")
+        detail_lines.append(label(language, "vat_id", vat_id=configuration.vat_id))
 
     for detail in detail_lines:
         doc.drawString(text_left, y, detail)

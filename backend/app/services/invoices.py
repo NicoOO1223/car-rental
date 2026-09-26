@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.i18n.documents import document_language
 from app.models import Car, Handover, Invoice, InvoiceCounter, Reservation, User
 from app.models.invoice import KIND_CREDIT_NOTE, KIND_INVOICE
 from app.services.audit import audit_log
@@ -77,6 +78,8 @@ def _lines(reservation: Reservation, car: Car, breakdown) -> list[dict]:
     lines = [
         {
             "description": f"Vehicle rental: {car.make} {car.model} ({car.license_plate})",
+            "key": "line.rental",
+            "params": {"make": car.make, "model": car.model, "plate": car.license_plate},
             "quantity": int(days) if days == int(days) else float(days),
             "unit_price": _money(car.price_per_day),
             "amount": _money(breakdown.base_amount),
@@ -87,6 +90,7 @@ def _lines(reservation: Reservation, car: Car, breakdown) -> list[dict]:
         lines.append(
             {
                 "description": "Short-term rental fee",
+                "key": "line.short_term_fee",
                 "quantity": 1,
                 "unit_price": _money(breakdown.short_term_fee),
                 "amount": _money(breakdown.short_term_fee),
@@ -97,6 +101,7 @@ def _lines(reservation: Reservation, car: Car, breakdown) -> list[dict]:
         lines.append(
             {
                 "description": "One-way rental fee",
+                "key": "line.one_way_fee",
                 "quantity": 1,
                 "unit_price": _money(breakdown.airport_change_fee),
                 "amount": _money(breakdown.airport_change_fee),
@@ -179,6 +184,7 @@ def issue_invoice_for_handover(
                 reservation_id=reservation.id,
                 handover_id=handover.id,
                 currency=handover.payment_currency or configuration.default_currency,
+                language=document_language(configuration.document_language),
                 lines=_lines(reservation, car, breakdown),
                 prices_include_vat=configuration.prices_include_vat,
                 vat_rate=rate,
@@ -241,6 +247,7 @@ def issue_credit_note_for_handover(
                 handover_id=handover.id,
                 original_invoice_id=original.id,
                 currency=original.currency,
+                language=original.language,
                 # The same lines, reversed. Copied from the invoice, not
                 # recomputed, so the credit always matches what was billed.
                 lines=[

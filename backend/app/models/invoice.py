@@ -84,7 +84,15 @@ class Invoice(Base):
 
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
 
-    # [{"description": ..., "quantity": ..., "unit_price": ..., "amount": ...}]
+    # The language it is printed in: the business's document language on the
+    # day it was issued. Fixed for life, so reprinting gives the same
+    # document; a credit note uses its invoice's language.
+    language: Mapped[str] = mapped_column(String(5), nullable=False, default="en")
+
+    # [{"description": ..., "quantity": ..., "unit_price": ..., "amount": ...,
+    #   "key": ..., "params": {...}}]. "description" is English, kept for the
+    # API and for invoices from before keys; "key" and "params" (rental and
+    # fee lines) let the printed line be worded in the invoice's language.
     lines: Mapped[list] = mapped_column(JSONB, nullable=False)
 
     prices_include_vat: Mapped[bool] = mapped_column(Boolean, nullable=False)
