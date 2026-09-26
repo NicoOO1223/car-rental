@@ -32,6 +32,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L11 | Visual redesign | Deferred |
 | L12 | Production hardening | Built and committed, not yet deployed. See the deployment checklist below |
 | L13 | Business profile and localization | Built and committed, not yet deployed. See the notes below |
+| L13b | Interface and document language | Built and committed, not yet deployed. Italian and Polish are drafts awaiting native review. See the notes below |
 
 ## Next layers
 
@@ -71,7 +72,7 @@ Deployment checklist, in order:
 
 Decisions and gaps to know about:
 - **Return charges are not invoiced.** Late fees, fuel and damage charges take payment but produce no invoice, because how VAT applies to them (damage compensation in particular) is a question for an accountant. Payments taken before this shipped also have no invoice, and refunding one issues no credit note.
-- The interface is still English. Only formats follow the locale.
+- Only formats follow the locale in L13. The words are translated by L13b below.
 - The fleet timeline draws days by the viewer's own calendar and the business "today". A day with a clock change can be an hour off in that drawing only.
 - One VAT rate for the whole business, not per item.
 - Invoice numbers are one series with a configurable prefix, and credit notes share the sequence under the prefix CN. Some countries require a separate or yearly series; confirm before the first customer.
@@ -81,6 +82,25 @@ Deployment notes:
 1. Push. The migrations run at start and change no behaviour: timezone stays UTC, VAT stays 0, the brand stays "Car Rental".
 2. As an admin, open Configuration, Business and set the name, details, timezone (Europe/Rome for the Sardinia data) and format. Set each location's timezone under Locations.
 3. Set the VAT rate and price setting once you know them. The first invoice number starts the sequence.
+
+**L13b Interface and document language.** Built. English, Italian and Polish. Nothing below is live until it is pushed.
+- Each person picks their own interface language in the sidebar (labelled "Language", not "Settings"), saved on their account. This is the first item of the future personal-preferences layer. A business default, set under Configuration, Business, applies to anyone who has not chosen, and to the sign-in page for a first visit. A signed-in person never inherits the language another person used on the same device.
+- Every screen reads its text from `frontend/messages/{en,it,pl}.json`: whole sentences with plural forms (Polish has four), so nothing is glued together from fragments. Statuses, roles, categories and audit actions show translated names while the stored values are unchanged. A missing translation shows English, never a bare key.
+- Server errors carry a stable code and their values (`{detail, code, params}`), and the interface words them in the reader's language. The English `detail` stays for other clients, and a test fails if a service raises a sentence without a code.
+- Printed documents use a separate business document language. The agreement follows the current setting. An invoice is stored with the language it was issued in, so a reprint never changes, and a credit note uses its invoice's language. Documents use the bundled DejaVu Sans, since the built-in font cannot print Polish letters. Dates keep the year-first layout with the zone name in every language, on purpose, so they cannot be misread.
+- CI runs `npm run check:messages --strict`: the three catalogs have the same keys and placeholders, every key used in code exists and is given the values it needs, every server error code has a message, and no text is left hardcoded in a screen. A development-only pseudo-language (`Pseudo (dev)` in the picker) marks every extracted string, so unextracted text is easy to spot.
+
+Decisions and gaps to know about:
+- **Italian and Polish were drafted by Claude and have not been reviewed by a native speaker.** This matters most for the agreement and invoice wording, which can carry legal weight. Some countries require specific phrases on invoices; confirm before the first real invoice.
+- **Dates on screen follow the business format, not the interface language.** Set the business format under Configuration, Business (for example Italiano) so weekdays and months are worded to match.
+- Extras' names and descriptions are business data. Each business writes them in its own language; there is no per-language name.
+- A custom agreement text is printed exactly as the admin wrote it, in whatever language that is.
+- Not covered: languages beyond these three (adding one is a catalog file, see `docs/TRANSLATING.md`), and right-to-left layout.
+
+Deployment notes:
+1. Push. The migrations default everything to English, so nothing changes on deploy.
+2. As an admin, set the default interface language and the document language under Configuration, Business.
+3. Have a native Italian and Polish speaker review the catalogs (`docs/TRANSLATING.md`) before customers rely on them.
 
 **L14 Per-customer stack automation.**
 - Parameterize the Bicep and bootstrap script by customer, with one shared registry and one image for all stacks.

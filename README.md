@@ -71,6 +71,7 @@ Frontend checks:
 cd frontend
 npm run lint
 npm run typecheck
+npm run check:messages
 npm run build
 ```
 
@@ -93,11 +94,15 @@ A few conventions worth knowing:
 - Lists that can grow without bound (reservations, customers, the audit log) are paged and filtered on the server.
 - Every state change that matters writes an audit entry in the same transaction.
 
+## Languages
+
+The interface is available in English, Italian and Polish. Each person chooses theirs in the sidebar; the business default (Configuration, Business) applies until they do. Printed agreements and invoices use a separate document language, also set there. The Italian and Polish text is a draft for native review. See [docs/TRANSLATING.md](docs/TRANSLATING.md) for how to review a language, add one, and write new text.
+
 ## Setting up a new business
 
 A fresh stack has no locations, no vehicles and no demo data (`seed.py` is for local development only, and refuses to run on a production stack). After creating the first admin login:
 
-1. Open **Configuration, Business** and set the business name, legal details, VAT ID, timezone, format and logo. The name and logo appear on the sign-in page and in the sidebar, and the details are printed on rental agreements.
+1. Open **Configuration, Business** and set the business name, legal details, VAT ID, timezone, format, default interface language, document language and logo. The name and logo appear on the sign-in page and in the sidebar, and the details are printed on rental agreements.
 2. Open **Configuration, Locations** and add each place vehicles are based, with its timezone. Times for a booking are entered and shown in the timezone of the location they happen at.
 3. Check **Extras** and the pricing pages. The extras a new stack starts with (additional driver, baby seat and so on) are only starting values from a migration; edit or retire them.
 4. Set the VAT rate and whether your prices include VAT under **Business**. From then on every paid rental gets a numbered invoice (and a credit note if it is refunded), downloadable from the reservation page.
