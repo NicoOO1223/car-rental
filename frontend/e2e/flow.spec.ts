@@ -107,8 +107,10 @@ test("a booking goes from search to a completed rental", async ({ page }) => {
   await page.getByRole("button", { name: "Start check-in (Payment & Agreement)" }).click();
   await expect(page.getByRole("heading", { name: "Vehicle Check-in" })).toBeVisible();
 
-  // Cash: no card processor is needed for the test.
-  await page.getByRole("button", { name: "Cash" }).click();
+  // Cash: no card processor is needed for the test. Where card payment is not
+  // set up at all the cash form is shown straight away, with no tab to pick.
+  const cashTab = page.getByRole("button", { name: "Cash", exact: true });
+  if (await cashTab.isVisible()) await cashTab.click();
   await page.getByRole("button", { name: "Confirm Cash Payment" }).click();
   await expect(page.getByText(/Payment received/)).toBeVisible();
 
