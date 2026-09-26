@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, Handover, Reservation, User
+from app.services.stripe_sync import apply_payment_intent_status
 from app.services.agreement_pdf import render_agreement_pdf
 from app.services.audit import audit_log
 from app.services.extras import selections_from_reservation
@@ -140,6 +141,14 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
             currency=configuration.default_currency,
             payment_method_types=PAYMENT_METHOD_TYPES,
             metadata={"reservation_id": str(reservation_id)},
+            # Two clicks (or a retry after a timeout) get the same intent
+            # back instead of two charges. The previous intent id is part of
+            # the key so that replacing a cancelled intent still creates a
+            # new one.
+            idempotency_key=(
+                f"handover-pi:{reservation_id}:{int(amount * 100)}:"
+                f"{handover.stripe_payment_intent_id or 'none'}"
+            ),
         )
     except stripe.StripeError as exc:
         raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
@@ -175,15 +184,9 @@ def confirm_payment(db: Session, reservation_id, actor: User) -> Handover:
     except stripe.StripeError as exc:
         raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
 
-    if intent.status == "succeeded":
-        handover.payment_status = "SUCCEEDED"
-        handover.paid_at = datetime.utcnow()
-    elif intent.status == "processing":
-        handover.payment_status = "PROCESSING"
-    elif intent.status == "canceled":
-        handover.payment_status = "CANCELLED"
-    else:
-        handover.payment_status = "FAILED"
+    # Shared with the webhook. Never moves a SUCCEEDED or REFUNDED payment
+    # backwards, so re-confirming a refunded booking cannot resurrect it.
+    apply_payment_intent_status(handover, intent.status)
 
     handover.updated_by = actor.id
 
@@ -292,7 +295,10 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
 
         try:
             refund = stripe.Refund.create(
-                payment_intent=handover.stripe_payment_intent_id
+                payment_intent=handover.stripe_payment_intent_id,
+                # One refund per handover, however many times the
+                # cancellation is retried.
+                idempotency_key=f"handover-refund:{handover.id}",
             )
         except stripe.StripeError as exc:
             raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")

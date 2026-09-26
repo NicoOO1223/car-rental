@@ -7,6 +7,7 @@ from app.models.handover import Handover
 from app.models.location import Location
 from app.models.maintenance_task import MaintenanceTask
 from app.models.configuration import Configuration
+from app.models.processed_stripe_event import ProcessedStripeEvent
 from app.models.reservation import Reservation
 from app.models.reservation_extra import ReservationExtra
 from app.models.user import User
@@ -21,6 +22,7 @@ __all__ = [
     "Handover",
     "Location",
     "MaintenanceTask",
+    "ProcessedStripeEvent",
     "Reservation",
     "ReservationExtra",
     "User",

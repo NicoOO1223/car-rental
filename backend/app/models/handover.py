@@ -61,7 +61,9 @@ class Handover(Base):
     )
 
     # --- Payment ---
-    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(255), index=True
+    )
     payment_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     payment_currency: Mapped[str | None] = mapped_column(String(3))
 
@@ -94,7 +96,9 @@ class Handover(Base):
 
     # A card deposit is a Stripe authorization (manual capture), not a
     # charge: nothing leaves the customer's account unless it is captured.
-    deposit_stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
+    deposit_stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(255), index=True
+    )
     deposit_held_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deposit_settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deposit_captured_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))

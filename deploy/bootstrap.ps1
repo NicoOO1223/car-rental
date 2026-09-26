@@ -112,6 +112,9 @@ function Get-EnvValue($path, $key) {
 }
 
 $stripeSecretKey = Get-EnvValue "$repoRoot\backend\.env" "STRIPE_SECRET_KEY"
+# Empty until the webhook endpoint is registered in Stripe (needs the live
+# backend URL first); the webhook route refuses requests while it is empty.
+$stripeWebhookSecret = Get-EnvValue "$repoRoot\backend\.env" "STRIPE_WEBHOOK_SECRET"
 $stripePublishableKey = Get-EnvValue "$repoRoot\frontend\.env.local" "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
 $backendSentryDsn = Get-EnvValue "$repoRoot\backend\.env" "SENTRY_DSN"
 $frontendSentryDsn = Get-EnvValue "$repoRoot\frontend\.env.local" "NEXT_PUBLIC_SENTRY_DSN"
@@ -198,12 +201,12 @@ Invoke-Checked { az containerapp registry set --name car-rental-backend --resour
 
 Invoke-Checked {
     az containerapp secret set --name car-rental-backend --resource-group $rg `
-        --secrets database-url="$databaseUrl" migration-database-url="$migrationDatabaseUrl" secret-key="$secretKey" stripe-secret-key="$stripeSecretKey" sentry-dsn="$backendSentryDsn" --output none
+        --secrets database-url="$databaseUrl" migration-database-url="$migrationDatabaseUrl" secret-key="$secretKey" stripe-secret-key="$stripeSecretKey" stripe-webhook-secret="$stripeWebhookSecret" sentry-dsn="$backendSentryDsn" --output none
 } "set backend secrets"
 
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
+        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key STRIPE_WEBHOOK_SECRET=secretref:stripe-webhook-secret SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
         --output none
 } "set backend env vars"
 
@@ -268,7 +271,7 @@ Write-Host "Frontend URL: https://$frontendFqdn"
 Write-Host "== Pointing backend's CORS at the real frontend URL ==" -ForegroundColor Cyan
 Invoke-Checked {
     az containerapp update --name car-rental-backend --resource-group $rg `
-        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="https://$frontendFqdn" `
+        --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key STRIPE_WEBHOOK_SECRET=secretref:stripe-webhook-secret SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="https://$frontendFqdn" `
         --output none
 } "update backend CORS"
 

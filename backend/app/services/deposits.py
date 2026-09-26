@@ -94,6 +94,10 @@ def create_or_reuse_deposit_intent(db: Session, reservation_id: UUID, actor: Use
             payment_method_types=["card"],
             capture_method="manual",
             metadata={"reservation_id": str(reservation_id), "kind": "deposit"},
+            idempotency_key=(
+                f"deposit-pi:{reservation_id}:{_cents(amount)}:"
+                f"{handover.deposit_stripe_payment_intent_id or 'none'}"
+            ),
         )
     except stripe.StripeError as exc:
         raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")

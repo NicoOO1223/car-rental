@@ -110,7 +110,9 @@ class CheckOut(Base):
 
     # --- Payment (same shape as Handover's) ---
     # Covers only what the deposit didn't: total_charge - deposit_applied.
-    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(
+        String(255), index=True
+    )
     payment_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     payment_currency: Mapped[str | None] = mapped_column(String(3))
 

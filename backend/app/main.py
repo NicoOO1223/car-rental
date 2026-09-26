@@ -39,6 +39,7 @@ from app.routers.audit_logs import router as audit_logs_router
 from app.routers.users import router as users_router
 from app.routers.configuration import public_router as public_configuration_router
 from app.routers.configuration import router as configuration_router
+from app.routers.stripe_webhook import router as stripe_webhook_router
 
 from app.config import IS_PRODUCTION
 from app.security_headers import SecurityHeadersMiddleware
@@ -91,6 +92,7 @@ app.include_router(audit_logs_router)
 app.include_router(users_router)
 app.include_router(public_configuration_router)
 app.include_router(configuration_router)
+app.include_router(stripe_webhook_router)
 
 @app.get("/health")
 def health_check():

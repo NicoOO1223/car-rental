@@ -6,6 +6,11 @@ load_dotenv()
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 
+# Signing secret of the Stripe webhook endpoint (Dashboard > Developers >
+# Webhooks, "whsec_..."). Without it the webhook route refuses every request
+# rather than processing unverified payloads.
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
 # Signs staff login JWTs (see app/services/auth.py). Required, like
 # DATABASE_URL — an insecure default here would be worse than failing
 # loudly, since this is what actually gates access to the whole app.

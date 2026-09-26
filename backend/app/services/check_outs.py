@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, CheckOut, Handover, Reservation, User
+from app.services.stripe_sync import apply_payment_intent_status
 from app.services.audit import audit_log
 from app.services.availability import (
     has_conflicting_maintenance,
@@ -393,6 +394,10 @@ def create_or_reuse_payment_intent(db: Session, reservation_id: UUID, actor: Use
             currency=configuration.default_currency,
             payment_method_types=PAYMENT_METHOD_TYPES,
             metadata={"reservation_id": str(reservation_id), "kind": "check_out"},
+            idempotency_key=(
+                f"check-out-pi:{reservation_id}:{int(amount * 100)}:"
+                f"{check_out.stripe_payment_intent_id or 'none'}"
+            ),
         )
     except stripe.StripeError as exc:
         raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
@@ -425,15 +430,7 @@ def confirm_payment(db: Session, reservation_id: UUID, actor: User) -> CheckOut:
     except stripe.StripeError as exc:
         raise ValueError(f"Stripe error: {exc.user_message or str(exc)}")
 
-    if intent.status == "succeeded":
-        check_out.payment_status = "SUCCEEDED"
-        check_out.paid_at = datetime.now(timezone.utc)
-    elif intent.status == "processing":
-        check_out.payment_status = "PROCESSING"
-    elif intent.status == "canceled":
-        check_out.payment_status = "CANCELLED"
-    else:
-        check_out.payment_status = "FAILED"
+    apply_payment_intent_status(check_out, intent.status)
 
     check_out.updated_by = actor.id
 
@@ -536,6 +533,7 @@ def settle_deposit_step(db: Session, reservation_id: UUID, actor: User) -> Check
                 stripe.PaymentIntent.capture(
                     handover.deposit_stripe_payment_intent_id,
                     amount_to_capture=int((applied * 100).to_integral_value(ROUND_HALF_UP)),
+                    idempotency_key=f"deposit-capture:{handover.deposit_stripe_payment_intent_id}",
                 )
             else:
                 stripe.PaymentIntent.cancel(handover.deposit_stripe_payment_intent_id)
