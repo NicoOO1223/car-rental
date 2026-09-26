@@ -203,7 +203,9 @@ if (existsSync(backend)) {
 
     // AppError("code", ...), NotFoundError("code", ...), PydanticCustomError("code", ...)
     for (const match of text.matchAll(/\b(?:AppError|NotFoundError|ConflictError|PydanticCustomError)\(\s*"([a-z0-9_.]+)"/g)) {
-      codes.add(match[1]);
+      // The storefront's own codes (public.*) are worded in the storefront's
+      // catalogs, not the staff interface's.
+      if (!match[1].startsWith("public.")) codes.add(match[1]);
     }
   }
 

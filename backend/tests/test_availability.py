@@ -49,8 +49,19 @@ def test_available_cars():
     # SA-003 has a conflicting reservation
     assert "SA-003-AA" not in license_plates
 
-    # SA-010 is under maintenance
-    assert "SA-010-AA" not in license_plates
+    # SA-010's maintenance task opened on 11 Sep and has no end yet, so it is
+    # not offered for a rental after that (it is offered before it, as the
+    # work had not started).
+    later = client.get(
+        "/api/cars/available",
+        params={
+            "location_id": olb_id,
+            "pickup_at": "2026-09-20T10:00:00Z",
+            "return_at": "2026-09-24T10:00:00Z",
+        },
+    )
+
+    assert "SA-010-AA" not in {car["license_plate"] for car in later.json()}
 
 
 def test_invalid_reservation_period():

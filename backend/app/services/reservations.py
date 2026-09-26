@@ -10,6 +10,7 @@ from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
     lock_car,
+    projected_location_id,
 )
 from app.services.customers import find_matching_customer
 from app.services.deposits import release_deposit_for_cancellation
@@ -62,15 +63,12 @@ def create_reservation(
     require_bookable_location(db, pickup_location_id, "pickup")
     require_bookable_location(db, return_location_id, "return")
 
-    if car.current_location_id != pickup_location_id:
+    # Where the car will be when the rental starts, not where it is today:
+    # a car out on a rental now can be booked for a later date. Its status
+    # today does not decide either; overlapping bookings and maintenance
+    # windows are checked below.
+    if projected_location_id(db, car, pickup_at) != pickup_location_id:
         raise AppError("reservation.car_not_located_at_selected_pickup", "Car is not located at the selected pickup location.")
-
-    # ---------------------------------------------------------
-    # 4. Validate car status
-    # ---------------------------------------------------------
-
-    if car.status != "AVAILABLE":
-        raise AppError("reservation.car_not_currently_available", "Car is not currently available.")
 
     # ---------------------------------------------------------
     # 5. Check reservation overlap
@@ -212,12 +210,9 @@ def quote_reservation(
 
     rental_days = calculate_rental_duration_days(data.pickup_at, data.return_at)
 
-    if car.current_location_id != data.pickup_location_id:
+    if projected_location_id(db, car, data.pickup_at) != data.pickup_location_id:
         available = False
         message = "Car is not located at the selected pickup location."
-    elif car.status != "AVAILABLE":
-        available = False
-        message = "Car is not currently available."
     elif has_conflicting_reservation(db, car.id, data.pickup_at, data.return_at):
         available = False
         message = "Car is already reserved for part of this period."
@@ -414,11 +409,8 @@ def update_reservation(
     if effective_return_location_id != reservation.return_location_id:
         require_bookable_location(db, effective_return_location_id, "return")
 
-    if target_car.current_location_id != effective_pickup_location_id:
+    if projected_location_id(db, target_car, effective_pickup_at) != effective_pickup_location_id:
         raise AppError("reservation.car_not_located_at_selected_pickup", "Car is not located at the selected pickup location.")
-
-    if is_reassignment and target_car.status != "AVAILABLE":
-        raise AppError("reservation.car_not_currently_available", "Car is not currently available.")
 
     # ---------------------------------------------------------
     # 3. Check reservation overlap (excluding this reservation)

@@ -189,15 +189,43 @@ def get_current_maintenance_by_car(db: Session) -> dict[UUID, str]:
     return get_cars_in_maintenance(db, now, now + timedelta(seconds=1))
 
 
+def projected_location_id(db: Session, car: Car, at: datetime) -> UUID:
+    """
+    Where the car will be at a given time: where its last booking before then
+    ends (a one-way rental leaves it at the return location), or where it is
+    now when nothing is booked before then.
+    """
+
+    last = db.scalar(
+        select(Reservation.return_location_id)
+        .where(
+            Reservation.car_id == car.id,
+            blocking_reservation_clause(),
+            Reservation.return_at <= at,
+        )
+        .order_by(Reservation.return_at.desc())
+        .limit(1)
+    )
+
+    return last or car.current_location_id
+
+
 def get_available_cars(
     db: Session,
     pickup_location_id: UUID,
     pickup_at: datetime,
     return_at: datetime,
+    *,
+    online_only: bool = False,
 ) -> list[Car]:
     """
-    Return cars that are operational, located at the requested airport,
-    and have no conflicting reservation during the requested period.
+    Return cars that will be at the requested airport when the rental starts
+    and have no conflicting reservation or maintenance during the period.
+
+    A car out on rental today can be booked for a later date, and where it is
+    then follows its bookings (see projected_location_id), so neither its
+    status now nor its location now decides. online_only keeps to the cars
+    the public storefront may offer.
     """
 
     # Basic validation
@@ -221,16 +249,33 @@ def get_available_cars(
         *_maintenance_overlap_conditions(pickup_at, return_at),
     )
 
+    # The last blocking booking that ends before the pickup decides where the
+    # car will be; without one it is where it is now.
+    last_return_location = (
+        select(Reservation.return_location_id)
+        .where(
+            Reservation.car_id == Car.id,
+            blocking_reservation_clause(),
+            Reservation.return_at <= pickup_at,
+        )
+        .order_by(Reservation.return_at.desc())
+        .limit(1)
+        .correlate(Car)
+        .scalar_subquery()
+    )
+
     cars_query = (
         select(Car)
         .where(
-            Car.current_location_id == pickup_location_id,
-            Car.status == "AVAILABLE",
+            func.coalesce(last_return_location, Car.current_location_id) == pickup_location_id,
             ~reservation_conflict,
             ~maintenance_conflict,
         )
         .order_by(Car.license_plate)
     )
+
+    if online_only:
+        cars_query = cars_query.where(Car.offered_online.is_(True))
 
     return list(db.scalars(cars_query).all())
 
