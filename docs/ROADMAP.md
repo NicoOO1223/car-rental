@@ -1,6 +1,6 @@
 # Roadmap
 
-Status as of 2026-09-26. Update this file whenever a layer ships or a decision changes. Until now the layer scheme lived only in planning sessions and commit messages, so treat this as the single record.
+Status as of 2026-09-28. Update this file whenever a layer ships or a decision changes. Until now the layer scheme lived only in planning sessions and commit messages, so treat this as the single record.
 
 ## Direction
 
@@ -31,6 +31,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L10 | Finance reporting | Partial: admin revenue page only, scope not audited |
 | L11 | Visual redesign | Deferred |
 | L12 | Production hardening | Built and committed, not yet deployed. See the deployment checklist below |
+| L13 | Business profile and localization | Built and committed, not yet deployed. See the notes below |
 
 ## Next layers
 
@@ -61,10 +62,25 @@ Deployment checklist, in order:
 8. After a period of clean reports, change the frontend CSP from Report-Only to enforcing.
 9. Scan the database from outside to confirm it does not answer.
 
-**L13 Business profile and localization.**
-- Extend Configuration with business name, logo, address, VAT id, timezone, locale and agreement terms text.
-- Replace hardcoded Poland and Sardinia defaults, add VAT and invoice numbering, and move day boundaries from UTC to the business timezone.
-- Remove the hardcoded brand name from the app, login page and agreement PDF.
+**L13 Business profile and localization.** Built. Nothing below is live until it is pushed.
+- Business profile in Configuration: name, legal name, address, phone, email, VAT ID, timezone, formatting locale and agreement terms, plus an uploaded logo stored in the database. A public branding endpoint lets the sign-in page show the name and logo. The sidebar, sign-in page, tab title and agreement all use them; nothing hardcodes "Car Rental" any more.
+- Locations are administered in the app: add, edit and retire. Each has its own timezone. A location still holding vehicles or open reservations cannot be retired, and new bookings cannot use a retired one.
+- Days follow timezones instead of UTC: the dashboard's today counts, revenue by day, fleet status for a date, reservation day filters, maintenance and inspection dates. The booking wizard and edit modal turn "10:00" into an instant using the pickup or return location's timezone, which fixes bookings made from a different timezone than the airport. Times, dates and money follow the business locale.
+- Identity is country neutral: a national ID number is optional (an ID document number also identifies the customer), the PESEL checksum only runs for a Polish customer who enters one, and the country list is every ISO country in the business language.
+- VAT and invoices: one VAT rate, with prices either including VAT or having it added. A rental payment issues a numbered invoice in the same transaction, from whichever path records it. Numbers come from a locked counter, so the sequence has no gaps. An invoice copies the seller, customer, lines and amounts, and never changes. A refund issues a credit note.
+
+Decisions and gaps to know about:
+- **Return charges are not invoiced.** Late fees, fuel and damage charges take payment but produce no invoice, because how VAT applies to them (damage compensation in particular) is a question for an accountant. Payments taken before this shipped also have no invoice, and refunding one issues no credit note.
+- The interface is still English. Only formats follow the locale.
+- The fleet timeline draws days by the viewer's own calendar and the business "today". A day with a clock change can be an hour off in that drawing only.
+- One VAT rate for the whole business, not per item.
+- Invoice numbers are one series with a configurable prefix, and credit notes share the sequence under the prefix CN. Some countries require a separate or yearly series; confirm before the first customer.
+- Historic records keep their times: naive timestamps written before this were UTC, and are still read as UTC.
+
+Deployment notes:
+1. Push. The migrations run at start and change no behaviour: timezone stays UTC, VAT stays 0, the brand stays "Car Rental".
+2. As an admin, open Configuration, Business and set the name, details, timezone (Europe/Rome for the Sardinia data) and format. Set each location's timezone under Locations.
+3. Set the VAT rate and price setting once you know them. The first invoice number starts the sequence.
 
 **L14 Per-customer stack automation.**
 - Parameterize the Bicep and bootstrap script by customer, with one shared registry and one image for all stacks.

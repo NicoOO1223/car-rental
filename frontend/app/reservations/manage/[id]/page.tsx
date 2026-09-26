@@ -16,6 +16,7 @@ import {
   type CheckOut,
   type Handover,
 } from "@/lib/api";
+import { InvoicesCard } from "@/components/invoices/InvoicesCard";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
@@ -946,6 +947,11 @@ export default function ReservationDetailsPage({
 
 
             </section>
+
+            <InvoicesCard
+              reservationId={reservation.id}
+              refreshKey={handover?.payment_status ?? ""}
+            />
 
           </div>
         </div>

@@ -27,6 +27,9 @@ const PROFILE_FIELDS = [
   "timezone",
   "locale",
   "agreement_terms",
+  "vat_rate",
+  "prices_include_vat",
+  "invoice_prefix",
 ] as const;
 
 type Profile = Pick<Configuration, (typeof PROFILE_FIELDS)[number]>;
@@ -48,6 +51,7 @@ export default function BusinessConfigurationPage() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [vatRateInput, setVatRateInput] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -77,7 +81,11 @@ export default function BusinessConfigurationPage() {
     setSaved(false);
 
     try {
-      const updated = await updateConfiguration(profile);
+      const updated = await updateConfiguration({
+        ...profile,
+        vat_rate: Number(vatRateInput ?? profile.vat_rate),
+      });
+      setVatRateInput(null);
 
       setProfile(
         Object.fromEntries(
@@ -161,6 +169,10 @@ export default function BusinessConfigurationPage() {
     (key: keyof Profile) =>
     (event: { target: { value: string } }) =>
       setProfile({ ...profile, [key]: event.target.value });
+
+  // VAT is the two fields that are not text: a percentage and a yes or no.
+  // The rate is held as typed so a half-entered "7." is not rewritten.
+  const vatRateText = vatRateInput ?? String(profile.vat_rate);
 
   return (
     <>
@@ -304,6 +316,59 @@ export default function BusinessConfigurationPage() {
               ))}
             </SelectField>
           </div>
+        </Card>
+
+        <Card className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">VAT and invoices</h2>
+            <p className="mt-1 text-sm text-ink-secondary">
+              A single VAT rate for everything you charge. An invoice is
+              issued automatically when a rental is paid, and a credit note
+              if it is refunded. Invoices never change after they are issued.
+              Ask your accountant which rate and setting apply to you.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="VAT rate (%)"
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              hint="0 shows no VAT."
+              value={vatRateText}
+              onChange={(event) => setVatRateInput(event.target.value)}
+            />
+
+            <SelectField
+              label="Prices"
+              hint="Whether the prices you set already contain VAT."
+              value={profile.prices_include_vat ? "include" : "exclude"}
+              onChange={(event) =>
+                setProfile({
+                  ...profile,
+                  prices_include_vat: event.target.value === "include",
+                })
+              }
+            >
+              <option value="include">Include VAT</option>
+              <option value="exclude">Exclude VAT (added at checkout)</option>
+            </SelectField>
+          </div>
+
+          <TextField
+            label="Invoice number prefix"
+            maxLength={10}
+            hint="Numbers look like INV-000001. Credit notes use CN."
+            value={profile.invoice_prefix}
+            onChange={(event) =>
+              setProfile({
+                ...profile,
+                invoice_prefix: event.target.value.toUpperCase(),
+              })
+            }
+          />
         </Card>
 
         <Card className="space-y-4">

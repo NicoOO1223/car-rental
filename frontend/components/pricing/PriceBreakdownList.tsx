@@ -23,12 +23,26 @@ export function PriceBreakdownList({
     | "airport_change_fee"
     | "extras"
     | "total_amount"
-  > & { rental_days?: number; currency?: string };
+  > &
+    Partial<
+      Pick<
+        PriceBreakdown,
+        "vat_rate" | "vat_amount" | "net_amount" | "prices_include_vat"
+      >
+    > & { rental_days?: number; currency?: string };
   totalLabel?: string;
   className?: string;
 }) {
   const currency = breakdown.currency?.toUpperCase();
   const money = (amount: number) => formatCurrency(amount, currency);
+
+  // With a VAT rate set, the tax is shown: added on top when prices exclude
+  // it, and as the part of the total that is tax when they include it.
+  const vatRate = breakdown.vat_rate ?? 0;
+  const vatAmount = breakdown.vat_amount ?? 0;
+  const addsVat = vatRate > 0 && breakdown.prices_include_vat === false;
+  const includesVat = vatRate > 0 && breakdown.prices_include_vat !== false;
+  const rateLabel = `${Number(vatRate.toFixed(2))}%`;
 
   return (
     <div className={className}>
@@ -84,12 +98,39 @@ export function PriceBreakdownList({
         ))}
       </dl>
 
-      <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-border-subtle pt-4">
+      {addsVat && (
+        <dl className="mt-4 space-y-2.5 border-t border-border-subtle pt-4 text-sm">
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-secondary">Subtotal</dt>
+            <dd className="shrink-0 font-medium text-ink tabular-nums">
+              {money(breakdown.net_amount ?? breakdown.total_amount - vatAmount)}
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-secondary">VAT {rateLabel}</dt>
+            <dd className="shrink-0 font-medium text-ink tabular-nums">
+              {money(vatAmount)}
+            </dd>
+          </div>
+        </dl>
+      )}
+
+      <div
+        className={`flex items-baseline justify-between gap-4 border-t border-border-subtle pt-4 ${
+          addsVat ? "mt-3" : "mt-4"
+        }`}
+      >
         <span className="font-semibold text-ink">{totalLabel}</span>
         <span className="text-xl font-bold text-ink tabular-nums">
           {money(breakdown.total_amount)}
         </span>
       </div>
+
+      {includesVat && (
+        <p className="mt-2 text-right text-xs text-ink-muted">
+          Includes VAT {rateLabel}: {money(vatAmount)}
+        </p>
+      )}
     </div>
   );
 }

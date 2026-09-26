@@ -32,6 +32,8 @@ type Props = {
   airportChangeFee: number;
   extras: PriceBreakdownExtraLine[];
   extrasAmount: number;
+  /** VAT on the amount due, so it is shown as it was in the quote. */
+  vat?: { rate: number; amount: number; net: number; includedInPrices: boolean };
   onPaid: () => void;
 };
 
@@ -155,6 +157,7 @@ export function PaymentStep({
   shortTermFee,
   airportChangeFee,
   extras,
+  vat,
   onPaid,
 }: Props) {
   const [method, setMethod] = useState<"card" | "cash">("card");
@@ -173,6 +176,10 @@ export function PaymentStep({
             extras,
             total_amount: amount,
             currency: currency ?? undefined,
+            vat_rate: vat?.rate,
+            vat_amount: vat?.amount,
+            net_amount: vat?.net,
+            prices_include_vat: vat?.includedInPrices,
           }}
           totalLabel="Amount due"
         />

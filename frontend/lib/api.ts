@@ -290,6 +290,13 @@ export type PriceBreakdown = {
   extras: PriceBreakdownExtraLine[];
   extras_amount: number;
 
+  /** VAT percentage; 0 means none is shown. */
+  vat_rate: number;
+  vat_amount: number;
+  net_amount: number;
+  /** True: the total already contains VAT. False: VAT was added on top. */
+  prices_include_vat: boolean;
+
   total_amount: number;
 };
 
@@ -1780,6 +1787,10 @@ export type PaymentIntent = {
   airport_change_fee: number;
   extras: PriceBreakdownExtraLine[];
   extras_amount: number;
+  vat_rate: number;
+  vat_amount: number;
+  net_amount: number;
+  prices_include_vat: boolean;
 };
 
 export async function getHandover(reservationId: string): Promise<Handover> {
@@ -1949,6 +1960,55 @@ export async function generateAgreement(
 // Plain <a href> can't attach an Authorization header, so the PDF is
 // fetched here (with the token, like everything else) and handed to
 // the browser as a blob download instead of linking straight at the API.
+export type Invoice = {
+  id: string;
+  /** For example INV-000042, or CN-000043 for a credit note. */
+  number: string;
+  kind: "INVOICE" | "CREDIT_NOTE";
+  reservation_id: string;
+  issued_at: string;
+  currency: string;
+  prices_include_vat: boolean;
+  vat_rate: number;
+  net_amount: number;
+  vat_amount: number;
+  /** Negative on a credit note. */
+  total_amount: number;
+  credits_invoice_number: string | null;
+};
+
+/** The invoice, and credit note if it was refunded, for a booking. */
+export async function getReservationInvoices(
+  reservationId: string,
+): Promise<Invoice[]> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/invoices`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch invoices.");
+  }
+
+  return response.json();
+}
+
+/** Fetched with the token and handed to the browser as a download. */
+export async function downloadInvoice(invoice: Invoice): Promise<void> {
+  const response = await apiFetch(`/api/invoices/${invoice.id}/pdf`);
+
+  if (!response.ok) {
+    throw new Error("Failed to download the document.");
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `${invoice.number}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export async function downloadAgreement(
   reservationId: string,
   filename: string,
@@ -2109,6 +2169,9 @@ export type Configuration = {
   timezone: string;
   locale: string;
   agreement_terms: string;
+  vat_rate: number;
+  prices_include_vat: boolean;
+  invoice_prefix: string;
 };
 
 /** The currency every price is shown in; readable by any signed-in staff. */
@@ -2121,6 +2184,8 @@ export async function getPublicConfiguration(): Promise<{
   timezone: string;
   /** BCP 47 tag used for dates, times and money. */
   locale: string;
+  vat_rate: number;
+  prices_include_vat: boolean;
 }> {
   const response = await apiFetch("/api/configuration/public");
 

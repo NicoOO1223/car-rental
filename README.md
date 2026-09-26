@@ -100,7 +100,8 @@ A fresh stack has no locations, no vehicles and no demo data (`seed.py` is for l
 1. Open **Configuration, Business** and set the business name, legal details, VAT ID, timezone, format and logo. The name and logo appear on the sign-in page and in the sidebar, and the details are printed on rental agreements.
 2. Open **Configuration, Locations** and add each place vehicles are based, with its timezone. Times for a booking are entered and shown in the timezone of the location they happen at.
 3. Check **Extras** and the pricing pages. The extras a new stack starts with (additional driver, baby seat and so on) are only starting values from a migration; edit or retire them.
-4. Have the agreement wording under **Business** reviewed by a lawyer. Until it is filled in, agreements print placeholder terms.
+4. Set the VAT rate and whether your prices include VAT under **Business**. From then on every paid rental gets a numbered invoice (and a credit note if it is refunded), downloadable from the reservation page.
+5. Have the agreement wording under **Business** reviewed by a lawyer. Until it is filled in, agreements print placeholder terms.
 
 ## Configuration reference
 

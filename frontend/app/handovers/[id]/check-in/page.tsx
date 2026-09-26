@@ -393,6 +393,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     airportChangeFee={paymentIntent.airport_change_fee}
                     extras={paymentIntent.extras}
                     extrasAmount={paymentIntent.extras_amount}
+                    vat={{
+                      rate: paymentIntent.vat_rate,
+                      amount: paymentIntent.vat_amount,
+                      net: paymentIntent.net_amount,
+                      includedInPrices: paymentIntent.prices_include_vat,
+                    }}
                     onPaid={handlePaid}
                   />
                 ) : (
