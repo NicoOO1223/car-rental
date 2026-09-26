@@ -17,8 +17,11 @@ if sentry_dsn := os.getenv("SENTRY_DSN"):
         traces_sample_rate=0.0,
     )
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+
+from app.database import SessionLocal
 
 from app.routers.auth import router as auth_router
 from app.routers.admin_cars import router as admin_cars_router
@@ -91,4 +94,19 @@ app.include_router(configuration_router)
 
 @app.get("/health")
 def health_check():
+    """Liveness: the process is up. Deliberately does not touch the database,
+    so a database blip does not make the platform restart a healthy app."""
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def readiness_check(response: Response):
+    """Readiness: the app can serve traffic, i.e. it can reach the database.
+    A revision that starts but cannot connect stays out of rotation."""
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except Exception:
+        response.status_code = 503
+        return {"status": "unavailable"}
     return {"status": "ok"}

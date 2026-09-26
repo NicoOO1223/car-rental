@@ -18,7 +18,10 @@ param(
     # Switch the running app to the DML-only database role. Only use this
     # after running backend/create_app_role.py once (see the end of this
     # script for the exact command).
-    [switch]$UseAppRole
+    [switch]$UseAppRole,
+    # Where monitoring alerts are emailed. Deliberately a parameter, not a
+    # default: nobody's address belongs in the repo. Empty skips alerts.
+    [string]$AlertEmail = ""
 )
 
 function Invoke-Checked {
@@ -30,6 +33,31 @@ function Invoke-Checked {
     if ($LASTEXITCODE -ne 0) {
         throw "FAILED: $Description (exit code $LASTEXITCODE)"
     }
+}
+
+function Set-BackendProbes {
+    # The az containerapp create/update flags cannot set health probes, so
+    # this reads the app, adds them to the container, and applies the result
+    # as YAML (JSON is valid YAML). Idempotent: it overwrites any existing
+    # probes. Needs the /ready endpoint, so run it only once an image that
+    # has it is deployed.
+    #  - Startup: gives migrations plus boot up to 150s before liveness starts.
+    #  - Liveness: /health, restarts a hung process. Does not touch the database.
+    #  - Readiness: /ready, keeps a revision that cannot reach the database
+    #    (bad secret, wrong URL) out of traffic.
+    param([string]$ResourceGroup)
+    $app = az containerapp show --name car-rental-backend --resource-group $ResourceGroup --output json | ConvertFrom-Json
+    $container = $app.properties.template.containers[0]
+    $probes = @(
+        @{ type = "Startup";   httpGet = @{ path = "/health"; port = 8000 }; periodSeconds = 5;  failureThreshold = 30 },
+        @{ type = "Liveness";  httpGet = @{ path = "/health"; port = 8000 }; periodSeconds = 30; failureThreshold = 3; timeoutSeconds = 5 },
+        @{ type = "Readiness"; httpGet = @{ path = "/ready";  port = 8000 }; periodSeconds = 10; failureThreshold = 3; timeoutSeconds = 5 }
+    )
+    $container | Add-Member -NotePropertyName probes -NotePropertyValue $probes -Force
+    $yamlPath = Join-Path $env:TEMP "backend-probes.yaml"
+    @{ properties = @{ template = @{ containers = @($container) } } } |
+        ConvertTo-Json -Depth 20 | Set-Content -Path $yamlPath -Encoding utf8
+    Invoke-Checked { az containerapp update --name car-rental-backend --resource-group $ResourceGroup --yaml $yamlPath --output none } "set backend probes"
 }
 
 $repoRoot = Resolve-Path "$PSScriptRoot\.."
@@ -178,6 +206,20 @@ Invoke-Checked {
         --set-env-vars DATABASE_URL=secretref:database-url MIGRATION_DATABASE_URL=secretref:migration-database-url SECRET_KEY=secretref:secret-key ENVIRONMENT=production STRIPE_SECRET_KEY=secretref:stripe-secret-key SENTRY_DSN=secretref:sentry-dsn CORS_ORIGINS="http://localhost:3000" `
         --output none
 } "set backend env vars"
+
+Write-Host "== Setting backend health probes ==" -ForegroundColor Cyan
+Set-BackendProbes -ResourceGroup $rg
+
+if ($AlertEmail) {
+    Write-Host "== Deploying monitoring alerts ==" -ForegroundColor Cyan
+    $postgresServerName = $postgresFqdn.Split(".")[0]
+    Invoke-Checked {
+        az deployment group create --resource-group $rg --template-file "$PSScriptRootlerts.bicep" `
+            --parameters alertEmail=$AlertEmail postgresServerName=$postgresServerName --output none
+    } "deploy alerts"
+} else {
+    Write-Host "Skipping alerts: pass -AlertEmail <address> to enable them." -ForegroundColor Yellow
+}
 
 $backendFqdn = az containerapp show --name car-rental-backend --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv
 Write-Host "Backend URL: https://$backendFqdn"

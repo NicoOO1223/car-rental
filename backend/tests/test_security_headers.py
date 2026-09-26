@@ -42,3 +42,27 @@ def test_cors_preflight_rejects_unexpected_methods():
     )
 
     assert response.status_code == 400
+
+
+def test_health_does_not_need_the_database_but_ready_does(monkeypatch):
+    assert client.get("/health").status_code == 200
+
+    ready = client.get("/ready")
+    assert ready.status_code == 200
+    assert ready.json() == {"status": "ok"}
+
+    class BrokenSession:
+        def __enter__(self):
+            raise RuntimeError("database unreachable")
+
+        def __exit__(self, *args):
+            return False
+
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "SessionLocal", lambda: BrokenSession())
+
+    assert client.get("/health").status_code == 200
+    down = client.get("/ready")
+    assert down.status_code == 503
+    assert down.json() == {"status": "unavailable"}
