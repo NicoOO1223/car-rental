@@ -1,0 +1,79 @@
+name: Deploy one stack
+description: >
+  Rolls the images built for a commit out to one customer stack and smoke-tests
+  it. Run from a job that has `environment: stack-<slug>`, whose variables and
+  secrets are handed in as inputs (a composite action cannot read them itself).
+
+inputs:
+  image-tag:
+    description: Tag of the images to deploy (the commit SHA)
+    required: true
+  client-id:
+    required: true
+  tenant-id:
+    required: true
+  subscription-id:
+    required: true
+  resource-group:
+    required: true
+  acr-login-server:
+    required: true
+  api-url:
+    required: true
+  frontend-url:
+    required: true
+  stripe-publishable-key:
+    required: false
+    default: ""
+  sentry-dsn:
+    required: false
+    default: ""
+  business-name:
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.client-id }}
+        tenant-id: ${{ inputs.tenant-id }}
+        subscription-id: ${{ inputs.subscription-id }}
+
+    - name: Install containerapp CLI extension
+      shell: bash
+      run: az extension add --name containerapp --upgrade -y
+
+    # Tagged with the commit SHA (not :latest): Container Apps only creates a
+    # new revision when the image reference string itself changes, so a reused
+    # tag silently keeps serving the old image.
+    - name: Deploy backend
+      shell: bash
+      run: |
+        az containerapp update \
+          --name car-rental-backend \
+          --resource-group "${{ inputs.resource-group }}" \
+          --image "${{ inputs.acr-login-server }}/backend:${{ inputs.image-tag }}"
+
+    # The frontend's stack-specific settings are set on every deploy from the
+    # environment's variables, so they always match what the pipeline was told
+    # and cannot drift from the app. An empty value is left as it is.
+    - name: Deploy frontend
+      shell: bash
+      env:
+        STRIPE_PUBLISHABLE_KEY: ${{ inputs.stripe-publishable-key }}
+        SENTRY_DSN: ${{ inputs.sentry-dsn }}
+      run: |
+        vars=("API_URL=${{ inputs.api-url }}")
+        [ -n "$STRIPE_PUBLISHABLE_KEY" ] && vars+=("STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY")
+        [ -n "$SENTRY_DSN" ] && vars+=("SENTRY_DSN=$SENTRY_DSN")
+        az containerapp update \
+          --name car-rental-frontend \
+          --resource-group "${{ inputs.resource-group }}" \
+          --image "${{ inputs.acr-login-server }}/frontend:${{ inputs.image-tag }}" \
+          --set-env-vars "${vars[@]}"
+
+    - name: Smoke test
+      shell: bash
+      run: bash deploy/smoke-test.sh "${{ inputs.api-url }}" "${{ inputs.frontend-url }}" "${{ inputs.business-name }}"

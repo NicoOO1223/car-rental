@@ -140,33 +140,56 @@ jobs:
           docker push "$registry/frontend:${{ github.sha }}"
 
   # The operator's own stack first: a bad migration or a broken build stops
-  # here, before any customer stack sees it.
+  # here, before any customer stack sees it. Each job runs inside its stack's
+  # GitHub Environment, so it uses that stack's credentials and settings.
   deploy-canary:
     needs: [plan, build]
+    runs-on: ubuntu-latest
+    environment: stack-${{ matrix.stack }}
     strategy:
       matrix:
         stack: ${{ fromJson(needs.plan.outputs.canary) }}
-    permissions:
-      id-token: write
-      contents: read
-    uses: ./.github/workflows/deploy-stack.yml
-    with:
-      stack: ${{ matrix.stack }}
-      image_tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/deploy-stack
+        with:
+          image-tag: ${{ github.sha }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resource-group: ${{ vars.RESOURCE_GROUP }}
+          acr-login-server: ${{ vars.ACR_LOGIN_SERVER }}
+          api-url: ${{ vars.API_URL }}
+          frontend-url: ${{ vars.FRONTEND_URL }}
+          stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
+          sentry-dsn: ${{ vars.SENTRY_DSN }}
+          business-name: ${{ vars.BUSINESS_NAME }}
 
   # Then the rest, one at a time, stopping at the first failure.
   deploy-others:
     needs: [plan, deploy-canary]
     if: needs.plan.outputs.others != '[]'
+    runs-on: ubuntu-latest
+    environment: stack-${{ matrix.stack }}
     strategy:
       max-parallel: 1
       fail-fast: true
       matrix:
         stack: ${{ fromJson(needs.plan.outputs.others) }}
-    permissions:
-      id-token: write
-      contents: read
-    uses: ./.github/workflows/deploy-stack.yml
-    with:
-      stack: ${{ matrix.stack }}
-      image_tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/deploy-stack
+        with:
+          image-tag: ${{ github.sha }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resource-group: ${{ vars.RESOURCE_GROUP }}
+          acr-login-server: ${{ vars.ACR_LOGIN_SERVER }}
+          api-url: ${{ vars.API_URL }}
+          frontend-url: ${{ vars.FRONTEND_URL }}
+          stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
+          sentry-dsn: ${{ vars.SENTRY_DSN }}
+          business-name: ${{ vars.BUSINESS_NAME }}

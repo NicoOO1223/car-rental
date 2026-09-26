@@ -10,7 +10,7 @@ Every customer gets their own stack: a resource group holding a database, backup
 | Create or update a stack | `deploy/provision.ps1` |
 | Remove a stack | `deploy/deprovision.ps1` |
 | What proves a stack is serving | `deploy/smoke-test.sh` |
-| The release | `.github/workflows/deploy.yml` and `deploy-stack.yml` |
+| The release | `.github/workflows/deploy.yml` and the `.github/actions/deploy-stack` action |
 
 ## The manifest
 
