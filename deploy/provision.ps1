@@ -526,14 +526,21 @@ if (-not $DryRun) {
 
 # Only what CI needs, on this stack: update its apps, push to the shared
 # registry, and write to its backup storage. (Firewall rules for the backup job
-# come from the role main.bicep assigns.)
+# come from the role main.bicep assigns.) A Container App and a Container Apps
+# *job* are different resource types with separate built-in roles — "Container
+# Apps Contributor" alone cannot see the sweeper job at all (az reports it as
+# "does not exist" rather than a permission error), which is why deploy-stack
+# needs the Jobs role too, on any stack that has a storefront.
 if (-not $DryRun) {
     $rgId = az group show --name $rg --query id -o tsv
     $storageId = az storage account show --name $backupAccount --resource-group $rg --query id -o tsv
-    foreach ($assignment in @(
-            @{ Role = "Container Apps Contributor"; Scope = $rgId },
-            @{ Role = "AcrPush"; Scope = $acrId },
-            @{ Role = "Storage Blob Data Contributor"; Scope = $storageId })) {
+    $roles = @(
+        @{ Role = "Container Apps Contributor"; Scope = $rgId },
+        @{ Role = "AcrPush"; Scope = $acrId },
+        @{ Role = "Storage Blob Data Contributor"; Scope = $storageId }
+    )
+    if ($storefrontEnabled) { $roles += @{ Role = "Container Apps Jobs Contributor"; Scope = $rgId } }
+    foreach ($assignment in $roles) {
         az role assignment create --assignee-object-id $ciSpObjectId --assignee-principal-type ServicePrincipal `
             --role $assignment.Role --scope $assignment.Scope --output none 2>$null
     }
