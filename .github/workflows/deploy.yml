@@ -293,6 +293,7 @@ jobs:
           stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
           sentry-dsn: ${{ vars.SENTRY_DSN }}
           business-name: ${{ vars.BUSINESS_NAME }}
+          app-prefix: ${{ vars.APP_PREFIX || 'car-rental' }}
           storefront-url: ${{ vars.STOREFRONT_URL }}
           turnstile-site-key: ${{ vars.TURNSTILE_SITE_KEY }}
 
@@ -323,5 +324,6 @@ jobs:
           stripe-publishable-key: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
           sentry-dsn: ${{ vars.SENTRY_DSN }}
           business-name: ${{ vars.BUSINESS_NAME }}
+          app-prefix: ${{ vars.APP_PREFIX || 'car-rental' }}
           storefront-url: ${{ vars.STOREFRONT_URL }}
           turnstile-site-key: ${{ vars.TURNSTILE_SITE_KEY }}

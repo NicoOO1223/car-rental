@@ -540,6 +540,10 @@ $vars = @{
     API_URL = $apiUrl; FRONTEND_URL = $frontendUrl; STRIPE_PUBLISHABLE_KEY = $StripePublishableKey
     STOREFRONT_URL = $storefrontUrl; TURNSTILE_SITE_KEY = $TurnstileSiteKey
     SENTRY_DSN = $SentryDsn; BUSINESS_NAME = [string]$manifest.business.name
+    # Only a stack sharing another one's environment needs this — the release
+    # pipeline's deploy-stack action otherwise assumes the plain "car-rental-"
+    # names every other stack uses.
+    APP_PREFIX = if ($sharedEnvironmentStack) { $appPrefix } else { "" }
 }
 foreach ($name in $vars.Keys) {
     # GitHub refuses an empty value; a variable that is not set reads as empty anyway.

@@ -38,6 +38,15 @@ inputs:
   turnstile-site-key:
     required: false
     default: ""
+  # Every stack's apps are named "car-rental-<app>", except a stack sharing
+  # another one's Container Apps environment (see provision.ps1's
+  # sharedEnvironmentStack) — its names get its own slug worked in instead,
+  # since ingress names must be unique across everything sharing one
+  # environment. provision.ps1 sets this as the APP_PREFIX GitHub variable
+  # only for such a stack; every other stack leaves it unset.
+  app-prefix:
+    required: false
+    default: "car-rental"
 
 runs:
   using: composite
@@ -59,7 +68,7 @@ runs:
       shell: bash
       run: |
         az containerapp update \
-          --name car-rental-backend \
+          --name "${{ inputs.app-prefix }}-backend" \
           --resource-group "${{ inputs.resource-group }}" \
           --image "${{ inputs.acr-login-server }}/backend:${{ inputs.image-tag }}"
 
@@ -76,7 +85,7 @@ runs:
         [ -n "$STRIPE_PUBLISHABLE_KEY" ] && vars+=("STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY")
         [ -n "$SENTRY_DSN" ] && vars+=("SENTRY_DSN=$SENTRY_DSN")
         az containerapp update \
-          --name car-rental-frontend \
+          --name "${{ inputs.app-prefix }}-frontend" \
           --resource-group "${{ inputs.resource-group }}" \
           --image "${{ inputs.acr-login-server }}/frontend:${{ inputs.image-tag }}" \
           --set-env-vars "${vars[@]}"
@@ -96,12 +105,12 @@ runs:
         [ -n "$TURNSTILE_SITE_KEY" ] && vars+=("TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY")
         [ -n "$SENTRY_DSN" ] && vars+=("SENTRY_DSN=$SENTRY_DSN")
         az containerapp update \
-          --name car-rental-storefront \
+          --name "${{ inputs.app-prefix }}-storefront" \
           --resource-group "${{ inputs.resource-group }}" \
           --image "${{ inputs.acr-login-server }}/storefront:${{ inputs.image-tag }}" \
           --set-env-vars "${vars[@]}"
         az containerapp job update \
-          --name car-rental-sweeper \
+          --name "${{ inputs.app-prefix }}-sweeper" \
           --resource-group "${{ inputs.resource-group }}" \
           --image "${{ inputs.acr-login-server }}/backend:${{ inputs.image-tag }}"
 
