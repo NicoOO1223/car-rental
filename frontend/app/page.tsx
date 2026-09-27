@@ -61,7 +61,6 @@ export default function DashboardPage() {
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [airportFilter, setAirportFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState(todayDateString());
 
   // The relocation list opens at the very top of the overview.
   const [showRelocation, setShowRelocation] = useState(false);
@@ -147,6 +146,12 @@ export default function DashboardPage() {
     loadLocations();
   }, []);
 
+  // Follows the same date chosen for pickups/returns below (its start date;
+  // "All upcoming" has no single date, so it falls back to today), rather
+  // than a second date picker of its own — one choice of date drives the
+  // whole overview.
+  const fleetStatusDate = upcomingStartDate || todayDateString();
+
   useEffect(() => {
     let cancelled = false;
 
@@ -156,7 +161,7 @@ export default function DashboardPage() {
 
       try {
         const data = await getFleetStatus({
-          date: dateFilter,
+          date: fleetStatusDate,
           locationId: airportFilter || undefined,
         });
 
@@ -179,7 +184,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [airportFilter, dateFilter]);
+  }, [airportFilter, fleetStatusDate]);
 
   if (loading) {
     return (
@@ -478,7 +483,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">{t("s.fleetStatus")}</h2>
-                <p className="mt-1 text-sm text-gray-500">{t("s.vehicleStatusAsSelected")}</p>
+                <p className="mt-1 text-sm text-gray-500">{t("s.vehicleStatusAsSelected", { date: formatCalendarDate(fleetStatusDate) })}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -496,14 +501,6 @@ export default function DashboardPage() {
                     </option>
                   ))}
                 </select>
-
-                <input
-                  type="date"
-                  aria-label={t("s.fleetStatusDate")}
-                  value={dateFilter}
-                  onChange={(event) => setDateFilter(event.target.value)}
-                  className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                />
               </div>
             </div>
 
