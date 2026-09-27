@@ -33,7 +33,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L12 | Production hardening | Shipped and live on `demo` |
 | L13 | Business profile and localization | Shipped and live on `demo` |
 | L13c | Fleet cost, insurance and notifications | Shipped and live on `demo` |
-| L14 | Per-customer stacks from a manifest | Shipped. `demo` is the canary; a second real stack is still the remaining proof |
+| L14 | Per-customer stacks from a manifest | Shipped. `demo` is the canary; proven with a second stack, provisioned and deprovisioned again |
 | L13b | Interface and document language | Shipped and live on `demo`. Italian and Polish are drafts awaiting native review |
 | L15 | Public storefront | Shipped and live on `demo`, through the normal push-triggered pipeline. Switched off pending admin setup — see the notes below |
 
@@ -128,9 +128,12 @@ Closed at the same time (the L12 checklist had never been applied to the live st
 - The Stripe webhook endpoint is registered for the live stack, and the route now verifies signatures.
 - The restore drill had been failing daily since L12. It now restores the newest backup, runs the migrations, checks the data, and boots the backend on it.
 
+Proven with a second stack (`acme`, provisioned, verified and deprovisioned again — nothing from it is left running): a different currency (GBP), timezone (Europe/London) and locale (en-GB) applied automatically on first start from its manifest alone; the normal push-triggered release pipeline deployed to it correctly alongside `demo`; it restored from its own backup in the drill; its database sits on the same least-privilege role as `demo`.
+
+This surfaced a real subscription limit worth knowing about: **an Azure subscription can be capped at one Container Apps environment**, in total or per region (a free-trial restriction). `sharedEnvironmentStack` in a manifest is the stopgap — a stack joins another one's environment instead of creating its own, keeping its database, backups and everything else entirely its own, with its app names prefixed by its own slug to avoid colliding with the other stack's. **Not the normal case**: every real customer stack still gets its own environment; reach for this only if the same quota wall comes up again, and ask Azure to raise it (or move to a paid tier) rather than relying on this long-term. Details in `deploy/PROVISIONING.md`.
+
 Not done, on purpose:
 - **Monitoring alerts are still not deployed.** They need an alert email address in `deploy/stacks/demo.json`, then a re-run of `provision.ps1 -Stack demo`.
-- **A second real stack has not been provisioned.** Provision one with a different currency, timezone and branding beside the demo, restore it from its own backup, then deprovision it. This is the remaining item of the definition of done.
 - Custom domains are not automated.
 
 **L15 Public storefront.** Shipped and live on `demo`, switched off. A separate Next.js app (`storefront/`), a `shared/` folder of dependency-free code both frontends import, and the backend's `/api/public/*`. First provisioned by hand (`provision.ps1`) so the live checks could run for real ahead of a push; the release pipeline has since deployed it too (backend, staff frontend, storefront and the sweeper job all rolled out together), and a real gap the first attempt caught — the CI identity had no role covering Container Apps *jobs*, a different resource type from a Container App — is fixed.
@@ -171,9 +174,9 @@ Admin-editable business rules are called **Configuration**. The name **Settings*
 
 ## Definition of done for the first customer
 
-- A fresh stack provisions from scratch in one command and passes a smoke test.
-- A second stack with a different currency, timezone and branding runs correctly beside the first.
-- Every stack restores from its own backup in the drill.
+- ~~A fresh stack provisions from scratch in one command and passes a smoke test.~~
+- ~~A second stack with a different currency, timezone and branding runs correctly beside the first.~~ Proven with `acme` (see L14) and deprovisioned again.
+- ~~Every stack restores from its own backup in the drill.~~
 - The hardening checklist passes, including an external port scan of the database.
 - A storefront booking completes end to end with a real Stripe test payment confirmed by webhook, including the abandoned-tab case.
 - A booking that is never paid expires and frees the car.
