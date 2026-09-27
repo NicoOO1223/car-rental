@@ -11,8 +11,11 @@ set -euo pipefail
 
 API_URL="${1:?usage: smoke-test.sh <api-url> <frontend-url> [expected-business-name]}"
 FRONTEND_URL="${2:?usage: smoke-test.sh <api-url> <frontend-url> [expected-business-name]}"
-EXPECTED_NAME="${3:-}"
-STOREFRONT_URL="${4:-}"
+# "-" stands for "no value": provision.ps1 uses it because PowerShell's call
+# operator drops a genuinely empty argument to a native command, which would
+# otherwise shift the argument after it into this one's place.
+EXPECTED_NAME="${3:-}"; [ "$EXPECTED_NAME" = "-" ] && EXPECTED_NAME=""
+STOREFRONT_URL="${4:-}"; [ "$STOREFRONT_URL" = "-" ] && STOREFRONT_URL=""
 
 # A scaled-to-zero app needs time to start, and a new revision needs time to
 # become ready.

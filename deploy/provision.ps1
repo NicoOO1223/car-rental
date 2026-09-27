@@ -227,6 +227,29 @@ function Set-BackendProbes {
     if ($LASTEXITCODE -ne 0) { throw "FAILED: set backend probes" }
 }
 
+function Set-SweeperCommand([string]$Image, [string[]]$EnvVars) {
+    # `az containerapp job update --command --args` mis-parses an argument
+    # that starts with "-" (here, "-m") as a stray option and fails with
+    # "unrecognized arguments", so the command, args and env are set together
+    # as YAML instead, the same way Set-BackendProbes sets probes.
+    $job = az containerapp job show --name car-rental-sweeper --resource-group $rg --output json | ConvertFrom-Json
+    $container = $job.properties.template.containers[0]
+    $container.image = $Image
+    $container | Add-Member -NotePropertyName command -NotePropertyValue @("python") -Force
+    $container | Add-Member -NotePropertyName args -NotePropertyValue @("-m", "app.jobs.expire_holds") -Force
+    $container.env = @($EnvVars | ForEach-Object {
+        $name, $value = $_ -split "=", 2
+        if ($value -like "secretref:*") { @{ name = $name; secretRef = $value.Substring(10) } }
+        else { @{ name = $name; value = $value } }
+    })
+    $yamlPath = Join-Path $env:TEMP "sweeper-$Stack.yaml"
+    $json = @{ properties = @{ template = @{ containers = @($container) } } } | ConvertTo-Json -Depth 20
+    # No byte-order mark: the YAML parser in the CLI rejects one.
+    [System.IO.File]::WriteAllText($yamlPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+    az containerapp job update --name car-rental-sweeper --resource-group $rg --yaml $yamlPath --output none
+    if ($LASTEXITCODE -ne 0) { throw "FAILED: set sweeper command" }
+}
+
 function Grant-AcrPull([string]$App) {
     # Idempotent safety net in case the create-time role assignment did not take.
     $principal = az containerapp show --name $App --resource-group $rg --query identity.principalId -o tsv
@@ -413,10 +436,7 @@ if ($storefrontEnabled) {
         $jobEnv += "STRIPE_SECRET_KEY=secretref:stripe-secret-key"
     }
     Invoke-Checked { az containerapp job secret set --name car-rental-sweeper --resource-group $rg --secrets @jobSecrets --output none } "set sweeper secrets"
-    Invoke-Checked {
-        az containerapp job update --name car-rental-sweeper --resource-group $rg --image $backendImage `
-            --command "python" --args "-m" "app.jobs.expire_holds" --set-env-vars @jobEnv --output none
-    } "deploy sweeper job"
+    if (-not $DryRun) { Set-SweeperCommand -Image $backendImage -EnvVars $jobEnv } else { Write-Host "[dry-run] set sweeper image, command and env" -ForegroundColor DarkGray }
 }
 
 # The backend answers the staff app and, when there is one, the storefront.
@@ -550,7 +570,16 @@ if ($DryRun) {
     # Git's bash, not the bash.exe Windows ships (which starts WSL).
     $gitBash = @("$env:ProgramFiles\Git\bin\bash.exe", "${env:ProgramFiles(x86)}\Git\bin\bash.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $gitBash) { throw "Git Bash was not found. Install Git for Windows to run the smoke test." }
-    & $gitBash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedName $storefrontUrl
+    # PowerShell's call operator silently drops an empty-string argument to a
+    # native command instead of passing it through, which shifts every
+    # argument after it one place to the left — smoke-test.sh would read the
+    # storefront's address as the expected business name. A stack with no
+    # business name set (like the operator's own) hits this on every run, so
+    # a placeholder stands in for "no value" and smoke-test.sh turns it back
+    # into empty.
+    $expectedNameArg = if ($expectedName) { $expectedName } else { "-" }
+    $storefrontUrlArg = if ($storefrontUrl) { $storefrontUrl } else { "-" }
+    & $gitBash "$PSScriptRoot/smoke-test.sh" $apiUrl $frontendUrl $expectedNameArg $storefrontUrlArg
     if ($LASTEXITCODE -ne 0) { throw "FAILED: smoke test" }
 }
 
