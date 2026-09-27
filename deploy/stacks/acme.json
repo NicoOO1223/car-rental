@@ -1,0 +1,20 @@
+{
+  "slug": "acme",
+  "resourceGroup": "car-rental-acme-rg",
+  "region": "swedencentral",
+  "canary": false,
+  "backendMinReplicas": 1,
+  "alertEmail": "",
+  "sharedEnvironmentStack": "demo",
+  "business": {
+    "name": "Acme Rentals",
+    "legalName": "Acme Rentals Ltd",
+    "currency": "gbp",
+    "timezone": "Europe/London",
+    "locale": "en-GB",
+    "defaultLanguage": "en",
+    "documentLanguage": "en",
+    "vatRate": 20,
+    "pricesIncludeVat": true
+  }
+}

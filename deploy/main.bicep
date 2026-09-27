@@ -20,14 +20,18 @@ param postgresAdminUser string = 'carrentaladmin'
 @secure()
 param postgresAdminPassword string
 
+@description('Resource ID of an existing Container Apps environment to use instead of creating one. A stopgap for a subscription capped at one environment in total (or one per region) — every other resource here (database, backups) still stays this stack\'s own. Leave empty for the normal case, one environment per stack.')
+param existingContainerAppsEnvironmentId string = ''
+
 var postgresServerName = 'car-rental-pg-${uniqueSuffix}'
 var logAnalyticsName = 'car-rental-logs'
 var containerAppsEnvName = 'car-rental-env'
 var postgresDbName = 'car_rental'
 var backupStorageAccountName = 'carrentalbak${uniqueSuffix}'
 var backupContainerName = 'pg-backups'
+var sharingEnvironment = !empty(existingContainerAppsEnvironmentId)
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!sharingEnvironment) {
   name: logAnalyticsName
   location: location
   properties: {
@@ -38,14 +42,20 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   }
 }
 
-resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-03-01' = if (!sharingEnvironment) {
   name: containerAppsEnvName
   location: location
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
+        // Bicep can't tell that this resource and logAnalytics always share
+        // the same condition, so it can't rule out logAnalytics being absent
+        // here — but whenever this resource actually deploys, sharingEnvironment
+        // is false and logAnalytics deploys right alongside it.
+        #disable-next-line BCP318 BCP422
         customerId: logAnalytics.properties.customerId
+        #disable-next-line BCP318 BCP422
         sharedKey: logAnalytics.listKeys().primarySharedKey
       }
     }
@@ -211,7 +221,7 @@ resource backupLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPoli
   }
 }
 
-output containerAppsEnvId string = containerAppsEnv.id
+output containerAppsEnvId string = sharingEnvironment ? existingContainerAppsEnvironmentId : containerAppsEnv.id
 output postgresServerFqdn string = postgres.properties.fullyQualifiedDomainName
 output postgresDbName string = postgresDbName
 output backupStorageAccountName string = backupStorageAccountName

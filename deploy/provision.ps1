@@ -88,6 +88,19 @@ $envName = "stack-$Stack"
 $storefrontEnabled = [bool]($manifest.storefront -and $manifest.storefront.enabled)
 $storefrontMinReplicas = if ($manifest.storefront -and $null -ne $manifest.storefront.minReplicas) { [int]$manifest.storefront.minReplicas } else { 0 }
 
+# A stack normally gets its own Container Apps environment. "sharedEnvironmentStack"
+# is a stopgap for a subscription capped at one environment (in total, or per
+# region) — this stack's app names then get a per-stack prefix, since Container
+# Apps ingress needs a name unique across the whole environment they join, not
+# only within this stack's own resource group. Its database and backups are
+# still entirely its own either way.
+$sharedEnvironmentStack = $manifest.sharedEnvironmentStack
+$appPrefix = if ($sharedEnvironmentStack) { "car-rental-$Stack" } else { "car-rental" }
+$backendApp = "$appPrefix-backend"
+$frontendApp = "$appPrefix-frontend"
+$storefrontApp = "$appPrefix-storefront"
+$sweeperJob = "$appPrefix-sweeper"
+
 # --- per-stack secrets, generated once and kept outside the repo ---------------
 
 $stateDir = "$PSScriptRoot\.stacks\$Stack"
@@ -160,9 +173,19 @@ Invoke-Checked { az group create --name $rg --location $region --output none } "
 
 $ciSpObjectId = if ($DryRun) { "<ci sp>" } else { az ad sp show --id $shared.ciAppId --query id -o tsv }
 
+$existingEnvId = ""
+if ($sharedEnvironmentStack) {
+    $otherManifestPath = "$PSScriptRoot\stacks\$sharedEnvironmentStack.json"
+    if (-not (Test-Path $otherManifestPath)) { throw "sharedEnvironmentStack '$sharedEnvironmentStack' has no manifest at $otherManifestPath" }
+    $otherManifest = Get-Content $otherManifestPath -Raw | ConvertFrom-Json
+    $existingEnvId = if ($DryRun) { "<shared env id>" } else { az containerapp env show --name car-rental-env --resource-group $otherManifest.resourceGroup --query id -o tsv }
+}
+
 if (-not $DryRun) {
+    $bicepParams = @("uniqueSuffix=$suffix", "postgresAdminPassword=$pgPassword", "backupPrincipalObjectId=$ciSpObjectId", "location=$region")
+    if ($existingEnvId) { $bicepParams += "existingContainerAppsEnvironmentId=$existingEnvId" }
     $deployJson = az deployment group create --resource-group $rg --template-file "$PSScriptRoot\main.bicep" `
-        --parameters uniqueSuffix=$suffix postgresAdminPassword=$pgPassword backupPrincipalObjectId=$ciSpObjectId location=$region `
+        --parameters @bicepParams `
         --query properties.outputs --output json
     if ($LASTEXITCODE -ne 0) { throw "FAILED: stack infrastructure deployment" }
     $infra = $deployJson | ConvertFrom-Json
@@ -205,14 +228,40 @@ if ($storefrontEnabled) {
 
 # --- 3. the backend ------------------------------------------------------------------
 
-function Set-BackendProbes {
+function Get-ContainerTemplate([bool]$IsJob, [string]$Name) {
+    # Reads back a Container App (or job)'s own template right after changing
+    # it. Azure's control plane can in principle still be applying that
+    # change a moment later, so this waits for provisioningState to settle
+    # rather than failing on that, though in practice the read has always
+    # come back correct on the first try.
+    $lastState = "<no response>"
+    for ($attempt = 1; $attempt -le 6; $attempt++) {
+        $resource = if ($IsJob) {
+            az containerapp job show --name $Name --resource-group $rg --output json | ConvertFrom-Json
+        } else {
+            az containerapp show --name $Name --resource-group $rg --output json | ConvertFrom-Json
+        }
+        $lastState = $resource.properties.provisioningState
+        $count = $resource.properties.template.containers.Count
+        Write-Host "  (${Name}: attempt $attempt, provisioningState=$lastState, containers=$count)"
+        if ($lastState -eq "Succeeded" -and $count -gt 0) { return $resource }
+        Start-Sleep -Seconds 5
+    }
+    throw "FAILED: $Name did not settle (last provisioningState: $lastState) after several attempts to read it back"
+}
+
+function Set-BackendProbes([string]$App) {
     # The az containerapp create/update flags cannot set health probes, so
     # this reads the app, adds them and applies the result as YAML.
     #  - Startup: gives migrations plus boot up to 150s before liveness starts.
     #  - Liveness: /health restarts a hung process, without touching the database.
     #  - Readiness: /ready keeps a revision that cannot reach the database out of traffic.
-    $app = az containerapp show --name car-rental-backend --resource-group $rg --output json | ConvertFrom-Json
-    $container = $app.properties.template.containers[0]
+    # Deliberately not "$app": PowerShell variable names are case-insensitive,
+    # so that would be the very same variable as the $App parameter above —
+    # assigning it here would silently coerce this object back to a string
+    # (retaining $App's declared [string] type), corrupting it.
+    $current = Get-ContainerTemplate $false $App
+    $container = $current.properties.template.containers[0]
     $probes = @(
         @{ type = "Startup";   httpGet = @{ path = "/health"; port = 8000 }; periodSeconds = 5;  failureThreshold = 30 },
         @{ type = "Liveness";  httpGet = @{ path = "/health"; port = 8000 }; periodSeconds = 30; failureThreshold = 3; timeoutSeconds = 5 },
@@ -223,16 +272,16 @@ function Set-BackendProbes {
     $json = @{ properties = @{ template = @{ containers = @($container) } } } | ConvertTo-Json -Depth 20
     # No byte-order mark: the YAML parser in the CLI rejects one.
     [System.IO.File]::WriteAllText($yamlPath, $json, (New-Object System.Text.UTF8Encoding($false)))
-    az containerapp update --name car-rental-backend --resource-group $rg --yaml $yamlPath --output none
+    az containerapp update --name $App --resource-group $rg --yaml $yamlPath --output none
     if ($LASTEXITCODE -ne 0) { throw "FAILED: set backend probes" }
 }
 
-function Set-SweeperCommand([string]$Image, [string[]]$EnvVars) {
+function Set-SweeperCommand([string]$JobName, [string]$Image, [string[]]$EnvVars) {
     # `az containerapp job update --command --args` mis-parses an argument
     # that starts with "-" (here, "-m") as a stray option and fails with
     # "unrecognized arguments", so the command, args and env are set together
     # as YAML instead, the same way Set-BackendProbes sets probes.
-    $job = az containerapp job show --name car-rental-sweeper --resource-group $rg --output json | ConvertFrom-Json
+    $job = Get-ContainerTemplate $true $JobName
     $container = $job.properties.template.containers[0]
     $container.image = $Image
     $container | Add-Member -NotePropertyName command -NotePropertyValue @("python") -Force
@@ -246,7 +295,7 @@ function Set-SweeperCommand([string]$Image, [string[]]$EnvVars) {
     $json = @{ properties = @{ template = @{ containers = @($container) } } } | ConvertTo-Json -Depth 20
     # No byte-order mark: the YAML parser in the CLI rejects one.
     [System.IO.File]::WriteAllText($yamlPath, $json, (New-Object System.Text.UTF8Encoding($false)))
-    az containerapp job update --name car-rental-sweeper --resource-group $rg --yaml $yamlPath --output none
+    az containerapp job update --name $JobName --resource-group $rg --yaml $yamlPath --output none
     if ($LASTEXITCODE -ne 0) { throw "FAILED: set sweeper command" }
 }
 
@@ -261,19 +310,19 @@ function Grant-AcrPull([string]$App) {
 Write-Step "Backend"
 $backendImage = "$acrLoginServer/backend:$ImageTag"
 $exists = $false
-if (-not $DryRun) { az containerapp show --name car-rental-backend --resource-group $rg --output none 2>$null; $exists = ($LASTEXITCODE -eq 0) }
+if (-not $DryRun) { az containerapp show --name $backendApp --resource-group $rg --output none 2>$null; $exists = ($LASTEXITCODE -eq 0) }
 
 if (-not $exists) {
     # The image cannot be pulled until the app's identity has AcrPull, so the
     # app is created from a public placeholder and switched to the real image
     # once the role and registry are wired up.
     Invoke-Checked {
-        az containerapp create --name car-rental-backend --resource-group $rg --environment $containerAppsEnvId `
+        az containerapp create --name $backendApp --resource-group $rg --environment $containerAppsEnvId `
             --image "mcr.microsoft.com/k8se/quickstart:latest" --target-port 8000 --ingress external `
             --min-replicas $minReplicas --max-replicas 1 --cpu 0.25 --memory 0.5Gi --system-assigned --output none
     } "create backend container app"
 }
-if (-not $DryRun) { Grant-AcrPull "car-rental-backend" }
+if (-not $DryRun) { Grant-AcrPull $backendApp }
 
 $firstAdmin = [bool]$AdminEmail
 $isNew = -not $exists
@@ -286,7 +335,7 @@ $isNew = -not $exists
 $secretArgs = @("migration-database-url=$migrationDatabaseUrl", "secret-key=$secretKey")
 if ($isNew -or $UseAppRole) { $secretArgs += "database-url=$databaseUrl" }
 $existingSecrets = @()
-if ($exists -and -not $DryRun) { $existingSecrets = @(az containerapp secret list --name car-rental-backend --resource-group $rg --query "[].name" -o tsv) }
+if ($exists -and -not $DryRun) { $existingSecrets = @(az containerapp secret list --name $backendApp --resource-group $rg --query "[].name" -o tsv) }
 
 # Container Apps refuses an empty secret, so an optional secret with no value
 # simply does not exist, and the setting that would refer to it is left out.
@@ -303,11 +352,14 @@ foreach ($secret in $optionalSecrets) {
     if ($secret.Value -or ($existingSecrets -contains $secret.Name)) { $optionalEnv += "$($secret.Env)=secretref:$($secret.Name)" }
 }
 if ($firstAdmin) { $secretArgs += "initial-admin-password=$adminPassword" }
-Invoke-Checked { az containerapp secret set --name car-rental-backend --resource-group $rg --secrets @secretArgs --output none } "set backend secrets"
+Invoke-Checked { az containerapp secret set --name $backendApp --resource-group $rg --secrets @secretArgs --output none } "set backend secrets"
 
 $businessB64 = ""
 if ($manifest.business) {
-    $businessB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($manifest.business | ConvertTo-Json -Compress)))
+    # URL-safe and unpadded: a "=" in the value broke az CLI's --set-env-vars
+    # parsing (it expects exactly one KEY=VALUE separator) the first time this
+    # path actually ran, on the first stack with a real business profile.
+    $businessB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($manifest.business | ConvertTo-Json -Compress))).TrimEnd("=").Replace("+", "-").Replace("/", "_")
 }
 
 $backendEnv = @(
@@ -322,10 +374,10 @@ if ($firstAdmin) {
 # nothing is allowed. An existing stack keeps serving with what it has.
 $corsPending = if ($isNew) { @("CORS_ORIGINS=https://pending.invalid") } else { @() }
 Invoke-Checked {
-    az containerapp update --name car-rental-backend --resource-group $rg --image $backendImage `
+    az containerapp update --name $backendApp --resource-group $rg --image $backendImage `
         --min-replicas $minReplicas --set-env-vars @backendEnv @corsPending --output none
 } "deploy backend image and settings"
-if (-not $DryRun) { Set-BackendProbes }
+if (-not $DryRun) { Set-BackendProbes -App $backendApp }
 
 if ($manifest.alertEmail) {
     Write-Step "Monitoring alerts"
@@ -338,7 +390,7 @@ if ($manifest.alertEmail) {
     Write-Host "No alertEmail in the manifest: monitoring alerts skipped." -ForegroundColor Yellow
 }
 
-$backendFqdn = if ($DryRun) { "<backend fqdn>" } else { az containerapp show --name car-rental-backend --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
+$backendFqdn = if ($DryRun) { "<backend fqdn>" } else { az containerapp show --name $backendApp --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
 $apiUrl = "https://$backendFqdn"
 
 # --- 4. the frontend -----------------------------------------------------------------
@@ -346,15 +398,15 @@ $apiUrl = "https://$backendFqdn"
 Write-Step "Frontend"
 $frontendImage = "$acrLoginServer/frontend:$ImageTag"
 $fexists = $false
-if (-not $DryRun) { az containerapp show --name car-rental-frontend --resource-group $rg --output none 2>$null; $fexists = ($LASTEXITCODE -eq 0) }
+if (-not $DryRun) { az containerapp show --name $frontendApp --resource-group $rg --output none 2>$null; $fexists = ($LASTEXITCODE -eq 0) }
 if (-not $fexists) {
     Invoke-Checked {
-        az containerapp create --name car-rental-frontend --resource-group $rg --environment $containerAppsEnvId `
+        az containerapp create --name $frontendApp --resource-group $rg --environment $containerAppsEnvId `
             --image "mcr.microsoft.com/k8se/quickstart:latest" --target-port 3000 --ingress external `
             --min-replicas 0 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --system-assigned --output none
     } "create frontend container app"
 }
-if (-not $DryRun) { Grant-AcrPull "car-rental-frontend" }
+if (-not $DryRun) { Grant-AcrPull $frontendApp }
 
 # The frontend reads these when it runs, so the same image serves every stack.
 # The environment variables are given a value even when empty on a new app,
@@ -363,11 +415,11 @@ $frontendEnv = @("API_URL=$apiUrl")
 if (-not $fexists -or $StripePublishableKey) { $frontendEnv += "STRIPE_PUBLISHABLE_KEY=$StripePublishableKey" }
 if (-not $fexists -or $SentryDsn) { $frontendEnv += "SENTRY_DSN=$SentryDsn" }
 Invoke-Checked {
-    az containerapp update --name car-rental-frontend --resource-group $rg --image $frontendImage `
+    az containerapp update --name $frontendApp --resource-group $rg --image $frontendImage `
         --set-env-vars @frontendEnv --output none
 } "deploy frontend image and settings"
 
-$frontendFqdn = if ($DryRun) { "<frontend fqdn>" } else { az containerapp show --name car-rental-frontend --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
+$frontendFqdn = if ($DryRun) { "<frontend fqdn>" } else { az containerapp show --name $frontendApp --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
 $frontendUrl = "https://$frontendFqdn"
 
 # --- 4b. the public storefront and the hold sweeper ---------------------------------------
@@ -377,19 +429,19 @@ if ($storefrontEnabled) {
     Write-Step "Storefront"
     $storefrontImage = "$acrLoginServer/storefront:$ImageTag"
     $sexists = $false
-    if (-not $DryRun) { az containerapp show --name car-rental-storefront --resource-group $rg --output none 2>$null; $sexists = ($LASTEXITCODE -eq 0) }
+    if (-not $DryRun) { az containerapp show --name $storefrontApp --resource-group $rg --output none 2>$null; $sexists = ($LASTEXITCODE -eq 0) }
     if (-not $sexists) {
         Invoke-Checked {
-            az containerapp create --name car-rental-storefront --resource-group $rg --environment $containerAppsEnvId `
+            az containerapp create --name $storefrontApp --resource-group $rg --environment $containerAppsEnvId `
                 --image "mcr.microsoft.com/k8se/quickstart:latest" --target-port 3000 --ingress external `
                 --min-replicas $storefrontMinReplicas --max-replicas 2 --cpu 0.25 --memory 0.5Gi --system-assigned --output none
         } "create storefront container app"
     }
-    if (-not $DryRun) { Grant-AcrPull "car-rental-storefront" }
+    if (-not $DryRun) { Grant-AcrPull $storefrontApp }
 
     # Its own address is part of its settings, so it is read first and the
     # settings are applied together with the real image.
-    $storefrontFqdn = if ($DryRun) { "<storefront fqdn>" } else { az containerapp show --name car-rental-storefront --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
+    $storefrontFqdn = if ($DryRun) { "<storefront fqdn>" } else { az containerapp show --name $storefrontApp --resource-group $rg --query properties.configuration.ingress.fqdn -o tsv }
     $storefrontUrl = "https://$storefrontFqdn"
 
     $storefrontEnv = @("API_URL=$apiUrl", "STOREFRONT_URL=$storefrontUrl")
@@ -397,7 +449,7 @@ if ($storefrontEnabled) {
     if (-not $sexists -or $TurnstileSiteKey) { $storefrontEnv += "TURNSTILE_SITE_KEY=$TurnstileSiteKey" }
     if (-not $sexists -or $SentryDsn) { $storefrontEnv += "SENTRY_DSN=$SentryDsn" }
     Invoke-Checked {
-        az containerapp update --name car-rental-storefront --resource-group $rg --image $storefrontImage `
+        az containerapp update --name $storefrontApp --resource-group $rg --image $storefrontImage `
             --min-replicas $storefrontMinReplicas --set-env-vars @storefrontEnv --output none
     } "deploy storefront image and settings"
 
@@ -406,19 +458,19 @@ if ($storefrontEnabled) {
     # minutes. It bypasses the image entrypoint (no migrations, no server) by
     # giving its own command.
     $jobExists = $false
-    if (-not $DryRun) { az containerapp job show --name car-rental-sweeper --resource-group $rg --output none 2>$null; $jobExists = ($LASTEXITCODE -eq 0) }
+    if (-not $DryRun) { az containerapp job show --name $sweeperJob --resource-group $rg --output none 2>$null; $jobExists = ($LASTEXITCODE -eq 0) }
     if (-not $jobExists) {
         Invoke-Checked {
-            az containerapp job create --name car-rental-sweeper --resource-group $rg --environment $containerAppsEnvId `
+            az containerapp job create --name $sweeperJob --resource-group $rg --environment $containerAppsEnvId `
                 --trigger-type Schedule --cron-expression "*/5 * * * *" --replica-timeout 300 --replica-retry-limit 0 `
                 --replica-completion-count 1 --parallelism 1 --image "mcr.microsoft.com/k8se/quickstart-jobs:latest" `
                 --cpu 0.25 --memory 0.5Gi --mi-system-assigned --output none
         } "create sweeper job"
     }
     if (-not $DryRun) {
-        $jobPrincipal = az containerapp job show --name car-rental-sweeper --resource-group $rg --query identity.principalId -o tsv
+        $jobPrincipal = az containerapp job show --name $sweeperJob --resource-group $rg --query identity.principalId -o tsv
         az role assignment create --assignee $jobPrincipal --role AcrPull --scope $acrId --output none 2>$null
-        az containerapp job registry set --name car-rental-sweeper --resource-group $rg --server $acrLoginServer --identity system --output none
+        az containerapp job registry set --name $sweeperJob --resource-group $rg --server $acrLoginServer --identity system --output none
         if ($LASTEXITCODE -ne 0) { throw "FAILED: set sweeper registry identity" }
     }
 
@@ -427,7 +479,7 @@ if ($storefrontEnabled) {
     # not given again.
     $sweeperStripeKey = $StripeSecretKey
     if (-not $sweeperStripeKey -and -not $DryRun -and ($existingSecrets -contains "stripe-secret-key")) {
-        $sweeperStripeKey = (az containerapp secret show --name car-rental-backend --resource-group $rg --secret-name stripe-secret-key --query value -o tsv)
+        $sweeperStripeKey = (az containerapp secret show --name $backendApp --resource-group $rg --secret-name stripe-secret-key --query value -o tsv)
     }
     $jobSecrets = @("database-url=$databaseUrl", "secret-key=$secretKey")
     $jobEnv = @("DATABASE_URL=secretref:database-url", "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production")
@@ -435,14 +487,14 @@ if ($storefrontEnabled) {
         $jobSecrets += "stripe-secret-key=$sweeperStripeKey"
         $jobEnv += "STRIPE_SECRET_KEY=secretref:stripe-secret-key"
     }
-    Invoke-Checked { az containerapp job secret set --name car-rental-sweeper --resource-group $rg --secrets @jobSecrets --output none } "set sweeper secrets"
-    if (-not $DryRun) { Set-SweeperCommand -Image $backendImage -EnvVars $jobEnv } else { Write-Host "[dry-run] set sweeper image, command and env" -ForegroundColor DarkGray }
+    Invoke-Checked { az containerapp job secret set --name $sweeperJob --resource-group $rg --secrets @jobSecrets --output none } "set sweeper secrets"
+    if (-not $DryRun) { Set-SweeperCommand -JobName $sweeperJob -Image $backendImage -EnvVars $jobEnv } else { Write-Host "[dry-run] set sweeper image, command and env" -ForegroundColor DarkGray }
 }
 
 # The backend answers the staff app and, when there is one, the storefront.
 $corsOrigins = if ($storefrontUrl) { "$frontendUrl,$storefrontUrl" } else { $frontendUrl }
 Invoke-Checked {
-    az containerapp update --name car-rental-backend --resource-group $rg --set-env-vars "CORS_ORIGINS=$corsOrigins" --output none
+    az containerapp update --name $backendApp --resource-group $rg --set-env-vars "CORS_ORIGINS=$corsOrigins" --output none
 } "point the backend CORS at the frontends"
 
 # --- 5. Stripe webhook ---------------------------------------------------------------
@@ -468,7 +520,7 @@ if ($manifest.legacySecrets) {
     # Stripe shows the signing secret only when the endpoint is created.
     $webhookSecret = $endpoint.secret
     Set-Content -Path "$stateDir\webhooksecret" -Value $webhookSecret -NoNewline
-    az containerapp secret set --name car-rental-backend --resource-group $rg --secrets "stripe-webhook-secret=$webhookSecret" --output none
+    az containerapp secret set --name $backendApp --resource-group $rg --secrets "stripe-webhook-secret=$webhookSecret" --output none
     Write-Host "Registered $($endpoint.url)"
 }
 
@@ -550,14 +602,14 @@ if (-not $DryRun) {
 
 Write-Step "Database role"
 if (-not $DryRun -and ($isNew -or $UseAppRole) -and -not $appRoleDone) {
-    az containerapp exec --name car-rental-backend --resource-group $rg --command "python create_app_role.py $appPassword"
+    az containerapp exec --name $backendApp --resource-group $rg --command "python create_app_role.py $appPassword"
     if ($LASTEXITCODE -eq 0) {
         Set-Content -Path "$stateDir\approle" -Value "done" -NoNewline
-        az containerapp secret set --name car-rental-backend --resource-group $rg `
+        az containerapp secret set --name $backendApp --resource-group $rg `
             --secrets "database-url=postgresql+psycopg://carrental_app:${appPassword}@${postgresFqdn}:5432/${postgresDb}?sslmode=require" --output none
     } else {
         Write-Host "Could not create the app role automatically. Run once by hand, then re-run with -UseAppRole:" -ForegroundColor Yellow
-        Write-Host "  az containerapp exec --name car-rental-backend --resource-group $rg --command `"python create_app_role.py $appPassword`""
+        Write-Host "  az containerapp exec --name $backendApp --resource-group $rg --command `"python create_app_role.py $appPassword`""
     }
 } elseif ($DryRun) {
     Write-Host "[dry-run] create the DML-only database role and switch the app to it" -ForegroundColor DarkGray
@@ -592,9 +644,9 @@ if ($DryRun) {
 
 if ($firstAdmin -and -not $DryRun) {
     # The password only had to reach the first start. Take it out of the app.
-    az containerapp update --name car-rental-backend --resource-group $rg `
+    az containerapp update --name $backendApp --resource-group $rg `
         --remove-env-vars INITIAL_ADMIN_EMAIL INITIAL_ADMIN_PASSWORD STACK_BUSINESS_B64 --output none
-    az containerapp secret remove --name car-rental-backend --resource-group $rg --secret-names initial-admin-password --output none
+    az containerapp secret remove --name $backendApp --resource-group $rg --secret-names initial-admin-password --output none
 }
 
 if (-not $DryRun) {

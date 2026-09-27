@@ -37,7 +37,11 @@ def main() -> int:
 
     try:
         encoded = os.environ.get("STACK_BUSINESS_B64", "")
-        business = json.loads(base64.b64decode(encoded).decode("utf-8")) if encoded else {}
+        # URL-safe and unpadded (matches SECRET_KEY's own encoding): a plain
+        # base64 value can end in "=", and passing that through az CLI's
+        # --set-env-vars (KEY=VALUE, one "=" expected) once broke on it.
+        padded = encoded + "=" * (-len(encoded) % 4)
+        business = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8")) if encoded else {}
     except (ValueError, UnicodeDecodeError) as error:
         print(f"Stack setup: STACK_BUSINESS_B64 is not valid base64 JSON ({error}).")
         return 1
