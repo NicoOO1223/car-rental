@@ -140,10 +140,17 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://car_rental:car_rental_dev@localhost:5432/car_rental_e2e
       SECRET_KEY: e2e-placeholder-secret-key-not-for-production
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
       E2E_BASE_URL: http://localhost:3000
+      E2E_STOREFRONT_URL: http://localhost:3001/en
+      E2E_API_URL: http://localhost:8000
       E2E_EMAIL: e2e@example.com
       E2E_PASSWORD: e2e-password-1
+      # A test-mode Stripe key, set as repository secrets, so the storefront's
+      # own booking flow (e2e/storefront.spec.ts) can run for real. Left unset,
+      # it stays green: that spec's transactional tests skip themselves.
+      STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -183,11 +190,25 @@ jobs:
             sleep 2
           done
 
+      - name: Build and start the storefront
+        working-directory: storefront
+        env:
+          API_URL: http://localhost:8000
+          STOREFRONT_URL: http://localhost:3001
+        run: |
+          npm ci
+          npm run build
+          npx next start --port 3001 &
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3001/health > /dev/null && break
+            sleep 2
+          done
+
       - name: Install the test browser
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run the flow test
+      - name: Run the flow tests (staff and storefront)
         working-directory: frontend
         run: npm run test:e2e
 

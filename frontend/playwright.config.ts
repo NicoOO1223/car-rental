@@ -1,10 +1,15 @@
 import { defineConfig } from "@playwright/test";
 
 // End-to-end tests drive a real browser against a running stack (the API on a
-// scratch database, and the built frontend). Where they run is given by the
-// environment, so the same tests run locally and in CI:
-//   E2E_BASE_URL   the frontend, default http://localhost:3020
+// scratch database, the built staff frontend, and the built storefront).
+// Where they run is given by the environment, so the same tests run locally
+// and in CI:
+//   E2E_BASE_URL         the staff frontend, default http://localhost:3020
+//   E2E_STOREFRONT_URL   the storefront, default http://localhost:3021/en
+//   E2E_API_URL          the backend, default http://localhost:8000
 //   E2E_EMAIL / E2E_PASSWORD   an administrator on that stack
+//   STRIPE_SECRET_KEY    a test-mode key; without one, e2e/storefront.spec.ts
+//                        skips the tests that need a real online payment
 //   E2E_CHROME=1   use the Chrome installed on this machine instead of
 //                  Playwright's own download (handy locally)
 export default defineConfig({

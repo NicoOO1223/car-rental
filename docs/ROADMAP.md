@@ -1,6 +1,6 @@
 # Roadmap
 
-Status as of 2026-09-28. Update this file whenever a layer ships or a decision changes. Until now the layer scheme lived only in planning sessions and commit messages, so treat this as the single record.
+Status as of 2026-09-27. Update this file whenever a layer ships or a decision changes. Until now the layer scheme lived only in planning sessions and commit messages, so treat this as the single record.
 
 ## Direction
 
@@ -35,6 +35,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L13c | Fleet cost, insurance and notifications | Built and committed, not yet deployed. See the notes below |
 | L14 | Per-customer stacks from a manifest | Built and committed locally. Needs the rollout steps below, then a proof stack |
 | L13b | Interface and document language | Built and committed, not yet deployed. Italian and Polish are drafts awaiting native review. See the notes below |
+| L15 | Public storefront | Built and committed locally, not yet pushed. Provisioned by hand onto the live `demo` stack, switched off. See the notes below |
 
 ## Next layers
 
@@ -132,12 +133,28 @@ Not done, on purpose:
 - **A second real stack has not been provisioned.** Provision one with a different currency, timezone and branding beside the demo, restore it from its own backup, then deprovision it. This is the remaining item of the definition of done.
 - Custom domains are not automated.
 
-**L15 Public storefront.**
-- Add public routes outside the auth guard with an explicit allowlist, and unauthenticated availability, quote, booking and payment endpoints.
-- Add rate limiting and bot protection. Unpaid online bookings must expire, because pending reservations block availability and spam could lock the fleet.
-- Take payment at booking through webhooks, support guest checkout, capture consent and show a privacy notice, and apply operator branding from L13.
-- Confirm on screen with a booking reference and a lookup page until email exists.
-- Open questions: auto-confirm on payment versus staff confirmation, and whether the storefront is a route group in the existing app.
+**L15 Public storefront.** Built and committed locally; not yet pushed to the shared repository. The demo stack's storefront app, sweeper job, CORS and Turnstile keys were provisioned by hand (`provision.ps1`) directly from this branch so the live checks below could run for real — that is separate from, and ahead of, the normal push-triggered release pipeline, which has not carried this layer yet. A separate Next.js app (`storefront/`), a `shared/` folder of dependency-free code both frontends import, and the backend's `/api/public/*`.
+- **Booking, without an account.** A renter searches by place and dates, picks an offer (cars that look the same to a renter — make, model, spec, price — are grouped so no plate or internal id is ever exposed), adds extras, gives their details, accepts the terms and privacy notice, and pays a share online with Stripe. The rest is paid at pickup. A brand-new `Customer` row is created every time, with the terms/privacy version and timestamp recorded.
+- **Confirmation is automatic.** One idempotent success path (the Stripe webhook, the browser's own post-payment check, and a sweeper job, whichever notices first) confirms the booking and issues an advance invoice for the amount collected. A payment that arrives after the hold ran out is honoured if the car is still free, refunded in full if it was not.
+- **Holds and races.** An unpaid booking holds its car for an admin-set number of minutes as `AWAITING_PAYMENT`, then expires; a new `car-rental-sweeper` Container Apps job (every 5 minutes) frees expired holds and cancels their Stripe payments. Two requests for the same car are serialised with a row lock, closing a real double-booking gap the audit found. Availability now follows where a car will actually be (a one-way return moves it) and a car's live status no longer gates a future booking — only overlapping reservations and maintenance do.
+- **After booking:** an on-screen reference (`ABCD-2345`) and, for later, a lookup page (reference plus email) that hands the browser a 60-minute token scoped only to that one booking. A renter can cancel their own booking from there.
+- **Cancellation policy.** The online share is refunded in full up to an admin-set cutoff before pickup, and kept after it (and always kept for a no-show). Staff can override the policy for one cancellation, and can mark a no-show.
+- **Bot and abuse protection.** Cloudflare Turnstile on booking and lookup, per-address rate limits on every public endpoint, and database-backed caps (3 live holds per address, 2 per email, a global ceiling) that survive a restart. A stack with no Turnstile secret refuses to take bookings in production rather than run open.
+- **Staff side.** The reservation list and detail page show the online booking, its reference, what was paid, and the cancellation deadline; check-in shows what was already paid online and takes only the remainder (or settles a fully-prepaid rental with no payment at all); a new Configuration → Online booking page holds the on/off switch, the share percentage, the cancellation window, the hold length and the terms/privacy text; a per-car "offered online" switch; a notification for new online bookings.
+- **Languages:** en, it, pl, same as the staff app, each behind its own `/en`, `/it`, `/pl` route.
+- **Verification:** the whole backend suite, a repo Playwright spec (`frontend/e2e/storefront.spec.ts`) that books, pays with a Stripe test card, has staff take the remainder and complete the rental, and separately cancels a booking and checks the refund — skipped automatically where no test-mode Stripe key is configured.
+
+Decisions and gaps to know about:
+- **The demo stack's backend runs with zero minimum replicas** to save cost, so it occasionally takes 10-30+ seconds to wake up. The storefront's own public-facing fetches were made to tolerate that (a 25s timeout, not the 5s that first showed visitors a "having trouble" page instead of the correct "booking is off" one). **To do once a real customer exists:** give that stack's backend a minimum of one replica (`-BackendMinReplicas 1` in `provision.ps1`, already the default for a new customer manifest) so a visitor never meets a cold start at all.
+- **The storefront's Content-Security-Policy is Report-Only**, the same posture the staff app started in (see the L12 checklist). Watch its reports for a while on a real stack before switching it to enforcing.
+- **Italian and Polish storefront text is Claude's draft**, not yet reviewed by a native speaker — the same gap as L13b, now covering a second catalog (`storefront/messages/*.json`).
+- **Owner decisions still open, matching the plan:** the advance-invoice document name and wording per country (Italy "fattura di acconto", Poland "faktura zaliczkowa" — confirm with an accountant), the VAT treatment and wording of an online share kept after a late cancellation, whether a zero-remainder final invoice is issued, and the "or similar" wording next to an offered car.
+- Not covered: a custom domain for the storefront (same gap as L14), and the real legal text itself (L16).
+
+Deployment notes:
+1. Push (not yet done). The migration is additive and defaults `storefront_enabled` to false, so nothing changes for an existing stack until an admin turns it on.
+2. Provision the storefront app and the sweeper job for a stack with `deploy/provision.ps1 -Stack <slug> -TurnstileSiteKey ... -TurnstileSecretKey ...` (needs a Turnstile widget created for that stack's storefront address first; see `deploy/PROVISIONING.md`). Done by hand for `demo`.
+3. As an admin, add the terms and privacy text (or links) and set the share percentage, cancellation window and hold length under Configuration, Online booking, then switch it on. Not yet done for `demo`: it is provisioned but still switched off.
 
 **L16 Legal pack.** Not code, and can start now. Terms of service, privacy policy, data-processing agreement, real rental agreement copy and storefront terms.
 
