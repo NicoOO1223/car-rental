@@ -7,6 +7,7 @@ from app.main import app
 from app.models import Extra
 
 from tests.test_reservations import (
+    confirm_reservation,
     create_reservation,
     ensure_car_available,
     get_car_by_plate,
@@ -215,6 +216,7 @@ def test_quote_reports_unavailability_without_withholding_the_price():
         "2027-05-01T10:00:00Z",
         "2027-05-05T10:00:00Z",
     )
+    confirm_reservation(reservation["id"])
 
     try:
         body = quote(

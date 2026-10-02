@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
 import { CancelWithRefundModal } from "@/components/reservations/CancelWithRefundModal";
 import { OnlineBookingCard } from "@/components/reservations/OnlineBookingCard";
+import { OverlappingReservationsCard } from "@/components/reservations/OverlappingReservationsCard";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
 import {
   bookingReference,
@@ -319,12 +320,24 @@ export default function ReservationDetailsPage({
               </p>
             </div>
 
-            <div className="text-left md:text-right">
-              <p className="text-sm text-gray-500">{t("s.reservations.manage.id.rentalDuration")}</p>
+            <div className="flex gap-8 text-left md:text-right">
+              <div>
+                <p className="text-sm text-gray-500">{t("s.reservations.manage.id.rentalDuration")}</p>
 
-              <p className="text-2xl font-semibold">
-                {t("duration.days", { count: rentalDays })}
-              </p>
+                <p className="text-2xl font-semibold">
+                  {t("duration.days", { count: rentalDays })}
+                </p>
+              </div>
+
+              {reservation.agreed_total_amount !== null && (
+                <div>
+                  <p className="text-sm text-gray-500">{t("s.reservations.manage.id.totalPrice")}</p>
+
+                  <p className="text-2xl font-semibold">
+                    {formatCurrency(reservation.agreed_total_amount)}
+                  </p>
+                </div>
+              )}
             </div>
 
           </div>
@@ -661,6 +674,10 @@ export default function ReservationDetailsPage({
             </section>
 
             <OnlineBookingCard reservation={reservation} />
+
+            {reservation.status === "PENDING" && (
+              <OverlappingReservationsCard reservationId={reservation.id} />
+            )}
 
             {/* Actions */}
             <section className="rounded-xl bg-surface p-6 shadow-sm">

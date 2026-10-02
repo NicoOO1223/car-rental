@@ -127,6 +127,20 @@ def force_reservation_status(
         db.close()
 
 
+def confirm_reservation(reservation_id: str) -> dict:
+    """
+    Approves a PENDING reservation through the real endpoint, the same way
+    staff does. A PENDING request no longer blocks anything by itself (see
+    app/services/availability.py) — tests that need an actual commitment in
+    the way of something else call this after create_reservation().
+    """
+
+    response = client.patch(f"/api/reservations/{reservation_id}/status", json={"status": "CONFIRMED"})
+    assert response.status_code == 200, response.text
+
+    return response.json()
+
+
 def create_reservation(
     car_id: str,
     location_id: str,
@@ -241,6 +255,7 @@ def test_update_reservation_date_conflict_rejected():
         "2026-10-10T10:00:00Z",
         "2026-10-12T10:00:00Z",
     )
+    confirm_reservation(blocking["id"])
 
     other = create_reservation(
         other_car["id"],

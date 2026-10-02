@@ -304,6 +304,7 @@
     },
     "reservation": {
       "cannot_change_status": "Cannot change reservation status from {from_status} to {to_status}.",
+      "cannot_confirm_car_already_reserved": "This car is already confirmed or active for part of this period.",
       "cannot_edit_status": "Cannot edit a {status} reservation.",
       "cannot_move_after_payment": "The car, dates and locations cannot be changed after payment has been taken.",
       "car_already_reserved_part_period": "Car is already reserved for part of this period.",
@@ -794,6 +795,15 @@
         "cancelledBy": "Cancelled by",
         "reason": "{reason, select, RENTER {The renter, on the website} NO_SHOW {No-show} other {Staff}}"
       },
+      "OverlappingReservationsCard": {
+        "title": "Other requests for the same car and dates",
+        "body": "These overlap this request. Approving one does not reject the others — review and reject by hand.",
+        "suggested": "Suggested",
+        "yourReservationSuggested": "This reservation is the suggested pick among these",
+        "reasonRepeatCustomer": "Repeat customer",
+        "reasonHighestValue": "Highest booking value",
+        "reasonRequestedFirst": "Requested first"
+      },
       "CancelWithRefundModal": {
         "title": "Cancel this booking",
         "withinPolicy": "Cancelling up to {date} at {time} gives the online payment back.",
@@ -1108,7 +1118,7 @@
       "insured": "Insured",
       "insuredUntil": "Insured until {date}",
       "pendingCompletedCancelledReservations": "Pending, completed, and cancelled reservations aren't shown here.",
-      "awayHome": "Away · home {airport_code}",
+      "awayHome": "Away · now at {airport_code}",
       "noBookingsRange": "No bookings in this range",
       "vehicleDetails": "Vehicle Details",
       "liveStatus": "Live status: {status}",
@@ -1482,6 +1492,7 @@
           "edit": "Edit",
           "booking": "Booking",
           "rentalDuration": "Rental duration",
+          "totalPrice": "Total price",
           "customer": "Customer",
           "viewCustomer": "View customer",
           "customerReservation": "Customer for this reservation",

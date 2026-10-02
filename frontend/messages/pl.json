@@ -304,6 +304,7 @@
     },
     "reservation": {
       "cannot_change_status": "Nie można zmienić statusu rezerwacji z {from_status} na {to_status}.",
+      "cannot_confirm_car_already_reserved": "Ten samochód jest już potwierdzony lub aktywny na część tego okresu.",
       "cannot_edit_status": "Nie można edytować rezerwacji o statusie: {status}.",
       "cannot_move_after_payment": "Samochodu, dat i lokalizacji nie można zmienić po przyjęciu płatności.",
       "car_already_reserved_part_period": "Pojazd jest już zarezerwowany na część tego okresu.",
@@ -794,6 +795,15 @@
         "cancelledBy": "Anulowane przez",
         "reason": "{reason, select, RENTER {Klient, na stronie} NO_SHOW {Niestawienie się} other {Pracownik}}"
       },
+      "OverlappingReservationsCard": {
+        "title": "Inne żądania na ten samochód i te terminy",
+        "body": "Te rezerwacje nakładają się na to żądanie. Zatwierdzenie jednej nie odrzuca innych — sprawdź i odrzuć je ręcznie.",
+        "suggested": "Sugerowana",
+        "yourReservationSuggested": "Ta rezerwacja jest sugerowanym wyborem wśród nich",
+        "reasonRepeatCustomer": "Stały klient",
+        "reasonHighestValue": "Najwyższa wartość rezerwacji",
+        "reasonRequestedFirst": "Zgłoszona pierwsza"
+      },
       "CancelWithRefundModal": {
         "title": "Anuluj tę rezerwację",
         "withinPolicy": "Anulowanie do {date}, godz. {time}, zwraca płatność online.",
@@ -1108,7 +1118,7 @@
       "insured": "Ubezpieczony",
       "insuredUntil": "Ubezpieczony do {date}",
       "pendingCompletedCancelledReservations": "Rezerwacje oczekujące, zakończone i anulowane nie są tu pokazywane.",
-      "awayHome": "Poza bazą · baza {airport_code}",
+      "awayHome": "Poza bazą · teraz w {airport_code}",
       "noBookingsRange": "Brak rezerwacji w tym okresie",
       "vehicleDetails": "Szczegóły pojazdu",
       "liveStatus": "Status na żywo: {status}",
@@ -1482,6 +1492,7 @@
           "edit": "Edytuj",
           "booking": "Rezerwacja",
           "rentalDuration": "Czas trwania wynajmu",
+          "totalPrice": "Cena całkowita",
           "customer": "Klient",
           "viewCustomer": "Zobacz klienta",
           "customerReservation": "Klient tej rezerwacji",

@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import and_, case, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.errors import AppError
 from app.models import Car, Location, MaintenanceTask, Reservation
@@ -11,6 +11,18 @@ from app.services.timezones import day_bounds, zone
 
 ACTIVE_RESERVATION_STATUSES = {
     "PENDING",
+    "CONFIRMED",
+    "ACTIVE",
+}
+
+# Narrower than ACTIVE_RESERVATION_STATUSES: a PENDING reservation is an
+# unreviewed request, not a commitment, so it must not stop anyone else from
+# booking the same car — only something an employee has actually approved
+# (or that is already underway) genuinely blocks. See blocking_reservation_
+# clause() below. ACTIVE_RESERVATION_STATUSES itself stays as it is: the
+# dashboard (get_fleet_status_counts) and the overlap-listing query below
+# both deliberately still want PENDING counted, for their own reasons.
+BLOCKING_RESERVATION_STATUSES = {
     "CONFIRMED",
     "ACTIVE",
 }
@@ -27,9 +39,28 @@ OVERDUE_LIMIT = timedelta(days=3)
 def blocking_reservation_clause(now: datetime | None = None):
     """
     The one definition of "this reservation is in the way of a new booking":
-    pending, confirmed and active ones, plus an online booking that is still
-    waiting for payment and whose hold has not run out. An expired hold stops
-    blocking the moment it expires, whether or not anything has cleaned it up.
+    confirmed and active ones, plus an online booking that is still waiting
+    for payment and whose hold has not run out. An expired hold stops
+    blocking the moment it expires, whether or not anything has cleaned it
+    up. A PENDING reservation — a request nobody has reviewed yet —
+    deliberately does not block; see overlap_candidate_clause() for the
+    separate, wider notion used to show staff what else wants the same car.
+    """
+
+    now = now or datetime.now(timezone.utc)
+
+    return or_(
+        Reservation.status.in_(BLOCKING_RESERVATION_STATUSES),
+        and_(Reservation.status == "AWAITING_PAYMENT", Reservation.hold_expires_at > now),
+    )
+
+
+def overlap_candidate_clause(now: datetime | None = None):
+    """
+    Wider than blocking_reservation_clause(): also counts a PENDING request.
+    Used only to show staff what else wants the same car and dates (see
+    list_overlapping_reservations) — never to decide whether a new booking
+    is allowed, which is blocking_reservation_clause()'s job alone.
     """
 
     now = now or datetime.now(timezone.utc)
@@ -105,6 +136,38 @@ def has_conflicting_reservation(
         query = query.where(Reservation.id != exclude_reservation_id)
 
     return db.scalar(query) is not None
+
+
+def list_overlapping_reservations(
+    db: Session,
+    car_id: UUID,
+    pickup_at: datetime,
+    return_at: datetime,
+    exclude_reservation_id: UUID | None = None,
+) -> list[Reservation]:
+    """
+    Every other reservation for this car whose period overlaps the given
+    one, PENDING included — the counterpart of has_conflicting_reservation
+    for display rather than for deciding whether a booking is allowed (see
+    overlap_candidate_clause). Used so staff reviewing one request can see
+    what else wants the same car before approving or rejecting it.
+    """
+
+    query = (
+        select(Reservation)
+        .options(joinedload(Reservation.customer))
+        .where(
+            Reservation.car_id == car_id,
+            overlap_candidate_clause(),
+            Reservation.pickup_at < return_at,
+            blocking_end() > pickup_at,
+        )
+    )
+
+    if exclude_reservation_id is not None:
+        query = query.where(Reservation.id != exclude_reservation_id)
+
+    return list(db.scalars(query.order_by(Reservation.created_at)).all())
 
 
 def _maintenance_overlap_conditions(start: datetime, end: datetime):

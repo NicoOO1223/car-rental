@@ -639,6 +639,40 @@ export async function getReservation(
   return reservation;
 }
 
+export type OverlapCandidate = {
+  id: string;
+  customer_name: string;
+  pickup_at: string;
+  return_at: string;
+  status: string;
+  agreed_total_amount: string | null;
+  is_repeat_customer: boolean;
+  created_at: string;
+};
+
+export type OverlappingReservations = {
+  items: OverlapCandidate[];
+  suggested_id: string | null;
+  /** e.g. ["repeat_customer", "requested_first"] — turned into plain-
+   * language copy by the component, not shown as-is. */
+  suggested_reasons: string[];
+};
+
+/** Other reservations competing for the same car and dates — PENDING
+ * requests no longer block each other, so staff reviewing one needs to see
+ * what else wants the same slot. */
+export async function getOverlappingReservations(
+  reservationId: string,
+): Promise<OverlappingReservations> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/overlapping`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
 export async function updateReservation(
   reservationId: string,
   data: Partial<{

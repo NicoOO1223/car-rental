@@ -19,7 +19,7 @@ from app.models import AuditLog, User
 from app.schemas.reservation import CustomerCreate
 from app.services.availability import lock_car
 from app.services.client_ip import client_ip
-from app.services.reservations import create_reservation
+from app.services.reservations import create_reservation, update_reservation_status
 from tests._dates import far_future_days
 from tests.test_handovers import create_confirmed_reservation
 from tests.test_reservations import (
@@ -180,12 +180,11 @@ def _customer(label):
     )
 
 
-def test_a_second_booking_waits_for_the_first_and_then_sees_it():
+def test_two_overlapping_pending_requests_can_both_be_created():
     """
-    The first request holds the car's lock while it decides. Booking the same
-    car from another session has to wait for it, and once the first commits it
-    finds the conflict. Without the lock the second would not wait at all, so
-    checking that it is still waiting is what proves the lock is there.
+    PENDING is an unreviewed request, not a commitment, so it no longer
+    blocks anyone else from requesting the same car and dates — staff needs
+    to see every competing request, not just the first one filed.
     """
 
     car = ensure_car_available("SA-004-AA")
@@ -193,46 +192,87 @@ def test_a_second_booking_waits_for_the_first_and_then_sees_it():
     location_id = UUID(get_location_id("CAG"))
     pickup, dropoff = _window()
 
-    first = SessionLocal()
+    db = SessionLocal()
+
+    try:
+        first = create_reservation(
+            db, _customer("first"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(db)
+        )
+        second = create_reservation(
+            db, _customer("second"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(db)
+        )
+
+        assert first.status == "PENDING"
+        assert second.status == "PENDING"
+        first_id, second_id = first.id, second.id
+    finally:
+        db.close()
+        client.patch(f"/api/reservations/{first_id}/cancel")
+        client.patch(f"/api/reservations/{second_id}/cancel")
+
+
+def test_confirming_one_of_two_overlapping_requests_makes_the_other_wait_then_fail():
+    """
+    Two PENDING requests can coexist, but only one can actually be approved.
+    The first approval holds the car's lock while it decides; approving the
+    other has to wait for it, and once the first commits, it finds the
+    conflict instead of confirming a car that is already taken. Without the
+    lock the second would not wait at all, so checking that it is still
+    waiting is what proves the lock is there.
+    """
+
+    car = ensure_car_available("SA-004-AA")
+    car_id = UUID(car["id"])
+    location_id = UUID(get_location_id("CAG"))
+    pickup, dropoff = _window()
+
+    setup = SessionLocal()
+    try:
+        first = create_reservation(
+            setup, _customer("first"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(setup)
+        )
+        second = create_reservation(
+            setup, _customer("second"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(setup)
+        )
+        # Plain values, read while the session is still open — the ORM
+        # objects themselves can't survive the session closing below.
+        first_id, second_id = first.id, second.id
+    finally:
+        setup.close()
+
+    first_db = SessionLocal()
     outcome = {}
 
-    def second_booking():
+    def confirm_second():
         db = SessionLocal()
         try:
-            create_reservation(
-                db, _customer("second"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(db)
-            )
-            outcome["result"] = "booked"
+            update_reservation_status(db, second_id, "CONFIRMED", _actor(db))
+            outcome["result"] = "confirmed"
         except Exception as error:  # noqa: BLE001
             outcome["result"] = getattr(error, "code", str(error))
         finally:
             db.close()
 
-    created = None
-
     try:
-        lock_car(first, car_id)
+        lock_car(first_db, car_id)
 
-        waiting = threading.Thread(target=second_booking)
+        waiting = threading.Thread(target=confirm_second)
         waiting.start()
         waiting.join(timeout=1.0)
 
-        assert waiting.is_alive(), "the second booking did not wait for the car's lock"
+        assert waiting.is_alive(), "confirming the second did not wait for the car's lock"
 
-        # The first request finishes its booking and lets go.
-        created = create_reservation(
-            first, _customer("first"), car_id, location_id, location_id, pickup, dropoff, actor=_actor(first)
-        )
+        # The first approval finishes and lets go of the lock.
+        update_reservation_status(first_db, first_id, "CONFIRMED", _actor(first_db))
 
         waiting.join(timeout=10)
 
         assert not waiting.is_alive()
-        assert outcome["result"] == "reservation.car_already_reserved_part_period"
+        assert outcome["result"] == "reservation.cannot_confirm_car_already_reserved"
     finally:
-        first.close()
-
-        if created is not None:
-            client.patch(f"/api/reservations/{created.id}/cancel")
+        first_db.close()
+        client.patch(f"/api/reservations/{first_id}/cancel")
+        client.patch(f"/api/reservations/{second_id}/cancel")
 
 
 def _actor(db):

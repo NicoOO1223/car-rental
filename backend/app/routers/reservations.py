@@ -11,6 +11,8 @@ from app.dependencies import require_authenticated_user
 from app.schemas.pricing import PriceBreakdownFields
 from app.services.configuration import get_configuration
 from app.schemas.reservation import (
+    OverlapCandidateResponse,
+    OverlappingReservationsResponse,
     ReservationCreate,
     ReservationQuoteRequest,
     ReservationQuoteResponse,
@@ -21,6 +23,8 @@ from app.schemas.reservation import (
     ReservationSummary,
     ReservationUpdate,
 )
+from app.services.availability import list_overlapping_reservations
+from app.services.reservation_ranking import is_repeat_customer, rank_overlap_candidates
 from app.services.reservation_search import (
     reservation_summary,
     search_reservations,
@@ -213,6 +217,63 @@ def get_reservation(
         raise NotFoundError("reservation.not_found", "Reservation not found.")
 
     return reservation
+
+
+@router.get(
+    "/{reservation_id}/overlapping",
+    response_model=OverlappingReservationsResponse,
+)
+def get_overlapping_reservations_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """Other reservations competing for the same car and dates — PENDING
+    requests no longer block each other, so staff reviewing one needs to
+    see what else wants the same slot."""
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    candidates = list_overlapping_reservations(
+        db,
+        reservation.car_id,
+        reservation.pickup_at,
+        reservation.return_at,
+        exclude_reservation_id=reservation.id,
+    )
+
+    if not candidates:
+        return OverlappingReservationsResponse(items=[], suggested_id=None, suggested_reasons=[])
+
+    # Rank the whole group, including the reservation being viewed — not
+    # just the others. Ranking "the others" on their own would be comparing
+    # a group of one against itself whenever there's a single competitor,
+    # which trivially "wins" every criterion and makes the suggestion
+    # meaningless. The viewed reservation is left out of `items` below since
+    # the page already shows it; it can still come out on top of `meta`,
+    # which the frontend reads as "your reservation is the suggested one".
+    ranked, meta = rank_overlap_candidates(db, [reservation, *candidates])
+    others = [r for r in ranked if r.id != reservation.id]
+
+    return OverlappingReservationsResponse(
+        items=[
+            OverlapCandidateResponse(
+                id=r.id,
+                customer_name=f"{r.customer.first_name} {r.customer.last_name}",
+                pickup_at=r.pickup_at,
+                return_at=r.return_at,
+                status=r.status,
+                agreed_total_amount=r.agreed_total_amount,
+                is_repeat_customer=is_repeat_customer(db, r.customer_id),
+                created_at=r.created_at,
+            )
+            for r in others
+        ],
+        suggested_id=meta["suggested_id"],
+        suggested_reasons=meta["suggested_reasons"],
+    )
 
 @router.patch(
     "/{reservation_id}/status",

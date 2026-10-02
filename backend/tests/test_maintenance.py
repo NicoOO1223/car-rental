@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.test_reservations import ensure_car_available, get_car_by_plate
+from tests.test_reservations import confirm_reservation, ensure_car_available, get_car_by_plate
 
 client = TestClient(app)
 
@@ -436,6 +436,7 @@ def test_create_task_rejects_overlap_with_existing_reservation():
             "return_at": (start + timedelta(days=3)).isoformat(),
         },
     ).json()
+    confirm_reservation(reservation["id"])
 
     try:
         response = client.post(

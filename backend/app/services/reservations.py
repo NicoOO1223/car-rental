@@ -381,6 +381,23 @@ def update_reservation_status(
     if new_status == "CANCELLED":
         return cancel_reservation(db, reservation_id, actor)
 
+    # A PENDING request never blocked anyone else from being confirmed first
+    # (see app/services/availability.py), so approving one has to check for
+    # real conflicts now rather than assume there are none. lock_car()
+    # serializes two staff members approving overlapping requests at once —
+    # the second one waits here, then sees the first one's CONFIRMED status.
+    if new_status == "CONFIRMED":
+        lock_car(db, reservation.car_id)
+
+        if has_conflicting_reservation(
+            db, reservation.car_id, reservation.pickup_at, reservation.return_at,
+            exclude_reservation_id=reservation.id,
+        ):
+            raise AppError(
+                "reservation.cannot_confirm_car_already_reserved",
+                "This car is already confirmed or active for part of this period.",
+            )
+
     reservation.status = new_status
     reservation.updated_by = actor.id
 

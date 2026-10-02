@@ -24,7 +24,7 @@ from app.services.manage_token import create_manage_token
 from app.services.auth import decode_access_token
 from app.services.public_booking import expire_stale_holds, normalize_reference
 from app.services.stripe_sync import handle_event
-from tests.test_reservations import create_reservation, ensure_car_available, get_location_id
+from tests.test_reservations import confirm_reservation, create_reservation, ensure_car_available, get_location_id
 
 client = TestClient(app)
 
@@ -610,9 +610,11 @@ def test_a_payment_after_the_car_was_taken_is_refunded(storefront, fake_stripe):
     try:
         _set_reservation(reference, status="EXPIRED", hold_expires_at=datetime.now(timezone.utc) - timedelta(minutes=5))
 
-        # Someone else books the same car for the same dates.
+        # Someone else actually takes the car for the same dates — a mere
+        # unreviewed request wouldn't stop the late payment from winning.
         car = ensure_car_available("SA-005-AA")
         other = create_reservation(car["id"], location_id, _iso(pickup), _iso(dropoff))
+        confirm_reservation(other["id"])
 
         _succeed(fake_stripe, reference)
 

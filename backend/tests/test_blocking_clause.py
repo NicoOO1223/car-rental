@@ -1,6 +1,7 @@
 """
-What blocks a car: pending, confirmed and active bookings, an online booking
-whose payment hold has not run out, and a rental still out past its return time.
+What blocks a car: confirmed and active bookings, an online booking whose
+payment hold has not run out, and a rental still out past its return time.
+A PENDING request — not yet reviewed — deliberately does not block.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -69,10 +70,27 @@ def test_an_expired_booking_does_not_block():
     window = (pickup + timedelta(hours=1), pickup + timedelta(days=1))
 
     try:
+        _set(reservation, status="CONFIRMED")
         assert _conflicts(car, *window) is True
 
         _set(reservation, status="EXPIRED")
         assert _conflicts(car, *window) is False
+    finally:
+        _set(reservation, status="CANCELLED")
+
+
+def test_a_pending_request_does_not_block():
+    car, reservation, pickup = _booking()
+    window = (pickup + timedelta(hours=1), pickup + timedelta(days=1))
+
+    try:
+        # create_reservation() leaves a fresh booking as PENDING — an
+        # unreviewed request, not a commitment, so it must not stop anyone
+        # else from booking the same car and dates.
+        assert _conflicts(car, *window) is False
+
+        _set(reservation, status="CONFIRMED")
+        assert _conflicts(car, *window) is True
     finally:
         _set(reservation, status="CANCELLED")
 

@@ -304,6 +304,7 @@
     },
     "reservation": {
       "cannot_change_status": "Non si può cambiare lo stato della prenotazione da {from_status} a {to_status}.",
+      "cannot_confirm_car_already_reserved": "Questo veicolo è già confermato o attivo per una parte di questo periodo.",
       "cannot_edit_status": "Non si può modificare una prenotazione {status}.",
       "cannot_move_after_payment": "L’auto, le date e le sedi non possono essere modificate dopo il pagamento.",
       "car_already_reserved_part_period": "Il veicolo è già prenotato per una parte di questo periodo.",
@@ -794,6 +795,15 @@
         "cancelledBy": "Annullata da",
         "reason": "{reason, select, RENTER {Il cliente, sul sito} NO_SHOW {Mancata presentazione} other {Lo staff}}"
       },
+      "OverlappingReservationsCard": {
+        "title": "Altre richieste per la stessa auto e date",
+        "body": "Queste si sovrappongono a questa richiesta. Approvarne una non rifiuta le altre: valutale e rifiutale manualmente.",
+        "suggested": "Suggerita",
+        "yourReservationSuggested": "Questa prenotazione è la scelta suggerita tra queste",
+        "reasonRepeatCustomer": "Cliente abituale",
+        "reasonHighestValue": "Valore prenotazione più alto",
+        "reasonRequestedFirst": "Richiesta prima"
+      },
       "CancelWithRefundModal": {
         "title": "Annulla questa prenotazione",
         "withinPolicy": "Annullando entro il {date} alle {time} il pagamento online viene rimborsato.",
@@ -1108,7 +1118,7 @@
       "insured": "Assicurato",
       "insuredUntil": "Assicurato fino al {date}",
       "pendingCompletedCancelledReservations": "Le prenotazioni in attesa, completate e annullate non sono mostrate qui.",
-      "awayHome": "Fuori sede · base {airport_code}",
+      "awayHome": "Fuori sede · ora a {airport_code}",
       "noBookingsRange": "Nessuna prenotazione in questo periodo",
       "vehicleDetails": "Dettagli del veicolo",
       "liveStatus": "Stato attuale: {status}",
@@ -1482,6 +1492,7 @@
           "edit": "Modifica",
           "booking": "Prenotazione",
           "rentalDuration": "Durata del noleggio",
+          "totalPrice": "Prezzo totale",
           "customer": "Cliente",
           "viewCustomer": "Vedi cliente",
           "customerReservation": "Cliente di questa prenotazione",

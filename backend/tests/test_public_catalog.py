@@ -17,7 +17,7 @@ from app.main import app
 from app.models import Car
 from app.services import rate_limit
 from app.services.public_catalog import MIN_ONLINE_CHARGE, split_payment
-from tests.test_reservations import create_reservation, ensure_car_available, get_location_id
+from tests.test_reservations import confirm_reservation, create_reservation, ensure_car_available, get_location_id
 
 client = TestClient(app)
 
@@ -198,6 +198,7 @@ def test_a_booked_car_is_not_offered_for_the_same_dates(storefront):
     assert "SA-005-AA" in _plates_offered(location_id, pickup, dropoff)
 
     booking = create_reservation(car["id"], location_id, _iso(pickup), _iso(dropoff))
+    confirm_reservation(booking["id"])
 
     try:
         assert "SA-005-AA" not in _plates_offered(location_id, pickup, dropoff)
@@ -225,6 +226,7 @@ def test_a_car_returned_at_another_airport_is_offered_there_afterwards(storefron
     booking = client.post("/api/reservations", json=payload)
 
     assert booking.status_code == 201
+    confirm_reservation(booking.json()["id"])
 
     try:
         later_pickup = first_return + timedelta(days=1)

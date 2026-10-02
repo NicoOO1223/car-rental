@@ -139,6 +139,7 @@ def test_return_to_home_blocked_by_reservation_picking_up_at_the_away_airport():
         (now + timedelta(days=200)).isoformat(),
         (now + timedelta(days=202)).isoformat(),
     )
+    force_reservation_status(reservation["id"], "CONFIRMED")
 
     try:
         response = client.post(f"/api/cars/{car['id']}/return-to-home")

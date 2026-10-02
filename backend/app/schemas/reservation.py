@@ -243,6 +243,29 @@ class CustomerReservationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class OverlapCandidateResponse(BaseModel):
+    """One other reservation competing for the same car and dates."""
+
+    id: UUID
+    customer_name: str
+    pickup_at: datetime
+    return_at: datetime
+    status: str
+    agreed_total_amount: Decimal | None
+    is_repeat_customer: bool
+    created_at: datetime
+
+
+class OverlappingReservationsResponse(BaseModel):
+    items: list[OverlapCandidateResponse]
+    suggested_id: UUID | None
+    # Which criteria set suggested_id apart, in priority order — e.g.
+    # ["repeat_customer", "requested_first"]. The frontend turns these into
+    # plain-language copy; empty means no candidate stood out from the rest.
+    suggested_reasons: list[str]
+
+
 class ReservationStatusUpdate(BaseModel):
     # ACTIVE is deliberately excluded — a CONFIRMED reservation can only
     # become ACTIVE via the handover flow (payment + signature + agreement),
