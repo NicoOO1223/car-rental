@@ -7,9 +7,17 @@ import { getFleetCondition, type CarCondition } from "@/lib/api";
 import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
+import { SubNav } from "@/components/ui/SubNav";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { useUrlFilters } from "@/lib/useUrlFilters";
 import { enumLabel, t } from "@/lib/i18n";
+
+const FILTER_DEFAULTS = {
+  view: "condition",
+};
+
+type View = "condition" | "insurance";
 
 function insuranceDaysLeft(insuredUntil: string): number {
   const [year, month, day] = insuredUntil.split("-").map(Number);
@@ -64,6 +72,8 @@ function AlertBadges({ car }: { car: CarCondition }) {
 
 export default function FleetConditionPage() {
   const navigate = useNavigate();
+  const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS);
+  const view = filters.view as View;
 
   const [cars, setCars] = useState<CarCondition[]>([]);
   const [insurance, setInsurance] = useState<CarCondition[]>([]);
@@ -215,31 +225,42 @@ export default function FleetConditionPage() {
         />
       </StatTileGrid>
 
-      <DataTable
-        rows={cars}
-        columns={columns}
-        rowKey={(car) => car.id}
-        loading={loading}
-        onRowClick={(car) => navigate(`/cars/${car.id}`)}
-        empty={{
-          icon: Gauge,
-          title: t("s.fleetCondition.noVehicles"),
-        }}
+      <SubNav
+        className="mb-4"
+        label={t("s.fleetCondition.title")}
+        activeId={view}
+        onSelect={(id) => setFilters({ view: id })}
+        items={[
+          { id: "condition", label: t("s.fleetCondition.condition") },
+          { id: "insurance", label: t("s.fleetCondition.insurance") },
+        ]}
       />
 
-      <h2 className="mb-3 mt-8 text-lg font-semibold text-ink">{t("s.fleetCondition.insurance")}</h2>
-
-      <DataTable
-        rows={insurance}
-        columns={insuranceColumns}
-        rowKey={(car) => car.id}
-        loading={loading}
-        onRowClick={(car) => navigate(`/cars/${car.id}`)}
-        empty={{
-          icon: ShieldCheck,
-          title: t("s.fleetCondition.noVehicles"),
-        }}
-      />
+      {view === "condition" ? (
+        <DataTable
+          rows={cars}
+          columns={columns}
+          rowKey={(car) => car.id}
+          loading={loading}
+          onRowClick={(car) => navigate(`/cars/${car.id}`)}
+          empty={{
+            icon: Gauge,
+            title: t("s.fleetCondition.noVehicles"),
+          }}
+        />
+      ) : (
+        <DataTable
+          rows={insurance}
+          columns={insuranceColumns}
+          rowKey={(car) => car.id}
+          loading={loading}
+          onRowClick={(car) => navigate(`/cars/${car.id}`)}
+          empty={{
+            icon: ShieldCheck,
+            title: t("s.fleetCondition.noVehicles"),
+          }}
+        />
+      )}
     </PageShell>
   );
 }

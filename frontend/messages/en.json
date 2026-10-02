@@ -1659,6 +1659,7 @@
       "alerts": "Alerts",
       "oilOverdue": "Oil change overdue",
       "conditionReviewOverdue": "Not reviewed in 3 rentals",
+      "condition": "Condition",
       "insurance": "Insurance",
       "insuredUntil": "Insured until",
       "daysRemaining": "Days remaining",

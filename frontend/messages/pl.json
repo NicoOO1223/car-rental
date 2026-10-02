@@ -1659,6 +1659,7 @@
       "alerts": "Alerty",
       "oilOverdue": "Zaległa wymiana oleju",
       "conditionReviewOverdue": "Nie sprawdzono od 3 wynajmów",
+      "condition": "Stan",
       "insurance": "Ubezpieczenie",
       "insuredUntil": "Ubezpieczony do",
       "daysRemaining": "Dni pozostałe",

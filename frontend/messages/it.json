@@ -1659,6 +1659,7 @@
       "alerts": "Avvisi",
       "oilOverdue": "Cambio olio in ritardo",
       "conditionReviewOverdue": "Non verificato in 3 noleggi",
+      "condition": "Condizione",
       "insurance": "Assicurazione",
       "insuredUntil": "Assicurato fino al",
       "daysRemaining": "Giorni rimanenti",
