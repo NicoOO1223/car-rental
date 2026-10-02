@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Mail, Phone, ShieldCheck } from "lucide-react";
+import { Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import {
   getCars,
   getFleetReservations,
@@ -199,11 +199,14 @@ export default function FleetPage() {
       );
     });
 
+    // Grouped by home airport, not where the car happens to be right now —
+    // a one-way rental shouldn't make a car vanish from its usual fleet
+    // panel. is_away_from_home (below) flags it there instead.
     for (const car of filteredCars) {
-      const airportCode = car.current_location.airport_code;
+      const airportCode = car.home_location.airport_code;
       if (!groups.has(airportCode)) {
         groups.set(airportCode, {
-          name: car.current_location.name,
+          name: car.home_location.name,
           airportCode,
           cars: [],
         });
@@ -454,7 +457,10 @@ export default function FleetPage() {
                             {car.license_plate}
                           </p>
                           {car.is_away_from_home && (
-                            <p className="ml-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.awayHome", { airport_code: car.home_location.airport_code })}</p>
+                            <p className="ml-2 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                              <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              {t("s.cars.awayHome", { airport_code: car.current_location.airport_code })}
+                            </p>
                           )}
                           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
                             <span>{car.year}</span>
@@ -598,6 +604,12 @@ export default function FleetPage() {
                                 <p className="mt-0.5 text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-md">
                                   {car.license_plate}
                                 </p>
+                                {car.is_away_from_home && (
+                                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-800">
+                                    <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                    {t("s.cars.awayHome", { airport_code: car.current_location.airport_code })}
+                                  </p>
+                                )}
                               </div>
                               <span
                                 title={
