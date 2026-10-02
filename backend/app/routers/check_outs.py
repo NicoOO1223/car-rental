@@ -156,7 +156,7 @@ def complete_check_out_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    check_out, car, task_id = complete_check_out(
+    check_out, car, task_id, cleaning_task_id = complete_check_out(
         db, reservation_id, current_user
     )
 
@@ -166,4 +166,5 @@ def complete_check_out_endpoint(
         car_current_airport_code=car.current_location.airport_code,
         car_home_airport_code=car.home_location.airport_code,
         maintenance_task_id=task_id,
+        cleaning_task_id=cleaning_task_id,
     )

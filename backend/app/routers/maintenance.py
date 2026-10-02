@@ -64,6 +64,7 @@ def create_task_endpoint(
         data.ends_at,
         current_user,
         cost=data.cost,
+        cleaning_type=data.cleaning_type,
     )
 
     return task

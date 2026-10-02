@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone, ShieldCheck } from "lucide-react";
 import {
   getCars,
   getFleetReservations,
+  getFleetMaintenanceTasks,
   getCarStatusesByDate,
   type Car,
   type CarReservation,
   type FleetReservation,
+  type FleetMaintenanceTask,
 } from "@/lib/api";
 import { getCarStatusStyle, getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge, ReservationStatusBadge } from "@/components/ui/Badge";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
 import { toDateKey } from "@/components/booking/DateRangeCalendar";
-import { formatCalendarDate, formatDateTime as formatMoment, formatTime, todayInZone } from "@/lib/format";
+import { formatCalendarDate, formatDate, formatDateTime as formatMoment, formatTime, todayInZone } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { t, enumLabel } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
@@ -26,7 +28,14 @@ const VISIBLE_RESERVATION_STATUSES = new Set(["CONFIRMED", "ACTIVE"]);
 
 type CarWithReservations = Car & {
   reservations: CarReservation[];
+  tasks: FleetMaintenanceTask[];
 };
+
+// insured_until is a YYYY-MM-DD string — plain lexicographic comparison
+// against today's date key works the same as parsing both to dates.
+function isCurrentlyInsured(car: Car): boolean {
+  return !!car.insured_until && car.insured_until >= todayInZone();
+}
 
 const DAY_WIDTH = 100; // Slightly wider for better readability
 
@@ -57,10 +66,13 @@ export default function FleetPage() {
   useEffect(() => {
     async function loadFleet() {
       try {
-        // Two requests in total, however many cars there are (this used to
+        // Three requests in total, however many cars there are (this used to
         // fetch each car's reservations separately).
-        const [carData, fleetReservations]: [Car[], FleetReservation[]] =
-          await Promise.all([getCars(), getFleetReservations()]);
+        const [carData, fleetReservations, fleetTasks]: [
+          Car[],
+          FleetReservation[],
+          FleetMaintenanceTask[],
+        ] = await Promise.all([getCars(), getFleetReservations(), getFleetMaintenanceTasks()]);
 
         const byCar = new Map<string, FleetReservation[]>();
 
@@ -70,10 +82,19 @@ export default function FleetPage() {
           byCar.set(reservation.car_id, list);
         }
 
+        const tasksByCar = new Map<string, FleetMaintenanceTask[]>();
+
+        for (const task of fleetTasks) {
+          const list = tasksByCar.get(task.car_id) ?? [];
+          list.push(task);
+          tasksByCar.set(task.car_id, list);
+        }
+
         setCars(
           carData.map((car) => ({
             ...car,
             reservations: byCar.get(car.id) ?? [],
+            tasks: tasksByCar.get(car.id) ?? [],
           })),
         );
 
@@ -245,6 +266,35 @@ export default function FleetPage() {
     });
   }
 
+  // Mirrors getReservationPosition, for a task's own start/end instead of a
+  // reservation's pickup/return. A task and a reservation on the same car
+  // never overlap in time (the backend's conflict check guarantees it), so
+  // both can safely share the same row.
+  function getTaskPosition(start: Date, end: Date) {
+    const startOffset = Math.max(0, getDayDifference(timelineStart, start));
+    const endOffset = Math.min(
+      timelineDaysCount,
+      getDayDifference(timelineStart, end)
+    );
+
+    const width = Math.max(0.5, endOffset - startOffset);
+
+    return {
+      left: startOffset * DAY_WIDTH,
+      width: width * DAY_WIDTH,
+    };
+  }
+
+  function getVisibleTasks(car: CarWithReservations) {
+    return car.tasks
+      .map((task) => ({
+        task,
+        start: new Date(task.starts_at ?? task.opened_at),
+        end: task.ends_at ? new Date(task.ends_at) : timelineEnd,
+      }))
+      .filter(({ start, end }) => start < timelineEnd && end > timelineStart);
+  }
+
   /*
    * ---------------------------------------------------------
    * Loading / Error States
@@ -336,6 +386,10 @@ export default function FleetPage() {
             <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("CONFIRMED", "dot")}`} />{t("s.cars.confirmed")}</div>
           <div className="flex items-center gap-2.5">
             <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("ACTIVE", "dot")}`} />{t("s.cars.active")}</div>
+          <div className="flex items-center gap-2.5">
+            <span className="h-3 w-3 rounded-full border border-amber-300 bg-amber-100 ring-2 ring-gray-100" />{t("s.cars.maintenanceOrCleaning")}</div>
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />{t("s.cars.insured")}</div>
           <p className="text-xs text-gray-400">{t("s.cars.pendingCompletedCancelledReservations")}</p>
         </div>
 
@@ -373,6 +427,9 @@ export default function FleetPage() {
                       new Date(a.pickup_at).getTime() -
                       new Date(b.pickup_at).getTime(),
                   );
+                  const tasks = getVisibleTasks(car).sort(
+                    (a, b) => a.start.getTime() - b.start.getTime(),
+                  );
                   const displayStatus = getDisplayStatus(car);
 
                   return (
@@ -383,8 +440,15 @@ export default function FleetPage() {
                         className="flex w-full items-start justify-between gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                       >
                         <div>
-                          <p className="font-bold text-gray-900">
+                          <p className="flex items-center gap-1.5 font-bold text-gray-900">
                             {car.make} {car.model}
+                            {isCurrentlyInsured(car) && (
+                              <span
+                                title={t("s.cars.insuredUntil", { date: car.insured_until ? formatDate(car.insured_until) : "" })}
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                              </span>
+                            )}
                           </p>
                           <p className="mt-0.5 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                             {car.license_plate}
@@ -406,35 +470,54 @@ export default function FleetPage() {
                       </button>
 
                       <div className="mt-3 space-y-1.5">
-                        {reservations.length === 0 ? (
+                        {reservations.length === 0 && tasks.length === 0 ? (
                           <p className="text-xs text-gray-400">{t("s.cars.noBookingsRange")}</p>
                         ) : (
-                          reservations.map((reservation) => (
-                            <button
-                              key={reservation.id}
-                              onClick={() =>
-                                navigate(`/reservations/manage/${reservation.id}`)
-                              }
-                              className="block w-full rounded-lg bg-gray-50 px-3 py-2 text-left transition hover:bg-gray-100"
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="truncate text-sm font-medium text-gray-900">
-                                  {reservation.customer.first_name}{" "}
-                                  {reservation.customer.last_name}
+                          <>
+                            {reservations.map((reservation) => (
+                              <button
+                                key={reservation.id}
+                                onClick={() =>
+                                  navigate(`/reservations/manage/${reservation.id}`)
+                                }
+                                className="block w-full rounded-lg bg-gray-50 px-3 py-2 text-left transition hover:bg-gray-100"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="truncate text-sm font-medium text-gray-900">
+                                    {reservation.customer.first_name}{" "}
+                                    {reservation.customer.last_name}
+                                  </span>
+
+                                  <ReservationStatusBadge
+                                    status={reservation.status}
+                                    className="shrink-0"
+                                  />
+                                </div>
+
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
+                                  {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
+                                </p>
+                              </button>
+                            ))}
+
+                            {tasks.map(({ task, start, end }) => (
+                              <button
+                                key={task.id}
+                                onClick={() => navigate(`/cars/${car.id}`)}
+                                className="block w-full rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-left text-amber-900 transition hover:bg-amber-200"
+                              >
+                                <span className="truncate text-sm font-medium">
+                                  {task.task_type === "CLEANING" ? t("s.cars.id.cleaning") : t("s.cars.id.maintenance")}
                                 </span>
 
-                                <ReservationStatusBadge
-                                  status={reservation.status}
-                                  className="shrink-0"
-                                />
-                              </div>
-
-                              <p className="mt-1 text-xs text-gray-500">
-                                {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
-                                {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
-                              </p>
-                            </button>
-                          ))
+                                <p className="mt-1 text-xs opacity-90">
+                                  {formatDateTime(start.toISOString())} →{" "}
+                                  {task.ends_at ? formatDateTime(end.toISOString()) : t("s.cars.id.untilClosed")}
+                                </p>
+                              </button>
+                            ))}
+                          </>
                         )}
                       </div>
                     </div>
@@ -485,6 +568,7 @@ export default function FleetPage() {
                   {/* Vehicle Rows */}
                   {location.cars.map((car) => {
                     const reservations = getVisibleReservations(car);
+                    const tasks = getVisibleTasks(car);
                     const displayStatus = getDisplayStatus(car);
 
                     return (
@@ -501,8 +585,15 @@ export default function FleetPage() {
                           <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <p className="font-bold text-gray-900 group-hover:underline transition-colors">
+                                <p className="flex items-center gap-1.5 font-bold text-gray-900 group-hover:underline transition-colors">
                                   {car.make} {car.model}
+                                  {isCurrentlyInsured(car) && (
+                                    <span
+                                      title={t("s.cars.insuredUntil", { date: car.insured_until ? formatDate(car.insured_until) : "" })}
+                                    >
+                                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                                    </span>
+                                  )}
                                 </p>
                                 <p className="mt-0.5 text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-md">
                                   {car.license_plate}
@@ -649,8 +740,44 @@ export default function FleetPage() {
                             );
                           })}
 
+                          {/* Maintenance / cleaning windows */}
+                          {tasks.map(({ task, start, end }) => {
+                            const position = getTaskPosition(start, end);
+
+                            return (
+                              <div
+                                key={task.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => navigate(`/cars/${car.id}`)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    navigate(`/cars/${car.id}`);
+                                  }
+                                }}
+                                className="absolute top-1/2 z-20 flex h-16 -translate-y-1/2 cursor-pointer flex-col justify-center overflow-hidden rounded-xl border border-amber-300 bg-amber-100 px-3 text-amber-900 outline-none transition-all hover:z-30 hover:scale-[1.02] focus-visible:z-30 focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-gray-900"
+                                style={{
+                                  left: position.left + 4,
+                                  width: position.width - 8,
+                                }}
+                                title={`${task.task_type === "CLEANING" ? t("s.cars.id.cleaning") : t("s.cars.id.maintenance")} — ${formatDateTime(
+                                  start.toISOString()
+                                )} → ${
+                                  task.ends_at ? formatDateTime(end.toISOString()) : t("s.cars.id.untilClosed")
+                                }${task.notes ? ` — ${task.notes}` : ""}`}
+                              >
+                                <p className="truncate text-sm font-bold">
+                                  {task.task_type === "CLEANING" ? t("s.cars.id.cleaning") : t("s.cars.id.maintenance")}
+                                </p>
+                                <p className="truncate text-[11px] font-medium opacity-80 mt-0.5">
+                                  {task.notes || t("s.cars.id.outService2")}
+                                </p>
+                              </div>
+                            );
+                          })}
+
                           {/* Free State Text (Optional) */}
-                          {reservations.length === 0 && (
+                          {reservations.length === 0 && tasks.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                               <span className="rounded-full bg-gray-50 px-4 py-1.5 text-xs font-medium text-gray-400">{t("s.cars.noBookings")}</span>
                             </div>

@@ -10,7 +10,7 @@ from app.database import get_db
 from app.dependencies import require_authenticated_user
 from app.models import Car, Reservation, User
 from app.schemas.car import CarResponse, CarUpdate, DailyRateResponse
-from app.schemas.maintenance import MaintenanceTaskResponse
+from app.schemas.maintenance import FleetMaintenanceTaskResponse, MaintenanceTaskResponse
 from app.schemas.reservation import CarReservationResponse, FleetReservationResponse
 from app.services.availability import (
     get_available_cars,
@@ -19,7 +19,7 @@ from app.services.availability import (
 )
 from app.services.cars import return_car_to_home, update_car
 from app.services.daily_rates import get_daily_rates
-from app.services.maintenance import list_tasks_for_car
+from app.services.maintenance import list_open_tasks, list_tasks_for_car
 
 from sqlalchemy import select
 router = APIRouter(
@@ -134,6 +134,19 @@ def get_fleet_reservations(
         )
         .order_by(Reservation.pickup_at.asc())
     ).all()
+
+
+# Every car's currently open maintenance/cleaning task in one request, for
+# the fleet timeline's calendar. Declared before "/{car_id}" so
+# "maintenance-tasks" is not read as an id.
+@router.get(
+    "/maintenance-tasks",
+    response_model=list[FleetMaintenanceTaskResponse],
+)
+def get_fleet_maintenance_tasks(
+    db: Session = Depends(get_db),
+):
+    return list_open_tasks(db)
 
 
 @router.get(

@@ -25,6 +25,10 @@ VALID_CATEGORIES = {
     "OTHER",
 }
 
+# Subtypes of CLEANING. Optional, unlike a MAINTENANCE category: a cleaning
+# task logged without picking one just doesn't say which kind it is.
+VALID_CLEANING_TYPES = {"INTERIOR", "EXTERIOR", "FULL"}
+
 
 def list_tasks(
     db: Session,
@@ -76,6 +80,20 @@ def open_task_counts(db: Session) -> dict[str, int]:
     }
 
 
+def list_open_tasks(db: Session) -> list[MaintenanceTask]:
+    """Every car's currently open maintenance/cleaning task in one request —
+    the counterpart of the fleet reservations endpoint, for the fleet-wide
+    schedule timeline."""
+
+    return list(
+        db.scalars(
+            select(MaintenanceTask)
+            .where(MaintenanceTask.status == "OPEN")
+            .order_by(MaintenanceTask.starts_at.asc())
+        ).all()
+    )
+
+
 def list_tasks_for_car(db: Session, car_id: UUID) -> list[MaintenanceTask]:
     car = db.get(Car, car_id)
 
@@ -103,6 +121,7 @@ def create_task(
     actor: User,
     commit: bool = True,
     cost: Decimal | None = None,
+    cleaning_type: str | None = None,
 ) -> MaintenanceTask:
     """
     With commit=False the task and its audit row are only flushed, so the
@@ -122,6 +141,12 @@ def create_task(
             raise AppError("maintenance.select_maintenance_category", "Select a maintenance category.")
     elif category is not None:
         raise AppError("maintenance.only_maintenance_tasks_have_category", "Only maintenance tasks have a category.")
+
+    if task_type == "CLEANING":
+        if cleaning_type is not None and cleaning_type not in VALID_CLEANING_TYPES:
+            raise AppError("maintenance.invalid_cleaning_type", "Invalid cleaning type.")
+    elif cleaning_type is not None:
+        raise AppError("maintenance.only_cleaning_tasks_have_cleaning_type", "Only cleaning tasks have a cleaning type.")
 
     # A time typed without a timezone means local time at the business.
     starts_at = assume_zone(starts_at, business_zone(db))
@@ -144,6 +169,7 @@ def create_task(
         car_id=car_id,
         task_type=task_type,
         category=category,
+        cleaning_type=cleaning_type,
         status="OPEN",
         notes=notes,
         cost=cost,
@@ -165,6 +191,7 @@ def create_task(
             "license_plate": car.license_plate,
             "task_type": task_type,
             "category": category,
+            "cleaning_type": cleaning_type,
             "notes": notes,
             "cost": str(cost) if cost is not None else None,
             "starts_at": starts_at.isoformat(),

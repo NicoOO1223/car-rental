@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectField, Textarea, TextField } from "@/components/ui/Field";
-import { MAINTENANCE_CATEGORIES } from "@/lib/maintenance";
+import { CLEANING_TYPES, MAINTENANCE_CATEGORIES } from "@/lib/maintenance";
 import {
   createMaintenanceTask,
   type Car,
@@ -28,6 +28,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
   const [carId, setCarId] = useState(car?.id ?? cars?.[0]?.id ?? "");
   const [taskType, setTaskType] = useState("MAINTENANCE");
   const [category, setCategory] = useState("");
+  const [cleaningType, setCleaningType] = useState("");
   const [notes, setNotes] = useState("");
   const [cost, setCost] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -71,6 +72,7 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
         car_id: carId,
         task_type: taskType,
         category: taskType === "MAINTENANCE" ? category : null,
+        cleaning_type: taskType === "CLEANING" ? cleaningType || null : null,
         notes: notes || null,
         cost: cost || null,
         starts_at: start.toISOString(),
@@ -149,6 +151,21 @@ export function NewTaskModal({ car, cars, onClose, onCreated }: Props) {
           >
             <option value="">{t("c.maintenance.NewTaskModal.selectCategory")}</option>
             {MAINTENANCE_CATEGORIES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </SelectField>
+        )}
+
+        {taskType === "CLEANING" && (
+          <SelectField
+            label={t("c.maintenance.NewTaskModal.cleaningType")}
+            value={cleaningType}
+            onChange={(event) => setCleaningType(event.target.value)}
+          >
+            <option value="">{t("c.maintenance.NewTaskModal.unspecified")}</option>
+            {CLEANING_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

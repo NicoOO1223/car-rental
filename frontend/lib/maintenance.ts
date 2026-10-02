@@ -17,6 +17,21 @@ export function maintenanceCategoryLabel(
   return category ? enumLabel("maintenanceCategory", category) : "";
 }
 
+export const CLEANING_TYPES = (
+  ["INTERIOR", "EXTERIOR", "FULL"] as const
+).map((value) => ({
+  value,
+  get label() {
+    return enumLabel("cleaningType", value);
+  },
+}));
+
+export function cleaningTypeLabel(
+  cleaningType: string | null | undefined,
+): string {
+  return cleaningType ? enumLabel("cleaningType", cleaningType) : "";
+}
+
 // How many days ahead a date counts as "due soon". Configuration decides;
 // this is the value until the server's is known.
 let dueSoonDays = 30;

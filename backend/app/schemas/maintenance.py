@@ -19,6 +19,7 @@ class MaintenanceTaskResponse(BaseModel):
     car: MaintenanceTaskCarSummary
     task_type: str
     category: str | None
+    cleaning_type: str | None
     status: str
     notes: str | None
     cost: Decimal | None
@@ -26,6 +27,24 @@ class MaintenanceTaskResponse(BaseModel):
     ends_at: datetime | None
     opened_at: datetime
     completed_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FleetMaintenanceTaskResponse(BaseModel):
+    """An open task tagged with which car, for views that show every car at
+    once (the fleet timeline) — the counterpart of FleetReservationResponse."""
+
+    id: UUID
+    car_id: UUID
+    task_type: str
+    category: str | None
+    cleaning_type: str | None
+    status: str
+    notes: str | None
+    starts_at: datetime | None
+    ends_at: datetime | None
+    opened_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,6 +64,8 @@ class MaintenanceTaskCreate(BaseModel):
     task_type: str
     # Required for MAINTENANCE, not allowed for CLEANING.
     category: str | None = None
+    # Optional, only allowed for CLEANING.
+    cleaning_type: str | None = None
     notes: str | None = None
     # What the work costs, if known yet.
     cost: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)

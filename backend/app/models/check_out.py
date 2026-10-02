@@ -81,6 +81,13 @@ class CheckOut(Base):
     damage_task_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     damage_task_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Mirrors the damage fields above: an optional CLEANING task opened on
+    # completion, instead of (or alongside) the repair task.
+    cleaning_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cleaning_type: Mapped[str | None] = mapped_column(String(20))  # INTERIOR | EXTERIOR | FULL
+    cleaning_task_starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cleaning_task_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     # --- Charges ---
     late_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     late_fee: Mapped[Decimal] = mapped_column(
@@ -166,6 +173,10 @@ class CheckOut(Base):
         CheckConstraint(
             "payment_method IN ('CARD','CASH')",
             name="valid_check_out_payment_method",
+        ),
+        CheckConstraint(
+            "cleaning_type IS NULL OR cleaning_type IN ('INTERIOR','EXTERIOR','FULL')",
+            name="valid_check_out_cleaning_type",
         ),
         Index("ix_check_outs_paid_at", "paid_at"),
     )

@@ -31,6 +31,7 @@ import {
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
 import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
+import { CLEANING_TYPES } from "@/lib/maintenance";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { enumLabelLower, t } from "@/lib/i18n";
@@ -86,6 +87,12 @@ export default function CheckOutPage({ params }: Props) {
   const [repairStart, setRepairStart] = useState(() => toLocalInput(new Date()));
   const [repairEnd, setRepairEnd] = useState(() =>
     toLocalInput(new Date(Date.now() + 3 * 86_400_000)),
+  );
+  const [sendForCleaning, setSendForCleaning] = useState(false);
+  const [cleaningType, setCleaningType] = useState("");
+  const [cleaningStart, setCleaningStart] = useState(() => toLocalInput(new Date()));
+  const [cleaningEnd, setCleaningEnd] = useState(() =>
+    toLocalInput(new Date(Date.now() + 4 * 3_600_000)),
   );
   const [savingCondition, setSavingCondition] = useState(false);
   const [conditionError, setConditionError] = useState("");
@@ -145,6 +152,17 @@ export default function CheckOutPage({ params }: Props) {
 
           if (checkOutData.damage_task_ends_at) {
             setRepairEnd(toLocalInput(new Date(checkOutData.damage_task_ends_at)));
+          }
+
+          setSendForCleaning(checkOutData.cleaning_requested);
+          setCleaningType(checkOutData.cleaning_type ?? "");
+
+          if (checkOutData.cleaning_task_starts_at) {
+            setCleaningStart(toLocalInput(new Date(checkOutData.cleaning_task_starts_at)));
+          }
+
+          if (checkOutData.cleaning_task_ends_at) {
+            setCleaningEnd(toLocalInput(new Date(checkOutData.cleaning_task_ends_at)));
           }
         } else if (carData.mileage !== null) {
           setMileage(String(carData.mileage));
@@ -223,6 +241,14 @@ export default function CheckOutPage({ params }: Props) {
           : null,
         damage_task_ends_at: damageReported
           ? new Date(repairEnd).toISOString()
+          : null,
+        send_for_cleaning: sendForCleaning,
+        cleaning_type: sendForCleaning ? cleaningType || null : null,
+        cleaning_task_starts_at: sendForCleaning
+          ? new Date(cleaningStart).toISOString()
+          : null,
+        cleaning_task_ends_at: sendForCleaning
+          ? new Date(cleaningEnd).toISOString()
           : null,
       });
 
@@ -459,6 +485,10 @@ export default function CheckOutPage({ params }: Props) {
               <p className="mt-4 text-sm text-gray-700">{t("s.handovers.id.checkOut.damageWasReportedSo")}</p>
             )}
 
+            {result?.cleaning_task_id && (
+              <p className="mt-4 text-sm text-gray-700">{t("s.handovers.id.checkOut.carSentForCleaning")}</p>
+            )}
+
             <div className="mt-6 flex justify-center gap-3">
               <Button
                 variant="secondary"
@@ -567,6 +597,57 @@ export default function CheckOutPage({ params }: Props) {
                     </div>
 
                     <p className="text-xs text-ink-muted">{t("s.handovers.id.checkOut.repairTaskOpenedPeriod")}</p>
+                  </div>
+                )}
+
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    disabled={!editable}
+                    checked={sendForCleaning}
+                    onChange={(event) => setSendForCleaning(event.target.checked)}
+                  />{t("s.handovers.id.checkOut.sendForCleaning")}</label>
+
+                {sendForCleaning && (
+                  <div className="space-y-4 rounded-lg border border-border-strong p-4">
+                    <SelectField
+                      label={t("s.handovers.id.checkOut.cleaningType")}
+                      required
+                      disabled={!editable}
+                      value={cleaningType}
+                      onChange={(event) => setCleaningType(event.target.value)}
+                    >
+                      <option value="">{t("s.handovers.id.checkOut.selectCleaningType")}</option>
+                      {CLEANING_TYPES.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SelectField>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <TextField
+                        label={t("s.handovers.id.checkOut.outServiceFrom")}
+                        type="datetime-local"
+                        required
+                        disabled={!editable}
+                        value={cleaningStart}
+                        onChange={(event) => setCleaningStart(event.target.value)}
+                      />
+
+                      <TextField
+                        label={t("s.handovers.id.checkOut.backServiceAt")}
+                        type="datetime-local"
+                        required
+                        disabled={!editable}
+                        min={cleaningStart}
+                        value={cleaningEnd}
+                        onChange={(event) => setCleaningEnd(event.target.value)}
+                      />
+                    </div>
+
+                    <p className="text-xs text-ink-muted">{t("s.handovers.id.checkOut.cleaningTaskOpenedPeriod")}</p>
                   </div>
                 )}
 

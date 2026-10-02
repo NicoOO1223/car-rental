@@ -501,6 +501,77 @@ def test_cleaning_task_cannot_have_a_category():
     assert response.status_code == 400
 
 
+def test_maintenance_task_cannot_have_a_cleaning_type():
+    car = ensure_car_available("SA-006-AA")
+
+    response = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "MAINTENANCE",
+            "category": "OTHER",
+            "cleaning_type": "FULL",
+            "notes": None,
+            **window(),
+        },
+    )
+
+    assert response.status_code == 400
+
+
+def test_cleaning_task_can_have_a_cleaning_type():
+    car = ensure_car_available("SA-006-AA")
+
+    response = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "CLEANING",
+            "category": None,
+            "cleaning_type": "INTERIOR",
+            "notes": None,
+            **window(),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["cleaning_type"] == "INTERIOR"
+
+    client.patch(f"/api/maintenance/tasks/{response.json()['id']}/cancel")
+
+
+def test_cleaning_task_rejects_an_invalid_cleaning_type():
+    car = ensure_car_available("SA-006-AA")
+
+    response = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "CLEANING",
+            "category": None,
+            "cleaning_type": "SHAMPOO",
+            "notes": None,
+            **window(),
+        },
+    )
+
+    assert response.status_code == 400
+
+
+def test_cleaning_task_without_a_cleaning_type_is_still_allowed():
+    car = ensure_car_available("SA-006-AA")
+
+    response = client.post(
+        "/api/maintenance/tasks",
+        json={"car_id": car["id"], "task_type": "CLEANING", "notes": None, **window()},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["cleaning_type"] is None
+
+    client.patch(f"/api/maintenance/tasks/{response.json()['id']}/cancel")
+
+
 def test_task_category_is_returned_and_audited():
     car = ensure_car_available("SA-006-AA")
 

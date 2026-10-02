@@ -29,7 +29,7 @@ from app.services.availability import (
     has_conflicting_reservation,
 )
 from app.services.configuration import get_configuration
-from app.services.maintenance import create_task
+from app.services.maintenance import VALID_CLEANING_TYPES, create_task
 from app.services.timezones import assume_zone, business_zone
 from app.services.return_charges import (
     calculate_fuel_fee,
@@ -228,6 +228,38 @@ def save_condition(
 
     validate_damage_charge(damage_charge, configuration.max_damage_charge)
 
+    if data.send_for_cleaning:
+        if data.cleaning_type not in VALID_CLEANING_TYPES:
+            raise AppError("check_out.select_cleaning_type", "Select a cleaning type.")
+
+        if data.cleaning_task_starts_at is None or data.cleaning_task_ends_at is None:
+            raise AppError("check_out.choose_when_car_out_service_cleaning", "Choose when the car is out of service for cleaning.")
+
+        cleaning_starts_at = assume_zone(data.cleaning_task_starts_at, business_zone(db))
+        cleaning_ends_at = assume_zone(data.cleaning_task_ends_at, business_zone(db))
+
+        if cleaning_ends_at <= cleaning_starts_at:
+            raise AppError("check_out.cleaning_must_end_after_starts", "The cleaning window must end after it starts.")
+
+        if cleaning_ends_at <= datetime.now(timezone.utc):
+            raise AppError("check_out.cleaning_window_must_end_future", "The cleaning window must end in the future.")
+
+        if has_conflicting_maintenance(db, car.id, cleaning_starts_at, cleaning_ends_at):
+            raise AppError("check_out.car_already_maintenance_or_cleaning_scheduled", "The car already has maintenance or cleaning scheduled in that period.")
+
+        if has_conflicting_reservation(
+            db,
+            car.id,
+            cleaning_starts_at,
+            cleaning_ends_at,
+            exclude_reservation_id=reservation_id,
+        ):
+            raise AppError("check_out.car_reservation_period_cancel_or_move", "The car has a reservation in that period. "
+                "Cancel or move the reservation first.")
+    else:
+        cleaning_starts_at = None
+        cleaning_ends_at = None
+
     is_new = check_out is None
 
     if is_new:
@@ -245,6 +277,10 @@ def save_condition(
     check_out.damage_charge = damage_charge
     check_out.damage_task_starts_at = starts_at
     check_out.damage_task_ends_at = ends_at
+    check_out.cleaning_requested = data.send_for_cleaning
+    check_out.cleaning_type = data.cleaning_type if data.send_for_cleaning else None
+    check_out.cleaning_task_starts_at = cleaning_starts_at
+    check_out.cleaning_task_ends_at = cleaning_ends_at
 
     check_out.late_hours = calculate_late_hours(
         reservation.return_at,
@@ -275,6 +311,8 @@ def save_condition(
             "return_mileage": check_out.return_mileage,
             "fuel_eighths": check_out.fuel_eighths,
             "damage_reported": check_out.damage_reported,
+            "cleaning_requested": check_out.cleaning_requested,
+            "cleaning_type": check_out.cleaning_type,
             "late_hours": check_out.late_hours,
             "late_fee": str(check_out.late_fee),
             "fuel_fee": str(check_out.fuel_fee),
@@ -621,10 +659,11 @@ def submit_employee_signature(
 
 def complete_check_out(
     db: Session, reservation_id: UUID, actor: User
-) -> tuple[CheckOut, Car, UUID | None]:
+) -> tuple[CheckOut, Car, UUID | None, UUID | None]:
     """
     Finishes the return in one transaction. Returns the check-out, the car
-    (already moved) and the id of the repair task if damage opened one.
+    (already moved), the id of the repair task if damage opened one, and
+    the id of the cleaning task if one was requested.
     """
 
     check_out = _require_started(db, reservation_id)
@@ -648,6 +687,7 @@ def complete_check_out(
     car.status = "AVAILABLE"
 
     task_id = None
+    cleaning_task_id = None
 
     # Sessions here don't autoflush, and the repair task's conflict check
     # queries reservations: this rental must already read as COMPLETED.
@@ -668,6 +708,24 @@ def complete_check_out(
             commit=False,
         )
         task_id = task.id
+
+    if check_out.cleaning_requested:
+        # Re-checked for the same reason as the repair task above. If its
+        # window clashes with the repair task just created, this rolls the
+        # whole check-out back — the two windows need to not overlap.
+        cleaning_task = create_task(
+            db,
+            car.id,
+            "CLEANING",
+            None,
+            None,
+            check_out.cleaning_task_starts_at,
+            check_out.cleaning_task_ends_at,
+            actor,
+            commit=False,
+            cleaning_type=check_out.cleaning_type,
+        )
+        cleaning_task_id = cleaning_task.id
 
     check_out.completed_at = datetime.now(timezone.utc)
     check_out.updated_by = actor.id
@@ -696,6 +754,7 @@ def complete_check_out(
             "to_airport": car.current_location.airport_code,
             "away_from_home": car.is_away_from_home,
             "maintenance_task_id": str(task_id) if task_id else None,
+            "cleaning_task_id": str(cleaning_task_id) if cleaning_task_id else None,
         },
     )
 
@@ -703,4 +762,4 @@ def complete_check_out(
     db.refresh(check_out)
     db.refresh(car)
 
-    return check_out, car, task_id
+    return check_out, car, task_id, cleaning_task_id

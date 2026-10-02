@@ -279,3 +279,42 @@ def test_fleet_reservations_returns_only_confirmed_and_active_with_car_ids():
         per_car = client.get(f"/api/cars/{car_id}/reservations").json()
         per_car_ids = {row["id"] for row in per_car}
         assert rows[0]["id"] in per_car_ids
+
+
+def test_fleet_maintenance_tasks_returns_only_open_tasks_with_car_ids():
+    from datetime import datetime, timedelta, timezone
+
+    car = ensure_car_available("SA-007-AA")
+    start = datetime.now(timezone.utc) + timedelta(days=1)
+
+    task = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "CLEANING",
+            "category": None,
+            "cleaning_type": "FULL",
+            "notes": None,
+            "starts_at": start.isoformat(),
+            "ends_at": (start + timedelta(hours=2)).isoformat(),
+        },
+    ).json()
+
+    try:
+        response = client.get("/api/cars/maintenance-tasks")
+        assert response.status_code == 200
+
+        rows = response.json()
+        assert all(row["status"] == "OPEN" for row in rows)
+        assert all(row["car_id"] for row in rows)
+
+        mine = next(row for row in rows if row["id"] == task["id"])
+        assert mine["car_id"] == car["id"]
+        assert mine["task_type"] == "CLEANING"
+        assert mine["cleaning_type"] == "FULL"
+    finally:
+        client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")
+
+    # Cancelling takes it out of the OPEN set.
+    after_cancel = client.get("/api/cars/maintenance-tasks").json()
+    assert not any(row["id"] == task["id"] for row in after_cancel)

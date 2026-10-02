@@ -53,6 +53,11 @@ class MaintenanceTask(Base):
     # also covers tasks logged before categories existed.
     category: Mapped[str | None] = mapped_column(String(30))
 
+    # What kind of CLEANING this is (MAINTENANCE tasks have none). NULL also
+    # covers cleaning tasks logged before this existed, or where no
+    # particular type was given.
+    cleaning_type: Mapped[str | None] = mapped_column(String(20))
+
     notes: Mapped[str | None] = mapped_column(Text)
 
     # What the work costs, typed in when the task is logged and adjustable
@@ -95,6 +100,10 @@ class MaintenanceTask(Base):
             "category IS NULL OR category IN "
             "('DAMAGE_REPAIR','TECHNICAL_INSPECTION','ROUTINE_SERVICE','OTHER')",
             name="valid_maintenance_task_category",
+        ),
+        CheckConstraint(
+            "cleaning_type IS NULL OR cleaning_type IN ('INTERIOR','EXTERIOR','FULL')",
+            name="valid_maintenance_task_cleaning_type",
         ),
         CheckConstraint(
             "status IN ('OPEN','DONE','CANCELLED')",

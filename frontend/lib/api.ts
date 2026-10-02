@@ -962,6 +962,8 @@ export type MaintenanceTask = {
   task_type: string;
   // Subcategory of MAINTENANCE; null for cleaning and for older tasks.
   category: string | null;
+  // Subtype of CLEANING; null for maintenance, and optional even for cleaning.
+  cleaning_type: string | null;
   status: string;
   notes: string | null;
   /** What the work costs; null when not entered (not the same as zero). */
@@ -1056,10 +1058,36 @@ export async function getCarMaintenanceTasks(
   return response.json();
 }
 
+export type FleetMaintenanceTask = {
+  id: string;
+  car_id: string;
+  task_type: string;
+  category: string | null;
+  cleaning_type: string | null;
+  status: string;
+  notes: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  opened_at: string;
+};
+
+/** Every car's currently open maintenance/cleaning task in one request —
+ * the counterpart of getFleetReservations, for the fleet timeline. */
+export async function getFleetMaintenanceTasks(): Promise<FleetMaintenanceTask[]> {
+  const response = await apiFetch("/api/cars/maintenance-tasks");
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
 export async function createMaintenanceTask(data: {
   car_id: string;
   task_type: string;
   category?: string | null;
+  cleaning_type?: string | null;
   notes?: string | null;
   cost?: string | null;
   starts_at: string;
@@ -1716,6 +1744,11 @@ export type CheckOut = {
   damage_task_starts_at: string | null;
   damage_task_ends_at: string | null;
 
+  cleaning_requested: boolean;
+  cleaning_type: string | null;
+  cleaning_task_starts_at: string | null;
+  cleaning_task_ends_at: string | null;
+
   late_hours: number;
   late_fee: number;
   fuel_fee: number;
@@ -1759,6 +1792,10 @@ export type CheckOutConditionInput = {
   damage_charge: number;
   damage_task_starts_at: string | null;
   damage_task_ends_at: string | null;
+  send_for_cleaning: boolean;
+  cleaning_type: string | null;
+  cleaning_task_starts_at: string | null;
+  cleaning_task_ends_at: string | null;
 };
 
 export type CheckOutPaymentIntent = {
@@ -1777,6 +1814,7 @@ export type CheckOutResult = {
   car_current_airport_code: string;
   car_home_airport_code: string;
   maintenance_task_id: string | null;
+  cleaning_task_id: string | null;
 };
 
 async function checkOutRequest<T>(

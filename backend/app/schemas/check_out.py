@@ -15,6 +15,12 @@ class CheckOutConditionInput(BaseModel):
     # task is opened for once the check-out is completed.
     damage_task_starts_at: datetime | None = None
     damage_task_ends_at: datetime | None = None
+    # Mirrors the damage fields above: an optional CLEANING task opened on
+    # completion.
+    send_for_cleaning: bool = False
+    cleaning_type: str | None = None
+    cleaning_task_starts_at: datetime | None = None
+    cleaning_task_ends_at: datetime | None = None
 
 
 class CheckOutWaiveInput(BaseModel):
@@ -36,6 +42,11 @@ class CheckOutResponse(BaseModel):
     damage_charge: float
     damage_task_starts_at: datetime | None
     damage_task_ends_at: datetime | None
+
+    cleaning_requested: bool
+    cleaning_type: str | None
+    cleaning_task_starts_at: datetime | None
+    cleaning_task_ends_at: datetime | None
 
     late_hours: int
     late_fee: float
@@ -86,6 +97,10 @@ class CheckOutResponse(BaseModel):
             damage_charge=float(check_out.damage_charge),
             damage_task_starts_at=check_out.damage_task_starts_at,
             damage_task_ends_at=check_out.damage_task_ends_at,
+            cleaning_requested=check_out.cleaning_requested,
+            cleaning_type=check_out.cleaning_type,
+            cleaning_task_starts_at=check_out.cleaning_task_starts_at,
+            cleaning_task_ends_at=check_out.cleaning_task_ends_at,
             late_hours=check_out.late_hours,
             late_fee=float(check_out.late_fee),
             fuel_fee=float(check_out.fuel_fee),
@@ -150,3 +165,5 @@ class CheckOutCompleteResponse(BaseModel):
 
     # Set when reported damage opened a repair task.
     maintenance_task_id: UUID | None
+    # Set when a cleaning task was opened.
+    cleaning_task_id: UUID | None

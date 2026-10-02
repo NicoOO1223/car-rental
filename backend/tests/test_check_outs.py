@@ -492,6 +492,143 @@ def test_repair_window_clash_is_rejected_when_recording_the_condition():
         cleanup(reservation, car)
 
 
+def test_send_for_cleaning_opens_a_cleaning_task_on_completion():
+    reservation, car = make_active_reservation(hours_late=-1)
+    starts = datetime.now(timezone.utc)
+    ends = starts + timedelta(hours=3)
+
+    try:
+        recorded = condition(
+            reservation["id"],
+            send_for_cleaning=True,
+            cleaning_type="INTERIOR",
+            cleaning_task_starts_at=starts.isoformat(),
+            cleaning_task_ends_at=ends.isoformat(),
+        )
+        assert recorded.status_code == 200, recorded.text
+        assert recorded.json()["cleaning_requested"] is True
+        assert recorded.json()["cleaning_type"] == "INTERIOR"
+
+        # No charges to collect (full tank, no damage) — nothing is due.
+        assert sign(reservation["id"]).status_code == 200
+
+        done = complete(reservation["id"])
+        assert done.status_code == 200
+        assert done.json()["maintenance_task_id"] is None
+        task_id = done.json()["cleaning_task_id"]
+        assert task_id is not None
+
+        tasks = client.get(
+            "/api/maintenance/tasks", params={"status": "OPEN", "task_type": "CLEANING"}
+        ).json()["items"]
+        task = next(t for t in tasks if t["id"] == task_id)
+        assert task["cleaning_type"] == "INTERIOR"
+        assert task["category"] is None
+
+        # The car is out of service for the cleaning window.
+        car_after = client.get(f"/api/cars/{car['id']}").json()
+        assert car_after["status"] == "CLEANING"
+
+        client.patch(f"/api/maintenance/tasks/{task_id}/cancel")
+    finally:
+        cleanup(reservation, car)
+
+
+def test_cleaning_requires_a_valid_type():
+    reservation, car = make_active_reservation(hours_late=-1)
+    starts = datetime.now(timezone.utc)
+    ends = starts + timedelta(hours=3)
+
+    try:
+        missing = condition(
+            reservation["id"],
+            send_for_cleaning=True,
+            cleaning_task_starts_at=starts.isoformat(),
+            cleaning_task_ends_at=ends.isoformat(),
+        )
+        assert missing.status_code == 400
+
+        invalid = condition(
+            reservation["id"],
+            send_for_cleaning=True,
+            cleaning_type="SHAMPOO",
+            cleaning_task_starts_at=starts.isoformat(),
+            cleaning_task_ends_at=ends.isoformat(),
+        )
+        assert invalid.status_code == 400
+    finally:
+        cleanup(reservation, car)
+
+
+def test_cleaning_window_clash_is_rejected_when_recording_the_condition():
+    reservation, car = make_active_reservation(hours_late=-1)
+    starts = datetime.now(timezone.utc)
+    ends = starts + timedelta(days=3)
+
+    blocker = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "CLEANING",
+            "category": None,
+            "notes": None,
+            "starts_at": (starts + timedelta(days=1)).isoformat(),
+            "ends_at": (starts + timedelta(days=2)).isoformat(),
+        },
+    )
+    assert blocker.status_code == 200
+
+    try:
+        response = condition(
+            reservation["id"],
+            send_for_cleaning=True,
+            cleaning_type="FULL",
+            cleaning_task_starts_at=starts.isoformat(),
+            cleaning_task_ends_at=ends.isoformat(),
+        )
+
+        assert response.status_code == 400
+        assert "maintenance or cleaning" in response.json()["detail"]
+    finally:
+        client.patch(f"/api/maintenance/tasks/{blocker.json()['id']}/cancel")
+        cleanup(reservation, car)
+
+
+def test_damage_and_cleaning_can_both_be_requested_with_non_overlapping_windows():
+    reservation, car = make_active_reservation(hours_late=-1)
+    damage_starts = datetime.now(timezone.utc)
+    damage_ends = damage_starts + timedelta(hours=2)
+    cleaning_starts = damage_ends + timedelta(hours=1)
+    cleaning_ends = cleaning_starts + timedelta(hours=2)
+
+    try:
+        recorded = condition(
+            reservation["id"],
+            damage_reported=True,
+            damage_notes="Small dent",
+            damage_task_starts_at=damage_starts.isoformat(),
+            damage_task_ends_at=damage_ends.isoformat(),
+            send_for_cleaning=True,
+            cleaning_type="EXTERIOR",
+            cleaning_task_starts_at=cleaning_starts.isoformat(),
+            cleaning_task_ends_at=cleaning_ends.isoformat(),
+        )
+        assert recorded.status_code == 200, recorded.text
+
+        # No damage_charge was set, so nothing is due.
+        assert sign(reservation["id"]).status_code == 200
+
+        done = complete(reservation["id"])
+        assert done.status_code == 200
+        assert done.json()["maintenance_task_id"] is not None
+        assert done.json()["cleaning_task_id"] is not None
+
+        client.patch(f"/api/maintenance/tasks/{done.json()['maintenance_task_id']}/cancel")
+        client.patch(f"/api/maintenance/tasks/{done.json()['cleaning_task_id']}/cancel")
+    finally:
+        cleanup(reservation, car)
+
+
 @requires_stripe
 def test_card_payment_of_charges_confirms_against_stripe():
     stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
