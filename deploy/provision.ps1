@@ -193,9 +193,10 @@ if (-not $DryRun) {
     $postgresFqdn = $infra.postgresServerFqdn.value
     $postgresDb = $infra.postgresDbName.value
     $backupAccount = $infra.backupStorageAccountName.value
+    $photoAccount = $infra.photoStorageAccountName.value
 } else {
     Write-Host "[dry-run] deploy main.bicep" -ForegroundColor DarkGray
-    $containerAppsEnvId = "<env id>"; $postgresFqdn = "<postgres>"; $postgresDb = "car_rental"; $backupAccount = "<backup account>"
+    $containerAppsEnvId = "<env id>"; $postgresFqdn = "<postgres>"; $postgresDb = "car_rental"; $backupAccount = "<backup account>"; $photoAccount = "<photo account>"
 }
 
 $migrationDatabaseUrl = "postgresql+psycopg://carrentaladmin:${pgPassword}@${postgresFqdn}:5432/${postgresDb}?sslmode=require"
@@ -324,6 +325,19 @@ if (-not $exists) {
 }
 if (-not $DryRun) { Grant-AcrPull $backendApp }
 
+# The backend reads and writes condition photos itself (see
+# app/services/photo_storage.py), unlike the backup storage account above,
+# which only CI's service principal ever touches — so this role goes to the
+# backend Container App's own identity instead of $ciSpObjectId.
+if (-not $DryRun) {
+    $backendPrincipalId = az containerapp show --name $backendApp --resource-group $rg --query identity.principalId -o tsv
+    $photoStorageId = az storage account show --name $photoAccount --resource-group $rg --query id -o tsv
+    az role assignment create --assignee-object-id $backendPrincipalId --assignee-principal-type ServicePrincipal `
+        --role "Storage Blob Data Contributor" --scope $photoStorageId --output none 2>$null
+} else {
+    Write-Host "[dry-run] grant the backend access to photo storage" -ForegroundColor DarkGray
+}
+
 $firstAdmin = [bool]$AdminEmail
 $isNew = -not $exists
 
@@ -364,7 +378,10 @@ if ($manifest.business) {
 
 $backendEnv = @(
     "DATABASE_URL=secretref:database-url", "MIGRATION_DATABASE_URL=secretref:migration-database-url",
-    "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production"
+    "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production",
+    # Not a secret — the backend authenticates to it with its own managed
+    # identity (granted above), the same way it already does for ACR.
+    "AZURE_STORAGE_ACCOUNT_URL=https://$photoAccount.blob.core.windows.net"
 )
 $backendEnv += $optionalEnv
 if ($firstAdmin) {

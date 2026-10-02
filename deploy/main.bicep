@@ -29,6 +29,8 @@ var containerAppsEnvName = 'car-rental-env'
 var postgresDbName = 'car_rental'
 var backupStorageAccountName = 'carrentalbak${uniqueSuffix}'
 var backupContainerName = 'pg-backups'
+var photoStorageAccountName = 'carrentalphotos${uniqueSuffix}'
+var photoContainerName = 'condition-photos'
 var sharingEnvironment = !empty(existingContainerAppsEnvironmentId)
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!sharingEnvironment) {
@@ -221,7 +223,70 @@ resource backupLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPoli
   }
 }
 
+// Employee-captured vehicle condition photos (see backend's
+// app/services/photo_storage.py), read and written by the backend
+// Container App's own managed identity rather than CI's — provision.ps1
+// grants that role once the app exists, since Bicep deliberately does not
+// define the Container Apps here (see the file header). Unlike the backup
+// storage above, nothing here is deleted: photos are kept, only tiered to
+// Cool after 90 days to keep the (already small) cost down a little.
+resource photoStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: photoStorageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+  }
+}
+
+resource photoBlobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: photoStorage
+  name: 'default'
+}
+
+resource photoContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: photoBlobService
+  name: photoContainerName
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource photoLifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {
+  parent: photoStorage
+  name: 'default'
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'cool-old-photos'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: {
+              blobTypes: ['blockBlob']
+              prefixMatch: ['${photoContainerName}/']
+            }
+            actions: {
+              baseBlob: {
+                tierToCool: {
+                  daysAfterModificationGreaterThan: 90
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
 output containerAppsEnvId string = sharingEnvironment ? existingContainerAppsEnvironmentId : containerAppsEnv.id
 output postgresServerFqdn string = postgres.properties.fullyQualifiedDomainName
 output postgresDbName string = postgresDbName
 output backupStorageAccountName string = backupStorageAccountName
+output photoStorageAccountName string = photoStorageAccountName
