@@ -200,6 +200,9 @@ def _close_task(
     is_inspection_done = (
         new_status == "DONE" and task.category == "TECHNICAL_INSPECTION"
     )
+    is_routine_done = (
+        new_status == "DONE" and task.category == "ROUTINE_SERVICE"
+    )
 
     if is_inspection_done:
         if next_inspection_due is None:
@@ -223,6 +226,13 @@ def _close_task(
     if is_inspection_done:
         car.last_inspection_at = local_today(business_zone(db))
         car.next_inspection_due = next_inspection_due
+
+    # Likewise for a routine service: record when it happened and the
+    # odometer reading at the time, so a fleet-wide view can flag the next
+    # one overdue by distance as well as by date.
+    if is_routine_done:
+        car.last_oil_change_at = local_today(business_zone(db))
+        car.last_oil_change_mileage = car.mileage
 
     # Availability comes from the window, so closing early frees the car on
     # its own. This only clears a status that was set directly (older
@@ -259,6 +269,14 @@ def _close_task(
                     "next_inspection_due": car.next_inspection_due.isoformat(),
                 }
                 if is_inspection_done
+                else {}
+            ),
+            **(
+                {
+                    "last_oil_change_at": car.last_oil_change_at.isoformat(),
+                    "last_oil_change_mileage": car.last_oil_change_mileage,
+                }
+                if is_routine_done
                 else {}
             ),
         },

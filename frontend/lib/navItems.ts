@@ -12,6 +12,7 @@ export const CONFIGURABLE_NAV_ITEMS = [
   { href: "/customers", key: "customers" },
   { href: "/cars", key: "vehicles" },
   { href: "/maintenance", key: "maintenance" },
+  { href: "/fleet-condition", key: "fleetCondition" },
 ].map(({ href, key }) => ({
   href,
   // Read when drawn, so it is in the language showing then.

@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   Plus,
+  ShieldCheck,
   SlidersHorizontal,
   TrendingUp,
   UserCog,
@@ -64,6 +65,7 @@ const BASE_NAV_SECTIONS: NavSection[] = [
     items: [
       { key: "vehicles", href: "/cars", icon: Car },
       { key: "maintenance", href: "/maintenance", icon: Wrench },
+      { key: "fleetCondition", href: "/fleet-condition", icon: ShieldCheck },
     ],
   },
 ];

@@ -14,6 +14,7 @@
     "fleet": "Flota",
     "vehicles": "Pojazdy",
     "maintenance": "Serwis",
+    "fleetCondition": "Stan",
     "admin": "Administracja",
     "users": "Użytkownicy",
     "auditLog": "Dziennik zdarzeń",
@@ -169,6 +170,17 @@
       "there_no_fuel_fee_waive": "Nie ma opłaty za paliwo do anulowania.",
       "there_no_late_fee_waive": "Nie ma opłaty za opóźnienie do anulowania.",
       "there_no_security_deposit_settle": "Nie ma kaucji do rozliczenia."
+    },
+    "condition_review": {
+      "invalid_kind": "Nieprawidłowy rodzaj przeglądu.",
+      "invalid_tire_condition": "Nieprawidłowy stan opon.",
+      "invalid_category": "Nieprawidłowa kategoria zdjęcia.",
+      "photo_wrong_type": "Zdjęcie musi być obrazem PNG lub JPEG.",
+      "photo_corrupted": "Plik zdjęcia jest uszkodzony.",
+      "photo_too_large": "Zdjęcie jest za duże. Limit to {limit_mb, number} MB.",
+      "photo_dimensions_too_large": "Wymiary zdjęcia są za duże.",
+      "photo_unreadable": "Nie udało się odczytać pliku zdjęcia jako obrazu.",
+      "photo_not_found": "Nie znaleziono zdjęcia."
     },
     "customer": {
       "cannot_erase_customer_with_active_or": "Nie można usunąć klienta z trwającą lub przyszłą rezerwacją.",
@@ -348,6 +360,7 @@
       "missing": "To pole jest wymagane.",
       "model_attributes_type": "Te dane są nieprawidłowe.",
       "name_empty": "Nazwa nie może być pusta.",
+      "oil_change_interval_min": "Interwał wymiany oleju musi wynosić co najmniej 1 km.",
       "online_share_range": "Udział płatności online musi wynosić od 1 do 100 procent.",
       "password_too_short": "Hasło musi mieć co najmniej 8 znaków.",
       "reminder_days_range": "Przypomnienia muszą zaczynać się od 1 do 365 dni wcześniej.",
@@ -585,6 +598,21 @@
         "card": "Karta",
         "cash": "Gotówka",
         "cardPaymentUnavailableRight": "Płatność kartą jest obecnie niedostępna — nadal możesz przyjąć gotówkę."
+      },
+      "ConditionReviewStep": {
+        "title": "Stan pojazdu",
+        "optionalHint": "Opcjonalne — oceń ponownie opony i dołącz zdjęcia. Nigdy nie blokuje płatności, podpisów ani zakończenia.",
+        "tireCondition": "Stan opon",
+        "unknown": "Nie oceniono ponownie",
+        "exteriorPhotos": "Zdjęcia zewnętrzne",
+        "interiorPhotos": "Zdjęcia wnętrza",
+        "addPhoto": "Dodaj zdjęcie",
+        "addExteriorPhoto": "Dodaj zdjęcie zewnętrzne",
+        "addInteriorPhoto": "Dodaj zdjęcie wnętrza",
+        "couldNotReadFile": "Nie udało się odczytać pliku zdjęcia.",
+        "failedLoad": "Nie udało się wczytać oceny stanu.",
+        "failedSave": "Nie udało się zapisać stanu opon.",
+        "failedUpload": "Nie udało się przesłać zdjęcia."
       },
       "DepositStep": {
         "failedStartDeposit": "Nie udało się rozpocząć kaucji.",
@@ -956,7 +984,9 @@
           "staffSessionLengthDays": "Czas trwania sesji pracownika (dni)",
           "staffMemberSLogin": "Token logowania pracownika jest ważny przez tyle dni. Zmiana dotyczy tylko sesji rozpoczętych po niej — nie skraca ani nie wydłuża sesji, która już trwa.",
           "reminderWindowDays": "Wyprzedzenie przypomnień (dni)",
-          "reminderWindowHint": "Na ile dni z wyprzedzeniem przeglądy techniczne i ubezpieczenia są oznaczane jako wkrótce wygasające."
+          "reminderWindowHint": "Na ile dni z wyprzedzeniem przeglądy techniczne i ubezpieczenia są oznaczane jako wkrótce wygasające.",
+          "oilChangeIntervalKm": "Interwał wymiany oleju (km)",
+          "oilChangeIntervalKmHint": "Przebieg od ostatniej zarejestrowanej wymiany oleju, po którym pojazd jest oznaczany jako zaległy."
         },
         "vehicles": {
           "failedLoadVehicles": "Nie udało się wczytać pojazdów.",
@@ -1613,6 +1643,27 @@
       "untilClosed": "do zamknięcia",
       "untilDate": "do {date}",
       "cost": "Koszt"
+    },
+    "fleetCondition": {
+      "title": "Stan flot",
+      "description": "Stan i ubezpieczenie każdego pojazdu w jednym miejscu, oraz bieżące koszty flot. Tylko podgląd — edytuj pojazd na jego własnej stronie.",
+      "failedLoad": "Nie udało się wczytać stanu flot.",
+      "totalInsuranceCost": "Całkowity koszt ubezpieczenia",
+      "totalMaintenanceSpend": "Całkowite wydatki na serwis",
+      "vehicle": "Pojazd",
+      "mileage": "Przebieg",
+      "tireCondition": "Stan opon",
+      "lastOilChange": "Ostatnia wymiana oleju",
+      "atMileage": "przy {mileage} km",
+      "nextInspection": "Następny przegląd",
+      "alerts": "Alerty",
+      "oilOverdue": "Zaległa wymiana oleju",
+      "conditionReviewOverdue": "Nie sprawdzono od 3 wynajmów",
+      "insurance": "Ubezpieczenie",
+      "insuredUntil": "Ubezpieczony do",
+      "daysRemaining": "Dni pozostałe",
+      "cost": "Koszt",
+      "noVehicles": "Nie znaleziono pojazdów"
     }
   },
   "common": {
@@ -1723,6 +1774,8 @@
     "inspectionOverdue": "{vehicle}: przegląd techniczny był do {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
     "insuranceEnding": "{vehicle}: ubezpieczenie kończy się {date}, {days, plural, =0 {dzisiaj} one {za # dzień} few {za # dni} many {za # dni} other {za # dnia}}.",
     "insuranceExpired": "{vehicle}: ubezpieczenie skończyło się {date}, {days, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dnia temu}}.",
+    "oilChangeDue": "{vehicle}: zaległa wymiana oleju, {km} km od ostatniej.",
+    "conditionReviewDue": "{vehicle}: stan opon nie był sprawdzany podczas ostatnich 3 zakończonych wynajmów.",
     "new": "Nowa",
     "viewReservation": "Zobacz rezerwację",
     "onlineBooking": "{customer} zarezerwował(a) {vehicle} na stronie ({reference}), odbiór {date}. Sprawdź rezerwację i przygotuj auto."

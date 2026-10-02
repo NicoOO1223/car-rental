@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { CashPaymentForm, PaymentStep, PrepaidSettleForm } from "@/components/handover/PaymentStep";
+import { ConditionReviewStep } from "@/components/handover/ConditionReviewStep";
 import { DepositStep } from "@/components/handover/DepositStep";
 import {
   SignaturePad,
@@ -313,6 +314,10 @@ export default function FinalizeHandoverPage({ params }: Props) {
           </div>
 
           <ReservationStatusBadge status={reservation.status} />
+        </div>
+
+        <div className="mb-6">
+          <ConditionReviewStep reservationId={reservation.id} kind="CHECK_IN" />
         </div>
 
         {agreementDone ? (

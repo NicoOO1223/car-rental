@@ -25,6 +25,7 @@ import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Field, SelectField, Textarea, TextField } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CheckOutPaymentStep } from "@/components/handover/CheckOutPaymentStep";
+import { ConditionReviewStep } from "@/components/handover/ConditionReviewStep";
 import {
   SignaturePad,
   type SignaturePadHandle,
@@ -586,6 +587,8 @@ export default function CheckOutPage({ params }: Props) {
                 )}
               </form>
             </Card>
+
+            <ConditionReviewStep reservationId={reservation.id} kind="CHECK_OUT" />
 
             {/* Step 2: Charges & payment */}
             <Card className={paymentStatus === "locked" ? "opacity-50" : ""}>

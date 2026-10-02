@@ -23,6 +23,13 @@ export default function SystemConfigurationPage() {
           min: 1,
           hint: t("s.admin.configuration.system.reminderWindowHint"),
         },
+        {
+          key: "oil_change_interval_km",
+          label: t("s.admin.configuration.system.oilChangeIntervalKm"),
+          kind: "integer",
+          min: 1,
+          hint: t("s.admin.configuration.system.oilChangeIntervalKmHint"),
+        },
       ]}
     />
   );

@@ -111,6 +111,13 @@ class Car(Base):
 
     last_oil_change_at: Mapped[date | None] = mapped_column(Date)
 
+    # The odometer reading when the oil was last changed, so a fleet-wide
+    # view can flag a car overdue by distance as well as by date. Set
+    # automatically when a ROUTINE_SERVICE task closes (see
+    # app/services/maintenance.py); null for a car with no recorded service
+    # yet, which simply excludes it from that alert rather than misfiring.
+    last_oil_change_mileage: Mapped[int | None] = mapped_column(Integer)
+
     # Whether the public storefront may offer this car. The storefront's own
     # on/off switch is Configuration.storefront_enabled.
     offered_online: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))

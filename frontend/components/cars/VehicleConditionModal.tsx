@@ -6,9 +6,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { updateCar, type Car } from "@/lib/api";
+import { TIRE_CONDITION_OPTIONS } from "@/lib/tireCondition";
 import { t, enumLabel } from "@/lib/i18n";
-
-const TIRE_CONDITION_OPTIONS = ["GOOD", "FAIR", "WORN", "NEEDS_REPLACEMENT"];
 
 type Props = {
   car: Car;

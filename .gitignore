@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 .env
 
+# Local fallback for condition-photo uploads when no Azure Storage account
+# is configured (dev/test) — see backend/app/services/photo_storage.py.
+backend/var/
+
 # Node
 node_modules/
 .next/

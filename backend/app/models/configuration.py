@@ -56,6 +56,11 @@ class Configuration(Base):
     # inspection or an insurance period is about to end.
     reminder_days: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
 
+    # Distance since the last oil change at which the fleet condition page
+    # and notifications flag a car as overdue (km, matching the unit the
+    # odometer/mileage fields are already shown in).
+    oil_change_interval_km: Mapped[int] = mapped_column(nullable=False, default=10000, server_default="10000")
+
     # The public storefront. Off until an admin turns it on.
     storefront_enabled: Mapped[bool] = mapped_column(nullable=False, default=False, server_default="false")
     # The share of a rental paid online when booking (100 = all of it).

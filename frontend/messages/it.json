@@ -14,6 +14,7 @@
     "fleet": "Flotta",
     "vehicles": "Veicoli",
     "maintenance": "Manutenzione",
+    "fleetCondition": "Condizione",
     "admin": "Amministrazione",
     "users": "Utenti",
     "auditLog": "Registro attività",
@@ -169,6 +170,17 @@
       "there_no_fuel_fee_waive": "Non c'è alcun costo carburante da annullare.",
       "there_no_late_fee_waive": "Non c'è alcuna penale di ritardo da annullare.",
       "there_no_security_deposit_settle": "Non c'è alcuna cauzione da regolare."
+    },
+    "condition_review": {
+      "invalid_kind": "Tipo di revisione non valido.",
+      "invalid_tire_condition": "Condizione pneumatici non valida.",
+      "invalid_category": "Categoria foto non valida.",
+      "photo_wrong_type": "La foto deve essere un'immagine PNG o JPEG.",
+      "photo_corrupted": "Il file della foto è danneggiato.",
+      "photo_too_large": "La foto è troppo grande. Il limite è {limit_mb, number} MB.",
+      "photo_dimensions_too_large": "Le dimensioni della foto sono troppo grandi.",
+      "photo_unreadable": "Impossibile leggere il file della foto come immagine.",
+      "photo_not_found": "Foto non trovata."
     },
     "customer": {
       "cannot_erase_customer_with_active_or": "Non si può cancellare un cliente con una prenotazione in corso o futura.",
@@ -348,6 +360,7 @@
       "missing": "Questo campo è obbligatorio.",
       "model_attributes_type": "Questi dati non sono validi.",
       "name_empty": "Il nome non può essere vuoto.",
+      "oil_change_interval_min": "L'intervallo del cambio olio deve essere di almeno 1 km.",
       "online_share_range": "La quota online deve essere tra 1 e 100 percento.",
       "password_too_short": "La password deve avere almeno 8 caratteri.",
       "reminder_days_range": "I promemoria devono partire tra 1 e 365 giorni prima.",
@@ -585,6 +598,21 @@
         "card": "Carta",
         "cash": "Contanti",
         "cardPaymentUnavailableRight": "Il pagamento con carta al momento non è disponibile: puoi comunque incassare in contanti."
+      },
+      "ConditionReviewStep": {
+        "title": "Condizione del veicolo",
+        "optionalHint": "Facoltativo — rivaluta gli pneumatici e allega foto. Non blocca mai il pagamento, le firme o il completamento.",
+        "tireCondition": "Condizione pneumatici",
+        "unknown": "Non rivalutata",
+        "exteriorPhotos": "Foto esterne",
+        "interiorPhotos": "Foto interne",
+        "addPhoto": "Aggiungi foto",
+        "addExteriorPhoto": "Aggiungi una foto esterna",
+        "addInteriorPhoto": "Aggiungi una foto interna",
+        "couldNotReadFile": "Impossibile leggere il file della foto.",
+        "failedLoad": "Impossibile caricare la revisione della condizione.",
+        "failedSave": "Impossibile salvare la condizione degli pneumatici.",
+        "failedUpload": "Impossibile caricare la foto."
       },
       "DepositStep": {
         "failedStartDeposit": "Impossibile avviare la cauzione.",
@@ -956,7 +984,9 @@
           "staffSessionLengthDays": "Durata della sessione del personale (giorni)",
           "staffMemberSLogin": "Il token di accesso di un membro del personale è valido per questo numero di giorni. La modifica riguarda solo le sessioni avviate dopo il cambiamento: non accorcia né allunga una sessione già in corso.",
           "reminderWindowDays": "Anticipo dei promemoria (giorni)",
-          "reminderWindowHint": "Quanti giorni prima le revisioni tecniche e le assicurazioni vengono segnalate in scadenza."
+          "reminderWindowHint": "Quanti giorni prima le revisioni tecniche e le assicurazioni vengono segnalate in scadenza.",
+          "oilChangeIntervalKm": "Intervallo cambio olio (km)",
+          "oilChangeIntervalKmHint": "Distanza dall'ultimo cambio olio registrato dopo la quale un veicolo è segnalato in ritardo."
         },
         "vehicles": {
           "failedLoadVehicles": "Impossibile caricare i veicoli.",
@@ -1613,6 +1643,27 @@
       "untilClosed": "fino alla chiusura",
       "untilDate": "fino al {date}",
       "cost": "Costo"
+    },
+    "fleetCondition": {
+      "title": "Condizione della flotta",
+      "description": "La condizione e l'assicurazione di ogni veicolo a colpo d'occhio, e i costi correnti della flotta. Solo lettura — modifica un veicolo dalla sua pagina.",
+      "failedLoad": "Impossibile caricare la condizione della flotta.",
+      "totalInsuranceCost": "Costo assicurativo totale",
+      "totalMaintenanceSpend": "Spesa di manutenzione totale",
+      "vehicle": "Veicolo",
+      "mileage": "Chilometraggio",
+      "tireCondition": "Condizione pneumatici",
+      "lastOilChange": "Ultimo cambio olio",
+      "atMileage": "a {mileage} km",
+      "nextInspection": "Prossima revisione",
+      "alerts": "Avvisi",
+      "oilOverdue": "Cambio olio in ritardo",
+      "conditionReviewOverdue": "Non verificato in 3 noleggi",
+      "insurance": "Assicurazione",
+      "insuredUntil": "Assicurato fino al",
+      "daysRemaining": "Giorni rimanenti",
+      "cost": "Costo",
+      "noVehicles": "Nessun veicolo trovato"
     }
   },
   "common": {
@@ -1723,6 +1774,8 @@
     "inspectionOverdue": "{vehicle}: la revisione tecnica era in scadenza il {date}, {days, plural, one {# giorno} other {# giorni}} fa.",
     "insuranceEnding": "{vehicle}: l’assicurazione termina il {date}, {days, plural, =0 {oggi} one {tra # giorno} other {tra # giorni}}.",
     "insuranceExpired": "{vehicle}: l’assicurazione è terminata il {date}, {days, plural, one {# giorno} other {# giorni}} fa.",
+    "oilChangeDue": "{vehicle}: cambio olio in ritardo, {km} km dall'ultimo.",
+    "conditionReviewDue": "{vehicle}: la condizione degli pneumatici non è stata verificata negli ultimi 3 noleggi completati.",
     "new": "Nuova",
     "viewReservation": "Vedi prenotazione",
     "onlineBooking": "{customer} ha prenotato {vehicle} sul sito ({reference}) con ritiro il {date}. Controlla la prenotazione e prepara l’auto."

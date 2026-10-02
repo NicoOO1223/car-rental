@@ -35,6 +35,8 @@ from app.routers.customers import router as customers_router
 from app.routers.handovers import router as handovers_router
 from app.routers.check_outs import router as check_outs_router
 from app.routers.maintenance import router as maintenance_router
+from app.routers.fleet_condition import router as fleet_condition_router
+from app.routers.condition_reviews import router as condition_reviews_router, photos_router as condition_photos_router
 from app.routers.notifications import router as notifications_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.users import router as users_router
@@ -96,6 +98,9 @@ app.include_router(customers_router)
 app.include_router(handovers_router)
 app.include_router(check_outs_router)
 app.include_router(maintenance_router)
+app.include_router(fleet_condition_router)
+app.include_router(condition_reviews_router)
+app.include_router(condition_photos_router)
 app.include_router(audit_logs_router)
 app.include_router(users_router)
 app.include_router(public_configuration_router)

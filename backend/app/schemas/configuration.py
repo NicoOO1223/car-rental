@@ -34,6 +34,7 @@ class ConfigurationResponse(BaseModel):
     default_currency: str
     access_token_expire_days: int
     reminder_days: int
+    oil_change_interval_km: int
     business_name: str
     legal_name: str
     address: str
@@ -75,6 +76,7 @@ class ConfigurationUpdate(BaseModel):
     default_currency: str | None = None
     access_token_expire_days: int | None = None
     reminder_days: int | None = None
+    oil_change_interval_km: int | None = None
     business_name: str | None = Field(default=None, max_length=100)
     legal_name: str | None = Field(default=None, max_length=150)
     address: str | None = Field(default=None, max_length=500)
@@ -241,6 +243,13 @@ class ConfigurationUpdate(BaseModel):
                 "validation.reminder_days_range",
                 "Reminders must start between 1 and 365 days ahead.",
             )
+        return v
+
+    @field_validator("oil_change_interval_km")
+    @classmethod
+    def oil_change_interval_must_be_positive(cls, v: int | None) -> int | None:
+        if v is not None and v < 1:
+            raise PydanticCustomError("validation.oil_change_interval_min", "The oil change interval must be at least 1 km.")
         return v
 
     @field_validator("access_token_expire_days")

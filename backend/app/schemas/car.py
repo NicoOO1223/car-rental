@@ -32,6 +32,9 @@ class CarResponse(BaseModel):
     mileage: int | None
     tire_condition: str | None
     last_oil_change_at: date | None
+    # The odometer reading at that oil change; set automatically when a
+    # ROUTINE_SERVICE task completes, never by hand (absent from CarUpdate).
+    last_oil_change_mileage: int | None
     last_inspection_at: date | None
     next_inspection_due: date | None
     insured_from: date | None

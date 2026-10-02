@@ -19,7 +19,7 @@ class NotificationCar(BaseModel):
 
 class NotificationResponse(BaseModel):
     # relocation | inspection_due | inspection_overdue | insurance_ending |
-    # insurance_expired | online_booking
+    # insurance_expired | oil_change_due | condition_review_due | online_booking
     kind: str
     # info | warning | critical
     severity: str
@@ -30,6 +30,8 @@ class NotificationResponse(BaseModel):
     # inspection and insurance: the date, and days left (negative once past).
     date: str | None = None
     days: int | None = None
+    # oil_change_due: distance since the last recorded oil change.
+    km_since: int | None = None
     # online_booking: which booking, who made it, and the date is its pickup.
     reservation_id: str | None = None
     reference: str | None = None

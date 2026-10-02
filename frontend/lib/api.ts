@@ -737,6 +737,8 @@ export type Car = {
   mileage: number | null;
   tire_condition: string | null;
   last_oil_change_at: string | null;
+  /** Odometer reading at that oil change; set automatically, never by hand. */
+  last_oil_change_mileage: number | null;
   last_inspection_at: string | null;
   next_inspection_due: string | null;
   insured_from: string | null;
@@ -754,6 +756,8 @@ export type Notification = {
     | "inspection_overdue"
     | "insurance_ending"
     | "insurance_expired"
+    | "oil_change_due"
+    | "condition_review_due"
     | "online_booking";
   severity: "info" | "warning" | "critical";
   car: { id: string; make: string; model: string; license_plate: string };
@@ -762,6 +766,8 @@ export type Notification = {
   date: string | null;
   /** Days until the date; negative once it has passed. */
   days: number | null;
+  /** oil_change_due: distance since the last recorded oil change. */
+  km_since?: number | null;
   /** online_booking: the booking, its reference and who made it (date is the pickup). */
   reservation_id?: string | null;
   reference?: string | null;
@@ -995,6 +1001,41 @@ export async function getMaintenanceTasks(params?: {
   const response = await apiFetch(
     `/api/maintenance/tasks${queryString ? `?${queryString}` : ""}`,
   );
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
+export type CarCondition = {
+  id: string;
+  make: string;
+  model: string;
+  license_plate: string;
+  mileage: number | null;
+  tire_condition: string | null;
+  last_oil_change_at: string | null;
+  last_oil_change_mileage: number | null;
+  oil_change_overdue: boolean;
+  condition_review_overdue: boolean;
+  last_inspection_at: string | null;
+  next_inspection_due: string | null;
+  insured_from: string | null;
+  insured_until: string | null;
+  insurance_cost: string | null;
+};
+
+/** Every vehicle's condition and insurance at a glance, plus fleet-wide
+ * cost totals. Read-only — editing stays on each car's own page. */
+export async function getFleetCondition(): Promise<{
+  total_insurance_cost: string;
+  total_maintenance_spend: string;
+  cars: CarCondition[];
+  insurance: CarCondition[];
+}> {
+  const response = await apiFetch("/api/fleet-condition");
 
   if (!response.ok) {
     await throwApiError(response, "errors.generic.load");
@@ -1820,6 +1861,96 @@ export function completeCheckOut(reservationId: string): Promise<CheckOutResult>
   return checkOutRequest(reservationId, "/complete", jsonPost(), "errors.generic.save");
 }
 
+export type ConditionReviewKind = "CHECK_IN" | "CHECK_OUT";
+
+export type ConditionPhoto = {
+  id: string;
+  category: "EXTERIOR" | "INTERIOR";
+  content_type: string;
+  created_at: string;
+};
+
+export type ConditionReview = {
+  id: string;
+  reservation_id: string;
+  kind: ConditionReviewKind;
+  tire_condition: string | null;
+  reviewed_at: string | null;
+  photos: ConditionPhoto[];
+};
+
+/** The optional pickup/return condition review so far, or null if no one
+ * has started one for this end of the rental yet. */
+export async function getConditionReview(
+  reservationId: string,
+  kind: ConditionReviewKind,
+): Promise<ConditionReview | null> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/condition-reviews/${kind}`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
+export async function saveConditionReviewTireCondition(
+  reservationId: string,
+  kind: ConditionReviewKind,
+  tireCondition: string | null,
+): Promise<ConditionReview> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/condition-reviews/${kind}/tire-condition`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tire_condition: tireCondition }),
+    },
+  );
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+export async function addConditionReviewPhoto(
+  reservationId: string,
+  kind: ConditionReviewKind,
+  category: "EXTERIOR" | "INTERIOR",
+  dataUrl: string,
+): Promise<ConditionReview> {
+  const response = await apiFetch(
+    `/api/reservations/${reservationId}/condition-reviews/${kind}/photos`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category, data_url: dataUrl }),
+    },
+  );
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+// A condition photo is staff-only, so a plain <img src> (which can't carry
+// an Authorization header) can't load it directly — fetched as a blob and
+// shown via an object URL instead, the same way downloadAgreement/
+// downloadInvoice already handle authenticated binary downloads.
+export async function fetchConditionPhotoBlob(photoId: string): Promise<Blob> {
+  const response = await apiFetch(`/api/condition-photos/${photoId}/content`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.blob();
+}
+
 export type Handover = {
   id: string;
   reservation_id: string;
@@ -2263,6 +2394,8 @@ export type Configuration = {
   default_currency: string;
   access_token_expire_days: number;
   reminder_days: number;
+  /** Distance since the last oil change at which a car is flagged overdue. */
+  oil_change_interval_km: number;
   business_name: string;
   legal_name: string;
   address: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Bell, CalendarClock, Globe, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, Bell, CalendarClock, Camera, Gauge, Globe, ShieldCheck, Truck } from "lucide-react";
 
 import { useNotifications } from "@/components/NotificationsProvider";
 import { Card } from "@/components/ui/Card";
@@ -17,6 +17,8 @@ const ICONS = {
   inspection_overdue: CalendarClock,
   insurance_ending: ShieldCheck,
   insurance_expired: ShieldCheck,
+  oil_change_due: Gauge,
+  condition_review_due: Camera,
   online_booking: Globe,
 } as const;
 
@@ -51,6 +53,10 @@ function sentence(item: Notification): string {
       return t("notifications.inspectionOverdue", { vehicle, date, days: Math.abs(days) });
     case "insurance_ending":
       return t("notifications.insuranceEnding", { vehicle, date, days });
+    case "oil_change_due":
+      return t("notifications.oilChangeDue", { vehicle, km: item.km_since ?? 0 });
+    case "condition_review_due":
+      return t("notifications.conditionReviewDue", { vehicle });
     default:
       return t("notifications.insuranceExpired", { vehicle, date, days: Math.abs(days) });
   }

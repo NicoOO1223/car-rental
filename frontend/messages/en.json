@@ -14,6 +14,7 @@
     "fleet": "Fleet",
     "vehicles": "Vehicles",
     "maintenance": "Maintenance",
+    "fleetCondition": "Condition",
     "admin": "Admin",
     "users": "Users",
     "auditLog": "Audit Log",
@@ -169,6 +170,17 @@
       "there_no_fuel_fee_waive": "There is no fuel fee to waive.",
       "there_no_late_fee_waive": "There is no late fee to waive.",
       "there_no_security_deposit_settle": "There is no security deposit to settle."
+    },
+    "condition_review": {
+      "invalid_kind": "Invalid review kind.",
+      "invalid_tire_condition": "Invalid tire condition.",
+      "invalid_category": "Invalid photo category.",
+      "photo_wrong_type": "The photo must be a PNG or JPEG image.",
+      "photo_corrupted": "The photo file is corrupted.",
+      "photo_too_large": "The photo is too large. The limit is {limit_mb, number} MB.",
+      "photo_dimensions_too_large": "The photo dimensions are too large.",
+      "photo_unreadable": "The photo file could not be read as an image.",
+      "photo_not_found": "Photo not found."
     },
     "customer": {
       "cannot_erase_customer_with_active_or": "Cannot erase a customer with an active or upcoming reservation.",
@@ -348,6 +360,7 @@
       "missing": "This field is required.",
       "model_attributes_type": "That is not valid data.",
       "name_empty": "The name cannot be empty.",
+      "oil_change_interval_min": "The oil change interval must be at least 1 km.",
       "online_share_range": "The online share must be between 1 and 100 percent.",
       "password_too_short": "Password must be at least 8 characters.",
       "reminder_days_range": "Reminders must start between 1 and 365 days ahead.",
@@ -585,6 +598,21 @@
         "card": "Card",
         "cash": "Cash",
         "cardPaymentUnavailableRight": "Card payment is unavailable right now — you can still take cash."
+      },
+      "ConditionReviewStep": {
+        "title": "Vehicle condition",
+        "optionalHint": "Optional — reassess the tires and attach photos. This never blocks payment, signatures or completion.",
+        "tireCondition": "Tire condition",
+        "unknown": "Not reassessed",
+        "exteriorPhotos": "Exterior photos",
+        "interiorPhotos": "Interior photos",
+        "addPhoto": "Add photo",
+        "addExteriorPhoto": "Add an exterior photo",
+        "addInteriorPhoto": "Add an interior photo",
+        "couldNotReadFile": "Could not read the photo file.",
+        "failedLoad": "Failed to load the condition review.",
+        "failedSave": "Failed to save the tire condition.",
+        "failedUpload": "Failed to upload the photo."
       },
       "DepositStep": {
         "failedStartDeposit": "Failed to start the deposit.",
@@ -956,7 +984,9 @@
           "staffSessionLengthDays": "Staff session length (days)",
           "staffMemberSLogin": "A staff member's login token is valid for this many days. Changing this only affects sessions started after the change — it does not shorten or extend a session already in progress.",
           "reminderWindowDays": "Reminder window (days)",
-          "reminderWindowHint": "How many days ahead technical inspections and insurance are flagged as due soon."
+          "reminderWindowHint": "How many days ahead technical inspections and insurance are flagged as due soon.",
+          "oilChangeIntervalKm": "Oil change interval (km)",
+          "oilChangeIntervalKmHint": "Distance since the last recorded oil change at which a vehicle is flagged overdue."
         },
         "vehicles": {
           "failedLoadVehicles": "Failed to load vehicles.",
@@ -1613,6 +1643,27 @@
       "untilClosed": "until closed",
       "untilDate": "until {date}",
       "cost": "Cost"
+    },
+    "fleetCondition": {
+      "title": "Fleet condition",
+      "description": "Every vehicle's condition and insurance at a glance, and the fleet's running costs. Read-only — edit a vehicle from its own page.",
+      "failedLoad": "Failed to load fleet condition.",
+      "totalInsuranceCost": "Total insurance cost",
+      "totalMaintenanceSpend": "Total maintenance spend",
+      "vehicle": "Vehicle",
+      "mileage": "Mileage",
+      "tireCondition": "Tire condition",
+      "lastOilChange": "Last oil change",
+      "atMileage": "at {mileage} km",
+      "nextInspection": "Next inspection",
+      "alerts": "Alerts",
+      "oilOverdue": "Oil change overdue",
+      "conditionReviewOverdue": "Not reviewed in 3 rentals",
+      "insurance": "Insurance",
+      "insuredUntil": "Insured until",
+      "daysRemaining": "Days remaining",
+      "cost": "Cost",
+      "noVehicles": "No vehicles found"
     }
   },
   "common": {
@@ -1723,6 +1774,8 @@
     "inspectionOverdue": "{vehicle}: technical inspection was due {date}, {days, plural, one {# day} other {# days}} ago.",
     "insuranceEnding": "{vehicle}: insurance ends {date}, {days, plural, =0 {today} one {in # day} other {in # days}}.",
     "insuranceExpired": "{vehicle}: insurance ended {date}, {days, plural, one {# day} other {# days}} ago.",
+    "oilChangeDue": "{vehicle}: oil change overdue, {km} km since the last one.",
+    "conditionReviewDue": "{vehicle}: tire condition hasn't been reviewed in its last 3 completed rentals.",
     "new": "New",
     "viewReservation": "View reservation",
     "onlineBooking": "{customer} booked {vehicle} on the website ({reference}) for pickup on {date}. Look it over and get the car ready."

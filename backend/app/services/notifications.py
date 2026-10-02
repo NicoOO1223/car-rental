@@ -17,7 +17,9 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Car, Customer, Reservation
+from app.services.condition_reviews import condition_review_overdue
 from app.services.configuration import get_configuration
+from app.services.fleet_condition import oil_change_overdue
 from app.services.timezones import business_zone, local_today
 
 # Most urgent first when severity ties are broken by kind.
@@ -27,6 +29,8 @@ KIND_ORDER = (
     "relocation",
     "inspection_due",
     "insurance_ending",
+    "oil_change_due",
+    "condition_review_due",
     "online_booking",
 )
 
@@ -99,6 +103,31 @@ def list_notifications(db: Session) -> dict:
                     "severity": "critical" if expired else "warning",
                     "date": car.insured_until.isoformat(),
                     "days": (car.insured_until - today).days,
+                }
+            )
+
+    # Neither of these fits the date horizon query above (one is
+    # distance-based, the other is rental-count-based), so they run as
+    # their own pass over every car instead.
+    interval_km = configuration.oil_change_interval_km
+
+    for car in db.scalars(select(Car).order_by(Car.license_plate)).all():
+        if oil_change_overdue(car, interval_km):
+            items.append(
+                {
+                    "car": _car(car),
+                    "kind": "oil_change_due",
+                    "severity": "warning",
+                    "km_since": car.mileage - car.last_oil_change_mileage,
+                }
+            )
+
+        if condition_review_overdue(db, car):
+            items.append(
+                {
+                    "car": _car(car),
+                    "kind": "condition_review_due",
+                    "severity": "warning",
                 }
             )
 

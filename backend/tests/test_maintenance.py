@@ -583,6 +583,40 @@ def test_completing_other_categories_leaves_inspection_dates_alone():
     assert after["next_inspection_due"] == before["next_inspection_due"]
 
 
+def test_completing_routine_service_records_the_date_and_mileage():
+    car = ensure_car_available("SA-006-AA")
+    client.patch(f"/api/cars/{car['id']}", json={"mileage": 55000})
+
+    task = _post_categorised(car["id"], "MAINTENANCE", "ROUTINE_SERVICE").json()
+
+    try:
+        response = client.patch(f"/api/maintenance/tasks/{task['id']}/complete")
+        assert response.status_code == 200
+
+        updated = client.get(f"/api/cars/{car['id']}").json()
+        assert updated["last_oil_change_at"] == datetime.now(timezone.utc).date().isoformat()
+        assert updated["last_oil_change_mileage"] == 55000
+
+        actions = _audit_rows_for_task(task["id"])
+        assert actions[1][1]["last_oil_change_mileage"] == 55000
+    finally:
+        client.patch(f"/api/cars/{car['id']}", json={"mileage": None, "last_oil_change_at": None})
+
+
+def test_completing_other_categories_leaves_oil_change_fields_alone():
+    car = ensure_car_available("SA-006-AA")
+    before = client.get(f"/api/cars/{car['id']}").json()
+
+    task = _post_categorised(car["id"], "MAINTENANCE", "DAMAGE_REPAIR").json()
+    response = client.patch(f"/api/maintenance/tasks/{task['id']}/complete")
+
+    assert response.status_code == 200
+
+    after = client.get(f"/api/cars/{car['id']}").json()
+    assert after["last_oil_change_at"] == before["last_oil_change_at"]
+    assert after["last_oil_change_mileage"] == before["last_oil_change_mileage"]
+
+
 def test_inspection_dates_are_editable_on_vehicle_condition():
     car = ensure_car_available("SA-006-AA")
 
