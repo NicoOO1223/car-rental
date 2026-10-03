@@ -23,6 +23,7 @@ from app.schemas.public import (
 )
 from app.schemas.reservation import ReservationQuoteRequest
 from app.services.branding import get_logo
+from app.services.landing_about import get_about_image
 from app.services.landing_hero import get_hero_image
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import list_extras
@@ -79,6 +80,7 @@ def public_config(db: Session = Depends(get_db)):
     configuration = get_configuration(db)
     logo = get_logo(db)
     hero = get_hero_image(db)
+    about_image = get_about_image(db)
 
     return PublicConfigResponse(
         storefront_enabled=configuration.storefront_enabled,
@@ -110,6 +112,10 @@ def public_config(db: Session = Depends(get_db)):
         landing_benefit3_body=configuration.landing_benefit3_body,
         has_hero_image=hero is not None,
         hero_image_version=int(hero.updated_at.timestamp()) if hero is not None else None,
+        landing_about_title=configuration.landing_about_title,
+        landing_about_body=configuration.landing_about_body,
+        has_landing_about_image=about_image is not None,
+        landing_about_image_version=int(about_image.updated_at.timestamp()) if about_image is not None else None,
     )
 
 

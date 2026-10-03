@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { brandingLandingHeroUrl, brandingLogoUrl, getBranding } from "@/lib/api";
+import { brandingLandingAboutImageUrl, brandingLandingHeroUrl, brandingLogoUrl, getBranding } from "@/lib/api";
 
 type Brand = {
   /** Empty until the first response arrives. */
@@ -18,6 +18,8 @@ type Brand = {
   logoUrl: string | null;
   /** The storefront landing page's hero photo, if one is uploaded. */
   heroImageUrl: string | null;
+  /** The storefront landing page's About section photo, if one is uploaded. */
+  aboutImageUrl: string | null;
   /** The interface language for someone who has not chosen their own. */
   defaultLanguage: string;
   /** True once the branding call has answered, or failed. */
@@ -30,6 +32,7 @@ const BrandContext = createContext<Brand>({
   name: "",
   logoUrl: null,
   heroImageUrl: null,
+  aboutImageUrl: null,
   defaultLanguage: "en",
   loaded: false,
   refresh: () => {},
@@ -47,9 +50,10 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     name: string;
     logoUrl: string | null;
     heroImageUrl: string | null;
+    aboutImageUrl: string | null;
     defaultLanguage: string;
     loaded: boolean;
-  }>({ name: "", logoUrl: null, heroImageUrl: null, defaultLanguage: "en", loaded: false });
+  }>({ name: "", logoUrl: null, heroImageUrl: null, aboutImageUrl: null, defaultLanguage: "en", loaded: false });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -63,6 +67,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           name: result.business_name,
           logoUrl: result.has_logo ? brandingLogoUrl(result.logo_version) : null,
           heroImageUrl: result.has_hero_image ? brandingLandingHeroUrl(result.hero_image_version) : null,
+          aboutImageUrl: result.has_landing_about_image
+            ? brandingLandingAboutImageUrl(result.landing_about_image_version)
+            : null,
           defaultLanguage: result.default_language,
           loaded: true,
         });

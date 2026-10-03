@@ -33,6 +33,10 @@ export type PublicConfig = {
   landing_benefit3_body: string;
   has_hero_image: boolean;
   hero_image_version: number | null;
+  landing_about_title: string;
+  landing_about_body: string;
+  has_landing_about_image: boolean;
+  landing_about_image_version: number | null;
 };
 
 export type PublicLocation = {

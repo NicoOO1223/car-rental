@@ -131,6 +131,8 @@ class Configuration(Base):
     landing_benefit2_body: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
     landing_benefit3_title: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default="")
     landing_benefit3_body: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
+    landing_about_title: Mapped[str] = mapped_column(String(100), nullable=False, default="", server_default="")
+    landing_about_body: Mapped[str] = mapped_column(String(600), nullable=False, default="", server_default="")
 
     __table_args__ = (
         CheckConstraint("id = 1", name="configuration_singleton"),

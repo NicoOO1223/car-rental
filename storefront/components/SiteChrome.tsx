@@ -24,21 +24,28 @@ export function SiteHeader({ language, config }: { language: string; config: Pub
           {config?.business_name ?? ""}
         </Link>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+        <div className="flex flex-wrap items-center gap-y-2 text-sm">
           {config?.storefront_enabled && (
-            <>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <Link href={`/${language}/fleet`} className="text-ink-secondary hover:text-ink">
                 {t("nav.fleet")}
               </Link>
               <Link href={`/${language}/manage`} className="text-ink-secondary hover:text-ink">
                 {t("nav.manage")}
               </Link>
-            </>
+            </div>
           )}
 
-          <Suspense fallback={null}>
-            <LanguagePicker current={language} />
-          </Suspense>
+          {/* A utility control, not a page to go to — kept visually
+              separate from the nav links above with a divider and a
+              lighter weight, so it doesn't read as a third destination.
+              The divider only makes sense once there's something to its
+              left to divide from. */}
+          <div className={config?.storefront_enabled ? "ml-5 border-l border-border-subtle pl-5" : ""}>
+            <Suspense fallback={null}>
+              <LanguagePicker current={language} />
+            </Suspense>
+          </div>
         </div>
       </div>
     </header>

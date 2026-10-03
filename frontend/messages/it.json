@@ -140,7 +140,8 @@
     },
     "branding": {
       "no_logo": "Non è stato caricato alcun logo.",
-      "no_landing_hero": "Non è stata caricata alcuna immagine principale."
+      "no_landing_hero": "Non è stata caricata alcuna immagine principale.",
+      "no_landing_about_image": "Non è stata caricata alcuna immagine."
     },
     "car": {
       "cannot_move_yet": "Questo veicolo non può ancora essere spostato: ha un noleggio in corso o prenotazioni che lo ritirano a {airport} ({references}). Annullale o completale prima.",
@@ -271,6 +272,13 @@
     },
     "invoice": {
       "not_found": "Fattura non trovata."
+    },
+    "landing_about": {
+      "corrupted": "Il file dell'immagine è danneggiato.",
+      "dimensions_too_large": "Le dimensioni dell'immagine sono troppo grandi.",
+      "too_large": "L'immagine è troppo grande. Il limite è {limit_mb, number} MB.",
+      "unreadable": "Il file dell'immagine non può essere letto come immagine.",
+      "wrong_type": "L'immagine deve essere un'immagine PNG o JPEG."
     },
     "landing_hero": {
       "corrupted": "Il file dell'immagine principale è danneggiato.",
@@ -1079,7 +1087,16 @@
           "landingTagline": "Sottotitolo",
           "landingBenefitsHint": "Tre brevi motivi per prenotare da te, mostrati sotto il titolo.",
           "landingBenefitTitle": "Titolo del motivo {n}",
-          "landingBenefitBody": "Una o due frasi"
+          "landingBenefitBody": "Una o due frasi",
+          "landingAboutHint": "Una breve sezione \"chi siamo\" con una foto, mostrata più in basso nella pagina.",
+          "noAboutImage": "Nessuna immagine",
+          "chooseAboutImageFile": "Scegli un file immagine per la sezione Chi siamo",
+          "uploadAboutImage": "Carica immagine",
+          "replaceAboutImage": "Sostituisci immagine",
+          "failedUploadAboutImage": "Impossibile caricare l'immagine.",
+          "failedRemoveAboutImage": "Impossibile rimuovere l'immagine.",
+          "landingAboutTitle": "Titolo della sezione Chi siamo",
+          "landingAboutBody": "Testo della sezione Chi siamo"
         }
       },
       "revenue": {

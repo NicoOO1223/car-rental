@@ -6,6 +6,7 @@ from app.errors import NotFoundError
 from app.database import get_db
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
+from app.services.landing_about import get_about_image, read_about_image
 from app.services.landing_hero import get_hero_image, read_hero_image
 
 # Deliberately unauthenticated: the login page needs the business name and
@@ -26,6 +27,8 @@ class BrandingResponse(BaseModel):
     # a live preview the same way BrandMark does for the logo.
     has_hero_image: bool
     hero_image_version: int | None
+    has_landing_about_image: bool
+    landing_about_image_version: int | None
     locale: str
     # The interface language for anyone who has not chosen their own; the
     # sign-in page needs it before there is a signed-in person to ask.
@@ -41,6 +44,7 @@ def get_branding(db: Session = Depends(get_db)):
     configuration = get_configuration(db)
     logo = get_logo(db)
     hero = get_hero_image(db)
+    about_image = get_about_image(db)
 
     return BrandingResponse(
         business_name=configuration.business_name,
@@ -48,6 +52,8 @@ def get_branding(db: Session = Depends(get_db)):
         logo_version=_version(logo) if logo is not None else None,
         has_hero_image=hero is not None,
         hero_image_version=_version(hero) if hero is not None else None,
+        has_landing_about_image=about_image is not None,
+        landing_about_image_version=_version(about_image) if about_image is not None else None,
         locale=configuration.locale,
         default_language=configuration.default_language,
     )
@@ -103,5 +109,31 @@ def get_branding_landing_hero(
     return Response(
         content=read_hero_image(hero),
         media_type=hero.content_type,
+        headers=headers,
+    )
+
+
+@router.get("/landing-about-image")
+def get_branding_landing_about_image(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    about_image = get_about_image(db)
+
+    if about_image is None:
+        raise NotFoundError("branding.no_landing_about_image", "No image has been uploaded.")
+
+    etag = f'"{_version(about_image)}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=read_about_image(about_image),
+        media_type=about_image.content_type,
         headers=headers,
     )

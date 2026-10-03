@@ -40,7 +40,9 @@
     "point3Title": "Nessun account necessario",
     "point3Body": "Conserva il riferimento della prenotazione e ritrovala quando vuoi.",
     "browseFleet": "Vedi le nostre auto",
-    "manageBooking": "Hai già prenotato? Gestisci la tua prenotazione"
+    "manageBooking": "Hai già prenotato? Gestisci la tua prenotazione",
+    "fleetTitle": "La nostra flotta",
+    "fleetSeeAll": "Vedi tutta la flotta"
   },
   "search": {
     "title": "Trova la tua auto",

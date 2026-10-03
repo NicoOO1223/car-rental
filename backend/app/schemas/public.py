@@ -52,6 +52,10 @@ class PublicConfigResponse(BaseModel):
     landing_benefit3_body: str
     has_hero_image: bool
     hero_image_version: int | None
+    landing_about_title: str
+    landing_about_body: str
+    has_landing_about_image: bool
+    landing_about_image_version: int | None
 
 
 class PublicLegalResponse(BaseModel):

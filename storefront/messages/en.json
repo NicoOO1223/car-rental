@@ -40,7 +40,9 @@
     "point3Title": "No account needed",
     "point3Body": "Keep your booking reference and look your booking up any time.",
     "browseFleet": "See our cars",
-    "manageBooking": "Already booked? Manage your booking"
+    "manageBooking": "Already booked? Manage your booking",
+    "fleetTitle": "Our fleet",
+    "fleetSeeAll": "See the full fleet"
   },
   "search": {
     "title": "Find your car",

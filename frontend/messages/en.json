@@ -140,7 +140,8 @@
     },
     "branding": {
       "no_logo": "No logo has been uploaded.",
-      "no_landing_hero": "No hero image has been uploaded."
+      "no_landing_hero": "No hero image has been uploaded.",
+      "no_landing_about_image": "No image has been uploaded."
     },
     "car": {
       "cannot_move_yet": "This car can't be moved yet: it has an active rental or reservations that pick it up at {airport} ({references}). Cancel or complete them first.",
@@ -271,6 +272,13 @@
     },
     "invoice": {
       "not_found": "Invoice not found."
+    },
+    "landing_about": {
+      "corrupted": "The image file is corrupted.",
+      "dimensions_too_large": "The image dimensions are too large.",
+      "too_large": "The image is too large. The limit is {limit_mb, number} MB.",
+      "unreadable": "The image file could not be read as an image.",
+      "wrong_type": "The image must be a PNG or JPEG image."
     },
     "landing_hero": {
       "corrupted": "The hero image file is corrupted.",
@@ -1079,7 +1087,16 @@
           "landingTagline": "Tagline",
           "landingBenefitsHint": "Three short reasons to book with you, shown under the headline.",
           "landingBenefitTitle": "Benefit {n} title",
-          "landingBenefitBody": "A sentence or two"
+          "landingBenefitBody": "A sentence or two",
+          "landingAboutHint": "A short \"about us\" section with one photo, shown further down the page.",
+          "noAboutImage": "No image",
+          "chooseAboutImageFile": "Choose an About section image file",
+          "uploadAboutImage": "Upload image",
+          "replaceAboutImage": "Replace image",
+          "failedUploadAboutImage": "Failed to upload the image.",
+          "failedRemoveAboutImage": "Failed to remove the image.",
+          "landingAboutTitle": "About section title",
+          "landingAboutBody": "About section text"
         }
       },
       "revenue": {

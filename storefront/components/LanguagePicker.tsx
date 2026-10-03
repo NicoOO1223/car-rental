@@ -27,7 +27,7 @@ export function LanguagePicker({ current }: { current: string }) {
   }
 
   return (
-    <nav aria-label={t("language")} className="flex gap-1 text-sm">
+    <nav aria-label={t("language")} className="flex gap-3 text-xs text-ink-muted">
       {LANGUAGES.map((language) => (
         <a
           key={language}
@@ -36,9 +36,9 @@ export function LanguagePicker({ current }: { current: string }) {
           lang={language}
           aria-current={language === current ? "true" : undefined}
           onClick={() => remember(language)}
-          className={`rounded-md px-2 py-1 ${
-            language === current ? "bg-gray-900 font-medium text-white" : "text-ink-secondary hover:bg-surface hover:text-ink"
-          }`}
+          className={
+            language === current ? "font-semibold text-ink underline" : "hover:text-ink"
+          }
         >
           {NAMES[language]}
         </a>

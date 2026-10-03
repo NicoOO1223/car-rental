@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 
 import {
+  deleteLandingAboutImage,
   deleteLandingHero,
   getConfiguration,
   updateConfiguration,
+  uploadLandingAboutImage,
   uploadLandingHero,
   type Configuration,
 } from "@/lib/api";
@@ -34,9 +36,12 @@ const LANDING_TEXT_FIELDS = [
   "landing_benefit2_body",
   "landing_benefit3_title",
   "landing_benefit3_body",
+  "landing_about_title",
+  "landing_about_body",
 ] as const;
 
 const MAX_HERO_BYTES = 3 * 1024 * 1024;
+const MAX_ABOUT_IMAGE_BYTES = 3 * 1024 * 1024;
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -66,6 +71,8 @@ type Form = {
   landing_benefit2_body: string;
   landing_benefit3_title: string;
   landing_benefit3_body: string;
+  landing_about_title: string;
+  landing_about_body: string;
 };
 
 function toForm(configuration: Configuration): Form {
@@ -87,12 +94,15 @@ function toForm(configuration: Configuration): Form {
     landing_benefit2_body: configuration.landing_benefit2_body,
     landing_benefit3_title: configuration.landing_benefit3_title,
     landing_benefit3_body: configuration.landing_benefit3_body,
+    landing_about_title: configuration.landing_about_title,
+    landing_about_body: configuration.landing_about_body,
   };
 }
 
 export default function StorefrontConfigurationPage() {
   const brand = useBrand();
   const heroFileInput = useRef<HTMLInputElement>(null);
+  const aboutFileInput = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<Form | null>(null);
   const [legalVersion, setLegalVersion] = useState(1);
@@ -103,6 +113,9 @@ export default function StorefrontConfigurationPage() {
 
   const [heroBusy, setHeroBusy] = useState(false);
   const [heroError, setHeroError] = useState("");
+
+  const [aboutImageBusy, setAboutImageBusy] = useState(false);
+  const [aboutImageError, setAboutImageError] = useState("");
 
   useEffect(() => {
     getConfiguration()
@@ -180,6 +193,55 @@ export default function StorefrontConfigurationPage() {
       setHeroError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedRemoveHero"));
     } finally {
       setHeroBusy(false);
+    }
+  }
+
+  async function handleAboutImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setAboutImageError("");
+
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      setAboutImageError(t("s.admin.configuration.storefront.choosePngJpegImage"));
+      return;
+    }
+
+    if (file.size > MAX_ABOUT_IMAGE_BYTES) {
+      setAboutImageError(
+        t("s.admin.configuration.storefront.fileTooLargeLimit", { v1: MAX_ABOUT_IMAGE_BYTES / (1024 * 1024) }),
+      );
+      return;
+    }
+
+    setAboutImageBusy(true);
+
+    try {
+      await uploadLandingAboutImage(await readAsDataUrl(file));
+      brand.refresh();
+    } catch (err) {
+      setAboutImageError(
+        err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedUploadAboutImage"),
+      );
+    } finally {
+      setAboutImageBusy(false);
+    }
+  }
+
+  async function handleAboutImageRemove() {
+    setAboutImageBusy(true);
+    setAboutImageError("");
+
+    try {
+      await deleteLandingAboutImage();
+      brand.refresh();
+    } catch (err) {
+      setAboutImageError(
+        err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedRemoveAboutImage"),
+      );
+    } finally {
+      setAboutImageBusy(false);
     }
   }
 
@@ -327,6 +389,72 @@ export default function StorefrontConfigurationPage() {
               onChange={set("landing_benefit3_body")}
             />
           </div>
+        </div>
+
+        <div className="border-t border-border-subtle pt-4">
+          <p className="text-sm font-medium text-ink">{t("s.admin.configuration.storefront.landingAboutHint")}</p>
+
+          <div className="mt-4 flex items-center gap-4">
+            {brand.aboutImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.aboutImageUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-16 w-28 shrink-0 rounded-lg border border-border-strong object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-strong text-xs text-ink-muted">
+                {t("s.admin.configuration.storefront.noAboutImage")}
+              </div>
+            )}
+
+            <input
+              ref={aboutFileInput}
+              type="file"
+              accept="image/png,image/jpeg"
+              className="sr-only"
+              onChange={handleAboutImageFile}
+              aria-label={t("s.admin.configuration.storefront.chooseAboutImageFile")}
+            />
+
+            <Button
+              type="button"
+              variant="secondary"
+              loading={aboutImageBusy}
+              onClick={() => aboutFileInput.current?.click()}
+            >
+              <ImagePlus className="h-4 w-4" aria-hidden="true" />
+              {brand.aboutImageUrl
+                ? t("s.admin.configuration.storefront.replaceAboutImage")
+                : t("s.admin.configuration.storefront.uploadAboutImage")}
+            </Button>
+
+            {brand.aboutImageUrl && (
+              <Button type="button" variant="ghost" disabled={aboutImageBusy} onClick={handleAboutImageRemove}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.storefront.remove")}</Button>
+            )}
+          </div>
+
+          {aboutImageError && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {aboutImageError}
+            </p>
+          )}
+
+          <TextField
+            label={t("s.admin.configuration.storefront.landingAboutTitle")}
+            maxLength={100}
+            value={form.landing_about_title}
+            onChange={set("landing_about_title")}
+            className="mt-4"
+          />
+
+          <Field label={t("s.admin.configuration.storefront.landingAboutBody")}>
+            {(fieldProps) => (
+              <Textarea {...fieldProps} rows={4} maxLength={600} value={form.landing_about_body} onChange={set("landing_about_body")} />
+            )}
+          </Field>
         </div>
       </Card>
 

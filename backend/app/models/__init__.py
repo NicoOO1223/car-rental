@@ -7,6 +7,7 @@ from app.models.customer import Customer
 from app.models.extra import Extra
 from app.models.handover import Handover
 from app.models.invoice import Invoice, InvoiceCounter
+from app.models.landing_about_image import LandingAboutImage
 from app.models.landing_hero_image import LandingHeroImage
 from app.models.location import Location
 from app.models.maintenance_task import MaintenanceTask
@@ -30,6 +31,7 @@ __all__ = [
     "Handover",
     "Invoice",
     "InvoiceCounter",
+    "LandingAboutImage",
     "LandingHeroImage",
     "Location",
     "MaintenanceTask",

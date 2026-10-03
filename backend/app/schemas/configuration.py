@@ -67,6 +67,8 @@ class ConfigurationResponse(BaseModel):
     landing_benefit2_body: str
     landing_benefit3_title: str
     landing_benefit3_body: str
+    landing_about_title: str
+    landing_about_body: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -116,6 +118,8 @@ class ConfigurationUpdate(BaseModel):
     landing_benefit2_body: str | None = Field(default=None, max_length=240)
     landing_benefit3_title: str | None = Field(default=None, max_length=80)
     landing_benefit3_body: str | None = Field(default=None, max_length=240)
+    landing_about_title: str | None = Field(default=None, max_length=100)
+    landing_about_body: str | None = Field(default=None, max_length=600)
 
     @field_validator("online_share_percent")
     @classmethod
@@ -199,6 +203,8 @@ class ConfigurationUpdate(BaseModel):
         "landing_benefit2_body",
         "landing_benefit3_title",
         "landing_benefit3_body",
+        "landing_about_title",
+        "landing_about_body",
     )
     @classmethod
     def strip_text(cls, v: str | None) -> str | None:

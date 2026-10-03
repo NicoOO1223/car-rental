@@ -40,7 +40,9 @@
     "point3Title": "Bez zakładania konta",
     "point3Body": "Zachowaj numer rezerwacji i odnajdź ją w dowolnym momencie.",
     "browseFleet": "Zobacz nasze auta",
-    "manageBooking": "Masz już rezerwację? Zarządzaj nią"
+    "manageBooking": "Masz już rezerwację? Zarządzaj nią",
+    "fleetTitle": "Nasza flota",
+    "fleetSeeAll": "Zobacz całą flotę"
   },
   "search": {
     "title": "Znajdź swoje auto",
