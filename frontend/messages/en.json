@@ -141,7 +141,8 @@
     "branding": {
       "no_logo": "No logo has been uploaded.",
       "no_landing_hero": "No hero image has been uploaded.",
-      "no_landing_about_image": "No image has been uploaded."
+      "no_landing_about_image": "No image has been uploaded.",
+      "no_landing_cta_image": "No banner image has been uploaded."
     },
     "car": {
       "cannot_move_yet": "This car can't be moved yet: it has an active rental or reservations that pick it up at {airport} ({references}). Cancel or complete them first.",
@@ -418,6 +419,13 @@
     "account": {
       "email_taken": "An account with this email already exists.",
       "signed_out": "Your session has ended. Please sign in again."
+    },
+    "landing_cta": {
+      "corrupted": "The image file is corrupted.",
+      "dimensions_too_large": "The image dimensions are too large.",
+      "too_large": "The image is too large. The limit is {limit_mb, number} MB.",
+      "unreadable": "The image file could not be read as an image.",
+      "wrong_type": "The image must be a PNG or JPEG image."
     }
   },
   "c": {
@@ -1123,7 +1131,9 @@
           "socialInstagram": "Instagram link",
           "socialFacebook": "Facebook link",
           "socialX": "X link",
-          "socialWhatsapp": "WhatsApp link"
+          "socialWhatsapp": "WhatsApp link",
+          "landingCtaHint": "The photo behind the \"Ready to hit the road?\" banner near the bottom of the page.",
+          "chooseCtaImageFile": "Choose a banner image file"
         }
       },
       "revenue": {

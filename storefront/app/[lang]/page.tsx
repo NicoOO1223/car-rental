@@ -53,6 +53,13 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   const featuredFleet = (fleet ?? []).slice(0, 3);
   const places = locations ?? [];
 
+  // Photos the business uploaded in its admin; the built-in ones are the fallback.
+  const api = runtimeConfig().apiUrl;
+  const heroImageUrl = config.has_hero_image ? `${api}/api/branding/landing-hero?v=${config.hero_image_version ?? 0}` : null;
+  const ctaImageUrl = config.has_landing_cta_image
+    ? `${api}/api/branding/landing-cta-image?v=${config.landing_cta_image_version ?? 0}`
+    : null;
+
   const aboutImageUrl = config.has_landing_about_image
     ? `${runtimeConfig().apiUrl}/api/branding/landing-about-image?v=${config.landing_about_image_version ?? 0}`
     : null;
@@ -62,8 +69,14 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   return (
     <main id="top" className="relative isolate">
       {/* The photo runs behind the transparent navbar and the booking bar. */}
-      <div className="absolute inset-x-0 top-0 -z-10 h-[40rem] overflow-hidden bg-deep sm:h-[48rem]" aria-hidden="true">
-        <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+      <div className="absolute inset-x-0 top-0 -z-10 h-[46rem] overflow-hidden bg-deep sm:h-[54rem]" aria-hidden="true">
+        {heroImageUrl ? (
+          // The photo is served by the business's own API, so the image optimiser is not used.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={heroImageUrl} alt="" fetchPriority="high" className="h-full w-full object-cover" />
+        ) : (
+          <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-black/60" />
       </div>
 
@@ -72,7 +85,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
         manageHref={`/${lang}/${account ? "account" : "manage"}`}
       />
 
-      <section className="flex min-h-[28rem] items-end sm:min-h-[34rem]">
+      <section className="flex min-h-[34rem] items-end sm:min-h-[40rem]">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 text-white sm:px-6 sm:pb-20">
           <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-6xl">{headline}</h1>
           <p className="mt-4 max-w-2xl text-lg text-white/85 sm:text-xl">{tagline}</p>
@@ -232,7 +245,12 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       {/* Call to action */}
       <section className="px-4 pb-16 sm:px-6 sm:pb-24" aria-labelledby="cta-title">
         <div className="relative isolate mx-auto flex max-w-7xl flex-col items-start gap-6 overflow-hidden rounded-3xl bg-deep px-8 py-14 text-white sm:px-14 sm:py-20 md:flex-row md:items-center md:justify-between">
-          <Image src="/cta-banner.jpg" alt="" fill sizes="(min-width: 1280px) 1280px, 100vw" className="-z-20 object-cover object-[center_62%]" />
+          {ctaImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={ctaImageUrl} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+          ) : (
+            <Image src="/cta-banner.jpg" alt="" fill sizes="(min-width: 1280px) 1280px, 100vw" className="-z-20 object-cover object-[center_62%]" />
+          )}
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/85 via-black/40 to-transparent" aria-hidden="true" />
 
           <div className="max-w-xl">

@@ -5,10 +5,12 @@ import { ImagePlus, Trash2 } from "lucide-react";
 
 import {
   deleteLandingAboutImage,
+  deleteLandingCtaImage,
   deleteLandingHero,
   getConfiguration,
   updateConfiguration,
   uploadLandingAboutImage,
+  uploadLandingCtaImage,
   uploadLandingHero,
   type Configuration,
 } from "@/lib/api";
@@ -44,6 +46,7 @@ const LANDING_TEXT_FIELDS = [
 
 const MAX_HERO_BYTES = 3 * 1024 * 1024;
 const MAX_ABOUT_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_CTA_IMAGE_BYTES = 3 * 1024 * 1024;
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -113,6 +116,7 @@ export default function StorefrontConfigurationPage() {
   const brand = useBrand();
   const heroFileInput = useRef<HTMLInputElement>(null);
   const aboutFileInput = useRef<HTMLInputElement>(null);
+  const ctaFileInput = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<Form | null>(null);
   const [legalVersion, setLegalVersion] = useState(1);
@@ -126,6 +130,9 @@ export default function StorefrontConfigurationPage() {
 
   const [aboutImageBusy, setAboutImageBusy] = useState(false);
   const [aboutImageError, setAboutImageError] = useState("");
+
+  const [ctaImageBusy, setCtaImageBusy] = useState(false);
+  const [ctaImageError, setCtaImageError] = useState("");
 
   useEffect(() => {
     getConfiguration()
@@ -253,6 +260,51 @@ export default function StorefrontConfigurationPage() {
       );
     } finally {
       setAboutImageBusy(false);
+    }
+  }
+
+  async function handleCtaImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setCtaImageError("");
+
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      setCtaImageError(t("s.admin.configuration.storefront.choosePngJpegImage"));
+      return;
+    }
+
+    if (file.size > MAX_CTA_IMAGE_BYTES) {
+      setCtaImageError(
+        t("s.admin.configuration.storefront.fileTooLargeLimit", { v1: MAX_CTA_IMAGE_BYTES / (1024 * 1024) }),
+      );
+      return;
+    }
+
+    setCtaImageBusy(true);
+
+    try {
+      await uploadLandingCtaImage(await readAsDataUrl(file));
+      brand.refresh();
+    } catch (err) {
+      setCtaImageError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedUploadAboutImage"));
+    } finally {
+      setCtaImageBusy(false);
+    }
+  }
+
+  async function handleCtaImageRemove() {
+    setCtaImageBusy(true);
+    setCtaImageError("");
+
+    try {
+      await deleteLandingCtaImage();
+      brand.refresh();
+    } catch (err) {
+      setCtaImageError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedRemoveAboutImage"));
+    } finally {
+      setCtaImageBusy(false);
     }
   }
 
@@ -466,6 +518,53 @@ export default function StorefrontConfigurationPage() {
               <Textarea {...fieldProps} rows={4} maxLength={600} value={form.landing_about_body} onChange={set("landing_about_body")} />
             )}
           </Field>
+        </div>
+
+        <div className="border-t border-border-subtle pt-4">
+          <p className="text-sm font-medium text-ink">{t("s.admin.configuration.storefront.landingCtaHint")}</p>
+
+          <div className="mt-4 flex items-center gap-4">
+            {brand.ctaImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.ctaImageUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-16 w-28 shrink-0 rounded-lg border border-border-strong object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-strong text-xs text-ink-muted">
+                {t("s.admin.configuration.storefront.noAboutImage")}
+              </div>
+            )}
+
+            <input
+              ref={ctaFileInput}
+              type="file"
+              accept="image/png,image/jpeg"
+              className="sr-only"
+              onChange={handleCtaImageFile}
+              aria-label={t("s.admin.configuration.storefront.chooseCtaImageFile")}
+            />
+
+            <Button type="button" variant="secondary" loading={ctaImageBusy} onClick={() => ctaFileInput.current?.click()}>
+              <ImagePlus className="h-4 w-4" aria-hidden="true" />
+              {brand.ctaImageUrl
+                ? t("s.admin.configuration.storefront.replaceAboutImage")
+                : t("s.admin.configuration.storefront.uploadAboutImage")}
+            </Button>
+
+            {brand.ctaImageUrl && (
+              <Button type="button" variant="ghost" disabled={ctaImageBusy} onClick={handleCtaImageRemove}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.storefront.remove")}</Button>
+            )}
+          </div>
+
+          {ctaImageError && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {ctaImageError}
+            </p>
+          )}
         </div>
       </Card>
 

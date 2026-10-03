@@ -26,6 +26,7 @@ from app.schemas.reservation import ReservationQuoteRequest
 from app.services.branding import get_logo
 from app.services.car_photos import read_car_photo
 from app.services.landing_about import get_about_image
+from app.services.landing_cta import get_cta_image
 from app.services.landing_hero import get_hero_image
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import list_extras
@@ -84,6 +85,7 @@ def public_config(db: Session = Depends(get_db)):
     logo = get_logo(db)
     hero = get_hero_image(db)
     about_image = get_about_image(db)
+    cta_image = get_cta_image(db)
 
     return PublicConfigResponse(
         storefront_enabled=configuration.storefront_enabled,
@@ -123,6 +125,8 @@ def public_config(db: Session = Depends(get_db)):
         landing_about_body=configuration.landing_about_body,
         has_landing_about_image=about_image is not None,
         landing_about_image_version=int(about_image.updated_at.timestamp()) if about_image is not None else None,
+        has_landing_cta_image=cta_image is not None,
+        landing_cta_image_version=int(cta_image.updated_at.timestamp()) if cta_image is not None else None,
     )
 
 

@@ -10,7 +10,12 @@ import {
   type ReactNode,
 } from "react";
 
-import { brandingLandingAboutImageUrl, brandingLandingHeroUrl, brandingLogoUrl, getBranding } from "@/lib/api";
+import {
+  brandingLandingAboutImageUrl,
+  brandingLandingCtaImageUrl,
+  brandingLandingHeroUrl,  brandingLogoUrl,
+  getBranding,
+} from "@/lib/api";
 
 type Brand = {
   /** Empty until the first response arrives. */
@@ -20,6 +25,8 @@ type Brand = {
   heroImageUrl: string | null;
   /** The storefront landing page's About section photo, if one is uploaded. */
   aboutImageUrl: string | null;
+  /** The call-to-action banner photo, if one is uploaded. */
+  ctaImageUrl: string | null;
   /** The interface language for someone who has not chosen their own. */
   defaultLanguage: string;
   /** True once the branding call has answered, or failed. */
@@ -33,6 +40,7 @@ const BrandContext = createContext<Brand>({
   logoUrl: null,
   heroImageUrl: null,
   aboutImageUrl: null,
+  ctaImageUrl: null,
   defaultLanguage: "en",
   loaded: false,
   refresh: () => {},
@@ -51,9 +59,18 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     logoUrl: string | null;
     heroImageUrl: string | null;
     aboutImageUrl: string | null;
+    ctaImageUrl: string | null;
     defaultLanguage: string;
     loaded: boolean;
-  }>({ name: "", logoUrl: null, heroImageUrl: null, aboutImageUrl: null, defaultLanguage: "en", loaded: false });
+  }>({
+    name: "",
+    logoUrl: null,
+    heroImageUrl: null,
+    aboutImageUrl: null,
+    ctaImageUrl: null,
+    defaultLanguage: "en",
+    loaded: false,
+  });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -69,6 +86,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           heroImageUrl: result.has_hero_image ? brandingLandingHeroUrl(result.hero_image_version) : null,
           aboutImageUrl: result.has_landing_about_image
             ? brandingLandingAboutImageUrl(result.landing_about_image_version)
+            : null,
+          ctaImageUrl: result.has_landing_cta_image
+            ? brandingLandingCtaImageUrl(result.landing_cta_image_version)
             : null,
           defaultLanguage: result.default_language,
           loaded: true,

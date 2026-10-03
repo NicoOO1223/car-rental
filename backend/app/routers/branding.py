@@ -7,6 +7,7 @@ from app.database import get_db
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
 from app.services.landing_about import get_about_image, read_about_image
+from app.services.landing_cta import get_cta_image, read_cta_image
 from app.services.landing_hero import get_hero_image, read_hero_image
 
 # Deliberately unauthenticated: the login page needs the business name and
@@ -29,6 +30,8 @@ class BrandingResponse(BaseModel):
     hero_image_version: int | None
     has_landing_about_image: bool
     landing_about_image_version: int | None
+    has_landing_cta_image: bool
+    landing_cta_image_version: int | None
     locale: str
     # The interface language for anyone who has not chosen their own; the
     # sign-in page needs it before there is a signed-in person to ask.
@@ -45,6 +48,7 @@ def get_branding(db: Session = Depends(get_db)):
     logo = get_logo(db)
     hero = get_hero_image(db)
     about_image = get_about_image(db)
+    cta_image = get_cta_image(db)
 
     return BrandingResponse(
         business_name=configuration.business_name,
@@ -54,6 +58,8 @@ def get_branding(db: Session = Depends(get_db)):
         hero_image_version=_version(hero) if hero is not None else None,
         has_landing_about_image=about_image is not None,
         landing_about_image_version=_version(about_image) if about_image is not None else None,
+        has_landing_cta_image=cta_image is not None,
+        landing_cta_image_version=_version(cta_image) if cta_image is not None else None,
         locale=configuration.locale,
         default_language=configuration.default_language,
     )
@@ -135,5 +141,31 @@ def get_branding_landing_about_image(
     return Response(
         content=read_about_image(about_image),
         media_type=about_image.content_type,
+        headers=headers,
+    )
+
+
+@router.get("/landing-cta-image")
+def get_branding_landing_cta_image(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    cta_image = get_cta_image(db)
+
+    if cta_image is None:
+        raise NotFoundError("branding.no_landing_cta_image", "No banner image has been uploaded.")
+
+    etag = f'"{_version(cta_image)}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=read_cta_image(cta_image),
+        media_type=cta_image.content_type,
         headers=headers,
     )

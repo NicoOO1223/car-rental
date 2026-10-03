@@ -141,7 +141,8 @@
     "branding": {
       "no_logo": "Nie przesłano żadnego logo.",
       "no_landing_hero": "Nie przesłano żadnego zdjęcia głównego.",
-      "no_landing_about_image": "Nie przesłano żadnego zdjęcia."
+      "no_landing_about_image": "Nie przesłano żadnego zdjęcia.",
+      "no_landing_cta_image": "Nie przesłano żadnego zdjęcia."
     },
     "car": {
       "cannot_move_yet": "Tego pojazdu nie można jeszcze przenieść: ma trwający wynajem lub rezerwacje odbierające go w {airport} ({references}). Najpierw je anuluj lub zakończ.",
@@ -418,6 +419,13 @@
     "account": {
       "email_taken": "Konto z tym adresem e-mail już istnieje.",
       "signed_out": "Sesja wygasła. Zaloguj się ponownie."
+    },
+    "landing_cta": {
+      "corrupted": "Plik zdjęcia jest uszkodzony.",
+      "dimensions_too_large": "Wymiary zdjęcia są za duże.",
+      "too_large": "Zdjęcie jest za duże. Limit to {limit_mb, number} MB.",
+      "unreadable": "Nie można odczytać pliku zdjęcia jako obrazu.",
+      "wrong_type": "Zdjęcie musi być obrazem PNG lub JPEG."
     }
   },
   "c": {
@@ -1123,7 +1131,9 @@
           "socialInstagram": "Link do Instagrama",
           "socialFacebook": "Link do Facebooka",
           "socialX": "Link do X",
-          "socialWhatsapp": "Link do WhatsAppa"
+          "socialWhatsapp": "Link do WhatsAppa",
+          "landingCtaHint": "Zdjęcie za banerem „Gotowy do drogi?” na dole strony.",
+          "chooseCtaImageFile": "Wybierz plik obrazu banera"
         }
       },
       "revenue": {

@@ -17,7 +17,7 @@ from PIL import Image
 
 from app.database import SessionLocal
 from app.main import app
-from app.models import LandingAboutImage, LandingHeroImage
+from app.models import LandingAboutImage, LandingCtaImage, LandingHeroImage
 from app.services import photo_storage
 from tests.test_configuration import _current_configuration, _last_configuration_audit_row, _restore
 
@@ -57,6 +57,18 @@ def _no_about_image_afterwards():
     db.close()
 
 
+@pytest.fixture(autouse=True)
+def _no_cta_image_afterwards():
+    yield
+
+    db = SessionLocal()
+    banner = db.get(LandingCtaImage, 1)
+    if banner is not None:
+        db.delete(banner)
+        db.commit()
+    db.close()
+
+
 def _png(width=64, height=32, color=(20, 120, 200, 255)) -> bytes:
     out = io.BytesIO()
     Image.new("RGBA", (width, height), color).save(out, format="PNG")
@@ -79,6 +91,10 @@ def _upload(raw: bytes, mime="image/png"):
 
 def _upload_about(raw: bytes, mime="image/png"):
     return client.put("/api/configuration/landing-about-image", json={"data_url": _data_url(raw, mime)})
+
+
+def _upload_cta(raw: bytes, mime="image/png"):
+    return client.put("/api/configuration/landing-cta-image", json={"data_url": _data_url(raw, mime)})
 
 
 # --- text fields -----------------------------------------------------------
@@ -490,3 +506,32 @@ def test_social_links_are_saved_validated_and_public(original_configuration):
 
     assert public["social_instagram_url"] == "https://instagram.com/rentals"
     assert public["social_facebook_url"] == ""
+
+
+# --- call-to-action banner image -------------------------------------------
+
+
+def test_banner_image_is_stored_served_publicly_and_removable():
+    assert client.get("/api/branding/landing-cta-image").status_code == 404
+    assert client.get("/api/branding").json()["has_landing_cta_image"] is False
+
+    assert _upload_cta(_png(2400, 1200)).status_code == 204
+
+    branding = client.get("/api/branding").json()
+    assert branding["has_landing_cta_image"] is True
+    assert isinstance(branding["landing_cta_image_version"], int)
+
+    banner = client.get("/api/branding/landing-cta-image")
+    assert banner.status_code == 200
+    assert max(Image.open(io.BytesIO(banner.content)).size) <= 1920
+
+    again = client.get("/api/branding/landing-cta-image", headers={"If-None-Match": banner.headers["etag"]})
+    assert again.status_code == 304
+
+    assert client.delete("/api/configuration/landing-cta-image").status_code == 204
+    assert client.get("/api/branding/landing-cta-image").status_code == 404
+
+
+def test_banner_image_must_be_a_real_png_or_jpeg():
+    assert _upload_cta(b"not an image").status_code == 400
+    assert client.put("/api/configuration/landing-cta-image", json={"data_url": "data:image/gif;base64,AAAA"}).status_code == 400

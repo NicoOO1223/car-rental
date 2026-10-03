@@ -2576,6 +2576,8 @@ export type Branding = {
   hero_image_version: number | null;
   has_landing_about_image: boolean;
   landing_about_image_version: number | null;
+  has_landing_cta_image: boolean;
+  landing_cta_image_version: number | null;
   locale: string;
   /** Interface language for someone who has not chosen their own. */
   default_language: string;
@@ -2602,6 +2604,10 @@ export function brandingLandingHeroUrl(version: number | null): string {
 
 export function brandingLandingAboutImageUrl(version: number | null): string {
   return `${apiUrl()}/api/branding/landing-about-image${version ? `?v=${version}` : ""}`;
+}
+
+export function brandingLandingCtaImageUrl(version: number | null): string {
+  return `${apiUrl()}/api/branding/landing-cta-image${version ? `?v=${version}` : ""}`;
 }
 
 export async function uploadLogo(dataUrl: string): Promise<void> {
@@ -2662,6 +2668,28 @@ export async function uploadLandingAboutImage(dataUrl: string): Promise<void> {
 
 export async function deleteLandingAboutImage(): Promise<void> {
   const response = await apiFetch("/api/configuration/landing-about-image", {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.delete");
+  }
+}
+
+export async function uploadLandingCtaImage(dataUrl: string): Promise<void> {
+  const response = await apiFetch("/api/configuration/landing-cta-image", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data_url: dataUrl }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+}
+
+export async function deleteLandingCtaImage(): Promise<void> {
+  const response = await apiFetch("/api/configuration/landing-cta-image", {
     method: "DELETE",
   });
 

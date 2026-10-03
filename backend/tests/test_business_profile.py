@@ -167,6 +167,7 @@ def test_branding_needs_no_login(original_configuration):
         "business_name", "has_logo", "logo_version",
         "has_hero_image", "hero_image_version",
         "has_landing_about_image", "landing_about_image_version",
+        "has_landing_cta_image", "landing_cta_image_version",
         "locale", "default_language",
     }
     assert body["has_logo"] is False

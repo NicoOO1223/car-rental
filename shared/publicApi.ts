@@ -42,6 +42,8 @@ export type PublicConfig = {
   landing_about_body: string;
   has_landing_about_image: boolean;
   landing_about_image_version: number | null;
+  has_landing_cta_image: boolean;
+  landing_cta_image_version: number | null;
 };
 
 export type PublicLocation = {

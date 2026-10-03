@@ -97,6 +97,7 @@ def test_config_exposes_only_what_a_renter_needs():
         "has_hero_image", "hero_image_version",
         "landing_about_title", "landing_about_body",
         "has_landing_about_image", "landing_about_image_version",
+        "has_landing_cta_image", "landing_cta_image_version",
     }
     assert body["languages"] == ["en", "it", "pl"]
 

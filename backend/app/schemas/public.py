@@ -61,6 +61,8 @@ class PublicConfigResponse(BaseModel):
     landing_about_body: str
     has_landing_about_image: bool
     landing_about_image_version: int | None
+    has_landing_cta_image: bool
+    landing_cta_image_version: int | None
 
 
 class PublicLegalResponse(BaseModel):

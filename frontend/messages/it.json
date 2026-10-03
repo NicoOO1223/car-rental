@@ -141,7 +141,8 @@
     "branding": {
       "no_logo": "Non è stato caricato alcun logo.",
       "no_landing_hero": "Non è stata caricata alcuna immagine principale.",
-      "no_landing_about_image": "Non è stata caricata alcuna immagine."
+      "no_landing_about_image": "Non è stata caricata alcuna immagine.",
+      "no_landing_cta_image": "Non è stata caricata alcuna immagine."
     },
     "car": {
       "cannot_move_yet": "Questo veicolo non può ancora essere spostato: ha un noleggio in corso o prenotazioni che lo ritirano a {airport} ({references}). Annullale o completale prima.",
@@ -418,6 +419,13 @@
     "account": {
       "email_taken": "Esiste già un account con questa email.",
       "signed_out": "La sessione è terminata. Accedi di nuovo."
+    },
+    "landing_cta": {
+      "corrupted": "Il file dell'immagine è danneggiato.",
+      "dimensions_too_large": "Le dimensioni dell'immagine sono troppo grandi.",
+      "too_large": "L'immagine è troppo grande. Il limite è {limit_mb, number} MB.",
+      "unreadable": "Il file dell'immagine non può essere letto come immagine.",
+      "wrong_type": "L'immagine deve essere un'immagine PNG o JPEG."
     }
   },
   "c": {
@@ -1123,7 +1131,9 @@
           "socialInstagram": "Link Instagram",
           "socialFacebook": "Link Facebook",
           "socialX": "Link X",
-          "socialWhatsapp": "Link WhatsApp"
+          "socialWhatsapp": "Link WhatsApp",
+          "landingCtaHint": "La foto dietro il banner «Pronto a partire?» in fondo alla pagina.",
+          "chooseCtaImageFile": "Scegli un file immagine per il banner"
         }
       },
       "revenue": {
