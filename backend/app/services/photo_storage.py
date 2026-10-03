@@ -47,6 +47,17 @@ def read(blob_path: str, *, container: str = CONTAINER_NAME) -> bytes:
     return _local_read(container, blob_path)
 
 
+def delete(blob_path: str, *, container: str = CONTAINER_NAME) -> None:
+    """Best-effort: a blob that is already gone (or never existed) is not an error."""
+
+    account_url = _account_url()
+
+    if account_url:
+        _azure_delete(account_url, container, blob_path)
+    else:
+        _local_delete(container, blob_path)
+
+
 def _local_save(container: str, blob_path: str, data: bytes) -> None:
     path = _LOCAL_ROOT / container / blob_path
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,6 +66,10 @@ def _local_save(container: str, blob_path: str, data: bytes) -> None:
 
 def _local_read(container: str, blob_path: str) -> bytes:
     return (_LOCAL_ROOT / container / blob_path).read_bytes()
+
+
+def _local_delete(container: str, blob_path: str) -> None:
+    (_LOCAL_ROOT / container / blob_path).unlink(missing_ok=True)
 
 
 def _azure_save(account_url: str, container: str, blob_path: str, data: bytes, content_type: str) -> None:
@@ -74,3 +89,17 @@ def _azure_read(account_url: str, container: str, blob_path: str) -> bytes:
     blob = client.get_blob_client(container=container, blob=blob_path)
 
     return blob.download_blob().readall()
+
+
+def _azure_delete(account_url: str, container: str, blob_path: str) -> None:
+    from azure.core.exceptions import ResourceNotFoundError
+    from azure.identity import DefaultAzureCredential
+    from azure.storage.blob import BlobServiceClient
+
+    client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
+    blob = client.get_blob_client(container=container, blob=blob_path)
+
+    try:
+        blob.delete_blob()
+    except ResourceNotFoundError:
+        pass

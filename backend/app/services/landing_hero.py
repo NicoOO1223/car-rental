@@ -118,6 +118,11 @@ def set_hero_image(db: Session, *, actor: User, data_url: str) -> LandingHeroIma
         hero = LandingHeroImage(id=HERO_ID, blob_path=blob_path, content_type=content_type)
         db.add(hero)
     else:
+        # A PNG replaced by a JPEG (or vice versa) lands at a different
+        # fixed path — clean up the old one so it doesn't linger unused.
+        if hero.blob_path != blob_path:
+            photo_storage.delete(hero.blob_path, container=CONTAINER_NAME)
+
         hero.blob_path = blob_path
         hero.content_type = content_type
 
@@ -145,6 +150,7 @@ def remove_hero_image(db: Session, *, actor: User) -> bool:
     if hero is None:
         return False
 
+    photo_storage.delete(hero.blob_path, container=CONTAINER_NAME)
     db.delete(hero)
 
     audit_log(

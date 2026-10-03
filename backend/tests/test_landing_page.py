@@ -18,6 +18,7 @@ from PIL import Image
 from app.database import SessionLocal
 from app.main import app
 from app.models import LandingHeroImage
+from app.services import photo_storage
 from tests.test_configuration import _current_configuration, _last_configuration_audit_row, _restore
 
 client = TestClient(app)
@@ -152,6 +153,35 @@ def test_replacing_and_removing_the_hero_image():
 
     # Removing when none exists is not an error.
     assert client.delete("/api/configuration/landing-hero").status_code == 204
+
+
+def _hero_blob_path() -> str:
+    db = SessionLocal()
+    try:
+        return db.get(LandingHeroImage, 1).blob_path
+    finally:
+        db.close()
+
+
+def test_replacing_a_png_hero_with_a_jpeg_removes_the_old_blob():
+    _upload(_png())
+    png_path = _hero_blob_path()
+    assert png_path.endswith(".png")
+
+    _upload(_jpeg(), "image/jpeg")
+
+    with pytest.raises(FileNotFoundError):
+        photo_storage.read(png_path, container="landing-images")
+
+
+def test_removing_the_hero_image_deletes_its_blob():
+    _upload(_png())
+    blob_path = _hero_blob_path()
+
+    assert client.delete("/api/configuration/landing-hero").status_code == 204
+
+    with pytest.raises(FileNotFoundError):
+        photo_storage.read(blob_path, container="landing-images")
 
 
 def test_hero_image_changes_are_audited_without_the_image():
