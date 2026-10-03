@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Request
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
@@ -56,6 +58,23 @@ def login(
     expire_days = get_configuration(db).access_token_expire_days
 
     return LoginResponse(access_token=create_access_token(user.id, expire_days))
+
+
+@router.post("/logout", status_code=204)
+def logout(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Ends this person's sessions: every token issued before now stops working,
+    on every device. Deleting the browser's copy of a token does not do that
+    on its own, since the token stays valid until it expires.
+    """
+
+    current_user.token_valid_after = datetime.now(timezone.utc)
+    db.commit()
+
+    return Response(status_code=204)
 
 
 @router.get("/me", response_model=UserResponse)

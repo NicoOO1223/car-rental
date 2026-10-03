@@ -15,9 +15,10 @@ function originOf(value: string | undefined): string | null {
  * runtime values (its API and error-tracking addresses), which is why it is
  * set per request in proxy.ts instead of once at build time.
  *
- * Report-Only first: the browser logs what the policy WOULD block without
- * breaking anything. Read the console on the live site for a while, fix
- * anything legitimate, then switch the header to Content-Security-Policy.
+ * Report-Only first: the browser reports what the policy WOULD block without
+ * breaking anything. The reports go to /api/csp-report, which writes them to the
+ * container log (see cspHeaderName and docs/CSP.md for reading them). Fix
+ * anything legitimate, then set CSP_ENFORCE=true on the stack to enforce it.
  *
  * 'unsafe-inline' for scripts is the price of static (non-nonce) CSP with
  * the App Router, which inlines its bootstrap scripts. img-src allows any
@@ -27,7 +28,6 @@ function originOf(value: string | undefined): string | null {
 export function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
   const config = serverRuntimeConfig();
-  const apiOrigin = originOf(config.apiUrl);
   const sentryOrigin = originOf(config.sentryDsn);
 
   return [
@@ -36,13 +36,26 @@ export function contentSecurityPolicy(): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self'",
-    `connect-src 'self' ${[apiOrigin, sentryOrigin, "https://api.stripe.com"]
-      .filter(Boolean)
-      .join(" ")}`,
+    // Not the API: the browser only talks to this app's own server
+    // (app/api/backend), which is what keeps the session token out of scripts.
+    `connect-src 'self' ${[sentryOrigin, "https://api.stripe.com"].filter(Boolean).join(" ")}`,
     "frame-src https://js.stripe.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    "report-uri /api/csp-report",
   ].join("; ");
+}
+
+/**
+ * Which header carries the policy: enforcing when the stack says so
+ * (CSP_ENFORCE=true), otherwise report-only. A per-stack setting, so a stack can
+ * be switched once its reports have been clean, and switched back at once if
+ * something legitimate turns out to be blocked.
+ */
+export function cspHeaderName(): string {
+  return process.env.CSP_ENFORCE === "true"
+    ? "Content-Security-Policy"
+    : "Content-Security-Policy-Report-Only";
 }

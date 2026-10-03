@@ -341,8 +341,14 @@ const hardcoded = [];
     ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken,
     ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken,
   ]);
-  // Files whose English-looking strings are names, not interface text.
-  const IGNORED_FILES = new Set(["lib/i18n.ts", "lib/localization.ts", "lib/countries.ts", "lib/csp.ts"]);
+  // Files whose English-looking strings are names, not interface text. The two
+  // route handlers answer in the API's own error shape ({ detail, code }): the
+  // English detail is only the fallback, and the interface words every error by
+  // its code (see lib/apiErrors.ts).
+  const IGNORED_FILES = new Set([
+    "lib/i18n.ts", "lib/localization.ts", "lib/countries.ts", "lib/csp.ts",
+    "app/api/session/route.ts", "app/api/backend/[...path]/route.ts",
+  ]);
 
   const BARE_UTILITIES = new Set(["flex", "grid", "hidden", "block", "inline", "relative", "absolute", "fixed", "sticky", "uppercase", "lowercase", "capitalize", "truncate", "italic", "underline", "border", "rounded", "shadow", "transition", "container", "static", "contents"]);
 

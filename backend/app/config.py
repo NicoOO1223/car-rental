@@ -19,6 +19,12 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY is not set")
 
+# Shared with the two web apps' servers, which sit between the browser and this
+# API. When set, a request carrying it may name the visitor's real address
+# (X-Visitor-IP), so the per-address limits count the visitor and not the web
+# app's server. Unset, nothing is trusted and the platform's address is used.
+TRUSTED_PROXY_SECRET = os.getenv("TRUSTED_PROXY_SECRET") or None
+
 # "production" turns off the interactive API docs and adds HSTS. Anything
 # else (including unset) behaves like local development.
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()

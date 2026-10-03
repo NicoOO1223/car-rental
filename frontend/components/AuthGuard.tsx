@@ -1,66 +1,25 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 
-import { getToken } from "@/lib/api";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { CurrentUserProvider } from "@/components/CurrentUserProvider";
 import { NotificationsProvider } from "@/components/NotificationsProvider";
 import Sidebar from "@/components/Sidebar";
-import { hardNavigate } from "@/lib/hardNavigate";
 import { t } from "@/lib/i18n";
 
-function subscribe(callback: () => void) {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
-}
-
-function getSnapshot() {
-  return getToken();
-}
-
-function getServerSnapshot() {
-  return null;
-}
-
-// Also owns whether the Sidebar renders at all — /login is a full-screen
-// page with no nav, and that decision lives in the same place as the
-// auth check rather than being duplicated across layout and this file.
+// Owns whether the Sidebar renders at all — /login is a full-screen page with
+// no nav, and that decision lives here rather than being duplicated across
+// layout and this file.
+//
+// Keeping signed-out visitors out is not done here: the session is an httpOnly
+// cookie a script cannot see, so proxy.ts redirects before any page renders, and
+// apiFetch sends anyone whose session has ended (a 401) back to /login.
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // null on the server and on the client's very first paint before
-  // hydration settles, then resolves to the real localStorage value —
-  // useSyncExternalStore is the React-sanctioned way to read
-  // browser-only state like this without a hydration mismatch.
-  const token = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const isLoginPage = pathname === "/login";
-
-  // A navigation side-effect, not a state update, so this doesn't need
-  // the "adjust state during render" treatment — effects are exactly
-  // where side effects like this belong. Reads getToken() directly here
-  // rather than trusting the `token` above: useSyncExternalStore forces
-  // that value to null for the hydration-matching render even when a
-  // real token exists, and effects fire on that same first pass — an
-  // effect keyed off `token` would see the transient null and redirect
-  // before the following render corrects it. Calling getToken() fresh
-  // (effects only run post-hydration, never during SSR/the matching
-  // pass) reads the real value the very first time this runs at all.
-  useEffect(() => {
-    if (!isLoginPage && !getToken()) {
-      hardNavigate("/login");
-    }
-  }, [isLoginPage, token]);
-
-  if (isLoginPage) {
+  if (pathname === "/login") {
     return <>{children}</>;
-  }
-
-  // Blank until a token is confirmed present, so a logged-out visitor
-  // never sees a flash of real data before the redirect above fires.
-  if (!token) {
-    return <div className="min-h-screen bg-gray-50" />;
   }
 
   return (

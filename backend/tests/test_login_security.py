@@ -337,3 +337,84 @@ def test_token_without_issued_at_is_rejected_once_sessions_are_revoked(
 
     assert _get_cars(legacy).status_code == 401
 
+
+
+# --- signing out ---------------------------------------------------------
+
+
+def _me(token):
+    return client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+
+def test_logging_out_ends_every_session_of_that_person(user, real_auth):
+    first = _login(user.email, PASSWORD).json()["access_token"]
+    second = _login(user.email, PASSWORD).json()["access_token"]
+
+    assert _me(first).status_code == 200
+    assert _me(second).status_code == 200
+
+    out = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {first}"})
+
+    assert out.status_code == 204
+
+    # Deleting a browser's copy of a token is not enough: the token itself stops
+    # working, on every device.
+    assert _me(first).status_code == 401
+    assert _me(second).status_code == 401
+
+    # Signing in again works.
+    assert _me(_login(user.email, PASSWORD).json()["access_token"]).status_code == 200
+
+
+def test_logging_out_needs_a_session(real_auth):
+    assert client.post("/api/auth/logout").status_code == 401
+
+
+# --- the visitor's address behind a web app ----------------------------------
+
+
+def _request(headers):
+    from fastapi import Request
+
+    return Request(
+        {
+            "type": "http",
+            "headers": [(key.encode(), value.encode()) for key, value in headers.items()],
+            "client": ("10.0.0.9", 1234),
+            "method": "GET",
+            "path": "/",
+            "query_string": b"",
+        }
+    )
+
+
+def test_a_web_app_with_the_shared_secret_can_name_the_visitor(monkeypatch):
+    from app import config
+    from app.services.client_ip import client_ip
+
+    monkeypatch.setattr(config, "TRUSTED_PROXY_SECRET", "shared-secret")
+
+    trusted = {"x-proxy-secret": "shared-secret", "x-visitor-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.1"}
+
+    assert client_ip(_request(trusted)) == "203.0.113.7"
+
+    # Wrong secret, no secret, or a value that is not an address: the header is
+    # just something a client wrote, and the platform's address is used.
+    for headers in (
+        {**trusted, "x-proxy-secret": "guess"},
+        {k: v for k, v in trusted.items() if k != "x-proxy-secret"},
+        {**trusted, "x-visitor-ip": "not-an-ip"},
+        {**trusted, "x-visitor-ip": ""},
+    ):
+        assert client_ip(_request(headers)) == "198.51.100.1"
+
+
+def test_nothing_is_trusted_when_no_shared_secret_is_configured(monkeypatch):
+    from app import config
+    from app.services.client_ip import client_ip
+
+    monkeypatch.setattr(config, "TRUSTED_PROXY_SECRET", None)
+
+    headers = {"x-proxy-secret": "", "x-visitor-ip": "203.0.113.7", "x-forwarded-for": "198.51.100.1"}
+
+    assert client_ip(_request(headers)) == "198.51.100.1"

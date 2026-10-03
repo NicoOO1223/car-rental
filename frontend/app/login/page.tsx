@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 
-import { login, setToken } from "@/lib/api";
+import { login } from "@/lib/api";
 import { BrandMark } from "@/components/BrandMark";
 import { useBrand } from "@/components/BrandProvider";
 import { LanguagePicker } from "@/components/LanguagePicker";
@@ -27,10 +27,9 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const { access_token } = await login(email, password);
-      setToken(access_token);
-      // A full load rather than a client transition, so the auth guard
-      // re-evaluates from scratch with the new token in place.
+      await login(email, password);
+      // A full load rather than a client transition, so everything starts
+      // from scratch with the new session in place.
       hardNavigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.failed"));

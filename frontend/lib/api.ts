@@ -10,42 +10,22 @@ function apiUrl(): string {
   return getRuntimeConfig().apiUrl;
 }
 
-const TOKEN_KEY = "auth_token";
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(TOKEN_KEY, token);
-  }
-}
-
-export function clearToken() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(TOKEN_KEY);
-  }
-}
+// Every call goes to this app's own server (app/api/backend), which holds the
+// session in an httpOnly cookie and adds the token before passing the call on.
+// Nothing here ever sees the token. Pages that need to know whether someone is
+// signed in ask the server (getCurrentUser) or are kept out by proxy.ts.
+const BACKEND = "/api/backend";
 
 // Every exported function below goes through this instead of calling
-// fetch directly, so the auth token only needs attaching in one place.
-// A 401 means the token is missing/expired — bounce to /login (a full
-// reload here is intentional: it guarantees every page's in-memory
-// state resets alongside the cleared token, not just the current one).
+// fetch directly. A 401 means the session is missing or has ended (the server
+// has already dropped the cookie) — bounce to /login (a full reload here is
+// intentional: it guarantees every page's in-memory state resets, not just the
+// current one).
 async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const token = getToken();
-  const headers = new Headers(init.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
   let response: Response;
 
   try {
-    response = await fetch(`${apiUrl()}${path}`, { ...init, headers });
+    response = await fetch(`${BACKEND}${path}`, { ...init, credentials: "same-origin" });
   } catch {
     // The server could not be reached at all (offline, restarting).
     throw new Error(t("errors.generic.network"));
@@ -56,17 +36,11 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
     typeof window !== "undefined" &&
     window.location.pathname !== "/login"
   ) {
-    clearToken();
     hardNavigate("/login");
   }
 
   return response;
 }
-
-export type LoginResponse = {
-  access_token: string;
-  token_type: string;
-};
 
 export type CurrentUser = {
   id: string;
@@ -100,21 +74,41 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   return response.json();
 }
 
-export async function login(
-  email: string,
-  password: string,
-): Promise<LoginResponse> {
-  const response = await apiFetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+/**
+ * Signs in. The server keeps the session in a cookie the page cannot read, so
+ * success is just "no error".
+ */
+export async function login(email: string, password: string): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new Error(t("errors.generic.network"));
+  }
 
   if (!response.ok) {
     await throwApiError(response, "auth.failed");
   }
+}
 
-  return response.json();
+/** Ends the session on every device, then goes to the sign-in page. */
+export async function logout(): Promise<void> {
+  try {
+    await fetch("/api/session", { method: "DELETE", credentials: "same-origin" });
+  } catch {
+    // Offline: the redirect below still leaves the page. The cookie goes the
+    // next time the server is reached, or when the token expires.
+  }
+
+  // A full reload rather than a client transition, so no stale authenticated
+  // state survives into the login page.
+  hardNavigate("/login");
 }
 
 export type Location = {
