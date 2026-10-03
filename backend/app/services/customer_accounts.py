@@ -185,4 +185,4 @@ def owned_reservation(db: Session, account: CustomerAccount, reference: str) -> 
         if reservation.public_reference == wanted:
             return reservation
 
-    raise AppError("public.booking_not_found", "We could not find that booking.", status_code=404)
+    raise AppError("public.booking_not_found", "We could not find a booking with that reference and email.", status_code=404)
