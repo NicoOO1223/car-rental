@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Index, Date, DateTime, Integer, Numeric, String, ForeignKey, text
+from sqlalchemy import Boolean, Index, Date, DateTime, CheckConstraint, Integer, Numeric, String, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -151,5 +151,9 @@ class Car(Base):
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "status IN ('AVAILABLE','RENTED','MAINTENANCE','CLEANING')",
+            name="valid_car_status",
+        ),
         Index("ix_cars_current_location_id_status", "current_location_id", "status"),
     )

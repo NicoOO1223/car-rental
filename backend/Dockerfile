@@ -21,6 +21,7 @@ COPY seed.py .
 COPY create_staff_user.py .
 COPY setup_business.py .
 COPY create_app_role.py .
+COPY check_reservation_overlaps.py .
 RUN chmod +x docker-entrypoint.sh
 
 # Run as an unprivileged user so a compromised process cannot modify the

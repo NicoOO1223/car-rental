@@ -10,8 +10,10 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    func,
+    text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -169,6 +171,21 @@ class Reservation(Base):
             name="valid_reservation_period",
         ),
         CheckConstraint("source IN ('STAFF','STOREFRONT')", name="valid_reservation_source"),
+        CheckConstraint(
+            "status IN ('PENDING','AWAITING_PAYMENT','CONFIRMED','ACTIVE','COMPLETED','CANCELLED','EXPIRED')",
+            name="valid_reservation_status",
+        ),
+        # One car, one active booking at a time: the database's own check of the
+        # rule the application keeps with lock_car (app/services/availability.py).
+        # Holds are not included; they block only until they expire, which depends
+        # on the clock. See the migration for the details.
+        ExcludeConstraint(
+            ("car_id", "="),
+            (func.tstzrange(pickup_at, return_at), "&&"),
+            where=text("status IN ('CONFIRMED','ACTIVE')"),
+            using="gist",
+            name="no_overlapping_active_reservations",
+        ),
         Index("ix_reservations_status_hold_expires_at", "status", "hold_expires_at"),
         Index("ix_reservations_car_id_pickup_at", "car_id", "pickup_at"),
         Index("ix_reservations_customer_id", "customer_id"),

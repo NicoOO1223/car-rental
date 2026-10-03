@@ -106,6 +106,23 @@ resource postgresDb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08
   name: postgresDbName
 }
 
+// Postgres extensions have to be allowed on the server before a migration can
+// CREATE them. btree_gist backs the database's no-overlapping-bookings rule
+// (backend/alembic/versions/e7a9c1d3f5b2). Nothing else uses an extension, so
+// this list replaces an empty one. Server settings change one at a time, so it
+// waits for the database resource.
+resource postgresExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  parent: postgres
+  name: 'azure.extensions'
+  properties: {
+    value: 'BTREE_GIST'
+    source: 'user-override'
+  }
+  dependsOn: [
+    postgresDb
+  ]
+}
+
 // Lets Container Apps reach the server. The 0.0.0.0 rule is Azure's special
 // "any Azure service" marker: it admits traffic from every Azure customer's
 // resources, not just ours, so the login and SSL still matter. Container
