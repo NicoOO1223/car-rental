@@ -93,12 +93,16 @@ class PublicVehicle(BaseModel):
     transmission: str | None
     fuel_type: str | None
     seats: int | None
-    image_url: str | None
+    has_photo: bool
+    photo_version: int | None
     price_per_day: float
+    # Identifies this vehicle's photo (see GET /api/public/cars/{offer_key}/photo)
+    # without exposing which actual car it is — the same opaque, non-guessable
+    # key used elsewhere to address a group of identical cars as one offer.
+    offer_key: str
 
 
 class PublicOffer(PublicVehicle):
-    offer_key: str
     currency: str
     # What the whole rental costs (no extras), and how it is paid.
     total_amount: float

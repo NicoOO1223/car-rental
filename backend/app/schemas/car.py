@@ -24,7 +24,8 @@ class CarResponse(BaseModel):
     fuel_type: str | None
     seats: int | None
     price_per_day: Decimal
-    image_url: str | None
+    has_photo: bool
+    photo_version: int | None
     current_location: LocationSummary
     home_location: LocationSummary
     is_away_from_home: bool
@@ -59,7 +60,6 @@ class CarUpdate(BaseModel):
     transmission: str | None = None
     fuel_type: str | None = None
     seats: int | None = None
-    image_url: str | None = None
     home_location_id: UUID | None = None
     mileage: int | None = None
     tire_condition: str | None = None

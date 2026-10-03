@@ -35,6 +35,8 @@ var photoContainerName = 'condition-photos'
 // above (the backend's managed identity already has Storage Blob Data
 // Contributor at the account scope, so this needs no separate role grant).
 var landingContainerName = 'landing-images'
+// Uploaded car photos — same account and reasoning as landingContainerName.
+var carPhotoContainerName = 'car-photos'
 var sharingEnvironment = !empty(existingContainerAppsEnvironmentId)
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!sharingEnvironment) {
@@ -267,6 +269,16 @@ resource photoContainer 'Microsoft.Storage/storageAccounts/blobServices/containe
 resource landingContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: photoBlobService
   name: landingContainerName
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// Uploaded car photos (see app/services/car_photos.py), served the same
+// way as the landing page's images — never a public blob URL.
+resource carPhotoContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: photoBlobService
+  name: carPhotoContainerName
   properties: {
     publicAccess: 'None'
   }

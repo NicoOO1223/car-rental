@@ -6,7 +6,7 @@ import { Check as CheckIcon } from "lucide-react";
 import { CarImage } from "@/components/cars/CarImage";
 import { carSpecs } from "@/lib/carDisplay";
 import { formatCurrency } from "@/lib/format";
-import type { Car } from "@/lib/api";
+import { carPhotoUrl, type Car } from "@/lib/api";
 import { t } from "@/lib/i18n";
 
 /**
@@ -45,7 +45,7 @@ export function VehicleCard({
     >
       <div className="relative">
         <CarImage
-          imageUrl={car.image_url}
+          imageUrl={car.has_photo ? carPhotoUrl(car.id, car.photo_version) : null}
           category={car.category}
           alt={`${car.make} ${car.model}`}
           className="aspect-[16/9] w-full"

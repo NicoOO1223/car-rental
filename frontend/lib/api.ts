@@ -753,8 +753,9 @@ export type Car = {
    * anyone did arithmetic on it.
    */
   price_per_day: string;
-  /** Null for most of the fleet; the UI falls back to a category illustration. */
-  image_url: string | null;
+  /** False for most of the fleet; the UI falls back to a category illustration. */
+  has_photo: boolean;
+  photo_version: number | null;
   current_location: {
     id: string;
     name: string;
@@ -886,7 +887,6 @@ export async function updateCar(
     transmission: string | null;
     fuel_type: string | null;
     seats: number | null;
-    image_url: string | null;
     home_location_id: string;
     mileage: number | null;
     tire_condition: string | null;
@@ -913,6 +913,34 @@ export async function updateCar(
   }
 
   return response.json();
+}
+
+/** Public and unauthenticated, the same way a car's photo is served to
+ * renters on the storefront — no token needed just to display it. */
+export function carPhotoUrl(carId: string, version: number | null): string {
+  return `${apiUrl()}/api/public/cars/${carId}/photo${version ? `?v=${version}` : ""}`;
+}
+
+export async function uploadCarPhoto(carId: string, dataUrl: string): Promise<void> {
+  const response = await apiFetch(`/api/cars/${carId}/photo`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data_url: dataUrl }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+}
+
+export async function deleteCarPhoto(carId: string): Promise<void> {
+  const response = await apiFetch(`/api/cars/${carId}/photo`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.delete");
+  }
 }
 
 export type CarReservation = {

@@ -22,6 +22,14 @@ export function browserConfig(): StorefrontRuntimeConfig {
   );
 }
 
+/** A representative photo for this offer — see lib/runtime.ts's own
+ * carPhotoUrl for why this is keyed by offer_key, not a car id. This is
+ * the client-component version, reading the config the layout already
+ * handed the browser rather than process.env (unavailable here). */
+export function carPhotoUrl(offerKey: string, version: number | null): string {
+  return `${browserConfig().apiUrl}/api/public/offers/${offerKey}/photo${version ? `?v=${version}` : ""}`;
+}
+
 /** An error the API answered with: a stable code and the values for wording it. */
 export class ApiFailure extends Error {
   code: string;
@@ -138,7 +146,9 @@ export type Booking = {
     transmission: string | null;
     fuel_type: string | null;
     seats: number | null;
-    image_url: string | null;
+    has_photo: boolean;
+    photo_version: number | null;
+    offer_key: string;
     price_per_day: number;
   };
   extras: { name: string; quantity: number }[];

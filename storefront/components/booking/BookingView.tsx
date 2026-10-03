@@ -7,7 +7,7 @@ import { useTranslations } from "use-intl";
 
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
-import { api, type Booking } from "@/lib/client";
+import { api, carPhotoUrl, type Booking } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
 import { manageToken } from "@/lib/session";
@@ -138,7 +138,9 @@ export function BookingView({ language, reference }: { language: string; referen
 
       <section className="grid gap-5 rounded-xl bg-surface p-5 shadow-sm sm:grid-cols-[14rem_1fr] sm:p-6">
         <VehicleArt
-          imageUrl={booking.vehicle.image_url}
+          imageUrl={
+            booking.vehicle.has_photo ? carPhotoUrl(booking.vehicle.offer_key, booking.vehicle.photo_version) : null
+          }
           category={booking.vehicle.category}
           alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
           className="aspect-[16/9] w-full rounded-lg"

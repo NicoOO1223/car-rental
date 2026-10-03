@@ -3,12 +3,13 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.errors import AppError
+from app.errors import AppError, NotFoundError
 from app.languages import SUPPORTED_LANGUAGES
+from app.models import Car
 from app.schemas.pricing import PriceBreakdownFields
 from app.schemas.public import (
     PublicAvailabilityResponse,
@@ -23,6 +24,7 @@ from app.schemas.public import (
 )
 from app.schemas.reservation import ReservationQuoteRequest
 from app.services.branding import get_logo
+from app.services.car_photos import read_car_photo
 from app.services.landing_about import get_about_image
 from app.services.landing_hero import get_hero_image
 from app.services.configuration import get_configuration, vat_terms
@@ -32,6 +34,7 @@ from app.services.pricing import calculate_price_breakdown, calculate_rental_dur
 from app.services.public_catalog import (
     bookable_cars,
     cancellation_deadline,
+    car_for_offer_key,
     cars_for_offer,
     group_into_offers,
     offered_cars,
@@ -174,11 +177,72 @@ def public_fleet(configuration=Depends(enabled_configuration), db: Session = Dep
             transmission=offer.transmission,
             fuel_type=offer.fuel_type,
             seats=offer.seats,
-            image_url=offer.image_url,
+            has_photo=offer.has_photo,
+            photo_version=offer.photo_version,
+            offer_key=offer.key,
             price_per_day=float(offer.price_per_day),
         )
         for offer, _ in group_into_offers(offered_cars(db))
     ]
+
+
+@router.get("/cars/{car_id}/photo", dependencies=[reads])
+def public_car_photo(car_id: UUID, request: Request, db: Session = Depends(get_db)):
+    """
+    A car's photo. Not gated by storefront_enabled — the staff admin's own
+    edit screen uses this exact URL for its preview, the same way the
+    business logo and landing hero/about images are served unauthenticated
+    regardless of whether online booking is switched on.
+    """
+
+    car = db.get(Car, car_id)
+
+    if car is None or car.photo_blob_path is None:
+        raise NotFoundError("car.no_photo", "No photo has been uploaded for this car.")
+
+    etag = f'"{car.photo_version}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=read_car_photo(car),
+        media_type=car.photo_content_type,
+        headers=headers,
+    )
+
+
+@router.get("/offers/{key}/photo", dependencies=[reads])
+def public_offer_photo(key: str, request: Request, db: Session = Depends(get_db)):
+    """
+    A representative photo for an offer a renter is browsing — PublicVehicle
+    deliberately carries no car id (see its docstring), only this same
+    opaque offer_key already used to group identical cars and to book one.
+    """
+
+    car = car_for_offer_key(db, key)
+
+    if car is None or car.photo_blob_path is None:
+        raise NotFoundError("car.no_photo", "No photo has been uploaded for this car.")
+
+    etag = f'"{car.photo_version}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=read_car_photo(car),
+        media_type=car.photo_content_type,
+        headers=headers,
+    )
 
 
 @router.get("/availability", response_model=PublicAvailabilityResponse, dependencies=[searches])
@@ -216,7 +280,8 @@ def public_availability(
                 transmission=offer.transmission,
                 fuel_type=offer.fuel_type,
                 seats=offer.seats,
-                image_url=offer.image_url,
+                has_photo=offer.has_photo,
+                photo_version=offer.photo_version,
                 price_per_day=float(offer.price_per_day),
                 currency=currency,
                 total_amount=float(breakdown.total_amount),

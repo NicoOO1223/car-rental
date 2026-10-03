@@ -13,7 +13,7 @@ import { PaymentPanel } from "@/components/booking/PaymentPanel";
 import { PriceSummary } from "@/components/booking/PriceSummary";
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
-import { ApiFailure, api, type Availability, type PublicExtra, type Quote } from "@/lib/client";
+import { ApiFailure, api, carPhotoUrl, type Availability, type PublicExtra, type Quote } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 import { readSearch, searchHref } from "@/lib/search";
@@ -373,7 +373,7 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
               {availability.offers.map((candidate) => (
                 <li key={candidate.offer_key} className="flex flex-col overflow-hidden rounded-xl bg-surface shadow-sm">
                   <VehicleArt
-                    imageUrl={candidate.image_url}
+                    imageUrl={candidate.has_photo ? carPhotoUrl(candidate.offer_key, candidate.photo_version) : null}
                     category={candidate.category}
                     alt={`${candidate.make} ${candidate.model}`}
                     className="aspect-[16/9] w-full"

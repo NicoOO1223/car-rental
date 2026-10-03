@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 
@@ -17,6 +18,7 @@ from app.services.availability import (
     get_car_statuses_for_date,
     get_current_maintenance_by_car,
 )
+from app.services.car_photos import remove_car_photo, set_car_photo
 from app.services.cars import return_car_to_home, update_car
 from app.services.daily_rates import get_daily_rates
 from app.services.maintenance import list_open_tasks, list_tasks_for_car
@@ -231,3 +233,32 @@ def update_car_endpoint(
     )
 
     return car
+
+
+class CarPhotoUpload(BaseModel):
+    # A data URL (data:image/png;base64,...), sized for a real photo like
+    # the storefront's landing-page images, not the business logo's cap.
+    data_url: str = Field(max_length=5_000_000)
+
+
+@router.put("/{car_id}/photo", status_code=204)
+def upload_car_photo_endpoint(
+    car_id: UUID,
+    data: CarPhotoUpload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    set_car_photo(db, car_id=car_id, actor=current_user, data_url=data.data_url)
+
+    return Response(status_code=204)
+
+
+@router.delete("/{car_id}/photo", status_code=204)
+def delete_car_photo_endpoint(
+    car_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    remove_car_photo(db, car_id=car_id, actor=current_user)
+
+    return Response(status_code=204)

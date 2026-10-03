@@ -4,7 +4,7 @@ import { SearchForm } from "@/components/SearchForm";
 import { VehicleArt } from "@/components/VehicleArt";
 import { getTranslator } from "@/lib/i18n";
 import { getFleet, getLocations, getPublicConfig } from "@/lib/publicApi";
-import { runtimeConfig } from "@/lib/runtime";
+import { carPhotoUrl, runtimeConfig } from "@/lib/runtime";
 
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
@@ -136,7 +136,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
               {featuredFleet.map((vehicle, index) => (
                 <div key={index} className="overflow-hidden rounded-xl border border-border-subtle">
                   <VehicleArt
-                    imageUrl={vehicle.image_url}
+                    imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
                     category={vehicle.category}
                     alt={`${vehicle.make} ${vehicle.model}`}
                     className="aspect-[4/3] w-full"

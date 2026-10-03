@@ -55,12 +55,16 @@ export type PublicVehicle = {
   transmission: string | null;
   fuel_type: string | null;
   seats: number | null;
-  image_url: string | null;
+  has_photo: boolean;
+  photo_version: number | null;
+  // Identifies this vehicle's photo without exposing which actual car it
+  // is — the same opaque key used elsewhere to address a group of
+  // identical cars as one offer (see backend/app/schemas/public.py).
+  offer_key: string;
   price_per_day: number;
 };
 
 export type PublicOffer = PublicVehicle & {
-  offer_key: string;
   currency: string;
   total_amount: number;
   online_amount: number;

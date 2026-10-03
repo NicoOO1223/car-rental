@@ -84,7 +84,8 @@ class Offer:
     transmission: str | None
     fuel_type: str | None
     seats: int | None
-    image_url: str | None
+    has_photo: bool
+    photo_version: int | None
     price_per_day: Decimal
 
 
@@ -97,7 +98,10 @@ def _identity(car: Car) -> list:
         car.transmission,
         car.fuel_type,
         car.seats,
-        car.image_url,
+        # Whether a photo exists, not which one — each upload gets its own
+        # timestamp, so keying on the exact photo would stop identical cars
+        # from ever grouping together once any one of them got a photo.
+        car.has_photo,
         str(car.price_per_day),
     ]
 
@@ -120,7 +124,8 @@ def offer_for(car: Car) -> Offer:
         transmission=car.transmission,
         fuel_type=car.fuel_type,
         seats=car.seats,
-        image_url=car.image_url,
+        has_photo=car.has_photo,
+        photo_version=car.photo_version,
         price_per_day=car.price_per_day,
     )
 
@@ -151,6 +156,20 @@ def cars_for_offer(db: Session, key: str, pickup_location_id, pickup_at: datetim
         for car in bookable_cars(db, pickup_location_id, pickup_at, return_at)
         if hmac.compare_digest(offer_key(car), key)
     ]
+
+
+def car_for_offer_key(db: Session, key: str) -> Car | None:
+    """
+    Any one car whose identity hashes to this offer key — used only to serve
+    a representative photo for an offer a renter is browsing (not to check
+    availability, so it looks at the whole fleet, not just bookable cars).
+    """
+
+    for car in db.scalars(select(Car)).all():
+        if hmac.compare_digest(offer_key(car), key):
+            return car
+
+    return None
 
 
 def require_locations(db: Session, pickup_location_id, return_location_id) -> None:

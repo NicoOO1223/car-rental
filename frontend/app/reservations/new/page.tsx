@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import {
+  carPhotoUrl,
   createReservation,
   getAvailableCars,
   getDailyRates,
@@ -845,7 +846,7 @@ export default function NewReservationPage() {
 
                 <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <CarImage
-                    imageUrl={selectedCar.image_url}
+                    imageUrl={selectedCar.has_photo ? carPhotoUrl(selectedCar.id, selectedCar.photo_version) : null}
                     category={selectedCar.category}
                     alt={`${selectedCar.make} ${selectedCar.model}`}
                     className="aspect-[16/9] w-full rounded-lg sm:w-44"

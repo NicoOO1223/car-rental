@@ -88,12 +88,24 @@ class Car(Base):
     def is_away_from_home(self) -> bool:
         return self.current_location_id != self.home_location_id
 
-    # Customer-facing photo, shown in the booking wizard's vehicle step.
-    # Nullable on purpose: the frontend falls back to a category
-    # illustration, so a car without a photo is never a blank box.
-    image_url: Mapped[str | None] = mapped_column(
-        String(500),
-    )
+    # Customer-facing photo, shown in the booking wizard's vehicle step and
+    # the storefront's fleet listings. Nullable on purpose: the frontend
+    # falls back to a category illustration, so a car without a photo is
+    # never a blank box. The bytes live in blob storage (or local disk in
+    # dev/test) via app/services/photo_storage.py, uploaded through
+    # app/services/car_photos.py — only the path is kept here, the same
+    # split used for condition photos and the landing hero/about images.
+    photo_blob_path: Mapped[str | None] = mapped_column(String(300))
+    photo_content_type: Mapped[str | None] = mapped_column(String(20))
+    photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def has_photo(self) -> bool:
+        return self.photo_blob_path is not None
+
+    @property
+    def photo_version(self) -> int | None:
+        return int(self.photo_updated_at.timestamp()) if self.photo_updated_at is not None else None
 
     status: Mapped[str] = mapped_column(
         String(20),

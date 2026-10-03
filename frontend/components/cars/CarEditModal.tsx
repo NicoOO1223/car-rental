@@ -1,14 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ImagePlus, Trash2 } from "lucide-react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import { CarImage } from "@/components/cars/CarImage";
-import { updateCar, type Car, type Location } from "@/lib/api";
+import {
+  carPhotoUrl,
+  deleteCarPhoto,
+  getCar,
+  updateCar,
+  uploadCarPhoto,
+  type Car,
+  type Location,
+} from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
+
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error(t("c.cars.CarEditModal.couldNotReadFile")));
+    reader.readAsDataURL(file);
+  });
+}
 
 const CATEGORY_OPTIONS = [
   "ECONOMY",
@@ -39,12 +60,66 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
   const [transmission, setTransmission] = useState(car.transmission ?? "");
   const [fuelType, setFuelType] = useState(car.fuel_type ?? "");
   const [seats, setSeats] = useState(car.seats != null ? String(car.seats) : "");
-  const [imageUrl, setImageUrl] = useState(car.image_url ?? "");
   const [homeLocationId, setHomeLocationId] = useState(car.home_location.id);
   const [offeredOnline, setOfferedOnline] = useState(car.offered_online);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const photoFileInput = useRef<HTMLInputElement>(null);
+  const [hasPhoto, setHasPhoto] = useState(car.has_photo);
+  const [photoVersion, setPhotoVersion] = useState(car.photo_version);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+
+  async function handlePhotoFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setPhotoError("");
+
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      setPhotoError(t("c.cars.CarEditModal.choosePngJpegImage"));
+      return;
+    }
+
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError(t("c.cars.CarEditModal.fileTooLargeLimit", { v1: MAX_PHOTO_BYTES / (1024 * 1024) }));
+      return;
+    }
+
+    setPhotoBusy(true);
+
+    try {
+      await uploadCarPhoto(car.id, await readAsDataUrl(file));
+      const updated = await getCar(car.id);
+      setHasPhoto(updated.has_photo);
+      setPhotoVersion(updated.photo_version);
+      onSaved(updated);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : t("c.cars.CarEditModal.failedUploadPhoto"));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function handlePhotoRemove() {
+    setPhotoBusy(true);
+    setPhotoError("");
+
+    try {
+      await deleteCarPhoto(car.id);
+      const updated = await getCar(car.id);
+      setHasPhoto(updated.has_photo);
+      setPhotoVersion(updated.photo_version);
+      onSaved(updated);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : t("c.cars.CarEditModal.failedRemovePhoto"));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -62,7 +137,6 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         transmission: transmission || null,
         fuel_type: fuelType || null,
         seats: seats === "" ? null : Number(seats),
-        image_url: imageUrl.trim() || null,
         home_location_id: homeLocationId,
         offered_online: offeredOnline,
       });
@@ -202,23 +276,47 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         </div>
 
         <div className="border-t border-border-subtle pt-5">
-          <div className="grid gap-4 sm:grid-cols-[1fr_9rem] sm:items-start">
-            <TextField
-              label={t("c.cars.CarEditModal.photoUrl")}
-              type="url"
-              placeholder="https://..."
-              hint={t("c.cars.CarEditModal.shownCustomersBookingFlow")}
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
+          <p className="text-sm font-medium text-ink">{t("c.cars.CarEditModal.photo")}</p>
+          <p className="mt-1 text-sm text-ink-secondary">{t("c.cars.CarEditModal.shownCustomersBookingFlow")}</p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <CarImage
+              imageUrl={hasPhoto ? carPhotoUrl(car.id, photoVersion) : null}
+              category={category || null}
+              alt={t("c.cars.CarEditModal.vehiclePreview")}
+              className="aspect-[16/9] w-full rounded-lg"
             />
 
-            <div className="sm:pt-[4.25rem]">
-              <CarImage
-                imageUrl={imageUrl.trim() || null}
-                category={category || null}
-                alt={t("c.cars.CarEditModal.vehiclePreview")}
-                className="aspect-[16/9] w-full rounded-lg"
+            <div className="flex flex-wrap items-start gap-3">
+              <input
+                ref={photoFileInput}
+                type="file"
+                accept="image/png,image/jpeg"
+                className="sr-only"
+                onChange={handlePhotoFile}
+                aria-label={t("c.cars.CarEditModal.choosePhotoFile")}
               />
+
+              <Button
+                type="button"
+                variant="secondary"
+                loading={photoBusy}
+                onClick={() => photoFileInput.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                {hasPhoto ? t("c.cars.CarEditModal.replacePhoto") : t("c.cars.CarEditModal.uploadPhoto")}
+              </Button>
+
+              {hasPhoto && (
+                <Button type="button" variant="ghost" disabled={photoBusy} onClick={handlePhotoRemove}>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />{t("c.cars.CarEditModal.removePhoto")}</Button>
+              )}
+
+              {photoError && (
+                <p className="w-full text-sm text-red-600" role="alert">
+                  {photoError}
+                </p>
+              )}
             </div>
           </div>
         </div>

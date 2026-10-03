@@ -7,6 +7,7 @@ import { VehicleSpecs } from "@/components/VehicleSpecs";
 import { formatMoney } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n";
 import { getFleet, getPublicConfig } from "@/lib/publicApi";
+import { carPhotoUrl } from "@/lib/runtime";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
@@ -31,9 +32,9 @@ export default async function FleetPage({ params }: { params: Promise<{ lang: st
       ) : (
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {fleet.map((vehicle) => (
-            <li key={`${vehicle.make}-${vehicle.model}-${vehicle.year}-${vehicle.price_per_day}`} className="overflow-hidden rounded-xl bg-surface shadow-sm">
+            <li key={vehicle.offer_key} className="overflow-hidden rounded-xl bg-surface shadow-sm">
               <VehicleArt
-                imageUrl={vehicle.image_url}
+                imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
                 category={vehicle.category}
                 alt={`${vehicle.make} ${vehicle.model}`}
                 className="aspect-[16/9] w-full"
