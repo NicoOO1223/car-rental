@@ -10,13 +10,28 @@
     "privacy": "Informativa sulla privacy"
   },
   "nav": {
-    "fleet": "Le nostre auto",
-    "manage": "La mia prenotazione",
-    "language": "Lingua"
+    "fleet": "Scopri la flotta",
+    "manage": "Gestisci prenotazioni",
+    "language": "Lingua",
+    "login": "Accedi",
+    "register": "Registrati",
+    "account": "Il mio account",
+    "myBookings": "Le mie prenotazioni",
+    "logout": "Esci",
+    "openMenu": "Apri il menu",
+    "closeMenu": "Chiudi il menu",
+    "accountMenu": "Menu dell'account",
+    "home": "Home"
   },
   "footer": {
     "terms": "Termini e condizioni",
-    "privacy": "Informativa sulla privacy"
+    "privacy": "Informativa sulla privacy",
+    "tagline": "Noleggio auto semplice e trasparente, direttamente in aeroporto.",
+    "explore": "Esplora",
+    "locations": "Sedi",
+    "legal": "Note legali",
+    "rights": "© {year} {name}. Tutti i diritti riservati.",
+    "social": "Seguici"
   },
   "unavailable": {
     "title": "La prenotazione online non è disponibile",
@@ -37,12 +52,27 @@
     "point1Body": "Paga il {percent}% online per assicurarti l’auto. Il resto si paga al ritiro.",
     "point2Title": "Cancellazione gratuita",
     "point2Body": "Cancella fino a {hours, plural, one {# ora} other {# ore}} prima del ritiro e ricevi il rimborso del pagamento.",
-    "point3Title": "Nessun account necessario",
-    "point3Body": "Conserva il riferimento della prenotazione e ritrovala quando vuoi.",
+    "point3Title": "Semplice e flessibile",
+    "point3Body": "Prenota come ospite, oppure accedi per avere tutti i tuoi viaggi in un unico posto.",
     "browseFleet": "Vedi le nostre auto",
     "manageBooking": "Hai già prenotato? Gestisci la tua prenotazione",
     "fleetTitle": "La nostra flotta",
-    "fleetSeeAll": "Vedi tutta la flotta"
+    "fleetSeeAll": "Vedi tutta la flotta",
+    "featuresTitle": "Perché prenotare con noi",
+    "fleetSubtitle": "Auto curate per ogni viaggio, pronte in aeroporto.",
+    "fleetCta": "Vedi tutta la flotta",
+    "perDay": "da {price} / giorno",
+    "aboutFallbackTitle": "Il noleggio auto, semplificato",
+    "aboutFallbackBody": "Noleggiare un'auto deve essere semplice: prezzi chiari, nessuna sorpresa al banco e un team facile da raggiungere. Scegli l'aeroporto, scegli l'auto e parti in pochi minuti.",
+    "aboutPoint1": "Prezzi chiari",
+    "aboutPoint2": "Ritiro in aeroporto",
+    "aboutPoint3": "Assistenza locale cordiale",
+    "locationsTitle": "Le nostre sedi",
+    "locationsSubtitle": "Ritira e riconsegna nell'aeroporto più adatto al tuo viaggio.",
+    "locationsBook": "Prenota da qui",
+    "ctaTitle": "Pronto a partire?",
+    "ctaBody": "Scegli le date e trova l'auto giusta in meno di un minuto.",
+    "ctaButton": "Inizia la prenotazione"
   },
   "search": {
     "title": "Trova la tua auto",
@@ -53,10 +83,19 @@
     "pickupTime": "Ora di ritiro",
     "returnDate": "Data di riconsegna",
     "returnTime": "Ora di riconsegna",
-    "submit": "Cerca auto",
+    "submit": "Mostra le auto",
     "returnBeforePickup": "La riconsegna deve essere dopo il ritiro.",
     "tooSoon": "Il ritiro deve essere tra almeno {hours, plural, one {# ora} other {# ore}}.",
-    "choosePlace": "Scegli un luogo"
+    "choosePlace": "Scegli un luogo",
+    "selectDates": "Seleziona le date",
+    "datesTitle": "Ritiro e riconsegna",
+    "done": "Fatto",
+    "chooseReturn": "Ora scegli la data di riconsegna",
+    "previousMonth": "Mese precedente",
+    "nextMonth": "Mese successivo",
+    "summary": "Riepilogo della ricerca",
+    "edit": "Modifica la ricerca",
+    "manageLink": "Visualizza/gestisci la mia prenotazione"
   },
   "fleet": {
     "title": "Le nostre auto",
@@ -289,6 +328,49 @@
       "booking_not_found": "Non abbiamo trovato una prenotazione con questo riferimento e questa email.",
       "cannot_cancel": "Questa prenotazione non può più essere annullata online. Contattaci.",
       "nothing_to_pay": "Non c’è nulla da pagare per questo noleggio."
+    },
+    "account": {
+      "email_taken": "Esiste già un account con questa email. Prova ad accedere.",
+      "signed_out": "La sessione è terminata. Accedi di nuovo."
+    },
+    "auth": {
+      "invalid_credentials": "Email o password non corretti.",
+      "too_many_attempts": "Troppi tentativi. Riprova tra qualche minuto."
     }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "Almeno 8 caratteri.",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "loginTitle": "Accedi",
+    "loginIntro": "Bentornato. Accedi per vedere le tue prenotazioni.",
+    "loginSubmit": "Accedi",
+    "loggingIn": "Accesso in corso…",
+    "noAccount": "Non hai ancora un account?",
+    "registerTitle": "Crea il tuo account",
+    "registerIntro": "Tieni tutte le prenotazioni in un unico posto e prenota più in fretta la prossima volta.",
+    "registerSubmit": "Crea account",
+    "registering": "Creazione dell'account…",
+    "haveAccount": "Hai già un account?",
+    "guestHint": "Hai prenotato senza account?",
+    "guestLink": "Gestisci una prenotazione"
+  },
+  "account": {
+    "title": "Il mio account",
+    "welcome": "Ciao, {name}",
+    "bookingsTitle": "Le mie prenotazioni",
+    "empty": "Nessuna prenotazione su questo account. Prenota un'auto oppure aggiungi una prenotazione esistente qui sotto.",
+    "pickup": "Ritiro",
+    "return": "Riconsegna",
+    "view": "Vedi prenotazione",
+    "claimTitle": "Aggiungi una prenotazione esistente",
+    "claimIntro": "Inserisci il riferimento e l'indirizzo email usati al momento della prenotazione.",
+    "reference": "Riferimento della prenotazione",
+    "email": "Email della prenotazione",
+    "claimSubmit": "Aggiungi al mio account",
+    "claiming": "Aggiunta in corso…",
+    "claimed": "Prenotazione aggiunta."
   }
 }

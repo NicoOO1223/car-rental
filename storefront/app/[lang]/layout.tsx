@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { LANGUAGES, isLanguage } from "@shared/languages";
 import { runtimeConfigScript } from "@shared/runtimeConfig";
@@ -11,10 +11,12 @@ import "../globals.css";
 import { Providers } from "@/components/Providers";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { getMessages, getTranslator } from "@/lib/i18n";
-import { getPublicConfig } from "@/lib/publicApi";
+import { getAccount } from "@/lib/accountServer";
+import { getLocations, getPublicConfig } from "@/lib/publicApi";
 import { runtimeConfig } from "@/lib/runtime";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Latin-ext carries the Polish and Italian accented letters.
+const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin", "latin-ext"] });
 
 export function generateStaticParams() {
   return LANGUAGES.map((lang) => ({ lang }));
@@ -52,18 +54,18 @@ export default async function LangLayout({
 
   if (!isLanguage(lang)) notFound();
 
-  const config = await getPublicConfig();
+  const [config, locations, account] = await Promise.all([getPublicConfig(), getLocations(), getAccount()]);
 
   return (
-    <html lang={lang} className={`${geistSans.variable} h-full antialiased`}>
+    <html lang={lang} className={`${jakarta.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript(runtimeConfig()) }} />
       </head>
       <body className="flex min-h-full flex-col">
         <Providers language={lang} messages={getMessages(lang)}>
-          <SiteHeader language={lang} config={config} />
+          <SiteHeader language={lang} config={config} account={account} />
           <div className="flex-1">{children}</div>
-          <SiteFooter language={lang} config={config} />
+          <SiteFooter language={lang} config={config} locations={locations ?? []} signedIn={account !== null} />
         </Providers>
       </body>
     </html>

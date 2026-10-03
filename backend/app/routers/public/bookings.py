@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.errors import AppError
-from app.models import Reservation, ReservationPayment
+from app.models import CustomerAccount, Reservation, ReservationPayment
 from app.routers.public.catalog import enabled_configuration
 from app.schemas.public import (
     PublicBooking,
@@ -18,6 +18,7 @@ from app.schemas.public import (
     PublicBookingStatus,
 )
 from app.services.client_ip import client_ip
+from app.services.customer_accounts import link_booking, optional_account
 from app.services.manage_token import create_manage_token, reservation_id_from_token
 from app.services.public_booking import (
     booking_view,
@@ -74,11 +75,16 @@ def create_public_booking(
     data: PublicBookingRequest,
     request: Request,
     configuration=Depends(enabled_configuration),
+    account: CustomerAccount | None = Depends(optional_account),
     db: Session = Depends(get_db),
 ):
     reservation, payment, client_secret, online, at_pickup = create_booking(
         db, data, configuration, client_ip(request)
     )
+
+    # Booked while signed in: it belongs on that account's list.
+    if account is not None:
+        link_booking(db, account, reservation)
 
     return PublicBookingCreated(
         reference=reservation.public_reference,

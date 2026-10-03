@@ -13,6 +13,7 @@ import { PaymentPanel } from "@/components/booking/PaymentPanel";
 import { PriceSummary } from "@/components/booking/PriceSummary";
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
+import { accountApi } from "@/lib/account";
 import { ApiFailure, api, carPhotoUrl, type Availability, type PublicExtra, type Quote } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
@@ -222,6 +223,10 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
       };
 
       manageToken.set(created.reference, created.manage_token);
+
+      // Signed in: the booking also goes on the account's list. A guest has no
+      // session and this just fails quietly; the booking itself is already made.
+      void accountApi.claim({ reference: created.reference, email: details.email.trim() }).catch(() => undefined);
       pendingBooking.set(saved);
       setPending(saved);
       setStep("payment");

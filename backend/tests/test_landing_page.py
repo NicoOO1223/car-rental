@@ -470,3 +470,23 @@ def test_public_config_landing_fields_are_empty_strings_by_default(original_conf
     assert body["landing_about_title"] == ""
     assert body["has_landing_about_image"] is False
     assert body["landing_about_image_version"] is None
+
+
+def test_social_links_are_saved_validated_and_public(original_configuration):
+    saved = client.patch(
+        "/api/configuration",
+        json={"social_instagram_url": " https://instagram.com/rentals ", "social_whatsapp_url": "https://wa.me/390000000"},
+    )
+
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["social_instagram_url"] == "https://instagram.com/rentals"
+
+    # Anything but a web address is refused, so an icon can never link to javascript:.
+    for bad in ("javascript:alert(1)", "instagram.com/rentals"):
+        assert client.patch("/api/configuration", json={"social_facebook_url": bad}).status_code == 422
+
+    client.patch("/api/configuration", json={"storefront_enabled": True})
+    public = client.get("/api/public/config").json()
+
+    assert public["social_instagram_url"] == "https://instagram.com/rentals"
+    assert public["social_facebook_url"] == ""

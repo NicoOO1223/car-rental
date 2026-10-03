@@ -75,6 +75,11 @@ class Configuration(Base):
     terms_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
     privacy_text: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     privacy_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    # Where the storefront footer links to. Empty means "no link".
+    social_instagram_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    social_facebook_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    social_x_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    social_whatsapp_url: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
     # Bumped when the terms or privacy text changes.
     legal_version: Mapped[int] = mapped_column(nullable=False, default=1, server_default="1")
 

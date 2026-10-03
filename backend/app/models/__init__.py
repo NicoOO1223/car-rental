@@ -4,6 +4,7 @@ from app.models.car import Car
 from app.models.check_out import CheckOut
 from app.models.condition_review import ConditionPhoto, ConditionReview
 from app.models.customer import Customer
+from app.models.customer_account import CustomerAccount, CustomerAccountBooking
 from app.models.extra import Extra
 from app.models.handover import Handover
 from app.models.invoice import Invoice, InvoiceCounter
@@ -27,6 +28,8 @@ __all__ = [
     "ConditionReview",
     "Configuration",
     "Customer",
+    "CustomerAccount",
+    "CustomerAccountBooking",
     "Extra",
     "Handover",
     "Invoice",

@@ -10,13 +10,28 @@
     "privacy": "Informacja o prywatności"
   },
   "nav": {
-    "fleet": "Nasze auta",
-    "manage": "Moja rezerwacja",
-    "language": "Język"
+    "fleet": "Zobacz naszą flotę",
+    "manage": "Zarządzaj rezerwacjami",
+    "language": "Język",
+    "login": "Zaloguj się",
+    "register": "Zarejestruj się",
+    "account": "Moje konto",
+    "myBookings": "Moje rezerwacje",
+    "logout": "Wyloguj się",
+    "openMenu": "Otwórz menu",
+    "closeMenu": "Zamknij menu",
+    "accountMenu": "Menu konta",
+    "home": "Strona główna"
   },
   "footer": {
     "terms": "Regulamin",
-    "privacy": "Informacja o prywatności"
+    "privacy": "Informacja o prywatności",
+    "tagline": "Proste i przejrzyste wypożyczanie samochodów prosto z lotniska.",
+    "explore": "Odkrywaj",
+    "locations": "Lokalizacje",
+    "legal": "Informacje prawne",
+    "rights": "© {year} {name}. Wszelkie prawa zastrzeżone.",
+    "social": "Obserwuj nas"
   },
   "unavailable": {
     "title": "Rezerwacja online jest niedostępna",
@@ -37,12 +52,27 @@
     "point1Body": "Zapłać {percent}% online, aby zabezpieczyć auto. Resztę zapłacisz przy odbiorze.",
     "point2Title": "Bezpłatna rezygnacja",
     "point2Body": "Zrezygnuj nawet na {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}} przed odbiorem i odzyskaj płatność.",
-    "point3Title": "Bez zakładania konta",
-    "point3Body": "Zachowaj numer rezerwacji i odnajdź ją w dowolnym momencie.",
+    "point3Title": "Prosto i elastycznie",
+    "point3Body": "Rezerwuj jako gość lub zaloguj się, aby mieć wszystkie podróże w jednym miejscu.",
     "browseFleet": "Zobacz nasze auta",
     "manageBooking": "Masz już rezerwację? Zarządzaj nią",
     "fleetTitle": "Nasza flota",
-    "fleetSeeAll": "Zobacz całą flotę"
+    "fleetSeeAll": "Zobacz całą flotę",
+    "featuresTitle": "Dlaczego warto rezerwować u nas",
+    "fleetSubtitle": "Zadbane samochody na każdą podróż, gotowe na lotnisku.",
+    "fleetCta": "Zobacz całą flotę",
+    "perDay": "od {price} / dzień",
+    "aboutFallbackTitle": "Wypożyczanie samochodów w prosty sposób",
+    "aboutFallbackBody": "Wypożyczenie auta ma być proste: jasne ceny, brak niespodzianek przy ladzie i zespół, z którym łatwo się skontaktować. Wybierz lotnisko, wybierz samochód i ruszaj w kilka minut.",
+    "aboutPoint1": "Jasne ceny",
+    "aboutPoint2": "Odbiór na lotnisku",
+    "aboutPoint3": "Życzliwa lokalna obsługa",
+    "locationsTitle": "Nasze lokalizacje",
+    "locationsSubtitle": "Odbierz i zwróć auto na lotnisku, które pasuje do Twojej podróży.",
+    "locationsBook": "Zarezerwuj stąd",
+    "ctaTitle": "Gotowy do drogi?",
+    "ctaBody": "Wybierz daty i znajdź odpowiedni samochód w mniej niż minutę.",
+    "ctaButton": "Rozpocznij rezerwację"
   },
   "search": {
     "title": "Znajdź swoje auto",
@@ -53,10 +83,19 @@
     "pickupTime": "Godzina odbioru",
     "returnDate": "Data zwrotu",
     "returnTime": "Godzina zwrotu",
-    "submit": "Szukaj aut",
+    "submit": "Pokaż samochody",
     "returnBeforePickup": "Zwrot musi być po odbiorze.",
     "tooSoon": "Odbiór musi nastąpić za co najmniej {hours, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}}.",
-    "choosePlace": "Wybierz miejsce"
+    "choosePlace": "Wybierz miejsce",
+    "selectDates": "Wybierz daty",
+    "datesTitle": "Odbiór i zwrot",
+    "done": "Gotowe",
+    "chooseReturn": "Teraz wybierz datę zwrotu",
+    "previousMonth": "Poprzedni miesiąc",
+    "nextMonth": "Następny miesiąc",
+    "summary": "Podsumowanie wyszukiwania",
+    "edit": "Zmień wyszukiwanie",
+    "manageLink": "Zobacz/zarządzaj moją rezerwacją"
   },
   "fleet": {
     "title": "Nasze auta",
@@ -289,6 +328,49 @@
       "booking_not_found": "Nie znaleźliśmy rezerwacji z tym numerem i adresem e-mail.",
       "cannot_cancel": "Tej rezerwacji nie można już anulować online. Skontaktuj się z nami.",
       "nothing_to_pay": "Za ten wynajem nie ma nic do zapłaty."
+    },
+    "account": {
+      "email_taken": "Konto z tym adresem e-mail już istnieje. Spróbuj się zalogować.",
+      "signed_out": "Sesja wygasła. Zaloguj się ponownie."
+    },
+    "auth": {
+      "invalid_credentials": "Nieprawidłowy e-mail lub hasło.",
+      "too_many_attempts": "Zbyt wiele prób. Spróbuj ponownie za kilka minut."
     }
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Hasło",
+    "passwordHint": "Co najmniej 8 znaków.",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "loginTitle": "Zaloguj się",
+    "loginIntro": "Witaj ponownie. Zaloguj się, aby zobaczyć swoje rezerwacje.",
+    "loginSubmit": "Zaloguj się",
+    "loggingIn": "Logowanie…",
+    "noAccount": "Nie masz jeszcze konta?",
+    "registerTitle": "Załóż konto",
+    "registerIntro": "Miej wszystkie rezerwacje w jednym miejscu i rezerwuj szybciej następnym razem.",
+    "registerSubmit": "Załóż konto",
+    "registering": "Tworzenie konta…",
+    "haveAccount": "Masz już konto?",
+    "guestHint": "Rezerwowałeś bez konta?",
+    "guestLink": "Zarządzaj rezerwacją"
+  },
+  "account": {
+    "title": "Moje konto",
+    "welcome": "Cześć, {name}",
+    "bookingsTitle": "Moje rezerwacje",
+    "empty": "Brak rezerwacji na tym koncie. Zarezerwuj samochód lub dodaj istniejącą rezerwację poniżej.",
+    "pickup": "Odbiór",
+    "return": "Zwrot",
+    "view": "Zobacz rezerwację",
+    "claimTitle": "Dodaj istniejącą rezerwację",
+    "claimIntro": "Podaj numer rezerwacji i adres e-mail użyty podczas rezerwacji.",
+    "reference": "Numer rezerwacji",
+    "email": "E-mail z rezerwacji",
+    "claimSubmit": "Dodaj do mojego konta",
+    "claiming": "Dodawanie…",
+    "claimed": "Rezerwacja została dodana."
   }
 }

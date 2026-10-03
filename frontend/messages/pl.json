@@ -414,6 +414,10 @@
       "uuid_parsing": "To nie jest prawidłowy identyfikator.",
       "value_error": "Ta wartość jest nieprawidłowa.",
       "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent."
+    },
+    "account": {
+      "email_taken": "Konto z tym adresem e-mail już istnieje.",
+      "signed_out": "Sesja wygasła. Zaloguj się ponownie."
     }
   },
   "c": {
@@ -1113,7 +1117,13 @@
           "failedUploadAboutImage": "Nie udało się przesłać zdjęcia.",
           "failedRemoveAboutImage": "Nie udało się usunąć zdjęcia.",
           "landingAboutTitle": "Tytuł sekcji O nas",
-          "landingAboutBody": "Tekst sekcji O nas"
+          "landingAboutBody": "Tekst sekcji O nas",
+          "socialTitle": "Media społecznościowe",
+          "socialDescription": "Wyświetlane jako ikony w stopce strony. Zostaw pole puste, aby ukryć ikonę.",
+          "socialInstagram": "Link do Instagrama",
+          "socialFacebook": "Link do Facebooka",
+          "socialX": "Link do X",
+          "socialWhatsapp": "Link do WhatsAppa"
         }
       },
       "revenue": {

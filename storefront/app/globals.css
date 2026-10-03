@@ -1,30 +1,68 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
 
 /* The public site shares the staff app's monochrome look: white surfaces,
-   near-black ink, no hue. It is light only. */
+   near-black ink, no hue. It is light only. `deep` is the one dark surface,
+   used to make a section stand out from the white ones around it. */
 :root {
   --canvas: #f9fafb;
   --surface: #ffffff;
+  --surface-sunken: #f3f4f6;
   --border: #e5e7eb;
   --border-strong: #d1d5db;
-  --ink: #111827;
+  --ink: #0a0a0a;
   --ink-secondary: #4b5563;
   --ink-muted: #6b7280;
+  --deep: #0a0a0a;
+  --deep-raised: #171717;
+  --on-deep: #f9fafb;
+  --on-deep-muted: #a3a3a3;
 }
 
 @theme inline {
+  /* The dark buttons and surfaces are true black, not Tailwind's blue-tinged grays. */
+  --color-gray-900: #0a0a0a;
+  --color-gray-800: #262626;
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
   --color-border-subtle: var(--border);
   --color-border-strong: var(--border-strong);
   --color-ink: var(--ink);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
-  --font-sans: var(--font-geist-sans);
+  --color-deep: var(--deep);
+  --color-deep-raised: var(--deep-raised);
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-muted: var(--on-deep-muted);
+  --font-sans: var(--font-jakarta);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The calendar in the booking bar, in the site's own black and white. */
+.rdp-root {
+  --rdp-accent-color: #0a0a0a;
+  --rdp-accent-background-color: #f3f4f6;
+  --rdp-day-height: 40px;
+  --rdp-day-width: 40px;
+  --rdp-day_button-height: 38px;
+  --rdp-day_button-width: 38px;
+  --rdp-months-gap: 1.5rem;
+  --rdp-today-color: #0a0a0a;
+  font-size: 0.875rem;
 }

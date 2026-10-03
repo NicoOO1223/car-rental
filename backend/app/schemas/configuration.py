@@ -59,6 +59,10 @@ class ConfigurationResponse(BaseModel):
     privacy_text: str
     privacy_url: str
     legal_version: int
+    social_instagram_url: str
+    social_facebook_url: str
+    social_x_url: str
+    social_whatsapp_url: str
     landing_headline: str
     landing_tagline: str
     landing_benefit1_title: str
@@ -110,6 +114,10 @@ class ConfigurationUpdate(BaseModel):
     terms_url: str | None = Field(default=None, max_length=500)
     privacy_text: str | None = Field(default=None, max_length=20000)
     privacy_url: str | None = Field(default=None, max_length=500)
+    social_instagram_url: str | None = Field(default=None, max_length=500)
+    social_facebook_url: str | None = Field(default=None, max_length=500)
+    social_x_url: str | None = Field(default=None, max_length=500)
+    social_whatsapp_url: str | None = Field(default=None, max_length=500)
     landing_headline: str | None = Field(default=None, max_length=150)
     landing_tagline: str | None = Field(default=None, max_length=300)
     landing_benefit1_title: str | None = Field(default=None, max_length=80)
@@ -149,7 +157,7 @@ class ConfigurationUpdate(BaseModel):
             raise PydanticCustomError("validation.lead_hours_range", "The minimum lead time must be between 0 and 720 hours.")
         return v
 
-    @field_validator("terms_url", "privacy_url")
+    @field_validator("terms_url", "privacy_url", "social_instagram_url", "social_facebook_url", "social_x_url", "social_whatsapp_url")
     @classmethod
     def link_is_web_address(cls, v: str | None) -> str | None:
         if v is None:

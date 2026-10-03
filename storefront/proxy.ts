@@ -43,6 +43,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Pages only: not build output, the health check or the icon.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|health).*)"],
+  // Pages only: not build output, route handlers, the health check, the
+  // icon or the images in public/.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|health|api/|.*\\.(?:jpg|jpeg|png|webp|avif|svg|ico)$).*)"],
 };

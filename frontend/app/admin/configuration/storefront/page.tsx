@@ -27,6 +27,8 @@ const NUMBER_FIELDS = [
 
 const TEXT_FIELDS = ["terms_text", "terms_url", "privacy_text", "privacy_url"] as const;
 
+const SOCIAL_FIELDS = ["social_instagram_url", "social_facebook_url", "social_x_url", "social_whatsapp_url"] as const;
+
 const LANDING_TEXT_FIELDS = [
   "landing_headline",
   "landing_tagline",
@@ -63,6 +65,10 @@ type Form = {
   terms_url: string;
   privacy_text: string;
   privacy_url: string;
+  social_instagram_url: string;
+  social_facebook_url: string;
+  social_x_url: string;
+  social_whatsapp_url: string;
   landing_headline: string;
   landing_tagline: string;
   landing_benefit1_title: string;
@@ -86,6 +92,10 @@ function toForm(configuration: Configuration): Form {
     terms_url: configuration.terms_url,
     privacy_text: configuration.privacy_text,
     privacy_url: configuration.privacy_url,
+    social_instagram_url: configuration.social_instagram_url,
+    social_facebook_url: configuration.social_facebook_url,
+    social_x_url: configuration.social_x_url,
+    social_whatsapp_url: configuration.social_whatsapp_url,
     landing_headline: configuration.landing_headline,
     landing_tagline: configuration.landing_tagline,
     landing_benefit1_title: configuration.landing_benefit1_title,
@@ -140,6 +150,7 @@ export default function StorefrontConfigurationPage() {
       for (const key of NUMBER_FIELDS) patch[key] = Number(form[key]);
       for (const key of TEXT_FIELDS) patch[key] = form[key];
       for (const key of LANDING_TEXT_FIELDS) patch[key] = form[key];
+      for (const key of SOCIAL_FIELDS) patch[key] = form[key];
 
       const updated = await updateConfiguration(patch);
 
@@ -534,6 +545,45 @@ export default function StorefrontConfigurationPage() {
           required
           value={form.min_booking_lead_hours}
           onChange={set("min_booking_lead_hours")}
+        />
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.storefront.socialTitle")}</h2>
+          <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.storefront.socialDescription")}</p>
+        </div>
+
+        <TextField
+          label={t("s.admin.configuration.storefront.socialInstagram")}
+          hint={t("s.admin.configuration.storefront.urlHint")}
+          maxLength={500}
+          value={form.social_instagram_url}
+          onChange={set("social_instagram_url")}
+        />
+
+        <TextField
+          label={t("s.admin.configuration.storefront.socialFacebook")}
+          hint={t("s.admin.configuration.storefront.urlHint")}
+          maxLength={500}
+          value={form.social_facebook_url}
+          onChange={set("social_facebook_url")}
+        />
+
+        <TextField
+          label={t("s.admin.configuration.storefront.socialX")}
+          hint={t("s.admin.configuration.storefront.urlHint")}
+          maxLength={500}
+          value={form.social_x_url}
+          onChange={set("social_x_url")}
+        />
+
+        <TextField
+          label={t("s.admin.configuration.storefront.socialWhatsapp")}
+          hint={t("s.admin.configuration.storefront.urlHint")}
+          maxLength={500}
+          value={form.social_whatsapp_url}
+          onChange={set("social_whatsapp_url")}
         />
       </Card>
 

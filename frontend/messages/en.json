@@ -414,6 +414,10 @@
       "uuid_parsing": "That is not a valid identifier.",
       "value_error": "This value is not valid.",
       "vat_rate_range": "The VAT rate must be between 0 and 100 percent."
+    },
+    "account": {
+      "email_taken": "An account with this email already exists.",
+      "signed_out": "Your session has ended. Please sign in again."
     }
   },
   "c": {
@@ -1113,7 +1117,13 @@
           "failedUploadAboutImage": "Failed to upload the image.",
           "failedRemoveAboutImage": "Failed to remove the image.",
           "landingAboutTitle": "About section title",
-          "landingAboutBody": "About section text"
+          "landingAboutBody": "About section text",
+          "socialTitle": "Social media",
+          "socialDescription": "Shown as icons in the storefront footer. Leave a field empty to hide that icon.",
+          "socialInstagram": "Instagram link",
+          "socialFacebook": "Facebook link",
+          "socialX": "X link",
+          "socialWhatsapp": "WhatsApp link"
         }
       },
       "revenue": {

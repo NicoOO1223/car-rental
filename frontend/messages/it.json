@@ -414,6 +414,10 @@
       "uuid_parsing": "Questo non è un identificatore valido.",
       "value_error": "Questo valore non è valido.",
       "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento."
+    },
+    "account": {
+      "email_taken": "Esiste già un account con questa email.",
+      "signed_out": "La sessione è terminata. Accedi di nuovo."
     }
   },
   "c": {
@@ -1113,7 +1117,13 @@
           "failedUploadAboutImage": "Impossibile caricare l'immagine.",
           "failedRemoveAboutImage": "Impossibile rimuovere l'immagine.",
           "landingAboutTitle": "Titolo della sezione Chi siamo",
-          "landingAboutBody": "Testo della sezione Chi siamo"
+          "landingAboutBody": "Testo della sezione Chi siamo",
+          "socialTitle": "Social media",
+          "socialDescription": "Mostrati come icone nel piè di pagina del sito. Lascia vuoto un campo per nascondere l'icona.",
+          "socialInstagram": "Link Instagram",
+          "socialFacebook": "Link Facebook",
+          "socialX": "Link X",
+          "socialWhatsapp": "Link WhatsApp"
         }
       },
       "revenue": {

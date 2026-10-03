@@ -10,13 +10,28 @@
     "privacy": "Privacy notice"
   },
   "nav": {
-    "fleet": "Our cars",
-    "manage": "My booking",
-    "language": "Language"
+    "fleet": "View our fleet",
+    "manage": "Manage bookings",
+    "language": "Language",
+    "login": "Log in",
+    "register": "Register",
+    "account": "My account",
+    "myBookings": "My bookings",
+    "logout": "Log out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "accountMenu": "Account menu",
+    "home": "Home"
   },
   "footer": {
     "terms": "Terms and conditions",
-    "privacy": "Privacy notice"
+    "privacy": "Privacy notice",
+    "tagline": "Simple, transparent car rental from the airport.",
+    "explore": "Explore",
+    "locations": "Locations",
+    "legal": "Legal",
+    "rights": "© {year} {name}. All rights reserved.",
+    "social": "Follow us"
   },
   "unavailable": {
     "title": "Online booking is not available",
@@ -37,12 +52,27 @@
     "point1Body": "Pay {percent}% online to secure your car. The rest is paid at pickup.",
     "point2Title": "Free cancellation",
     "point2Body": "Cancel up to {hours, plural, one {# hour} other {# hours}} before pickup and get your payment back.",
-    "point3Title": "No account needed",
-    "point3Body": "Keep your booking reference and look your booking up any time.",
+    "point3Title": "Simple and flexible",
+    "point3Body": "Book as a guest, or sign in to keep all your trips in one place.",
     "browseFleet": "See our cars",
     "manageBooking": "Already booked? Manage your booking",
     "fleetTitle": "Our fleet",
-    "fleetSeeAll": "See the full fleet"
+    "fleetSeeAll": "See the full fleet",
+    "featuresTitle": "Why book with us",
+    "fleetSubtitle": "Well-kept cars for every trip, ready at the airport.",
+    "fleetCta": "View the full fleet",
+    "perDay": "from {price} / day",
+    "aboutFallbackTitle": "Car rental, made simple",
+    "aboutFallbackBody": "We keep renting a car straightforward: clear prices, no surprises at the counter and a team that is easy to reach. Pick your airport, choose your car and be on the road in minutes.",
+    "aboutPoint1": "Clear prices",
+    "aboutPoint2": "Pickup at the airport",
+    "aboutPoint3": "Friendly local support",
+    "locationsTitle": "Our locations",
+    "locationsSubtitle": "Pick up and return at the airport that suits your trip.",
+    "locationsBook": "Book from here",
+    "ctaTitle": "Ready to hit the road?",
+    "ctaBody": "Choose your dates and find the right car in under a minute.",
+    "ctaButton": "Start your booking"
   },
   "search": {
     "title": "Find your car",
@@ -53,10 +83,19 @@
     "pickupTime": "Pickup time",
     "returnDate": "Return date",
     "returnTime": "Return time",
-    "submit": "Search cars",
+    "submit": "Show cars",
     "returnBeforePickup": "The return must be after the pickup.",
     "tooSoon": "Pickup must be at least {hours, plural, one {# hour} other {# hours}} from now.",
-    "choosePlace": "Choose a place"
+    "choosePlace": "Choose a place",
+    "selectDates": "Select dates",
+    "datesTitle": "Pickup and return",
+    "done": "Done",
+    "chooseReturn": "Now choose your return date",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "summary": "Search summary",
+    "edit": "Edit search",
+    "manageLink": "View/manage my booking"
   },
   "fleet": {
     "title": "Our cars",
@@ -289,6 +328,49 @@
       "booking_not_found": "We could not find a booking with that reference and email.",
       "cannot_cancel": "This booking can no longer be cancelled online. Please contact us.",
       "nothing_to_pay": "There is nothing to pay for this rental."
+    },
+    "account": {
+      "email_taken": "An account with this email already exists. Try logging in instead.",
+      "signed_out": "Your session has ended. Please log in again."
+    },
+    "auth": {
+      "invalid_credentials": "Incorrect email or password.",
+      "too_many_attempts": "Too many attempts. Please try again in a few minutes."
     }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 8 characters.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "loginTitle": "Log in",
+    "loginIntro": "Welcome back. Log in to see your bookings.",
+    "loginSubmit": "Log in",
+    "loggingIn": "Logging in…",
+    "noAccount": "No account yet?",
+    "registerTitle": "Create your account",
+    "registerIntro": "Keep all your bookings in one place and book faster next time.",
+    "registerSubmit": "Create account",
+    "registering": "Creating account…",
+    "haveAccount": "Already have an account?",
+    "guestHint": "Booked without an account?",
+    "guestLink": "Manage a booking"
+  },
+  "account": {
+    "title": "My account",
+    "welcome": "Hello, {name}",
+    "bookingsTitle": "My bookings",
+    "empty": "No bookings on this account yet. Book a car, or add an existing booking below.",
+    "pickup": "Pickup",
+    "return": "Return",
+    "view": "View booking",
+    "claimTitle": "Add an existing booking",
+    "claimIntro": "Enter the reference and the email address used when you booked.",
+    "reference": "Booking reference",
+    "email": "Booking email",
+    "claimSubmit": "Add to my account",
+    "claiming": "Adding…",
+    "claimed": "Booking added."
   }
 }

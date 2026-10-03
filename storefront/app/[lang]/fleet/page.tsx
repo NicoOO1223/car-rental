@@ -23,25 +23,27 @@ export default async function FleetPage({ params }: { params: Promise<{ lang: st
   if (!config?.storefront_enabled) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-3xl font-bold">{t("fleet.title")}</h1>
+    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t("fleet.title")}</h1>
       <p className="mt-2 text-ink-secondary">{t("fleet.intro")}</p>
 
       {!fleet || fleet.length === 0 ? (
         <p className="mt-8 text-ink-secondary">{t("fleet.empty")}</p>
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {fleet.map((vehicle) => (
-            <li key={vehicle.offer_key} className="overflow-hidden rounded-xl bg-surface shadow-sm">
-              <VehicleArt
-                imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
-                category={vehicle.category}
-                alt={`${vehicle.make} ${vehicle.model}`}
-                className="aspect-[16/9] w-full"
-              />
+            <li key={vehicle.offer_key} className="group overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm">
+              <div className="overflow-hidden">
+                <VehicleArt
+                  imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
+                  category={vehicle.category}
+                  alt={`${vehicle.make} ${vehicle.model}`}
+                  className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
 
-              <div className="space-y-2 p-4">
-                <h2 className="font-semibold">
+              <div className="space-y-2 p-5">
+                <h2 className="text-xl font-semibold">
                   {vehicle.make} {vehicle.model}
                 </h2>
                 <VehicleSpecs
@@ -59,7 +61,7 @@ export default async function FleetPage({ params }: { params: Promise<{ lang: st
 
       <Link
         href={`/${lang}`}
-        className="mt-8 inline-block rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
+        className="mt-10 inline-block rounded-xl bg-gray-900 px-6 py-3.5 text-sm font-semibold text-white hover:bg-gray-800"
       >
         {t("fleet.search")}
       </Link>

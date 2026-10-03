@@ -89,6 +89,7 @@ def test_config_exposes_only_what_a_renter_needs():
         "languages", "currency", "prices_include_vat", "vat_rate", "online_share_percent",
         "free_cancellation_hours", "hold_minutes", "min_booking_lead_hours", "legal_version", "terms_url",
         "privacy_url", "has_terms_text", "has_privacy_text",
+        "social_instagram_url", "social_facebook_url", "social_x_url", "social_whatsapp_url",
         "landing_headline", "landing_tagline",
         "landing_benefit1_title", "landing_benefit1_body",
         "landing_benefit2_title", "landing_benefit2_body",

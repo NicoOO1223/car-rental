@@ -2524,6 +2524,10 @@ export type Configuration = {
   min_booking_lead_hours: number;
   terms_text: string;
   terms_url: string;
+  social_instagram_url: string;
+  social_facebook_url: string;
+  social_x_url: string;
+  social_whatsapp_url: string;
   privacy_text: string;
   privacy_url: string;
   /** Goes up whenever the terms or privacy text changes. */

@@ -21,6 +21,11 @@ export type PublicConfig = {
   privacy_url: string;
   has_terms_text: boolean;
   has_privacy_text: boolean;
+  /** Footer links; empty means the business has none. */
+  social_instagram_url: string;
+  social_facebook_url: string;
+  social_x_url: string;
+  social_whatsapp_url: string;
   /** The storefront landing page — free text the business wrote once,
    * in their own language. Empty means "not set". */
   landing_headline: string;

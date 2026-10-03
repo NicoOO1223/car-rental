@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { LookupForm } from "@/components/booking/LookupForm";
+import { getAccount } from "@/lib/accountServer";
 import { getTranslator } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/publicApi";
 
@@ -17,6 +18,9 @@ export default async function ManagePage({ params }: { params: Promise<{ lang: s
   const config = await getPublicConfig();
 
   if (!config?.storefront_enabled) notFound();
+
+  // Signed in: the bookings are on the account, no lookup needed.
+  if (await getAccount()) redirect(`/${lang}/account`);
 
   return (
     <main className="mx-auto max-w-lg px-4 py-10">

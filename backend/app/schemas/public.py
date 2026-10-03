@@ -42,6 +42,11 @@ class PublicConfigResponse(BaseModel):
     has_terms_text: bool
     has_privacy_text: bool
 
+    social_instagram_url: str
+    social_facebook_url: str
+    social_x_url: str
+    social_whatsapp_url: str
+
     landing_headline: str
     landing_tagline: str
     landing_benefit1_title: str
@@ -231,3 +236,37 @@ class PublicBookingLookup(BaseModel):
 class PublicBookingAccess(BaseModel):
     manage_token: str
     booking: PublicBooking
+
+
+class AccountRegister(BaseModel):
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=8, max_length=128)
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+
+class AccountLogin(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=128)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+
+class AccountProfile(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+
+
+class AccountSession(BaseModel):
+    access_token: str
+    account: AccountProfile
+
+
+class AccountClaim(BaseModel):
+    reference: str = Field(min_length=4, max_length=20)
+    email: str = Field(min_length=3, max_length=254)
+
+
+class AccountBookingAccess(BaseModel):
+    manage_token: str
