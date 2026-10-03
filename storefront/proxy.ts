@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { storefrontCsp } from "@shared/csp";
+import { storefrontCsp, storefrontCspHeader } from "@shared/csp";
 import { DEFAULT_LANGUAGE, isLanguage, negotiateLanguage } from "@shared/languages";
 
 import { runtimeConfig } from "@/lib/runtime";
@@ -32,10 +32,10 @@ export function proxy(request: NextRequest) {
     response = NextResponse.redirect(url);
   }
 
-  // Report-only first: the browser logs what the policy would block without
-  // breaking anything, until it has run clean on a real stack.
+  // Report-only until a stack sets CSP_ENFORCE=true: the browser reports what
+  // the policy would block (to /api/csp-report) without breaking anything.
   response.headers.set(
-    "Content-Security-Policy-Report-Only",
+    storefrontCspHeader(process.env.CSP_ENFORCE === "true"),
     storefrontCsp(runtimeConfig(), process.env.NODE_ENV !== "production"),
   );
 
