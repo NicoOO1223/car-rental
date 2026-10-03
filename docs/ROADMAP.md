@@ -59,11 +59,11 @@ Deployment checklist — done on `demo` except 4, 7 and 8:
 1. ~~Push. The deploy runs the migrations and the smoke test.~~
 2. ~~Delete the old internet-wide firewall rule `AllowGithubActionsRunners`, and give the GitHub identity the firewall role. Run the backup workflow once by hand to confirm it still works.~~
 3. ~~Apply the health probes to the live backend.~~
-4. **Still open:** deploy the alert rules (`-AlertEmail` in the stack's manifest, then re-provision).
+4. **Almost done:** the alert email is set in `deploy/stacks/demo.json`; the rules deploy the next time `provision.ps1 -Stack demo` is run (CI does not deploy them).
 5. ~~Create the runtime database role and switch to it.~~
 6. ~~Register the Stripe webhook endpoint and store its signing secret.~~
 7. **Still open, on purpose:** once a customer is paying, set `-BackendMinReplicas 1` (roughly 10-15 USD/month). `demo` stays at 0 as the low-cost proof stack.
-8. **Still open:** after a period of clean reports, change the staff frontend's CSP from Report-Only to enforcing (the storefront's is in the same Report-Only state, even more recently switched on).
+8. **Ready to soak:** both apps now collect CSP violation reports in the container log, and a stack is switched to enforcing with `CSP_ENFORCE=true` (no new image). What is left is the clean week of reports on a real stack; see `docs/CSP.md`.
 9. ~~Scan the database from outside to confirm it does not answer.~~
 
 **L13 Business profile and localization.** Shipped and live on `demo`.
@@ -133,7 +133,7 @@ Proven with a second stack (`acme`, provisioned, verified and deprovisioned agai
 This surfaced a real subscription limit worth knowing about: **an Azure subscription can be capped at one Container Apps environment**, in total or per region (a free-trial restriction). `sharedEnvironmentStack` in a manifest is the stopgap — a stack joins another one's environment instead of creating its own, keeping its database, backups and everything else entirely its own, with its app names prefixed by its own slug to avoid colliding with the other stack's. **Not the normal case**: every real customer stack still gets its own environment; reach for this only if the same quota wall comes up again, and ask Azure to raise it (or move to a paid tier) rather than relying on this long-term. Details in `deploy/PROVISIONING.md`.
 
 Not done, on purpose:
-- **Monitoring alerts are still not deployed.** They need an alert email address in `deploy/stacks/demo.json`, then a re-run of `provision.ps1 -Stack demo`.
+- **Monitoring alerts are configured but not yet deployed.** The alert email is in `deploy/stacks/demo.json`; run `provision.ps1 -Stack demo` to deploy the rules.
 - Custom domains are not automated.
 
 **L15 Public storefront.** Shipped and live on `demo`, switched off. A separate Next.js app (`storefront/`), a `shared/` folder of dependency-free code both frontends import, and the backend's `/api/public/*`. First provisioned by hand (`provision.ps1`) so the live checks could run for real ahead of a push; the release pipeline has since deployed it too (backend, staff frontend, storefront and the sweeper job all rolled out together), and a real gap the first attempt caught — the CI identity had no role covering Container Apps *jobs*, a different resource type from a Container App — is fixed.
