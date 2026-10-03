@@ -214,6 +214,9 @@
       "start_after_end": "start_date must not be after end_date.",
       "too_long": "Date range must not exceed {max_days, number} days."
     },
+    "database": {
+      "rejected": "These details could not be saved. Check them and try again."
+    },
     "deposit": {
       "deposit_already_settled": "This deposit has already been settled.",
       "no_deposit_started_reservation": "No deposit has been started for this reservation.",
@@ -240,6 +243,7 @@
     },
     "handover": {
       "agreement_missing": "Agreement has not been generated yet.",
+      "cannot_change_status": "The handover of a {status} reservation cannot be changed.",
       "cannot_generate_status": "Cannot generate agreement for a {status} reservation.",
       "cannot_sign_status": "Cannot sign for a {status} reservation.",
       "card_payment_already_succeeded": "The customer has already paid by card. Confirm the card payment instead of taking cash.",
@@ -328,6 +332,7 @@
       "task_not_found": "Maintenance task not found."
     },
     "reservation": {
+      "active_cannot_be_cancelled": "A rental in progress cannot be cancelled. Complete the return instead.",
       "cannot_change_status": "Cannot change reservation status from {from_status} to {to_status}.",
       "cannot_confirm_car_already_reserved": "This car is already confirmed or active for part of this period.",
       "cannot_edit_status": "Cannot edit a {status} reservation.",
@@ -367,6 +372,7 @@
       "bool_parsing": "Choose yes or no.",
       "business_name_empty": "The business name cannot be empty.",
       "cancellation_hours_range": "Free cancellation hours must be between 0 and 720.",
+      "cannot_be_cleared": "This cannot be left empty.",
       "currency_code": "Currency must be a 3-letter code, e.g. 'eur'.",
       "date_from_datetime_parsing": "Enter a valid date.",
       "date_parsing": "Enter a valid date.",
@@ -398,7 +404,9 @@
       "model_attributes_type": "That is not valid data.",
       "name_empty": "The name cannot be empty.",
       "oil_change_interval_min": "The oil change interval must be at least 1 km.",
+      "nationality_invalid": "Choose a country.",
       "online_share_range": "The online share must be between 1 and 100 percent.",
+      "password_too_long": "The password is too long (at most 72 bytes).",
       "password_too_short": "Password must be at least 8 characters.",
       "reminder_days_range": "Reminders must start between 1 and 365 days ahead.",
       "role_invalid": "Role must be one of: {allowed}.",

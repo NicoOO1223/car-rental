@@ -214,6 +214,9 @@
       "start_after_end": "Data początkowa nie może być późniejsza niż końcowa.",
       "too_long": "Zakres dat nie może przekraczać {max_days, number} dni."
     },
+    "database": {
+      "rejected": "Nie udało się zapisać tych danych. Sprawdź je i spróbuj ponownie."
+    },
     "deposit": {
       "deposit_already_settled": "Ta kaucja została już rozliczona.",
       "no_deposit_started_reservation": "Dla tej rezerwacji nie rozpoczęto kaucji.",
@@ -240,6 +243,7 @@
     },
     "handover": {
       "agreement_missing": "Umowa nie została jeszcze wygenerowana.",
+      "cannot_change_status": "Nie można zmienić wydania pojazdu dla rezerwacji o statusie: {status}.",
       "cannot_generate_status": "Nie można wygenerować umowy dla rezerwacji o statusie: {status}.",
       "cannot_sign_status": "Nie można podpisać rezerwacji o statusie: {status}.",
       "card_payment_already_succeeded": "Klient już zapłacił kartą. Potwierdź płatność kartą zamiast przyjmować gotówkę.",
@@ -328,6 +332,7 @@
       "task_not_found": "Nie znaleziono zadania serwisowego."
     },
     "reservation": {
+      "active_cannot_be_cancelled": "Trwającego wynajmu nie można anulować. Zamiast tego zakończ zwrot pojazdu.",
       "cannot_change_status": "Nie można zmienić statusu rezerwacji z {from_status} na {to_status}.",
       "cannot_confirm_car_already_reserved": "Ten samochód jest już potwierdzony lub aktywny na część tego okresu.",
       "cannot_edit_status": "Nie można edytować rezerwacji o statusie: {status}.",
@@ -367,6 +372,7 @@
       "bool_parsing": "Wybierz tak lub nie.",
       "business_name_empty": "Nazwa firmy nie może być pusta.",
       "cancellation_hours_range": "Liczba godzin bezpłatnej rezygnacji musi wynosić od 0 do 720.",
+      "cannot_be_cleared": "To pole nie może być puste.",
       "currency_code": "Waluta musi być 3-literowym kodem, na przykład 'eur'.",
       "date_from_datetime_parsing": "Wpisz prawidłową datę.",
       "date_parsing": "Wpisz prawidłową datę.",
@@ -398,7 +404,9 @@
       "model_attributes_type": "Te dane są nieprawidłowe.",
       "name_empty": "Nazwa nie może być pusta.",
       "oil_change_interval_min": "Interwał wymiany oleju musi wynosić co najmniej 1 km.",
+      "nationality_invalid": "Wybierz kraj.",
       "online_share_range": "Udział płatności online musi wynosić od 1 do 100 procent.",
+      "password_too_long": "Hasło jest za długie (najwyżej 72 bajty).",
       "password_too_short": "Hasło musi mieć co najmniej 8 znaków.",
       "reminder_days_range": "Przypomnienia muszą zaczynać się od 1 do 365 dni wcześniej.",
       "role_invalid": "Rola musi być jedną z: {allowed}.",

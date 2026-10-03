@@ -25,7 +25,7 @@ from app.services.audit import audit_log
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import selections_from_reservation, translations_by_code
 from app.services.money import round_money
-from app.services.booking_prices import reservation_price_breakdown
+from app.services.booking_prices import agreed_price_per_day, reservation_price_breakdown
 
 CREDIT_NOTE_PREFIX = "CN"
 _COUNTER_ID = 1
@@ -73,7 +73,10 @@ def _lines(reservation: Reservation, car: Car, breakdown, extra_words: dict | No
     """The itemization as printed: one dict per line, amounts as strings so
     they survive JSON exactly."""
 
-    days = breakdown.base_amount / car.price_per_day if car.price_per_day else Decimal(0)
+    # The rate the booking was made at, which is what base_amount was worked
+    # out from. The car's live rate may have moved since.
+    rate = agreed_price_per_day(reservation, car)
+    days = breakdown.base_amount / rate if rate else Decimal(0)
 
     lines = [
         {
@@ -81,7 +84,7 @@ def _lines(reservation: Reservation, car: Car, breakdown, extra_words: dict | No
             "key": "line.rental",
             "params": {"make": car.make, "model": car.model, "plate": car.license_plate},
             "quantity": int(days) if days == int(days) else float(days),
-            "unit_price": _money(car.price_per_day),
+            "unit_price": _money(rate),
             "amount": _money(breakdown.base_amount),
         }
     ]

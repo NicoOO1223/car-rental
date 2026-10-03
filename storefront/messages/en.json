@@ -288,7 +288,9 @@
     "required": "Please fill in this field.",
     "validation": {
       "failed": "Please check the details you entered.",
-      "email_invalid": "Enter a valid email address."
+      "email_invalid": "Enter a valid email address.",
+      "nationality_invalid": "Choose a country.",
+      "password_too_long": "The password is too long (at most 72 bytes)."
     },
     "reservation": {
       "return_before_pickup": "The return must be after the pickup."

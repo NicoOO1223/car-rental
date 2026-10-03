@@ -26,7 +26,7 @@ from app.services.money import to_cents as _cents
 from app.services.configuration import get_configuration
 from app.services.handovers import (
     _require_stripe_configured,
-    get_or_create_handover,
+    get_open_handover,
 )
 
 _CENTS = Decimal("0.01")
@@ -60,7 +60,7 @@ def create_or_reuse_deposit_intent(db: Session, reservation_id: UUID, actor: Use
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
     amount = _require_deposit_stage(db, handover)
 
     if handover.deposit_amount is not None and handover.deposit_status == "PENDING":
@@ -119,7 +119,7 @@ def confirm_deposit_hold(db: Session, reservation_id: UUID, actor: User) -> Hand
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     if not handover.deposit_stripe_payment_intent_id:
         raise AppError("deposit.no_deposit_started_reservation", "No deposit has been started for this reservation.")
@@ -160,7 +160,7 @@ def confirm_deposit_hold(db: Session, reservation_id: UUID, actor: User) -> Hand
 def confirm_cash_deposit(db: Session, reservation_id: UUID, actor: User) -> Handover:
     """A staff attestation that the deposit was received in cash."""
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
     amount = _require_deposit_stage(db, handover)
     configuration = get_configuration(db)
 

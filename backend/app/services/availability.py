@@ -113,6 +113,26 @@ def lock_car(db: Session, car_id: UUID) -> None:
     db.execute(select(Car.id).where(Car.id == car_id).with_for_update()).first()
 
 
+def lock_reservation(db: Session, reservation_id: UUID) -> Reservation | None:
+    """
+    Reads a reservation under a row lock held until the transaction ends, so a
+    cancellation and a payment or signature for the same booking are handled one
+    after the other: the second one waits here, then sees the first one's
+    status. The row is re-read (populate_existing) so a copy loaded earlier in
+    the request cannot hide what the other request committed.
+
+    Returns None when there is no such reservation. When this and lock_car are
+    both needed, take the car first.
+    """
+
+    return db.execute(
+        select(Reservation)
+        .where(Reservation.id == reservation_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+
+
 def has_conflicting_reservation(
     db: Session,
     car_id: UUID,

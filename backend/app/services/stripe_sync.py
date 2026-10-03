@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.models import CheckOut, Handover, ProcessedStripeEvent, ReservationPayment
+from app.models import CheckOut, Handover, ProcessedStripeEvent, Reservation, ReservationPayment
 from app.services.audit import audit_log
 from app.services.invoices import issue_invoice_for_handover
 
@@ -169,6 +169,22 @@ def _apply_to_records(db: Session, intent_id: str, intent_status: str) -> bool:
                     "source": "stripe_webhook",
                 },
             )
+
+            # A card payment that went through after the booking was cancelled
+            # (the customer was mid-payment when staff cancelled) is given
+            # straight back: nobody should keep money for a booking that no
+            # longer exists. Imported here: the handover service builds on
+            # this module.
+            reservation = db.get(Reservation, handover.reservation_id)
+
+            if (
+                handover.payment_status == "SUCCEEDED"
+                and reservation is not None
+                and reservation.status in ("CANCELLED", "EXPIRED")
+            ):
+                from app.services.handovers import refund_handover_if_paid
+
+                refund_handover_if_paid(db, handover.reservation_id, None)
 
     prepayment = db.scalar(
         select(ReservationPayment).where(ReservationPayment.stripe_payment_intent_id == intent_id)

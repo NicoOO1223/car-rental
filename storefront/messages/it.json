@@ -288,7 +288,9 @@
     "required": "Compila questo campo.",
     "validation": {
       "failed": "Controlla i dati inseriti.",
-      "email_invalid": "Inserisci un indirizzo email valido."
+      "email_invalid": "Inserisci un indirizzo email valido.",
+      "nationality_invalid": "Scegli un paese.",
+      "password_too_long": "La password è troppo lunga (al massimo 72 byte)."
     },
     "reservation": {
       "return_before_pickup": "La riconsegna deve essere dopo il ritiro."

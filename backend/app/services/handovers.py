@@ -5,6 +5,7 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.services.availability import lock_reservation
 from app.services.stripe_errors import stripe_app_error
 from app.errors import AppError, NotFoundError
 from app.config import STRIPE_SECRET_KEY
@@ -63,6 +64,33 @@ def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover
     return handover
 
 
+def get_open_handover(db: Session, reservation_id, actor: User) -> Handover:
+    """
+    The handover for an action that changes it (a payment, a signature, a
+    deposit). Only a CONFIRMED reservation is still at the counter: a cancelled
+    one must not take money or collect a signature, and a rental already in
+    progress must not have its signature replaced after the agreement was made.
+
+    The reservation row is locked until the transaction ends, so this and a
+    cancellation of the same booking run one after the other instead of both
+    passing their checks.
+    """
+
+    reservation = lock_reservation(db, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    if reservation.status != "CONFIRMED":
+        raise AppError(
+            "handover.cannot_change_status",
+            f"The handover of a {reservation.status.lower()} reservation cannot be changed.",
+            status=reservation.status,
+        )
+
+    return get_or_create_handover(db, reservation_id, actor=actor)
+
+
 def amount_due(db: Session, reservation_id, breakdown) -> Decimal:
     """
     What is still to be paid at the counter: the whole price less what the
@@ -111,7 +139,7 @@ def settle_prepaid_handover(db: Session, reservation_id, actor: User) -> Handove
     so check-in can continue. The counter payment is PREPAID, for nothing.
     """
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     if handover.payment_status == "SUCCEEDED":
         return handover
@@ -173,7 +201,7 @@ def create_or_reuse_payment_intent(db: Session, reservation_id, actor: User):
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     # Paid in cash already: a card payment for the same rental would charge the
     # customer twice.
@@ -252,7 +280,7 @@ def confirm_payment(db: Session, reservation_id, actor: User) -> Handover:
 
     _require_stripe_configured()
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     if not handover.stripe_payment_intent_id:
         raise AppError("handover.no_payment_initiated_reservation", "No payment has been initiated for this reservation.")
@@ -302,7 +330,7 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     reservation's current dates/locations/extras.
     """
 
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     # A second payment would overwrite the first, and a card payment relabelled
     # as cash could never be refunded through Stripe.
@@ -363,7 +391,40 @@ def confirm_cash_payment(db: Session, reservation_id, actor: User) -> Handover:
     return handover
 
 
-def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handover | None:
+def _close_unfinished_card_payment(db: Session, handover: Handover, actor: User | None) -> None:
+    """
+    A card payment that was started and never finished (PROCESSING, or FAILED
+    and still retryable) is cancelled at Stripe, so the customer cannot pay it
+    after the booking is gone. If Stripe says they paid in the meantime, that
+    payment is recorded and invoiced here, and the caller refunds it like any
+    other paid handover.
+    """
+
+    if (
+        handover.payment_method != "CARD"
+        or handover.payment_status not in ("PROCESSING", "FAILED")
+        or not handover.stripe_payment_intent_id
+    ):
+        return
+
+    _require_stripe_configured()
+
+    try:
+        intent = stripe.PaymentIntent.retrieve(handover.stripe_payment_intent_id)
+
+        if intent.status == "succeeded":
+            apply_payment_intent_status(handover, "succeeded")
+            issue_invoice_for_handover(db, handover, actor)
+        elif intent.status == "canceled":
+            apply_payment_intent_status(handover, "canceled")
+        else:
+            stripe.PaymentIntent.cancel(intent.id)
+            handover.payment_status = "CANCELLED"
+    except stripe.StripeError as exc:
+        raise stripe_app_error(exc)
+
+
+def refund_handover_if_paid(db: Session, reservation_id, actor: User | None) -> Handover | None:
     """
     Called from cancel_reservation() (app/services/reservations.py) when
     a reservation is cancelled. Refunds the full payment_amount if this
@@ -384,6 +445,9 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
     handover = db.scalar(
         select(Handover).where(Handover.reservation_id == reservation_id)
     )
+
+    if handover is not None:
+        _close_unfinished_card_payment(db, handover, actor)
 
     if handover is None or handover.payment_status != "SUCCEEDED":
         return None
@@ -411,7 +475,7 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
     handover.refund_amount = handover.payment_amount
     handover.refunded_at = datetime.now(timezone.utc)
     handover.payment_status = "REFUNDED"
-    handover.updated_by = actor.id
+    handover.updated_by = actor.id if actor else None
 
     # The invoice is reversed with a credit note rather than altered.
     issue_credit_note_for_handover(db, handover, actor)
@@ -436,7 +500,7 @@ def refund_handover_if_paid(db: Session, reservation_id, actor: User) -> Handove
 def submit_signature(
     db: Session, reservation_id, signature_image: str, actor: User
 ) -> Handover:
-    handover = get_or_create_handover(db, reservation_id, actor=actor)
+    handover = get_open_handover(db, reservation_id, actor=actor)
 
     handover.signature_image = signature_image
     handover.signed_at = datetime.now(timezone.utc)

@@ -1,10 +1,19 @@
+import threading
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
+from app.database import SessionLocal
 from app.main import app
-from tests.test_reservations import confirm_reservation, ensure_car_available, get_car_by_plate
+from app.services.availability import lock_car
+from tests.test_reservations import (
+    confirm_reservation,
+    create_reservation,
+    ensure_car_available,
+    get_car_by_plate,
+    get_location_id,
+)
 
 client = TestClient(app)
 
@@ -823,3 +832,76 @@ def test_the_task_list_is_paged_newest_first_with_overall_open_counts():
     finally:
         for task in made:
             client.patch(f"/api/maintenance/tasks/{task['id']}/cancel")
+
+
+def test_a_pending_request_cannot_be_confirmed_over_a_maintenance_window():
+    # A PENDING request does not block the car, so a service can be booked over
+    # it. Approving the request afterwards must notice.
+    car = ensure_car_available("SA-006-AA")
+    request = create_reservation(
+        car["id"], get_location_id("CAG"), "2027-08-03T10:00:00Z", "2027-08-05T10:00:00Z"
+    )
+
+    task = client.post(
+        "/api/maintenance/tasks",
+        json={
+            "car_id": car["id"],
+            "task_type": "MAINTENANCE",
+            "category": "ROUTINE_SERVICE",
+            "notes": None,
+            "starts_at": "2027-08-04T08:00:00Z",
+            "ends_at": "2027-08-04T18:00:00Z",
+        },
+    )
+    assert task.status_code == 200
+
+    try:
+        confirm = client.patch(
+            f"/api/reservations/{request['id']}/status", json={"status": "CONFIRMED"}
+        )
+
+        assert confirm.status_code == 400
+        assert confirm.json()["code"] == "reservation.car_scheduled_maintenance_or_cleaning_during"
+        assert client.get(f"/api/reservations/{request['id']}").json()["status"] == "PENDING"
+    finally:
+        client.patch(f"/api/maintenance/tasks/{task.json()['id']}/cancel")
+        client.patch(f"/api/reservations/{request['id']}/cancel")
+
+
+def test_creating_a_task_waits_for_a_booking_in_progress_on_the_same_car():
+    # A booking holds the car lock until it commits. The task must queue behind
+    # it, otherwise both pass their overlap checks and both stand.
+    car = ensure_car_available("SA-006-AA")
+    holder = SessionLocal()
+    result = {}
+
+    def create_task():
+        result["response"] = client.post(
+            "/api/maintenance/tasks",
+            json={
+                "car_id": car["id"],
+                "task_type": "CLEANING",
+                "notes": None,
+                "starts_at": "2027-09-01T08:00:00Z",
+                "ends_at": "2027-09-01T10:00:00Z",
+            },
+        )
+
+    try:
+        lock_car(holder, UUID(car["id"]))
+
+        waiting = threading.Thread(target=create_task)
+        waiting.start()
+        waiting.join(timeout=1.0)
+
+        assert waiting.is_alive(), "the task was created while the car was locked"
+
+        holder.rollback()
+        waiting.join(timeout=10)
+
+        assert not waiting.is_alive()
+        assert result["response"].status_code == 200
+
+        client.patch(f"/api/maintenance/tasks/{result['response'].json()['id']}/cancel")
+    finally:
+        holder.close()

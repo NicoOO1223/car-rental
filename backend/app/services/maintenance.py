@@ -12,6 +12,7 @@ from app.services.timezones import assume_zone, business_zone, local_today
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
+    lock_car,
 )
 
 VALID_TASK_TYPES = {"MAINTENANCE", "CLEANING"}
@@ -157,6 +158,11 @@ def create_task(
 
     if ends_at <= datetime.now(timezone.utc):
         raise AppError("maintenance.maintenance_window_must_end_future", "The maintenance window must end in the future.")
+
+    # The same lock a booking takes, so a booking and a task for this car made
+    # at the same moment are checked one after the other. Without it each
+    # would pass its check before the other was visible, and both would stand.
+    lock_car(db, car_id)
 
     if has_conflicting_maintenance(db, car_id, starts_at, ends_at):
         raise AppError("maintenance.car_already_maintenance_or_cleaning_scheduled", "This car already has maintenance or cleaning scheduled during this period.")

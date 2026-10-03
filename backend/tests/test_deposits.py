@@ -26,6 +26,7 @@ from tests.test_handovers import (
     _mark_identity_verified,
     _reset_identity_verification,
     create_confirmed_reservation,
+    finish_rental,
 )
 from app.services.return_charges import settle_deposit
 
@@ -270,10 +271,7 @@ def test_agreement_requires_the_deposit_when_enabled_but_not_when_off():
         assert allowed.status_code == 200
     finally:
         client.patch("/api/configuration", json={"security_deposit_amount": original})
-        client.patch(
-            f"/api/reservations/{reservation['id']}/status",
-            json={"status": "COMPLETED"},
-        )
+        finish_rental(reservation['id'])
         _reset_identity_verification(customer_id)
 
 

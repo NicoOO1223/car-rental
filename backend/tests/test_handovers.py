@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models import AuditLog, Customer, Handover
+from app.models import AuditLog, Car, Customer, Handover, Reservation
 from tests.test_reservations import (
     create_reservation,
     ensure_car_available,
@@ -71,6 +71,23 @@ def _reset_identity_verification(customer_id: str) -> None:
         customer.driving_license_expires_at = None
         customer.identity_checked_at = None
         customer.identity_checked_by = None
+        db.commit()
+    finally:
+        db.close()
+
+
+def finish_rental(reservation_id: str) -> None:
+    """
+    Test cleanup: ends a rental the test activated so its car goes back to
+    AVAILABLE. The API deliberately has no such shortcut (only check-out
+    completes a rental), so this edits the rows directly.
+    """
+
+    db = SessionLocal()
+    try:
+        reservation = db.get(Reservation, UUID(str(reservation_id)))
+        reservation.status = "COMPLETED"
+        db.get(Car, reservation.car_id).status = "AVAILABLE"
         db.commit()
     finally:
         db.close()
@@ -183,10 +200,7 @@ def test_generate_agreement_full_flow():
 
     # Clean up: complete the rental so the car returns to AVAILABLE, and
     # un-verify the shared customer so it doesn't leak into other tests.
-    client.patch(
-        f"/api/reservations/{reservation['id']}/status",
-        json={"status": "COMPLETED"},
-    )
+    finish_rental(reservation['id'])
     _reset_identity_verification(reservation["customer"]["id"])
 
 
@@ -359,10 +373,7 @@ def test_generate_agreement_records_audit_log():
     finally:
         db.close()
 
-    client.patch(
-        f"/api/reservations/{reservation['id']}/status",
-        json={"status": "COMPLETED"},
-    )
+    finish_rental(reservation['id'])
     _reset_identity_verification(reservation["customer"]["id"])
 
 
@@ -480,11 +491,54 @@ def test_cash_payment_full_flow():
     updated_reservation = client.get(f"/api/reservations/{reservation['id']}").json()
     assert updated_reservation["status"] == "ACTIVE"
 
-    client.patch(
-        f"/api/reservations/{reservation['id']}/status",
-        json={"status": "COMPLETED"},
-    )
+    finish_rental(reservation['id'])
     _reset_identity_verification(reservation["customer"]["id"])
+
+
+def test_active_rental_cannot_be_cancelled_or_completed_by_hand():
+    # A rental in progress ends through check-out. Cancelling it would refund
+    # the payment but leave the car RENTED, and a bare COMPLETED would free the
+    # car without mileage, charges or a deposit settlement.
+    reservation = create_confirmed_reservation(
+        "SA-008-AA", "2027-06-14T10:00:00Z", "2027-06-15T10:00:00Z"
+    )
+    reservation_id = reservation["id"]
+
+    client.post(f"/api/reservations/{reservation_id}/handover/confirm-cash-payment")
+    client.post(
+        f"/api/reservations/{reservation_id}/handover/signature",
+        json={"signature_image": TINY_SIGNATURE},
+    )
+    _employee_sign(reservation_id)
+    _mark_identity_verified(reservation["customer"]["id"])
+
+    try:
+        agreement = client.post(f"/api/reservations/{reservation_id}/handover/agreement")
+        assert agreement.status_code == 200
+        assert client.get(f"/api/reservations/{reservation_id}").json()["status"] == "ACTIVE"
+
+        cancel = client.patch(f"/api/reservations/{reservation_id}/cancel")
+        assert cancel.status_code == 400
+        assert cancel.json()["code"] == "reservation.active_cannot_be_cancelled"
+
+        complete = client.patch(
+            f"/api/reservations/{reservation_id}/status",
+            json={"status": "COMPLETED"},
+        )
+        assert complete.status_code == 400
+        assert complete.json()["code"] == "reservation.cannot_change_status"
+
+        assert client.get(f"/api/reservations/{reservation_id}").json()["status"] == "ACTIVE"
+
+        db = SessionLocal()
+        try:
+            reservation_row = db.get(Reservation, UUID(reservation_id))
+            assert db.get(Car, reservation_row.car_id).status == "RENTED"
+        finally:
+            db.close()
+    finally:
+        finish_rental(reservation_id)
+        _reset_identity_verification(reservation["customer"]["id"])
 
 
 def _cash_paid_and_customer_signed(plate: str, pickup_at: str, return_at: str) -> dict:
@@ -593,8 +647,5 @@ def test_agreement_with_employee_signature_carries_approver():
         assert download.status_code == 200
         assert download.content.startswith(b"%PDF")
     finally:
-        client.patch(
-            f"/api/reservations/{reservation['id']}/status",
-            json={"status": "COMPLETED"},
-        )
+        finish_rental(reservation['id'])
         _reset_identity_verification(reservation["customer"]["id"])

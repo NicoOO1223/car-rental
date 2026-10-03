@@ -12,12 +12,13 @@ from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
     lock_car,
+    lock_reservation,
     projected_location_id,
 )
 from app.services.customers import find_matching_customer
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
-from app.services.prepayments import settle_prepayment_for_cancellation
+from app.services.prepayments import get_prepayment, settle_prepayment_for_cancellation
 from app.services.extras import (
     build_reservation_extras,
     resolve_extra_selections,
@@ -246,10 +247,9 @@ def cancel_reservation(
     kept after it), True or False overrides it for this cancellation.
     """
 
-    reservation = db.get(
-        Reservation,
-        reservation_id,
-    )
+    # Locked, so a payment or signature for this booking that is happening at
+    # the same moment finishes first (or finds it cancelled), never half-way.
+    reservation = lock_reservation(db, reservation_id)
 
     if reservation is None:
         raise NotFoundError("reservation.not_found", "Reservation not found.")
@@ -262,6 +262,15 @@ def cancel_reservation(
 
     if reservation.status == "EXPIRED":
         raise AppError("reservation.reservation_already_cancelled", "Reservation is already cancelled.")
+
+    # The car is out with the renter. Cancelling here would refund the
+    # payment but leave the car RENTED with no return recorded, so a rental in
+    # progress ends through check-out (mileage, charges, deposit, relocation).
+    if reservation.status == "ACTIVE":
+        raise AppError(
+            "reservation.active_cannot_be_cancelled",
+            "A rental in progress cannot be cancelled. Complete the return instead.",
+        )
 
     # Refund whatever was actually paid before flipping the status, so a
     # refund failure (e.g. a Stripe error) leaves the reservation
@@ -355,9 +364,11 @@ def update_reservation_status(
             "CANCELLED",
         },
         "EXPIRED": set(),
-        "ACTIVE": {
-            "COMPLETED",
-        },
+        # A rental in progress ends only through check-out
+        # (app/services/check_outs.py), which records mileage, charges, the
+        # deposit settlement and where the car ended up. A bare status flip
+        # would skip all of that and free the car regardless.
+        "ACTIVE": set(),
         "CANCELLED": set(),
         "COMPLETED": set(),
     }
@@ -398,13 +409,18 @@ def update_reservation_status(
                 "This car is already confirmed or active for part of this period.",
             )
 
+        # A PENDING request does not block maintenance either, so a service or
+        # cleaning may have been booked over it since it was made.
+        if has_conflicting_maintenance(
+            db, reservation.car_id, reservation.pickup_at, reservation.return_at,
+        ):
+            raise AppError(
+                "reservation.car_scheduled_maintenance_or_cleaning_during",
+                "Car is scheduled for maintenance or cleaning during this period.",
+            )
+
     reservation.status = new_status
     reservation.updated_by = actor.id
-
-    if new_status == "COMPLETED":
-        # Completing a rental hands the vehicle back to the fleet.
-        car = db.get(Car, reservation.car_id)
-        car.status = "AVAILABLE"
 
     audit_log(
         db,
@@ -419,6 +435,30 @@ def update_reservation_status(
     db.refresh(reservation)
 
     return reservation
+
+def _payment_fixes_the_price(db: Session, reservation_id) -> bool:
+    """
+    Whether a payment already pins down what this booking costs: a counter
+    payment that went through, or an online payment that went through, is in
+    flight, or is still waiting for the renter (its Stripe amount is already
+    set). Changing the car, dates, places or extras after that would leave the
+    payment, the invoice and the new total describing different rentals.
+    """
+
+    counter_paid = db.scalar(
+        select(Handover.id).where(
+            Handover.reservation_id == reservation_id,
+            Handover.payment_status == "SUCCEEDED",
+        )
+    )
+
+    if counter_paid is not None:
+        return True
+
+    online = get_prepayment(db, reservation_id)
+
+    return online is not None and online.payment_status in ("PENDING", "PROCESSING", "SUCCEEDED")
+
 
 def update_reservation(
     db: Session,
@@ -496,14 +536,7 @@ def update_reservation(
         # Once money has been taken the amount is fixed against what was
         # booked; moving the car, dates or places would leave the payment and
         # the invoice describing a different rental.
-        taken = db.scalar(
-            select(Handover.id).where(
-                Handover.reservation_id == reservation_id,
-                Handover.payment_status == "SUCCEEDED",
-            )
-        )
-
-        if taken is not None:
+        if _payment_fixes_the_price(db, reservation_id):
             raise AppError(
                 "reservation.cannot_move_after_payment",
                 "The car, dates and locations cannot be changed after payment has been taken.",
@@ -560,14 +593,10 @@ def update_reservation(
     # ---------------------------------------------------------
 
     if data.extras is not None:
-        handover = db.scalar(
-            select(Handover).where(Handover.reservation_id == reservation_id)
-        )
-
         # Add-ons cannot change once money has been taken: the captured
         # PaymentIntent amount would no longer match the itemization
         # printed on the rental agreement.
-        if handover is not None and handover.payment_status == "SUCCEEDED":
+        if _payment_fixes_the_price(db, reservation_id):
             raise AppError("reservation.extras_cannot_changed_after_payment_taken", "Extras cannot be changed after payment has been taken.")
 
         resolved = resolve_extra_selections(

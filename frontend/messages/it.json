@@ -214,6 +214,9 @@
       "start_after_end": "La data di inizio non può essere successiva a quella di fine.",
       "too_long": "L'intervallo di date non può superare {max_days, number} giorni."
     },
+    "database": {
+      "rejected": "Impossibile salvare questi dati. Controllali e riprova."
+    },
     "deposit": {
       "deposit_already_settled": "Questa cauzione è già stata regolata.",
       "no_deposit_started_reservation": "Nessuna cauzione è stata avviata per questa prenotazione.",
@@ -240,6 +243,7 @@
     },
     "handover": {
       "agreement_missing": "Il contratto non è ancora stato generato.",
+      "cannot_change_status": "La consegna di una prenotazione {status} non si può modificare.",
       "cannot_generate_status": "Non si può generare il contratto per una prenotazione {status}.",
       "cannot_sign_status": "Non si può firmare per una prenotazione {status}.",
       "card_payment_already_succeeded": "Il cliente ha già pagato con carta. Conferma il pagamento con carta invece di incassare in contanti.",
@@ -328,6 +332,7 @@
       "task_not_found": "Attività di manutenzione non trovata."
     },
     "reservation": {
+      "active_cannot_be_cancelled": "Un noleggio in corso non si può annullare. Completa invece la riconsegna.",
       "cannot_change_status": "Non si può cambiare lo stato della prenotazione da {from_status} a {to_status}.",
       "cannot_confirm_car_already_reserved": "Questo veicolo è già confermato o attivo per una parte di questo periodo.",
       "cannot_edit_status": "Non si può modificare una prenotazione {status}.",
@@ -367,6 +372,7 @@
       "bool_parsing": "Scegli sì o no.",
       "business_name_empty": "Il nome dell'attività non può essere vuoto.",
       "cancellation_hours_range": "Le ore di cancellazione gratuita devono essere tra 0 e 720.",
+      "cannot_be_cleared": "Questo campo non può essere vuoto.",
       "currency_code": "La valuta deve essere un codice di 3 lettere, ad esempio 'eur'.",
       "date_from_datetime_parsing": "Inserisci una data valida.",
       "date_parsing": "Inserisci una data valida.",
@@ -398,7 +404,9 @@
       "model_attributes_type": "Questi dati non sono validi.",
       "name_empty": "Il nome non può essere vuoto.",
       "oil_change_interval_min": "L'intervallo del cambio olio deve essere di almeno 1 km.",
+      "nationality_invalid": "Scegli un paese.",
       "online_share_range": "La quota online deve essere tra 1 e 100 percento.",
+      "password_too_long": "La password è troppo lunga (al massimo 72 byte).",
       "password_too_short": "La password deve avere almeno 8 caratteri.",
       "reminder_days_range": "I promemoria devono partire tra 1 e 365 giorni prima.",
       "role_invalid": "Il ruolo deve essere uno tra: {allowed}.",

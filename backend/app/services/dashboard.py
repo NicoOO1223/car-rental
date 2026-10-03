@@ -37,7 +37,13 @@ def get_daily_revenue(
     range_start, range_end = range_bounds(start_date, end_date, tz)
 
     rows = db.execute(
-        select(Reservation.pickup_at, Reservation.return_at, Car.price_per_day)
+        select(
+            Reservation.pickup_at,
+            Reservation.return_at,
+            # The rate each rental was made at, so a later price change does
+            # not rewrite what was earned.
+            func.coalesce(Reservation.agreed_price_per_day, Car.price_per_day),
+        )
         .join(Car, Car.id == Reservation.car_id)
         .where(
             Reservation.status == "COMPLETED",

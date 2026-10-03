@@ -21,17 +21,25 @@ from app.services.extras import selections_from_reservation
 from app.services.pricing import PriceBreakdown, calculate_price_breakdown
 
 
-def reservation_price_breakdown(
-    db: Session, reservation: Reservation, car: Car | None = None, configuration=None
-) -> PriceBreakdown:
-    car = car or db.get(Car, reservation.car_id)
-    configuration = configuration or get_configuration(db)
+def agreed_price_per_day(reservation: Reservation, car: Car):
+    """The daily rate this booking was made at (the car's live rate for a
+    booking from before prices were recorded)."""
+
+    if reservation.agreed_price_per_day is not None:
+        return reservation.agreed_price_per_day
+
+    return car.price_per_day
+
+
+def agreed_price_breakdown(reservation: Reservation, car: Car, configuration) -> PriceBreakdown:
+    """The same price as reservation_price_breakdown, for callers that already
+    hold the car and the configuration and have no session to fetch them."""
 
     def agreed(recorded, live):
         return recorded if recorded is not None else live
 
     return calculate_price_breakdown(
-        agreed(reservation.agreed_price_per_day, car.price_per_day),
+        agreed_price_per_day(reservation, car),
         reservation.pickup_at,
         reservation.return_at,
         reservation.pickup_location_id,
@@ -43,6 +51,15 @@ def reservation_price_breakdown(
         # Snapshotted prices, not the live catalog.
         extras=selections_from_reservation(reservation),
     )
+
+
+def reservation_price_breakdown(
+    db: Session, reservation: Reservation, car: Car | None = None, configuration=None
+) -> PriceBreakdown:
+    car = car or db.get(Car, reservation.car_id)
+    configuration = configuration or get_configuration(db)
+
+    return agreed_price_breakdown(reservation, car, configuration)
 
 
 def stamp_agreed_prices(

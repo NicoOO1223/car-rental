@@ -288,7 +288,9 @@
     "required": "Wypełnij to pole.",
     "validation": {
       "failed": "Sprawdź wpisane dane.",
-      "email_invalid": "Podaj prawidłowy adres e-mail."
+      "email_invalid": "Podaj prawidłowy adres e-mail.",
+      "nationality_invalid": "Wybierz kraj.",
+      "password_too_long": "Hasło jest za długie (najwyżej 72 bajty)."
     },
     "reservation": {
       "return_before_pickup": "Zwrot musi być po odbiorze."

@@ -11,6 +11,7 @@ from tests.test_handovers import (
     _employee_sign,
     _reset_identity_verification,
     create_confirmed_reservation,
+    finish_rental,
 )
 from tests.test_reservations import ensure_car_available
 
@@ -289,10 +290,7 @@ def test_agreement_needs_manual_identity_details_then_succeeds():
         assert agreement.status_code == 200
         assert agreement.json()["has_agreement"] is True
     finally:
-        client.patch(
-            f"/api/reservations/{reservation_id}/status",
-            json={"status": "COMPLETED"},
-        )
+        finish_rental(reservation_id)
         client.patch(f"/api/reservations/{reservation_id}/cancel")
         _reset_identity_verification(customer_id)
 

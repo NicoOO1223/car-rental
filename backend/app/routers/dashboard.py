@@ -29,10 +29,9 @@ from app.services.availability import (
     get_fleet_status_counts,
     get_fleet_status_counts_by_location,
 )
-from app.services.configuration import get_configuration, vat_terms
+from app.services.booking_prices import agreed_price_breakdown
+from app.services.configuration import get_configuration
 from app.services.dashboard import get_collected_revenue, get_daily_revenue
-from app.services.extras import selections_from_reservation
-from app.services.pricing import calculate_price_breakdown
 from app.services.timezones import (
     business_zone,
     day_bounds,
@@ -50,18 +49,7 @@ router = APIRouter(
 
 
 def _to_dashboard_reservation(reservation: Reservation, configuration) -> DashboardReservation:
-    breakdown = calculate_price_breakdown(
-        reservation.car.price_per_day,
-        reservation.pickup_at,
-        reservation.return_at,
-        reservation.pickup_location_id,
-        reservation.return_location_id,
-        short_term_threshold_days=configuration.short_term_threshold_days,
-        short_term_fee=configuration.short_term_fee,
-        airport_change_fee=configuration.airport_change_fee,
-        **vat_terms(configuration),
-        extras=selections_from_reservation(reservation),
-    )
+    breakdown = agreed_price_breakdown(reservation, reservation.car, configuration)
     total_price = breakdown.total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     return DashboardReservation(

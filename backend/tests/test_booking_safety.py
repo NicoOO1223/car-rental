@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models import AuditLog, User
+from app.models import AuditLog, ReservationPayment, User
 from app.schemas.reservation import CustomerCreate
 from app.services.availability import lock_car
 from app.services.client_ip import client_ip
@@ -319,3 +319,82 @@ def test_the_client_address_is_the_last_forwarded_entry_not_one_the_client_wrote
 
 def test_without_a_forwarded_header_the_connection_address_is_used():
     assert client_ip(_request(None, host="10.0.0.9")) == "10.0.0.9"
+
+
+# --- an online payment pins the price too ------------------------------------------------
+
+
+def _online_payment(reservation, status):
+    db = SessionLocal()
+    try:
+        db.add(
+            ReservationPayment(
+                reservation_id=UUID(reservation["id"]),
+                payment_method="CARD",
+                payment_amount=10,
+                payment_currency="eur",
+                payment_status=status,
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_the_car_dates_and_extras_cannot_change_after_an_online_payment():
+    # The renter paid part of the rental on the storefront. Moving the booking
+    # would re-price it at today's rates and leave what they paid, the advance
+    # invoice and the new total describing different rentals.
+    for status in ("SUCCEEDED", "PROCESSING", "PENDING"):
+        reservation = _confirmed()
+
+        try:
+            _online_payment(reservation, status)
+
+            later = datetime.fromisoformat(reservation["pickup_at"].replace("Z", "+00:00")) + timedelta(days=1)
+
+            moved = client.patch(
+                f"/api/reservations/{reservation['id']}",
+                json={"pickup_at": later.isoformat(), "return_at": (later + timedelta(days=2)).isoformat()},
+            )
+
+            assert moved.status_code == 400, status
+            assert moved.json()["code"] == "reservation.cannot_move_after_payment"
+
+            extras = client.patch(f"/api/reservations/{reservation['id']}", json={"extras": []})
+
+            assert extras.status_code == 400, status
+            assert extras.json()["code"] == "reservation.extras_cannot_changed_after_payment_taken"
+
+            # Contact details are not part of the price.
+            renamed = client.patch(
+                f"/api/reservations/{reservation['id']}",
+                json={"customer": {"phone_number": "+390789111111"}},
+            )
+
+            assert renamed.status_code == 200
+        finally:
+            # The test customer is shared with other tests, which expect its phone.
+            client.patch(
+                f"/api/reservations/{reservation['id']}",
+                json={"customer": {"phone_number": "+31600000000"}},
+            )
+            client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_a_refunded_or_failed_online_payment_no_longer_pins_the_price():
+    reservation = _confirmed()
+
+    try:
+        _online_payment(reservation, "FAILED")
+
+        later = datetime.fromisoformat(reservation["pickup_at"].replace("Z", "+00:00")) + timedelta(days=1)
+
+        moved = client.patch(
+            f"/api/reservations/{reservation['id']}",
+            json={"pickup_at": later.isoformat(), "return_at": (later + timedelta(days=2)).isoformat()},
+        )
+
+        assert moved.status_code == 200
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
