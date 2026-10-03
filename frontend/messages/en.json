@@ -139,7 +139,8 @@
       "too_many_attempts": "Too many login attempts. Try again later."
     },
     "branding": {
-      "no_logo": "No logo has been uploaded."
+      "no_logo": "No logo has been uploaded.",
+      "no_landing_hero": "No hero image has been uploaded."
     },
     "car": {
       "cannot_move_yet": "This car can't be moved yet: it has an active rental or reservations that pick it up at {airport} ({references}). Cancel or complete them first.",
@@ -270,6 +271,13 @@
     },
     "invoice": {
       "not_found": "Invoice not found."
+    },
+    "landing_hero": {
+      "corrupted": "The hero image file is corrupted.",
+      "dimensions_too_large": "The hero image dimensions are too large.",
+      "too_large": "The hero image is too large. The limit is {limit_mb, number} MB.",
+      "unreadable": "The hero image file could not be read as an image.",
+      "wrong_type": "The hero image must be a PNG or JPEG image."
     },
     "location": {
       "code_taken": "A location with this code already exists.",
@@ -1053,7 +1061,25 @@
           "urlHint": "Optional. A full address starting with https://",
           "saved": "Saved.",
           "saving": "Saving…",
-          "save": "Save changes"
+          "save": "Save changes",
+          "landingTitle": "Landing page",
+          "landingDescription": "What visitors see on your storefront's home page before they search. Leave anything blank to use the generic default instead.",
+          "noHeroImage": "No image",
+          "chooseHeroFile": "Choose a hero image file",
+          "uploadHero": "Upload image",
+          "replaceHero": "Replace image",
+          "remove": "Remove",
+          "couldNotReadFile": "Could not read that file.",
+          "choosePngJpegImage": "Choose a PNG or JPEG image.",
+          "fileTooLargeLimit": "That file is too large. The limit is {v1} MB.",
+          "failedUploadHero": "Failed to upload the hero image.",
+          "failedRemoveHero": "Failed to remove the hero image.",
+          "landingHeadline": "Headline",
+          "landingHeadlineHint": "The main heading on your storefront's home page.",
+          "landingTagline": "Tagline",
+          "landingBenefitsHint": "Three short reasons to book with you, shown under the headline.",
+          "landingBenefitTitle": "Benefit {n} title",
+          "landingBenefitBody": "A sentence or two"
         }
       },
       "revenue": {

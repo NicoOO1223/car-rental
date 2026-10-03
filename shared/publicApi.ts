@@ -21,6 +21,18 @@ export type PublicConfig = {
   privacy_url: string;
   has_terms_text: boolean;
   has_privacy_text: boolean;
+  /** The storefront landing page — free text the business wrote once,
+   * in their own language. Empty means "not set". */
+  landing_headline: string;
+  landing_tagline: string;
+  landing_benefit1_title: string;
+  landing_benefit1_body: string;
+  landing_benefit2_title: string;
+  landing_benefit2_body: string;
+  landing_benefit3_title: string;
+  landing_benefit3_body: string;
+  has_hero_image: boolean;
+  hero_image_version: number | null;
 };
 
 export type PublicLocation = {

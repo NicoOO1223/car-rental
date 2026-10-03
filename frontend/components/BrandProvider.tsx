@@ -10,12 +10,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { brandingLogoUrl, getBranding } from "@/lib/api";
+import { brandingLandingHeroUrl, brandingLogoUrl, getBranding } from "@/lib/api";
 
 type Brand = {
   /** Empty until the first response arrives. */
   name: string;
   logoUrl: string | null;
+  /** The storefront landing page's hero photo, if one is uploaded. */
+  heroImageUrl: string | null;
   /** The interface language for someone who has not chosen their own. */
   defaultLanguage: string;
   /** True once the branding call has answered, or failed. */
@@ -27,6 +29,7 @@ type Brand = {
 const BrandContext = createContext<Brand>({
   name: "",
   logoUrl: null,
+  heroImageUrl: null,
   defaultLanguage: "en",
   loaded: false,
   refresh: () => {},
@@ -43,9 +46,10 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [branding, setBranding] = useState<{
     name: string;
     logoUrl: string | null;
+    heroImageUrl: string | null;
     defaultLanguage: string;
     loaded: boolean;
-  }>({ name: "", logoUrl: null, defaultLanguage: "en", loaded: false });
+  }>({ name: "", logoUrl: null, heroImageUrl: null, defaultLanguage: "en", loaded: false });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
         setBranding({
           name: result.business_name,
           logoUrl: result.has_logo ? brandingLogoUrl(result.logo_version) : null,
+          heroImageUrl: result.has_hero_image ? brandingLandingHeroUrl(result.hero_image_version) : null,
           defaultLanguage: result.default_language,
           loaded: true,
         });

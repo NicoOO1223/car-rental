@@ -163,9 +163,15 @@ def test_branding_needs_no_login(original_configuration):
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"business_name", "has_logo", "logo_version", "locale", "default_language"}
+    assert set(body) == {
+        "business_name", "has_logo", "logo_version",
+        "has_hero_image", "hero_image_version",
+        "locale", "default_language",
+    }
     assert body["has_logo"] is False
     assert body["logo_version"] is None
+    assert body["has_hero_image"] is False
+    assert body["hero_image_version"] is None
 
 
 def test_branding_shows_the_configured_name(original_configuration):

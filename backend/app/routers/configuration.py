@@ -16,6 +16,7 @@ from app.schemas.configuration import (
 )
 from app.services.branding import remove_logo, set_logo
 from app.services.configuration import get_configuration, update_configuration
+from app.services.landing_hero import remove_hero_image, set_hero_image
 
 router = APIRouter(
     prefix="/api/configuration",
@@ -78,5 +79,32 @@ def delete_logo_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     remove_logo(db, actor=current_user)
+
+    return Response(status_code=204)
+
+
+class HeroImageUpload(BaseModel):
+    # A data URL (data:image/png;base64,...), bounded generously above the
+    # logo's own cap since a hero photo is a real, full-size image.
+    data_url: str = Field(max_length=5_000_000)
+
+
+@router.put("/landing-hero", status_code=204)
+def upload_landing_hero_endpoint(
+    data: HeroImageUpload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    set_hero_image(db, actor=current_user, data_url=data.data_url)
+
+    return Response(status_code=204)
+
+
+@router.delete("/landing-hero", status_code=204)
+def delete_landing_hero_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    remove_hero_image(db, actor=current_user)
 
     return Response(status_code=204)

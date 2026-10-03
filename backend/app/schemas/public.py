@@ -42,6 +42,17 @@ class PublicConfigResponse(BaseModel):
     has_terms_text: bool
     has_privacy_text: bool
 
+    landing_headline: str
+    landing_tagline: str
+    landing_benefit1_title: str
+    landing_benefit1_body: str
+    landing_benefit2_title: str
+    landing_benefit2_body: str
+    landing_benefit3_title: str
+    landing_benefit3_body: str
+    has_hero_image: bool
+    hero_image_version: int | None
+
 
 class PublicLegalResponse(BaseModel):
     legal_version: int

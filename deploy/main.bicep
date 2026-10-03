@@ -31,6 +31,10 @@ var backupStorageAccountName = 'carrentalbak${uniqueSuffix}'
 var backupContainerName = 'pg-backups'
 var photoStorageAccountName = 'carrentalphotos${uniqueSuffix}'
 var photoContainerName = 'condition-photos'
+// The storefront landing page's hero image — same account as the photos
+// above (the backend's managed identity already has Storage Blob Data
+// Contributor at the account scope, so this needs no separate role grant).
+var landingContainerName = 'landing-images'
 var sharingEnvironment = !empty(existingContainerAppsEnvironmentId)
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!sharingEnvironment) {
@@ -251,6 +255,18 @@ resource photoBlobService 'Microsoft.Storage/storageAccounts/blobServices@2023-0
 resource photoContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: photoBlobService
   name: photoContainerName
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// The storefront landing page's hero image (see app/services/
+// landing_hero.py), read and served through the backend rather than a
+// public blob URL — this account has allowBlobPublicAccess: false, same as
+// every container in it.
+resource landingContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: photoBlobService
+  name: landingContainerName
   properties: {
     publicAccess: 'None'
   }

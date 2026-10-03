@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Trash2 } from "lucide-react";
 
-import { getConfiguration, updateConfiguration, type Configuration } from "@/lib/api";
+import {
+  deleteLandingHero,
+  getConfiguration,
+  updateConfiguration,
+  uploadLandingHero,
+  type Configuration,
+} from "@/lib/api";
+import { useBrand } from "@/components/BrandProvider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, SelectField, TextField, Textarea } from "@/components/ui/Field";
@@ -17,6 +25,29 @@ const NUMBER_FIELDS = [
 
 const TEXT_FIELDS = ["terms_text", "terms_url", "privacy_text", "privacy_url"] as const;
 
+const LANDING_TEXT_FIELDS = [
+  "landing_headline",
+  "landing_tagline",
+  "landing_benefit1_title",
+  "landing_benefit1_body",
+  "landing_benefit2_title",
+  "landing_benefit2_body",
+  "landing_benefit3_title",
+  "landing_benefit3_body",
+] as const;
+
+const MAX_HERO_BYTES = 3 * 1024 * 1024;
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error(t("s.admin.configuration.storefront.couldNotReadFile")));
+    reader.readAsDataURL(file);
+  });
+}
+
 type Form = {
   storefront_enabled: boolean;
   online_share_percent: string;
@@ -27,6 +58,14 @@ type Form = {
   terms_url: string;
   privacy_text: string;
   privacy_url: string;
+  landing_headline: string;
+  landing_tagline: string;
+  landing_benefit1_title: string;
+  landing_benefit1_body: string;
+  landing_benefit2_title: string;
+  landing_benefit2_body: string;
+  landing_benefit3_title: string;
+  landing_benefit3_body: string;
 };
 
 function toForm(configuration: Configuration): Form {
@@ -40,16 +79,30 @@ function toForm(configuration: Configuration): Form {
     terms_url: configuration.terms_url,
     privacy_text: configuration.privacy_text,
     privacy_url: configuration.privacy_url,
+    landing_headline: configuration.landing_headline,
+    landing_tagline: configuration.landing_tagline,
+    landing_benefit1_title: configuration.landing_benefit1_title,
+    landing_benefit1_body: configuration.landing_benefit1_body,
+    landing_benefit2_title: configuration.landing_benefit2_title,
+    landing_benefit2_body: configuration.landing_benefit2_body,
+    landing_benefit3_title: configuration.landing_benefit3_title,
+    landing_benefit3_body: configuration.landing_benefit3_body,
   };
 }
 
 export default function StorefrontConfigurationPage() {
+  const brand = useBrand();
+  const heroFileInput = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState<Form | null>(null);
   const [legalVersion, setLegalVersion] = useState(1);
   const [loadError, setLoadError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const [heroBusy, setHeroBusy] = useState(false);
+  const [heroError, setHeroError] = useState("");
 
   useEffect(() => {
     getConfiguration()
@@ -73,6 +126,7 @@ export default function StorefrontConfigurationPage() {
 
       for (const key of NUMBER_FIELDS) patch[key] = Number(form[key]);
       for (const key of TEXT_FIELDS) patch[key] = form[key];
+      for (const key of LANDING_TEXT_FIELDS) patch[key] = form[key];
 
       const updated = await updateConfiguration(patch);
 
@@ -83,6 +137,49 @@ export default function StorefrontConfigurationPage() {
       setSaveError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedSave"));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleHeroFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setHeroError("");
+
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      setHeroError(t("s.admin.configuration.storefront.choosePngJpegImage"));
+      return;
+    }
+
+    if (file.size > MAX_HERO_BYTES) {
+      setHeroError(t("s.admin.configuration.storefront.fileTooLargeLimit", { v1: MAX_HERO_BYTES / (1024 * 1024) }));
+      return;
+    }
+
+    setHeroBusy(true);
+
+    try {
+      await uploadLandingHero(await readAsDataUrl(file));
+      brand.refresh();
+    } catch (err) {
+      setHeroError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedUploadHero"));
+    } finally {
+      setHeroBusy(false);
+    }
+  }
+
+  async function handleHeroRemove() {
+    setHeroBusy(true);
+    setHeroError("");
+
+    try {
+      await deleteLandingHero();
+      brand.refresh();
+    } catch (err) {
+      setHeroError(err instanceof Error ? err.message : t("s.admin.configuration.storefront.failedRemoveHero"));
+    } finally {
+      setHeroBusy(false);
     }
   }
 
@@ -112,7 +209,128 @@ export default function StorefrontConfigurationPage() {
   const missingLegal = form.storefront_enabled && !form.terms_text.trim() && !form.terms_url.trim();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.storefront.landingTitle")}</h2>
+          <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.storefront.landingDescription")}</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {brand.heroImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={brand.heroImageUrl}
+              alt=""
+              aria-hidden="true"
+              className="h-16 w-28 shrink-0 rounded-lg border border-border-strong object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-strong text-xs text-ink-muted">
+              {t("s.admin.configuration.storefront.noHeroImage")}
+            </div>
+          )}
+
+          <input
+            ref={heroFileInput}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="sr-only"
+            onChange={handleHeroFile}
+            aria-label={t("s.admin.configuration.storefront.chooseHeroFile")}
+          />
+
+          <Button
+            type="button"
+            variant="secondary"
+            loading={heroBusy}
+            onClick={() => heroFileInput.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+            {brand.heroImageUrl ? t("s.admin.configuration.storefront.replaceHero") : t("s.admin.configuration.storefront.uploadHero")}
+          </Button>
+
+          {brand.heroImageUrl && (
+            <Button type="button" variant="ghost" disabled={heroBusy} onClick={handleHeroRemove}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />{t("s.admin.configuration.storefront.remove")}</Button>
+          )}
+        </div>
+
+        {heroError && (
+          <p className="text-sm text-red-600" role="alert">
+            {heroError}
+          </p>
+        )}
+
+        <TextField
+          label={t("s.admin.configuration.storefront.landingHeadline")}
+          hint={t("s.admin.configuration.storefront.landingHeadlineHint")}
+          maxLength={150}
+          value={form.landing_headline}
+          onChange={set("landing_headline")}
+        />
+
+        <TextField
+          label={t("s.admin.configuration.storefront.landingTagline")}
+          maxLength={300}
+          value={form.landing_tagline}
+          onChange={set("landing_tagline")}
+        />
+
+        <p className="text-sm font-medium text-ink">{t("s.admin.configuration.storefront.landingBenefitsHint")}</p>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <TextField
+              label={t("s.admin.configuration.storefront.landingBenefitTitle", { n: 1 })}
+              maxLength={80}
+              value={form.landing_benefit1_title}
+              onChange={set("landing_benefit1_title")}
+            />
+            <Textarea
+              rows={3}
+              maxLength={240}
+              placeholder={t("s.admin.configuration.storefront.landingBenefitBody")}
+              value={form.landing_benefit1_body}
+              onChange={set("landing_benefit1_body")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <TextField
+              label={t("s.admin.configuration.storefront.landingBenefitTitle", { n: 2 })}
+              maxLength={80}
+              value={form.landing_benefit2_title}
+              onChange={set("landing_benefit2_title")}
+            />
+            <Textarea
+              rows={3}
+              maxLength={240}
+              placeholder={t("s.admin.configuration.storefront.landingBenefitBody")}
+              value={form.landing_benefit2_body}
+              onChange={set("landing_benefit2_body")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <TextField
+              label={t("s.admin.configuration.storefront.landingBenefitTitle", { n: 3 })}
+              maxLength={80}
+              value={form.landing_benefit3_title}
+              onChange={set("landing_benefit3_title")}
+            />
+            <Textarea
+              rows={3}
+              maxLength={240}
+              placeholder={t("s.admin.configuration.storefront.landingBenefitBody")}
+              value={form.landing_benefit3_body}
+              onChange={set("landing_benefit3_body")}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.storefront.title")}</h2>
@@ -247,6 +465,7 @@ export default function StorefrontConfigurationPage() {
           {saving ? t("s.admin.configuration.storefront.saving") : t("s.admin.configuration.storefront.save")}
         </Button>
       </Card>
-    </form>
+      </form>
+    </>
   );
 }

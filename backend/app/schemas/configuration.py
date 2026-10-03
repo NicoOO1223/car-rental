@@ -59,6 +59,14 @@ class ConfigurationResponse(BaseModel):
     privacy_text: str
     privacy_url: str
     legal_version: int
+    landing_headline: str
+    landing_tagline: str
+    landing_benefit1_title: str
+    landing_benefit1_body: str
+    landing_benefit2_title: str
+    landing_benefit2_body: str
+    landing_benefit3_title: str
+    landing_benefit3_body: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -100,6 +108,14 @@ class ConfigurationUpdate(BaseModel):
     terms_url: str | None = Field(default=None, max_length=500)
     privacy_text: str | None = Field(default=None, max_length=20000)
     privacy_url: str | None = Field(default=None, max_length=500)
+    landing_headline: str | None = Field(default=None, max_length=150)
+    landing_tagline: str | None = Field(default=None, max_length=300)
+    landing_benefit1_title: str | None = Field(default=None, max_length=80)
+    landing_benefit1_body: str | None = Field(default=None, max_length=240)
+    landing_benefit2_title: str | None = Field(default=None, max_length=80)
+    landing_benefit2_body: str | None = Field(default=None, max_length=240)
+    landing_benefit3_title: str | None = Field(default=None, max_length=80)
+    landing_benefit3_body: str | None = Field(default=None, max_length=240)
 
     @field_validator("online_share_percent")
     @classmethod
@@ -175,6 +191,14 @@ class ConfigurationUpdate(BaseModel):
         "email",
         "vat_id",
         "agreement_terms",
+        "landing_headline",
+        "landing_tagline",
+        "landing_benefit1_title",
+        "landing_benefit1_body",
+        "landing_benefit2_title",
+        "landing_benefit2_body",
+        "landing_benefit3_title",
+        "landing_benefit3_body",
     )
     @classmethod
     def strip_text(cls, v: str | None) -> str | None:

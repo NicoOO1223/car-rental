@@ -2500,6 +2500,16 @@ export type Configuration = {
   privacy_url: string;
   /** Goes up whenever the terms or privacy text changes. */
   legal_version: number;
+  /** The storefront landing page — free text, written once in the
+   * business's own language, not translated by the interface. */
+  landing_headline: string;
+  landing_tagline: string;
+  landing_benefit1_title: string;
+  landing_benefit1_body: string;
+  landing_benefit2_title: string;
+  landing_benefit2_body: string;
+  landing_benefit3_title: string;
+  landing_benefit3_body: string;
 };
 
 /** The currency every price is shown in; readable by any signed-in staff. */
@@ -2528,6 +2538,8 @@ export type Branding = {
   business_name: string;
   has_logo: boolean;
   logo_version: number | null;
+  has_hero_image: boolean;
+  hero_image_version: number | null;
   locale: string;
   /** Interface language for someone who has not chosen their own. */
   default_language: string;
@@ -2548,6 +2560,10 @@ export function brandingLogoUrl(version: number | null): string {
   return `${apiUrl()}/api/branding/logo${version ? `?v=${version}` : ""}`;
 }
 
+export function brandingLandingHeroUrl(version: number | null): string {
+  return `${apiUrl()}/api/branding/landing-hero${version ? `?v=${version}` : ""}`;
+}
+
 export async function uploadLogo(dataUrl: string): Promise<void> {
   const response = await apiFetch("/api/configuration/logo", {
     method: "PUT",
@@ -2562,6 +2578,28 @@ export async function uploadLogo(dataUrl: string): Promise<void> {
 
 export async function deleteLogo(): Promise<void> {
   const response = await apiFetch("/api/configuration/logo", {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.delete");
+  }
+}
+
+export async function uploadLandingHero(dataUrl: string): Promise<void> {
+  const response = await apiFetch("/api/configuration/landing-hero", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data_url: dataUrl }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+}
+
+export async function deleteLandingHero(): Promise<void> {
+  const response = await apiFetch("/api/configuration/landing-hero", {
     method: "DELETE",
   });
 

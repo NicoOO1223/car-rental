@@ -6,6 +6,7 @@ from app.errors import NotFoundError
 from app.database import get_db
 from app.services.branding import get_logo
 from app.services.configuration import get_configuration
+from app.services.landing_hero import get_hero_image, read_hero_image
 
 # Deliberately unauthenticated: the login page needs the business name and
 # logo before anyone can log in. It exposes only what is printed on the
@@ -20,6 +21,11 @@ class BrandingResponse(BaseModel):
     # Changes whenever the logo does, so clients can cache the image
     # forever and still pick up a new one.
     logo_version: int | None
+    # The storefront landing page's hero photo — exposed here too (not just
+    # to the public storefront) so the admin screen that edits it can show
+    # a live preview the same way BrandMark does for the logo.
+    has_hero_image: bool
+    hero_image_version: int | None
     locale: str
     # The interface language for anyone who has not chosen their own; the
     # sign-in page needs it before there is a signed-in person to ask.
@@ -34,11 +40,14 @@ def _version(logo) -> int:
 def get_branding(db: Session = Depends(get_db)):
     configuration = get_configuration(db)
     logo = get_logo(db)
+    hero = get_hero_image(db)
 
     return BrandingResponse(
         business_name=configuration.business_name,
         has_logo=logo is not None,
         logo_version=_version(logo) if logo is not None else None,
+        has_hero_image=hero is not None,
+        hero_image_version=_version(hero) if hero is not None else None,
         locale=configuration.locale,
         default_language=configuration.default_language,
     )
@@ -68,5 +77,31 @@ def get_branding_logo(
     return Response(
         content=logo.content,
         media_type=logo.content_type,
+        headers=headers,
+    )
+
+
+@router.get("/landing-hero")
+def get_branding_landing_hero(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    hero = get_hero_image(db)
+
+    if hero is None:
+        raise NotFoundError("branding.no_landing_hero", "No hero image has been uploaded.")
+
+    etag = f'"{_version(hero)}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": "public, max-age=300",
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return Response(
+        content=read_hero_image(hero),
+        media_type=hero.content_type,
         headers=headers,
     )

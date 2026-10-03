@@ -139,7 +139,8 @@
       "too_many_attempts": "Troppi tentativi di accesso. Riprova più tardi."
     },
     "branding": {
-      "no_logo": "Non è stato caricato alcun logo."
+      "no_logo": "Non è stato caricato alcun logo.",
+      "no_landing_hero": "Non è stata caricata alcuna immagine principale."
     },
     "car": {
       "cannot_move_yet": "Questo veicolo non può ancora essere spostato: ha un noleggio in corso o prenotazioni che lo ritirano a {airport} ({references}). Annullale o completale prima.",
@@ -270,6 +271,13 @@
     },
     "invoice": {
       "not_found": "Fattura non trovata."
+    },
+    "landing_hero": {
+      "corrupted": "Il file dell'immagine principale è danneggiato.",
+      "dimensions_too_large": "Le dimensioni dell'immagine principale sono troppo grandi.",
+      "too_large": "L'immagine principale è troppo grande. Il limite è {limit_mb, number} MB.",
+      "unreadable": "Il file dell'immagine principale non può essere letto come immagine.",
+      "wrong_type": "L'immagine principale deve essere un'immagine PNG o JPEG."
     },
     "location": {
       "code_taken": "Esiste già una sede con questo codice.",
@@ -1053,7 +1061,25 @@
           "urlHint": "Facoltativo. Un indirizzo completo che inizia con https://",
           "saved": "Salvato.",
           "saving": "Salvataggio…",
-          "save": "Salva modifiche"
+          "save": "Salva modifiche",
+          "landingTitle": "Pagina principale",
+          "landingDescription": "Quello che i visitatori vedono nella home page del tuo sito prima di cercare. Lascia vuoto per usare il contenuto generico predefinito.",
+          "noHeroImage": "Nessuna immagine",
+          "chooseHeroFile": "Scegli un file per l'immagine principale",
+          "uploadHero": "Carica immagine",
+          "replaceHero": "Sostituisci immagine",
+          "remove": "Rimuovi",
+          "couldNotReadFile": "Impossibile leggere quel file.",
+          "choosePngJpegImage": "Scegli un'immagine PNG o JPEG.",
+          "fileTooLargeLimit": "Quel file è troppo grande. Il limite è {v1} MB.",
+          "failedUploadHero": "Impossibile caricare l'immagine principale.",
+          "failedRemoveHero": "Impossibile rimuovere l'immagine principale.",
+          "landingHeadline": "Titolo",
+          "landingHeadlineHint": "Il titolo principale nella home page del tuo sito.",
+          "landingTagline": "Sottotitolo",
+          "landingBenefitsHint": "Tre brevi motivi per prenotare da te, mostrati sotto il titolo.",
+          "landingBenefitTitle": "Titolo del motivo {n}",
+          "landingBenefitBody": "Una o due frasi"
         }
       },
       "revenue": {

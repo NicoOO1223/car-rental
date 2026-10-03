@@ -23,6 +23,7 @@ from app.schemas.public import (
 )
 from app.schemas.reservation import ReservationQuoteRequest
 from app.services.branding import get_logo
+from app.services.landing_hero import get_hero_image
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import list_extras
 from app.services.locations import list_locations
@@ -77,6 +78,7 @@ def public_config(db: Session = Depends(get_db)):
 
     configuration = get_configuration(db)
     logo = get_logo(db)
+    hero = get_hero_image(db)
 
     return PublicConfigResponse(
         storefront_enabled=configuration.storefront_enabled,
@@ -98,6 +100,16 @@ def public_config(db: Session = Depends(get_db)):
         privacy_url=configuration.privacy_url,
         has_terms_text=bool(configuration.terms_text.strip()),
         has_privacy_text=bool(configuration.privacy_text.strip()),
+        landing_headline=configuration.landing_headline,
+        landing_tagline=configuration.landing_tagline,
+        landing_benefit1_title=configuration.landing_benefit1_title,
+        landing_benefit1_body=configuration.landing_benefit1_body,
+        landing_benefit2_title=configuration.landing_benefit2_title,
+        landing_benefit2_body=configuration.landing_benefit2_body,
+        landing_benefit3_title=configuration.landing_benefit3_title,
+        landing_benefit3_body=configuration.landing_benefit3_body,
+        has_hero_image=hero is not None,
+        hero_image_version=int(hero.updated_at.timestamp()) if hero is not None else None,
     )
 
 

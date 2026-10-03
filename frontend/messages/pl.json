@@ -139,7 +139,8 @@
       "too_many_attempts": "Zbyt wiele prób logowania. Spróbuj ponownie później."
     },
     "branding": {
-      "no_logo": "Nie przesłano żadnego logo."
+      "no_logo": "Nie przesłano żadnego logo.",
+      "no_landing_hero": "Nie przesłano żadnego zdjęcia głównego."
     },
     "car": {
       "cannot_move_yet": "Tego pojazdu nie można jeszcze przenieść: ma trwający wynajem lub rezerwacje odbierające go w {airport} ({references}). Najpierw je anuluj lub zakończ.",
@@ -270,6 +271,13 @@
     },
     "invoice": {
       "not_found": "Nie znaleziono faktury."
+    },
+    "landing_hero": {
+      "corrupted": "Plik zdjęcia głównego jest uszkodzony.",
+      "dimensions_too_large": "Wymiary zdjęcia głównego są za duże.",
+      "too_large": "Zdjęcie główne jest za duże. Limit to {limit_mb, number} MB.",
+      "unreadable": "Nie można odczytać pliku zdjęcia głównego jako obrazu.",
+      "wrong_type": "Zdjęcie główne musi być obrazem PNG lub JPEG."
     },
     "location": {
       "code_taken": "Lokalizacja o tym kodzie już istnieje.",
@@ -1053,7 +1061,25 @@
           "urlHint": "Opcjonalne. Pełny adres zaczynający się od https://",
           "saved": "Zapisano.",
           "saving": "Zapisywanie…",
-          "save": "Zapisz zmiany"
+          "save": "Zapisz zmiany",
+          "landingTitle": "Strona główna",
+          "landingDescription": "To, co widzą odwiedzający na stronie głównej Twojego serwisu, zanim zaczną wyszukiwać. Pozostaw puste, aby użyć domyślnej, ogólnej treści.",
+          "noHeroImage": "Brak obrazu",
+          "chooseHeroFile": "Wybierz plik zdjęcia głównego",
+          "uploadHero": "Przesłać obraz",
+          "replaceHero": "Zamień obraz",
+          "remove": "Usuń",
+          "couldNotReadFile": "Nie można odczytać tego pliku.",
+          "choosePngJpegImage": "Wybierz obraz PNG lub JPEG.",
+          "fileTooLargeLimit": "Ten plik jest za duży. Limit to {v1} MB.",
+          "failedUploadHero": "Nie udało się przesłać zdjęcia głównego.",
+          "failedRemoveHero": "Nie udało się usunąć zdjęcia głównego.",
+          "landingHeadline": "Nagłówek",
+          "landingHeadlineHint": "Główny nagłówek na stronie głównej Twojego serwisu.",
+          "landingTagline": "Hasło",
+          "landingBenefitsHint": "Trzy krótkie powody, by rezerwować u Ciebie, pokazane pod nagłówkiem.",
+          "landingBenefitTitle": "Tytuł powodu {n}",
+          "landingBenefitBody": "Jedno lub dwa zdania"
         }
       },
       "revenue": {

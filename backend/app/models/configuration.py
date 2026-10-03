@@ -117,6 +117,21 @@ class Configuration(Base):
     # Starts every invoice number: "INV" gives INV-000001, INV-000002, ...
     invoice_prefix: Mapped[str] = mapped_column(String(10), nullable=False)
 
+    # The storefront home page, written once by the business owner in
+    # whatever language that is — free text, like agreement_terms, not run
+    # through the interface's translation catalogs. Empty means "not set":
+    # the storefront falls back to its own generic copy for the hero, and
+    # simply omits the benefits section rather than inventing marketing
+    # claims on the business's behalf.
+    landing_headline: Mapped[str] = mapped_column(String(150), nullable=False, default="", server_default="")
+    landing_tagline: Mapped[str] = mapped_column(String(300), nullable=False, default="", server_default="")
+    landing_benefit1_title: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default="")
+    landing_benefit1_body: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
+    landing_benefit2_title: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default="")
+    landing_benefit2_body: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
+    landing_benefit3_title: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default="")
+    landing_benefit3_body: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
+
     __table_args__ = (
         CheckConstraint("id = 1", name="configuration_singleton"),
     )
