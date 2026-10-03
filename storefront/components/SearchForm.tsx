@@ -11,6 +11,7 @@ import { useTranslations } from "use-intl";
 import type { PublicLocation } from "@shared/publicApi";
 import { TIME_SLOTS, addDays, instantToZoned, zonedToInstant } from "@shared/time";
 
+import { PlaceSelect, type PlaceOption } from "@/components/PlaceSelect";
 import { formatSlot } from "@/lib/format";
 import { searchHref, type SearchValues } from "@/lib/search";
 
@@ -187,11 +188,11 @@ export function SearchForm({
     );
   }
 
-  const places = locations.map((location) => (
-    <option key={location.id} value={location.id}>
-      {location.name}
-    </option>
-  ));
+  const placeOptions: PlaceOption[] = locations.map((location) => ({
+    value: location.id,
+    label: location.name,
+    hint: location.airport_code,
+  }));
 
   const placeName = (id: string) => locations.find((location) => location.id === id)?.airport_code ?? "";
   const shownReturnPlace = returnTouched ? returnPlace : pickupPlace;
@@ -212,7 +213,7 @@ export function SearchForm({
         <form
           onSubmit={handleSubmit}
           aria-label={t("title")}
-          className={`relative mx-auto max-w-6xl bg-surface p-3 shadow-xl ring-1 ring-black/5 rounded-2xl`}
+          className={`relative mx-auto max-w-[77rem] bg-surface p-3 shadow-xl ring-1 ring-black/5 rounded-2xl`}
         >
           {compact && (
             <button
@@ -240,38 +241,28 @@ export function SearchForm({
           </div>
 
           <div className={`${compact ? "hidden lg:flex" : "flex"} flex-col gap-1 lg:flex-row lg:items-stretch lg:gap-0.5`}>
-            <label className={`${cell} lg:flex-[1.25]`}>
-              <span className={cellLabel}>
-                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("pickupPlace")}
-              </span>
-              <select
-                value={pickupPlace}
-                onChange={(event) => setPickupPlace(event.target.value)}
-                className={cellValue}
-                required
-              >
-                {places}
-              </select>
-            </label>
+            <PlaceSelect
+              label={t("pickupPlace")}
+              icon={<MapPin className="h-3.5 w-3.5" aria-hidden="true" />}
+              value={pickupPlace}
+              options={placeOptions}
+              onChange={setPickupPlace}
+              onOpen={() => setCalendarOpen(false)}
+              className="lg:flex-[1.25]"
+            />
 
-            <label className={`${cell} lg:flex-[1.25]`}>
-              <span className={cellLabel}>
-                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("returnPlace")}
-              </span>
-              <select
-                value={shownReturnPlace}
-                onChange={(event) => {
-                  setReturnTouched(true);
-                  setReturnPlace(event.target.value);
-                }}
-                className={cellValue}
-                required
-              >
-                {places}
-              </select>
-            </label>
+            <PlaceSelect
+              label={t("returnPlace")}
+              icon={<MapPin className="h-3.5 w-3.5" aria-hidden="true" />}
+              value={shownReturnPlace}
+              options={placeOptions}
+              onChange={(value) => {
+                setReturnTouched(true);
+                setReturnPlace(value);
+              }}
+              onOpen={() => setCalendarOpen(false)}
+              className="lg:flex-[1.25]"
+            />
 
             <button
               type="button"
