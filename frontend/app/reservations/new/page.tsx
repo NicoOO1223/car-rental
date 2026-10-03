@@ -15,11 +15,13 @@ import {
   getDailyRates,
   getExtras,
   getLocations,
+  getOverlappingReservations,
   quoteReservation,
   type Car,
   type Extra,
   type ExtraSelection,
   type Location,
+  type OverlappingReservations,
   type Reservation,
   type ReservationQuote,
 } from "@/lib/api";
@@ -117,6 +119,7 @@ export default function NewReservationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [created, setCreated] = useState<Reservation | null>(null);
+  const [overlapWarning, setOverlapWarning] = useState<OverlappingReservations | null>(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -426,6 +429,13 @@ export default function NewReservationPage() {
       });
 
       setCreated(reservation);
+
+      try {
+        const overlaps = await getOverlappingReservations(reservation.id);
+        setOverlapWarning(overlaps.items.length > 0 ? overlaps : null);
+      } catch {
+        // Non-fatal — the booking still succeeded either way.
+      }
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : t("s.reservations.new.failedCreateReservation"),
@@ -448,6 +458,15 @@ export default function NewReservationPage() {
           <h1 className="text-2xl font-bold tracking-tight text-ink">{t("s.reservations.new.reservationCreated")}</h1>
 
           <p className="mx-auto mt-2 max-w-sm text-ink-secondary">{t("s.reservations.new.hasPendingReservation", { first_name: created.customer.first_name, last_name: created.customer.last_name, make: created.car.make, model: created.car.model })}</p>
+
+          {overlapWarning && (
+            <p
+              className="mx-auto mt-4 max-w-sm rounded-lg bg-amber-50 p-4 text-left text-sm text-amber-900"
+              role="status"
+            >
+              {t("s.reservations.new.overlapsOtherRequests", { count: overlapWarning.items.length })}
+            </p>
+          )}
 
           <dl className="mt-6 space-y-2.5 rounded-lg bg-surface-sunken p-4 text-left text-sm">
             <div className="flex justify-between gap-4">

@@ -1587,6 +1587,7 @@
         "failedCreateReservation": "Failed to create reservation.",
         "reservationCreated": "Reservation created",
         "hasPendingReservation": "{first_name} {last_name} has a pending reservation for the {make} {model}.",
+        "overlapsOtherRequests": "{count, plural, one {This overlaps # other pending request for the same car and dates} other {This overlaps # other pending requests for the same car and dates}} — review them from the reservation's detail page.",
         "bookingReference": "Booking reference",
         "pickup": "Pickup",
         "return": "Return",

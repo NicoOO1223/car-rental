@@ -1587,6 +1587,7 @@
         "failedCreateReservation": "Impossibile creare la prenotazione.",
         "reservationCreated": "Prenotazione creata",
         "hasPendingReservation": "{first_name} {last_name} ha una prenotazione in attesa per {make} {model}.",
+        "overlapsOtherRequests": "{count, plural, one {Questa si sovrappone a # altra richiesta in attesa per la stessa auto e date} other {Questa si sovrappone a # altre richieste in attesa per la stessa auto e date}} — valutale dalla pagina di dettaglio della prenotazione.",
         "bookingReference": "Riferimento prenotazione",
         "pickup": "Ritiro",
         "return": "Riconsegna",

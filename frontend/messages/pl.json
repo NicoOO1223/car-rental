@@ -1587,6 +1587,7 @@
         "failedCreateReservation": "Nie udało się utworzyć rezerwacji.",
         "reservationCreated": "Rezerwacja utworzona",
         "hasPendingReservation": "{first_name} {last_name} ma oczekującą rezerwację pojazdu {make} {model}.",
+        "overlapsOtherRequests": "Nakłada się na {count, plural, one {# inne oczekujące żądanie} few {# inne oczekujące żądania} many {# innych oczekujących żądań} other {# innego oczekującego żądania}} na ten samochód i te terminy — sprawdź je na stronie szczegółów rezerwacji.",
         "bookingReference": "Numer rezerwacji",
         "pickup": "Wydanie",
         "return": "Zwrot",
