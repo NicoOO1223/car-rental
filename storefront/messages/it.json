@@ -61,7 +61,6 @@
     "featuresTitle": "Perché prenotare con noi",
     "fleetSubtitle": "Auto curate per ogni viaggio, pronte in aeroporto.",
     "fleetCta": "Vedi tutta la flotta",
-    "perDay": "da {price} / giorno",
     "aboutFallbackTitle": "Il noleggio auto, semplificato",
     "aboutFallbackBody": "Noleggiare un'auto deve essere semplice: prezzi chiari, nessuna sorpresa al banco e un team facile da raggiungere. Scegli l'aeroporto, scegli l'auto e parti in pochi minuti.",
     "aboutPoint1": "Prezzi chiari",
@@ -100,9 +99,10 @@
   "fleet": {
     "title": "Le nostre auto",
     "intro": "I tipi di auto che puoi prenotare. L’auto esatta viene assegnata al momento della prenotazione.",
-    "perDay": "da {price} / giorno",
     "empty": "Non ci sono ancora auto in elenco.",
-    "search": "Verifica la disponibilità"
+    "search": "Verifica la disponibilità",
+    "bookNow": "Prenota ora",
+    "orSimilar": "o simile"
   },
   "enums": {
     "category": {

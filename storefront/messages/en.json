@@ -61,7 +61,6 @@
     "featuresTitle": "Why book with us",
     "fleetSubtitle": "Well-kept cars for every trip, ready at the airport.",
     "fleetCta": "View the full fleet",
-    "perDay": "from {price} / day",
     "aboutFallbackTitle": "Car rental, made simple",
     "aboutFallbackBody": "We keep renting a car straightforward: clear prices, no surprises at the counter and a team that is easy to reach. Pick your airport, choose your car and be on the road in minutes.",
     "aboutPoint1": "Clear prices",
@@ -100,9 +99,10 @@
   "fleet": {
     "title": "Our cars",
     "intro": "The kinds of car you can book. Exact cars are assigned at booking.",
-    "perDay": "from {price} / day",
     "empty": "No cars are listed yet.",
-    "search": "Search availability"
+    "search": "Search availability",
+    "bookNow": "Book now",
+    "orSimilar": "or similar"
   },
   "enums": {
     "category": {

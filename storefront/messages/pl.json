@@ -61,7 +61,6 @@
     "featuresTitle": "Dlaczego warto rezerwować u nas",
     "fleetSubtitle": "Zadbane samochody na każdą podróż, gotowe na lotnisku.",
     "fleetCta": "Zobacz całą flotę",
-    "perDay": "od {price} / dzień",
     "aboutFallbackTitle": "Wypożyczanie samochodów w prosty sposób",
     "aboutFallbackBody": "Wypożyczenie auta ma być proste: jasne ceny, brak niespodzianek przy ladzie i zespół, z którym łatwo się skontaktować. Wybierz lotnisko, wybierz samochód i ruszaj w kilka minut.",
     "aboutPoint1": "Jasne ceny",
@@ -100,9 +99,10 @@
   "fleet": {
     "title": "Nasze auta",
     "intro": "Rodzaje aut, które możesz zarezerwować. Konkretne auto przydzielamy przy rezerwacji.",
-    "perDay": "od {price} / dzień",
     "empty": "Nie ma jeszcze aut na liście.",
-    "search": "Sprawdź dostępność"
+    "search": "Sprawdź dostępność",
+    "bookNow": "Zarezerwuj teraz",
+    "orSimilar": "lub podobny"
   },
   "enums": {
     "category": {

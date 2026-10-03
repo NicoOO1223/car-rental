@@ -3,13 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { SearchForm } from "@/components/SearchForm";
-import { VehicleArt } from "@/components/VehicleArt";
-import { VehicleSpecs } from "@/components/VehicleSpecs";
+import { FleetCard } from "@/components/FleetCard";
 import { getAccount } from "@/lib/accountServer";
-import { formatMoney } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n";
 import { getFleet, getLocations, getPublicConfig } from "@/lib/publicApi";
-import { carPhotoUrl, runtimeConfig } from "@/lib/runtime";
+import { runtimeConfig } from "@/lib/runtime";
 
 const FEATURE_ICONS = [CreditCard, CalendarCheck, UserCheck];
 
@@ -140,33 +138,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
             <ul className="mt-10 grid gap-6 md:grid-cols-3">
               {featuredFleet.map((vehicle) => (
-                <li key={vehicle.offer_key} className="group overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm">
-                  <div className="overflow-hidden">
-                    <VehicleArt
-                      imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
-                      category={vehicle.category}
-                      alt={`${vehicle.make} ${vehicle.model}`}
-                      className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </div>
-
-                  <div className="p-5">
-                    <p className="text-xl font-semibold">
-                      {vehicle.make} {vehicle.model}
-                    </p>
-                    <div className="mt-2 text-sm text-ink-secondary">
-                      <VehicleSpecs
-                        category={vehicle.category}
-                        transmission={vehicle.transmission}
-                        fuelType={vehicle.fuel_type}
-                        seats={vehicle.seats}
-                      />
-                    </div>
-                    <p className="mt-3 text-sm font-medium">
-                      {t("home.perDay", { price: formatMoney(vehicle.price_per_day, config.currency, lang) })}
-                    </p>
-                  </div>
-                </li>
+                <FleetCard key={vehicle.offer_key} vehicle={vehicle} language={lang} bookHref="#top" />
               ))}
             </ul>
 

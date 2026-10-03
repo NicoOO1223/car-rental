@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { VehicleArt } from "@/components/VehicleArt";
-import { VehicleSpecs } from "@/components/VehicleSpecs";
-import { formatMoney } from "@/lib/format";
+import { FleetCard } from "@/components/FleetCard";
 import { getTranslator } from "@/lib/i18n";
 import { getFleet, getPublicConfig } from "@/lib/publicApi";
-import { carPhotoUrl } from "@/lib/runtime";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
@@ -32,29 +29,7 @@ export default async function FleetPage({ params }: { params: Promise<{ lang: st
       ) : (
         <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {fleet.map((vehicle) => (
-            <li key={vehicle.offer_key} className="group overflow-hidden rounded-2xl border border-border-subtle bg-surface shadow-sm">
-              <div className="overflow-hidden">
-                <VehicleArt
-                  imageUrl={vehicle.has_photo ? carPhotoUrl(vehicle.offer_key, vehicle.photo_version) : null}
-                  category={vehicle.category}
-                  alt={`${vehicle.make} ${vehicle.model}`}
-                  className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-
-              <div className="space-y-2 p-5">
-                <h2 className="text-xl font-semibold">
-                  {vehicle.make} {vehicle.model}
-                </h2>
-                <VehicleSpecs
-                  category={vehicle.category}
-                  transmission={vehicle.transmission}
-                  fuelType={vehicle.fuel_type}
-                  seats={vehicle.seats}
-                />
-                <p className="text-sm font-medium">{t("fleet.perDay", { price: formatMoney(vehicle.price_per_day, config.currency, lang) })}</p>
-              </div>
-            </li>
+            <FleetCard key={vehicle.offer_key} vehicle={vehicle} language={lang} bookHref={`/${lang}#top`} />
           ))}
         </ul>
       )}
