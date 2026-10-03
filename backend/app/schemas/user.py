@@ -29,10 +29,25 @@ class UserListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# bcrypt only reads the first 72 bytes of a password and refuses longer ones
+# outright, so a longer one is rejected here with a message, not left to fail
+# as a server error. Counted in bytes: an accented letter takes two.
+MAX_PASSWORD_BYTES = 72
+
+
+def check_password_bytes(password: str) -> str:
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise PydanticCustomError(
+            "validation.password_too_long", "Password is too long (at most 72 bytes)."
+        )
+
+    return password
+
+
 def _validate_password_length(password: str) -> str:
     if len(password) < 8:
         raise PydanticCustomError("validation.password_too_short", "Password must be at least 8 characters.")
-    return password
+    return check_password_bytes(password)
 
 
 def _validate_role(role: str) -> str:

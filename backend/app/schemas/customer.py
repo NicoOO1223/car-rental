@@ -1,18 +1,78 @@
+import re
 from datetime import date, datetime
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic_core import PydanticCustomError
+
+# The limits are the columns' (app/models/customer.py): a longer value would
+# be refused by the database and surface as a server error instead of a message
+# next to the field.
+Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+Address = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+PostalCode = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+PhoneNumber = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=30)]
+Email = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=254)]
+
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_COUNTRY = re.compile(r"^[A-Za-z]{2}$")
+
+
+def check_email(value: str) -> str:
+    if not _EMAIL.match(value):
+        raise PydanticCustomError("validation.email_invalid", "Enter a valid email address.")
+
+    return value
+
+
+def check_nationality(value: str | None) -> str | None:
+    """A nationality is an ISO 3166-1 alpha-2 country code ("IT"), which is what
+    the column holds. Blank means not given."""
+
+    if value is None:
+        return None
+
+    value = value.strip()
+
+    if not value:
+        return None
+
+    if not _COUNTRY.match(value):
+        raise PydanticCustomError("validation.nationality_invalid", "Choose a country.")
+
+    return value.upper()
 
 
 class CustomerUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
+    first_name: Name | None = None
+    last_name: Name | None = None
     date_of_birth: date | None = None
-    address: str | None = None
-    postal_code: str | None = None
-    phone_number: str | None = None
-    email: str | None = None
+    address: Address | None = None
+    postal_code: PostalCode | None = None
+    phone_number: PhoneNumber | None = None
+    email: Email | None = None
     nationality: str | None = None
+
+    @field_validator("first_name", "last_name", "date_of_birth", "address", "postal_code", mode="before")
+    @classmethod
+    def required_fields_cannot_be_cleared(cls, value):
+        # Left out means unchanged; sent as null would try to empty a column
+        # that has to hold something.
+        if value is None:
+            raise PydanticCustomError("validation.cannot_be_cleared", "This cannot be left empty.")
+
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def email_looks_valid(cls, value: str | None) -> str | None:
+        return check_email(value) if value is not None else None
+
+    @field_validator("nationality")
+    @classmethod
+    def nationality_is_a_country(cls, value: str | None) -> str | None:
+        return check_nationality(value)
 
 
 class IdentityVerificationSummary(BaseModel):

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import SECRET_KEY
 from app.models import User
+from app.schemas.user import MAX_PASSWORD_BYTES
 from app.services.audit import audit_log
 
 JWT_ALGORITHM = "HS256"
@@ -33,6 +34,11 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
+    # bcrypt raises on more than 72 bytes. No such password can have been set
+    # (the schemas refuse it), so it is simply the wrong password.
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        return False
+
     return bcrypt.checkpw(
         password.encode("utf-8"), hashed_password.encode("utf-8")
     )

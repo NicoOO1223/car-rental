@@ -13,8 +13,10 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticCustomError
 
+from app.schemas.customer import check_nationality
 from app.schemas.extra import ExtraSelectionRequest
 from app.schemas.pricing import PriceBreakdownFields
+from app.schemas.user import check_password_bytes
 
 
 class PublicConfigResponse(BaseModel):
@@ -151,6 +153,11 @@ class PublicCustomer(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     nationality: str | None = Field(default=None, max_length=100)
 
+    @field_validator("nationality")
+    @classmethod
+    def nationality_is_a_country(cls, value: str | None) -> str | None:
+        return check_nationality(value)
+
     @field_validator("email")
     @classmethod
     def looks_like_an_email(cls, value: str) -> str:
@@ -246,6 +253,11 @@ class AccountRegister(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     captcha_token: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        return check_password_bytes(value)
 
 
 class AccountLogin(BaseModel):

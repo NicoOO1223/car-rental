@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "use-intl";
 
 import { Turnstile } from "@/components/Turnstile";
+import { getCountries } from "@shared/countries";
 
 export type Details = {
   first_name: string;
@@ -59,9 +60,11 @@ export function DetailsForm({
   // A stack with no Turnstile key (development) passes with an empty token.
   const humanChecked = token !== null && (token !== "" || !hasSiteKey());
 
+  const countries = useMemo(() => getCountries(language), [language]);
+
   const set =
     (key: keyof Details) =>
-    (event: React.ChangeEvent<HTMLInputElement>) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       onChange({ ...details, [key]: event.target.value });
 
   function handleSubmit(event: React.FormEvent) {
@@ -120,7 +123,14 @@ export function DetailsForm({
 
         <label className="block text-sm font-medium">
           {t("nationality")}
-          <input className={input} value={details.nationality} onChange={set("nationality")} maxLength={100} />
+          <select className={input} value={details.nationality} onChange={set("nationality")} autoComplete="country">
+            <option value="">—</option>
+            {countries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

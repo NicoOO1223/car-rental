@@ -2,23 +2,43 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from typing import Literal
 
-from app.schemas.customer import CustomerUpdate, IdentityVerificationSummary
+from app.schemas.customer import (
+    Address,
+    CustomerUpdate,
+    Email,
+    IdentityVerificationSummary,
+    Name,
+    PhoneNumber,
+    PostalCode,
+    check_email,
+    check_nationality,
+)
 from app.schemas.extra import ExtraSelectionRequest
 from app.schemas.pricing import PriceBreakdownFields
 
 class CustomerCreate(BaseModel):
-    first_name: str
-    last_name: str
+    first_name: Name
+    last_name: Name
     date_of_birth: date
-    address: str
-    postal_code: str
-    phone_number: str = Field(min_length=1)
-    email: str = Field(min_length=1)
+    address: Address
+    postal_code: PostalCode
+    phone_number: PhoneNumber
+    email: Email
     nationality: str | None = None
+
+    @field_validator("email")
+    @classmethod
+    def email_looks_valid(cls, value: str) -> str:
+        return check_email(value)
+
+    @field_validator("nationality")
+    @classmethod
+    def nationality_is_a_country(cls, value: str | None) -> str | None:
+        return check_nationality(value)
 
 
 class CustomerSummary(BaseModel):
@@ -269,7 +289,9 @@ class OverlappingReservationsResponse(BaseModel):
 class ReservationStatusUpdate(BaseModel):
     # ACTIVE is deliberately excluded — a CONFIRMED reservation can only
     # become ACTIVE via the handover flow (payment + signature + agreement),
-    # never as a direct client-supplied status value.
+    # never as a direct client-supplied status value. COMPLETED is accepted by
+    # the schema only so a request gets the service's cannot_change_status
+    # error: a rental is completed by check-out, never by this endpoint.
     status: Literal[
         "CONFIRMED",
         "COMPLETED",
