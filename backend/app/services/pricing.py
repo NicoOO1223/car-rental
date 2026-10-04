@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from datetime import timezone
 from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
 from app.services.money import round_money
+from app.services.timezones import zone
 
 # Surcharges applied on top of the base day-rate are admin-editable via the
 # configuration table (app/models/configuration.py,
@@ -21,15 +23,50 @@ PRICE_UNIT_PER_DAY = "PER_DAY"
 PRICE_UNIT_PER_RENTAL = "PER_RENTAL"
 
 
-def calculate_rental_duration_days(pickup_at: datetime, return_at: datetime) -> int:
+def calculate_rental_duration_days(
+    pickup_at: datetime, return_at: datetime, timezone_name: str | None = None
+) -> int:
+    """
+    How many rental days to charge: whole days, and any part of a day counts as a
+    day (24 hours and 1 minute is 2 days).
+
+    The days are counted on the wall clock at the pickup place when its timezone
+    is given: Saturday 10:00 to Monday 10:00 is 2 days even when the clocks go
+    back in between and 49 hours pass. Counting elapsed hours instead billed that
+    a third day. The return time is read on the pickup place's clock too, so a
+    one-way rental is measured the same way whichever end the renter looks at.
+
+    Without a timezone the elapsed time between the two instants is used, which
+    is the same thing in UTC.
+    """
+
+    if timezone_name:
+        tz = zone(timezone_name)
+
+        pickup_at = _on_wall_clock(pickup_at, tz)
+        return_at = _on_wall_clock(return_at, tz)
+
     delta = return_at - pickup_at
+
     return delta.days + (1 if delta.seconds or delta.microseconds else 0)
+
+
+def _on_wall_clock(instant: datetime, tz) -> datetime:
+    """The time the clocks in `tz` show, with the zone dropped so that two of them
+    subtract as the clock reads, not as hours elapsed. A time with no zone is UTC,
+    which is what the application has always stored."""
+
+    if instant.tzinfo is None:
+        instant = instant.replace(tzinfo=timezone.utc)
+
+    return instant.astimezone(tz).replace(tzinfo=None)
 
 
 def calculate_rental_price(
     price_per_day: Decimal,
     pickup_at: datetime,
     return_at: datetime,
+    timezone_name: str | None = None,
 ) -> Decimal:
     """
     Base rental cost: price_per_day x ceil(duration in days). Used by
@@ -37,7 +74,7 @@ def calculate_rental_price(
     calculate_price_breakdown below.
     """
 
-    return price_per_day * calculate_rental_duration_days(pickup_at, return_at)
+    return price_per_day * calculate_rental_duration_days(pickup_at, return_at, timezone_name)
 
 
 @dataclass(frozen=True)
@@ -172,6 +209,7 @@ def calculate_price_breakdown(
     extras: Sequence[ExtraSelection] = (),
     vat_rate: Decimal = Decimal("0.00"),
     prices_include_vat: bool = True,
+    timezone_name: str | None = None,
 ) -> PriceBreakdown:
     """
     Itemized reservation cost, applied at handover-payment time (so it
@@ -195,11 +233,14 @@ def calculate_price_breakdown(
     Extras share calculate_rental_duration_days with the base rental, so
     the two can never disagree about how long the rental is.
 
+    timezone_name is the pickup place's: the days are counted on its wall clock
+    (see calculate_rental_duration_days).
+
     vat_rate and prices_include_vat (Configuration) decide how VAT is shown
     and whether it is added to the total; see PriceBreakdown.vat_amount.
     """
 
-    rental_days = calculate_rental_duration_days(pickup_at, return_at)
+    rental_days = calculate_rental_duration_days(pickup_at, return_at, timezone_name)
 
     base_amount = price_per_day * rental_days
 

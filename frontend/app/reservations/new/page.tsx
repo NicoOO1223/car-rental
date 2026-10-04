@@ -159,7 +159,7 @@ export default function NewReservationPage() {
 
   const pickupIso = pickupDate ? zonedToInstant(pickupDate, pickupTime, pickupZone) : "";
   const returnIso = returnDate ? zonedToInstant(returnDate, returnTime, returnZone) : "";
-  const days = pickupIso && returnIso ? rentalDays(pickupIso, returnIso) : 0;
+  const days = pickupIso && returnIso ? rentalDays(pickupIso, returnIso, pickupZone) : 0;
 
   function goTo(next: BookingStep) {
     setStep(next);

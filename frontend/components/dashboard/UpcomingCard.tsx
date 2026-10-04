@@ -147,7 +147,7 @@ export function UpcomingCard({
                 )}
 
                 <p className="mt-1 text-sm text-ink-muted">
-                  {formatDuration(rentalDays(reservation.pickup_at, reservation.return_at))}
+                  {formatDuration(rentalDays(reservation.pickup_at, reservation.return_at, reservation.pickup_timezone))}
                 </p>
 
                 {direction === "return" &&

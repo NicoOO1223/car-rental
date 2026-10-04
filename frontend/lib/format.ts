@@ -159,17 +159,31 @@ export function formatCurrencyCompact(
 }
 
 /**
- * Whole days between two instants, rounded up, matching
- * calculate_rental_duration_days in backend/app/services/pricing.py.
- * Used only for labels — every amount shown to a user comes from the
- * server's quote, never from arithmetic done here.
+ * Rental days, any part of a day counting as a day, matching
+ * calculate_rental_duration_days in backend/app/services/pricing.py: counted on
+ * the wall clock at the pickup place (`timeZone`), so a rental across the
+ * clocks changing is not a day longer than it looks. Without a zone the elapsed
+ * time is used. Used only for labels — every amount shown to a user comes from
+ * the server's quote, never from arithmetic done here.
  */
-export function rentalDays(pickupAt: string, returnAt: string): number {
-  const ms = new Date(returnAt).getTime() - new Date(pickupAt).getTime();
+export function rentalDays(pickupAt: string, returnAt: string, timeZone?: string): number {
+  const start = new Date(pickupAt).getTime();
+  const end = new Date(returnAt).getTime();
 
-  if (!Number.isFinite(ms) || ms <= 0) return 0;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
 
-  return Math.ceil(ms / 86_400_000);
+  if (!timeZone) return Math.ceil((end - start) / 86_400_000);
+
+  // The clocks' readings as if they were UTC, so subtracting them is the wall-clock difference.
+  const onTheClock = (iso: string) => {
+    const { date, time } = instantToZoned(iso, timeZone);
+    const [year, month, day] = date.split("-").map(Number);
+    const [hour, minute] = time.split(":").map(Number);
+
+    return Date.UTC(year, month - 1, day, hour, minute, new Date(iso).getUTCSeconds());
+  };
+
+  return Math.ceil((onTheClock(returnAt) - onTheClock(pickupAt)) / 86_400_000);
 }
 
 /** "3 days" / "1 day". */

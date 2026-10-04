@@ -39,6 +39,17 @@ def business_zone(db: Session) -> ZoneInfo:
     return zone(get_configuration(db).timezone)
 
 
+def location_timezone_name(db: Session, location_id) -> str | None:
+    """The IANA timezone of a pickup or return place, or None if there is no such
+    place (the caller then gets the plain elapsed-time count)."""
+
+    from app.models import Location
+
+    location = db.get(Location, location_id)
+
+    return location.timezone if location is not None else None
+
+
 def local_today(tz: ZoneInfo, now: datetime | None = None) -> date:
     """The calendar date it is right now in this timezone."""
 

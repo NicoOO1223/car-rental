@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
-from app.models import Car, CheckOut, Handover, Reservation, ReservationPayment
+from app.models import Car, CheckOut, Handover, Location, Reservation, ReservationPayment
 from app.services.pricing import calculate_rental_price
 from app.services.timezones import business_zone, local_date, range_bounds
 
@@ -43,8 +43,11 @@ def get_daily_revenue(
             # The rate each rental was made at, so a later price change does
             # not rewrite what was earned.
             func.coalesce(Reservation.agreed_price_per_day, Car.price_per_day),
+            # Days are counted on the clock at the pickup place, as when it was priced.
+            Location.timezone,
         )
         .join(Car, Car.id == Reservation.car_id)
+        .join(Location, Location.id == Reservation.pickup_location_id)
         .where(
             Reservation.status == "COMPLETED",
             Reservation.pickup_at >= range_start,
@@ -54,8 +57,8 @@ def get_daily_revenue(
 
     revenue_by_day: dict[date, float] = {}
 
-    for pickup_at, return_at, price_per_day in rows:
-        revenue = float(calculate_rental_price(price_per_day, pickup_at, return_at))
+    for pickup_at, return_at, price_per_day, pickup_timezone in rows:
+        revenue = float(calculate_rental_price(price_per_day, pickup_at, return_at, pickup_timezone))
 
         day = local_date(pickup_at, tz)
         revenue_by_day[day] = revenue_by_day.get(day, 0.0) + revenue

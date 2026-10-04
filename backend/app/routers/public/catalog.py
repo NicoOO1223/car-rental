@@ -32,6 +32,7 @@ from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import list_extras
 from app.services.locations import list_locations
 from app.services.pricing import calculate_price_breakdown, calculate_rental_duration_days
+from app.services.timezones import location_timezone_name
 from app.services.public_catalog import (
     bookable_cars,
     cancellation_deadline,
@@ -62,7 +63,7 @@ def enabled_configuration(db: Session = Depends(get_db)):
     return configuration
 
 
-def _breakdown_for(car, configuration, pickup_location_id, return_location_id, pickup_at, return_at):
+def _breakdown_for(car, configuration, pickup_location_id, return_location_id, pickup_at, return_at, timezone_name=None):
     return calculate_price_breakdown(
         car.price_per_day,
         pickup_at,
@@ -74,6 +75,7 @@ def _breakdown_for(car, configuration, pickup_location_id, return_location_id, p
         airport_change_fee=configuration.airport_change_fee,
         **vat_terms(configuration),
         extras=[],
+        timezone_name=timezone_name,
     )
 
 
@@ -272,9 +274,11 @@ def public_availability(
     currency = configuration.default_currency
     offers = []
 
+    pickup_timezone = location_timezone_name(db, pickup_location_id)
+
     for offer, cars in group_into_offers(bookable_cars(db, pickup_location_id, pickup_at, return_at)):
         breakdown = _breakdown_for(
-            cars[0], configuration, pickup_location_id, return_location_id, pickup_at, return_at
+            cars[0], configuration, pickup_location_id, return_location_id, pickup_at, return_at, pickup_timezone
         )
         online, at_pickup = split_payment(breakdown.total_amount, configuration.online_share_percent)
 
@@ -301,7 +305,7 @@ def public_availability(
     return PublicAvailabilityResponse(
         pickup_at=pickup_at,
         return_at=return_at,
-        rental_days=calculate_rental_duration_days(pickup_at, return_at),
+        rental_days=calculate_rental_duration_days(pickup_at, return_at, pickup_timezone),
         offers=offers,
     )
 

@@ -43,6 +43,19 @@ describe("dates and references", () => {
     expect(rentalDays("2040-06-15T08:00:00Z", "2040-06-18T08:00:00Z")).toBe(3);
   });
 
+  it("counts the days on the clock at the pickup place, not the hours elapsed", () => {
+    // The clocks in Rome go back on 2026-10-25: Saturday 10:00 to Monday 10:00 is
+    // 49 hours but two days.
+    expect(rentalDays("2026-10-24T08:00:00Z", "2026-10-26T09:00:00Z")).toBe(3);
+    expect(rentalDays("2026-10-24T08:00:00Z", "2026-10-26T09:00:00Z", "Europe/Rome")).toBe(2);
+    // Any part of a day is a day.
+    expect(rentalDays("2026-10-24T08:00:00Z", "2026-10-26T09:01:00Z", "Europe/Rome")).toBe(3);
+    // Ordinary dates, and the clocks going forward, agree with the elapsed count.
+    expect(rentalDays("2026-06-01T08:00:00Z", "2026-06-04T08:00:00Z", "Europe/Rome")).toBe(3);
+    expect(rentalDays("2026-03-28T09:00:00Z", "2026-03-30T08:00:00Z", "Europe/Rome")).toBe(2);
+    expect(rentalDays("2026-06-01T08:00:00Z", "2026-06-01T08:00:00Z", "Europe/Rome")).toBe(0);
+  });
+
   it("shortens an id to the booking reference staff read out", () => {
     expect(bookingReference("3c1083eb-9986-43f3-89da-75992695e711")).toBe("3C1083EB");
   });

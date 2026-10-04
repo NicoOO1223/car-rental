@@ -291,3 +291,175 @@ def test_to_cents_rounds_half_up():
     assert to_cents(Decimal("0.005")) == 1
     assert to_cents(Decimal("0.004")) == 0
     assert to_cents(Decimal("2.675")) == 268
+
+
+# --- counting days on the clock at the pickup place -----------------------------------------------------
+
+
+def _utc(text):
+    from datetime import datetime, timezone
+
+    return datetime.fromisoformat(text).replace(tzinfo=timezone.utc)
+
+
+def _local(text, zone_name):
+    """The instant the clocks in `zone_name` show `text` at, as a UTC datetime, which
+    is what the database and the API hand the pricing code. (Two datetimes that share
+    one zone object subtract on the wall clock in Python, which would hide the very
+    thing under test.)"""
+
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    return datetime.fromisoformat(text).replace(tzinfo=ZoneInfo(zone_name)).astimezone(timezone.utc)
+
+
+ROME = "Europe/Rome"
+
+
+def test_a_rental_across_the_autumn_clock_change_is_not_charged_an_extra_day():
+    from app.services.pricing import calculate_rental_duration_days
+
+    # The clocks in Italy go back on 2026-10-25: Saturday 10:00 to Monday 10:00 is
+    # 49 hours, but two days on the wall clock.
+    pickup = _local("2026-10-24T10:00:00", ROME)
+    drop = _local("2026-10-26T10:00:00", ROME)
+
+    assert (drop - pickup).total_seconds() / 3600 == 49
+    assert calculate_rental_duration_days(pickup, drop) == 3  # elapsed hours, as before
+    assert calculate_rental_duration_days(pickup, drop, ROME) == 2
+
+
+def test_the_spring_clock_change_and_ordinary_days_are_counted_the_same_either_way():
+    from app.services.pricing import calculate_rental_duration_days
+
+    # 2026-03-29: the clocks go forward, so these two days are only 47 hours.
+    spring = (_local("2026-03-28T10:00:00", ROME), _local("2026-03-30T10:00:00", ROME))
+    ordinary = (_local("2026-06-01T10:00:00", ROME), _local("2026-06-04T10:00:00", ROME))
+
+    for pickup, drop in (spring, ordinary):
+        assert calculate_rental_duration_days(pickup, drop, ROME) == calculate_rental_duration_days(pickup, drop)
+
+    assert calculate_rental_duration_days(*spring, ROME) == 2
+    assert calculate_rental_duration_days(*ordinary, ROME) == 3
+
+
+def test_any_part_of_a_day_is_still_a_day_on_the_wall_clock():
+    from app.services.pricing import calculate_rental_duration_days
+
+    assert calculate_rental_duration_days(_local("2026-06-01T10:00:00", ROME), _local("2026-06-02T10:00:00", ROME), ROME) == 1
+    assert calculate_rental_duration_days(_local("2026-06-01T10:00:00", ROME), _local("2026-06-02T10:01:00", ROME), ROME) == 2
+    assert calculate_rental_duration_days(_local("2026-06-01T10:00:00", ROME), _local("2026-06-01T10:30:00", ROME), ROME) == 1
+    # Across the autumn change, a minute over is still a minute over.
+    assert calculate_rental_duration_days(_local("2026-10-24T10:00:00", ROME), _local("2026-10-26T10:01:00", ROME), ROME) == 3
+
+
+def test_the_days_are_counted_at_the_pickup_place_even_if_the_return_is_elsewhere():
+    from app.services.pricing import calculate_rental_duration_days
+
+    pickup = _local("2026-06-01T10:00:00", ROME)
+    # 09:00 in Lisbon is 10:00 in Rome, two days later.
+    drop = _local("2026-06-03T09:00:00", "Europe/Lisbon")
+
+    assert calculate_rental_duration_days(pickup, drop, ROME) == 2
+    # A minute later in Lisbon is a minute past two days in Rome.
+    assert calculate_rental_duration_days(pickup, _local("2026-06-03T09:01:00", "Europe/Lisbon"), ROME) == 3
+
+
+def test_times_without_a_zone_are_utc_and_a_missing_or_unknown_zone_changes_nothing():
+    from datetime import datetime
+
+    from app.services.pricing import calculate_rental_duration_days
+
+    naive = (datetime(2026, 10, 24, 10), datetime(2026, 10, 26, 10))
+
+    assert calculate_rental_duration_days(*naive) == 2
+    assert calculate_rental_duration_days(*naive, "UTC") == 2
+    assert calculate_rental_duration_days(*naive, "Not/AZone") == 2
+    assert calculate_rental_duration_days(*naive, None) == 2
+
+
+def test_the_price_breakdown_charges_the_wall_clock_days_for_the_rental_and_its_per_day_extras():
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from app.services.pricing import ExtraSelection, calculate_price_breakdown
+
+    place = uuid4()
+    pickup = _local("2026-10-24T10:00:00", ROME)
+    drop = _local("2026-10-26T10:00:00", ROME)
+    seat = ExtraSelection(code="seat", name="Child seat", quantity=1, unit_price=Decimal("5.00"), price_unit="PER_DAY")
+
+    def total(**kwargs):
+        return calculate_price_breakdown(
+            Decimal("40.00"), pickup, drop, place, place,
+            short_term_threshold_days=0, short_term_fee=Decimal("0"), airport_change_fee=Decimal("0"),
+            extras=[seat], **kwargs,
+        )
+
+    old, new = total(), total(timezone_name=ROME)
+
+    assert old.base_amount == Decimal("120.00")  # three days, by elapsed hours
+    assert new.base_amount == Decimal("80.00")  # two days on the clock
+    # The add-on is per day over the same number of days.
+    assert new.total_amount == Decimal("90.00") and old.total_amount == Decimal("135.00")
+
+
+def test_a_quote_counts_days_on_the_clock_at_the_pickup_place():
+    """End to end: the same two instants are three days at a place in UTC and two
+    days at a place in Rome, because the Roman clocks went back in between."""
+
+    from fastapi.testclient import TestClient
+
+    from app.database import SessionLocal
+    from app.main import app
+    from app.models import Location
+    from tests.test_reservations import ensure_car_available, get_location_id
+
+    client = TestClient(app)
+    aho = get_location_id("AHO")
+    car = ensure_car_available("SA-008-AA")
+
+    db = SessionLocal()
+    try:
+        location = db.get(Location, __import__("uuid").UUID(aho))
+        original = location.timezone
+    finally:
+        db.close()
+
+    def set_zone(name):
+        db = SessionLocal()
+        try:
+            db.get(Location, __import__("uuid").UUID(aho)).timezone = name
+            db.commit()
+        finally:
+            db.close()
+
+    def quote():
+        response = client.post(
+            "/api/reservations/quote",
+            json={
+                "car_id": car["id"],
+                "pickup_location_id": aho,
+                "return_location_id": aho,
+                # Saturday 10:00 and Monday 10:00 in Rome: 08:00 and 09:00 in UTC.
+                "pickup_at": "2030-10-26T08:00:00Z",
+                "return_at": "2030-10-28T09:00:00Z",
+            },
+        )
+        assert response.status_code == 200, response.text
+
+        return response.json()
+
+    try:
+        set_zone("UTC")
+        in_utc = quote()
+
+        set_zone("Europe/Rome")
+        in_rome = quote()
+
+        assert in_utc["rental_days"] == 3
+        assert in_rome["rental_days"] == 2
+        assert Decimal(str(in_rome["total_amount"])) < Decimal(str(in_utc["total_amount"]))
+    finally:
+        set_zone(original)

@@ -19,6 +19,7 @@ from app.models import Car, Reservation
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import selections_from_reservation
 from app.services.pricing import PriceBreakdown, calculate_price_breakdown
+from app.services.timezones import location_timezone_name
 
 
 def agreed_price_per_day(reservation: Reservation, car: Car):
@@ -31,9 +32,16 @@ def agreed_price_per_day(reservation: Reservation, car: Car):
     return car.price_per_day
 
 
-def agreed_price_breakdown(reservation: Reservation, car: Car, configuration) -> PriceBreakdown:
+def agreed_price_breakdown(
+    reservation: Reservation, car: Car, configuration, timezone_name: str | None = None
+) -> PriceBreakdown:
     """The same price as reservation_price_breakdown, for callers that already
-    hold the car and the configuration and have no session to fetch them."""
+    hold the car and the configuration and have no session to fetch them. Days
+    are counted on the clock at the pickup place: `timezone_name` if given, else
+    the reservation's loaded pickup location."""
+
+    if timezone_name is None and reservation.pickup_location is not None:
+        timezone_name = reservation.pickup_location.timezone
 
     def agreed(recorded, live):
         return recorded if recorded is not None else live
@@ -50,6 +58,8 @@ def agreed_price_breakdown(reservation: Reservation, car: Car, configuration) ->
         **vat_terms(configuration),
         # Snapshotted prices, not the live catalog.
         extras=selections_from_reservation(reservation),
+        # Days are counted on the clock at the pickup place.
+        timezone_name=timezone_name,
     )
 
 
@@ -59,7 +69,11 @@ def reservation_price_breakdown(
     car = car or db.get(Car, reservation.car_id)
     configuration = configuration or get_configuration(db)
 
-    return agreed_price_breakdown(reservation, car, configuration)
+    # By id, not through the relationship: a reservation being created has its
+    # pickup_location_id set before the place itself has been loaded.
+    return agreed_price_breakdown(
+        reservation, car, configuration, location_timezone_name(db, reservation.pickup_location_id)
+    )
 
 
 def stamp_agreed_prices(

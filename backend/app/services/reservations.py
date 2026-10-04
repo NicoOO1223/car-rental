@@ -8,6 +8,7 @@ from app.errors import AppError, NotFoundError
 from app.models import Car, Customer, Handover, Reservation, User
 from app.schemas.reservation import ReservationUpdate
 from app.services.audit import audit_log
+from app.services.timezones import location_timezone_name
 from app.services.booking_prices import stamp_agreed_prices
 from app.services.availability import (
     has_conflicting_maintenance,
@@ -203,6 +204,7 @@ def quote_reservation(
 
     resolved = resolve_extra_selections(db, data.extras)
     configuration = get_configuration(db)
+    pickup_timezone = location_timezone_name(db, data.pickup_location_id)
 
     breakdown = calculate_price_breakdown(
         car.price_per_day,
@@ -215,9 +217,10 @@ def quote_reservation(
         airport_change_fee=configuration.airport_change_fee,
         **vat_terms(configuration),
         extras=selections_from_catalog(resolved),
+        timezone_name=pickup_timezone,
     )
 
-    rental_days = calculate_rental_duration_days(data.pickup_at, data.return_at)
+    rental_days = calculate_rental_duration_days(data.pickup_at, data.return_at, pickup_timezone)
 
     if projected_location_id(db, car, data.pickup_at) != data.pickup_location_id:
         available = False
