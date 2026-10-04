@@ -33,6 +33,7 @@ from app.config import SECRET_KEY, STRIPE_SECRET_KEY
 from app.errors import AppError, ConflictError
 from app.models import Customer, Reservation, ReservationPayment
 from app.services.audit import audit_log
+from app.services.email_outbox import queue_booking_confirmed
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
@@ -356,6 +357,8 @@ def on_prepayment_succeeded(db: Session, payment: ReservationPayment, now: datet
             entity_id=reservation.id,
             metadata={"amount": str(payment.payment_amount), "reference": reservation.public_reference},
         )
+
+        queue_booking_confirmed(db, reservation)
 
         return "confirmed"
 

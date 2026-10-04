@@ -6,6 +6,7 @@
   "backendMinReplicas": 1,
   "alertEmail": "ops@example.com",
   "storefront": { "enabled": true, "minReplicas": 1 },
+  "email": { "domain": "acmerentals.example", "fromUsername": "bookings" },
   "business": {
     "name": "Acme Rentals",
     "legalName": "Acme Rentals Ltd",

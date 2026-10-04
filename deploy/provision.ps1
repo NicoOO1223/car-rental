@@ -374,6 +374,90 @@ foreach ($secret in $optionalSecrets) {
     if ($secret.Value) { $secretArgs += "$($secret.Name)=$($secret.Value)" }
     if ($secret.Value -or ($existingSecrets -contains $secret.Name)) { $optionalEnv += "$($secret.Env)=secretref:$($secret.Name)" }
 }
+# --- email -------------------------------------------------------------------------------
+# Renters get a confirmation, a cancellation notice and a receipt by email, sent
+# through Azure Communication Services from the business's own domain (the
+# manifest's "email" block). Email stays off on a stack until its domain is
+# verified, so this is safe to run before the DNS records are in place.
+$emailEnabled = [bool]($manifest.email -and $manifest.email.domain)
+if ($emailEnabled) {
+    Write-Step "Email"
+    $emailDomain = ([string]$manifest.email.domain).ToLowerInvariant()
+    $emailUser = if ($manifest.email.fromUsername) { [string]$manifest.email.fromUsername } else { "bookings" }
+    $emailFrom = "$emailUser@$emailDomain"
+    $emailServiceName = "car-rental-$Stack-email"
+    $commServiceName = "car-rental-$Stack-comm"
+    $emailDisplayName = if ($manifest.email.fromName) { [string]$manifest.email.fromName } else { [string]$manifest.business.name }
+    $emailApi = "2023-04-01"
+
+    function Deploy-Email([bool]$Link) {
+        $linkValue = if ($Link) { "true" } else { "false" }
+        az deployment group create --resource-group $rg --template-file "$PSScriptRoot\email.bicep" `
+            --parameters emailServiceName=$emailServiceName communicationServiceName=$commServiceName `
+            domainName=$emailDomain senderUsername=$emailUser "senderDisplayName=$emailDisplayName" linkDomain=$linkValue --output none
+    }
+
+    Invoke-Checked { Deploy-Email $false } "create the email service and domain"
+
+    if ($DryRun) {
+        Write-Host "[dry-run] read the domain's DNS records, verify them, link the domain, store the connection string" -ForegroundColor DarkGray
+    } else {
+        $subscriptionId = az account show --query id -o tsv
+        $domainUri = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/emailServices/$emailServiceName/domains/${emailDomain}"
+        $verificationTypes = @("Domain", "SPF", "DKIM", "DKIM2")
+
+        function Get-DomainState { az rest --method get --uri "${domainUri}?api-version=$emailApi" --query properties -o json | ConvertFrom-Json }
+        function Test-AllVerified($state) { -not ($verificationTypes | Where-Object { $state.verificationStates.$_.status -ne "Verified" }) }
+
+        $domainState = Get-DomainState
+
+        if (-not (Test-AllVerified $domainState)) {
+            $untouched = -not ($verificationTypes | Where-Object { $domainState.verificationStates.$_.status -ne "NotStarted" })
+
+            Write-Host ""
+            Write-Host "Add these DNS records at the provider that manages $emailDomain :" -ForegroundColor Yellow
+            foreach ($type in $verificationTypes) {
+                $record = $domainState.verificationRecords.$type
+                if ($record) { Write-Host ("  {0,-6} {1,-6} name={2}  value={3}  ttl={4}" -f $type, $record.type, $record.name, $record.value, $record.ttl) }
+            }
+            Write-Host ""
+
+            if ($untouched) {
+                Write-Host "Once they are added, run this script again: it will then ask Azure to verify them." -ForegroundColor Yellow
+            } else {
+                # The records have been looked at before; ask Azure to check them now.
+                foreach ($type in $verificationTypes) {
+                    $status = $domainState.verificationStates.$type.status
+                    if ($status -in @("NotStarted", "VerificationFailed")) {
+                        $bodyFile = New-TemporaryFile
+                        Set-Content -Path $bodyFile -Value (@{ verificationType = $type } | ConvertTo-Json -Compress) -Encoding ascii
+                        az rest --method post --uri "${domainUri}/initiateVerification?api-version=$emailApi" --body "@$bodyFile" --output none 2>$null
+                        Remove-Item $bodyFile -ErrorAction SilentlyContinue
+                    }
+                }
+
+                Write-Host "Waiting for Azure to verify the records (up to 3 minutes)..."
+                for ($i = 0; $i -lt 12 -and -not (Test-AllVerified $domainState); $i++) {
+                    Start-Sleep -Seconds 15
+                    $domainState = Get-DomainState
+                }
+            }
+        }
+
+        if (Test-AllVerified $domainState) {
+            Invoke-Checked { Deploy-Email $true } "link the domain to the sending service"
+            $emailConnection = az rest --method post --uri "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/communicationServices/$commServiceName/listKeys?api-version=$emailApi" --query primaryConnectionString -o tsv
+            if (-not $emailConnection) { throw "FAILED: read the email service's connection string" }
+
+            $secretArgs += "email-connection-string=$emailConnection"
+            $optionalEnv += @("EMAIL_CONNECTION_STRING=secretref:email-connection-string", "EMAIL_FROM_ADDRESS=$emailFrom")
+            Write-Host "Email is on: mail is sent from $emailFrom."
+        } else {
+            Write-Host "Email stays off until the domain is verified. The stack works without it." -ForegroundColor Yellow
+        }
+    }
+}
+
 if ($firstAdmin) { $secretArgs += "initial-admin-password=$adminPassword" }
 Invoke-Checked { az containerapp secret set --name $backendApp --resource-group $rg --secrets @secretArgs --output none } "set backend secrets"
 

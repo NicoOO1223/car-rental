@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.services.availability import (
     projected_location_id,
 )
 from app.services.customers import find_matching_customer
+from app.services.email_outbox import queue_booking_cancelled, queue_booking_confirmed
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
 from app.services.prepayments import get_prepayment, settle_prepayment_for_cancellation
@@ -275,6 +277,8 @@ def cancel_reservation(
             "A rental in progress cannot be cancelled. Complete the return instead.",
         )
 
+    was_confirmed = reservation.status == "CONFIRMED"
+
     # Refund whatever was actually paid before flipping the status, so a
     # refund failure (e.g. a Stripe error) leaves the reservation
     # un-cancelled rather than cancelled with the money never returned.
@@ -290,6 +294,18 @@ def cancel_reservation(
 
     if actor is not None:
         reservation.updated_by = actor.id
+
+    # Tell the renter, if they had been told it was confirmed. A no-show is not
+    # news to them, and a request that was never confirmed was never promised.
+    if was_confirmed and reason != "NO_SHOW":
+        online = get_prepayment(db, reservation.id)
+
+        queue_booking_cancelled(
+            db,
+            reservation,
+            online_payment=prepayment,
+            online_amount=Decimal(online.payment_amount) if online is not None and online.payment_amount else None,
+        )
 
     audit_log(
         db,
@@ -433,6 +449,9 @@ def update_reservation_status(
         entity_id=reservation.id,
         metadata={"from": current_status, "to": new_status},
     )
+
+    if new_status == "CONFIRMED":
+        queue_booking_confirmed(db, reservation)
 
     db.commit()
     db.refresh(reservation)

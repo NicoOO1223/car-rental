@@ -22,6 +22,7 @@ from app.i18n.documents import document_language
 from app.models import Car, Handover, Invoice, InvoiceCounter, Reservation, ReservationPayment, User
 from app.models.invoice import KIND_CREDIT_NOTE, KIND_INVOICE
 from app.services.audit import audit_log
+from app.services.email_outbox import queue_receipt
 from app.services.configuration import get_configuration, vat_terms
 from app.services.extras import selections_from_reservation, translations_by_code
 from app.services.money import round_money
@@ -235,6 +236,9 @@ def issue_invoice_for_handover(
         metadata={"number": invoice.number, "total": str(invoice.total_amount)},
     )
 
+    # The renter gets the invoice by email, if this stack sends email.
+    queue_receipt(db, invoice)
+
     return invoice
 
 
@@ -339,6 +343,8 @@ def issue_invoice_for_prepayment(
         entity_id=invoice.id,
         metadata={"number": invoice.number, "total": str(invoice.total_amount), "kind": "advance"},
     )
+
+    queue_receipt(db, invoice)
 
     return invoice
 

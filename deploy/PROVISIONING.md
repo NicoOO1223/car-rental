@@ -20,6 +20,7 @@ Every customer gets their own stack: a resource group holding a database, backup
 - `canary` is true for exactly one stack, the operator's own. Every release reaches it first. A test fails if there is not exactly one.
 - `business` is applied once, to a stack with no administrator: name, legal details, currency, timezone, locale (`it`, `en-GB` and so on), default and document language, VAT rate and whether prices include VAT. Each value is checked with the same rules as the admin screen, so a typo fails the test suite before anything is deployed.
 - `storefront` (optional): `{ "enabled": true, "minReplicas": 1 }` adds the public booking site. Without it the stack has no storefront app or sweeper job and releases skip them. One minimum replica is recommended for a customer stack so the site never starts cold; the demo stack uses 0.
+- `email` (optional): `{ "domain": "yourcompany.com", "fromUsername": "bookings", "fromName": "Your Company" }` turns on email to renters, sent from `bookings@yourcompany.com` through Azure Communication Services. See "Email" below. `fromUsername` defaults to `bookings` and `fromName` to the business name.
 - `legacySecrets` marks a stack that existed before manifests; its secrets are read from the old `deploy/.<name>` files and its live Stripe and database settings are never overwritten by a re-run.
 - `sharedEnvironmentStack` (optional, e.g. `"demo"`): joins that other stack's Container Apps environment instead of creating this stack's own. **Not the normal case** — every stack is meant to get its own environment. This exists because an Azure subscription can be capped at one Container Apps environment (in total, or one per region), which a free-trial subscription hits immediately; use it only as a stopgap until that quota is lifted (ask Azure support to raise "Container Apps environments per subscription/region", or move to a paid tier). The database, backups and every other resource stay entirely this stack's own either way — only the compute environment is shared, so this stack's app names get a `car-rental-<slug>-` prefix instead of the usual `car-rental-`, since Container Apps requires ingress names to be unique across everything sharing one environment, not just within one resource group.
 
@@ -54,6 +55,18 @@ Pushing to `main` runs the tests (backend, staff frontend, storefront, browser f
 Each stack deploys through its own GitHub Environment, so it uses that stack's credentials and settings. The frontend's address, Stripe key and error-tracking address are set on the app on every deploy from that environment's variables. Adding a manifest does not deploy anything by itself; provisioning is a deliberate command.
 
 `db-backup.yml` backs up and restore-drills every stack the same way, each inside its own environment.
+
+## Email
+
+Renters get a booking confirmation, a cancellation notice and a receipt with the invoice attached, from the business's own domain. Nothing is sent until the domain is verified, and the stack works the same without it.
+
+1. Put the `email` block in the stack's manifest and run `.\deploy\provision.ps1 -Stack <slug>`. It creates the email service and the domain in Azure and prints the DNS records (a verification record, SPF and two DKIM records).
+2. Whoever manages the domain's DNS adds those records. Verification can take from a few minutes to a day.
+3. Run `provision.ps1` again. It asks Azure to verify the records, waits up to three minutes, and once they are verified links the domain, stores the connection string as the backend's `email-connection-string` secret, and sets `EMAIL_FROM_ADDRESS`. If the records are not verified yet it says so and leaves email off; run it again later.
+
+How it behaves: an email is queued in the same transaction as the booking or payment it is about, so it exists if and only if that happened, and a background sender inside the backend sends it. A failed send is retried at growing intervals (1 minute, 5, 30, 2 hours, 6) and given up on after six tries; given-up messages stay in the `email_messages` table with the error. Several backend replicas can run at once without sending anything twice. A stack with the backend scaled to zero sends when it next wakes up, so customer stacks should keep a minimum of one replica.
+
+Emails are written in the business's document language (Configuration). The Italian and Polish wording is a draft that a native speaker should read.
 
 ## Removing a stack
 

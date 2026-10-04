@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 import os
 
 import sentry_sdk
@@ -48,12 +49,25 @@ from app.routers.public import router as public_router
 from app.routers.stripe_webhook import router as stripe_webhook_router
 
 from app.config import IS_PRODUCTION
+from app.services.email_outbox import start_worker, stop_worker
 from app.error_handlers import install_error_handlers
 from app.security_headers import SecurityHeadersMiddleware
 
 # The interactive docs list every endpoint and payload, which is a free map
 # for an attacker, so they only exist outside production.
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Sends the queued emails in the background, when this stack has email set
+    # up (see app/services/email_outbox.py); otherwise this does nothing.
+    start_worker()
+
+    yield
+
+    stop_worker()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Car Rental API",
     version="0.1.0",
     docs_url=None if IS_PRODUCTION else "/docs",
