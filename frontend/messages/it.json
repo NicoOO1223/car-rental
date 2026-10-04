@@ -123,6 +123,49 @@
       "FAIR": "Discrete",
       "WORN": "Usurate",
       "NEEDS_REPLACEMENT": "Da sostituire"
+    },
+    "emailGroup": {
+      "shared": "Righe presenti in ogni email",
+      "booking_confirmed": "Conferma della prenotazione",
+      "booking_cancelled": "Annullamento",
+      "receipt": "Ricevuta con fattura"
+    },
+    "emailStatus": {
+      "PENDING": "In attesa",
+      "SENT": "Inviata",
+      "FAILED": "Fallita"
+    },
+    "emailTemplate": {
+      "booking_confirmed": "Conferma della prenotazione",
+      "booking_cancelled": "Annullamento",
+      "receipt": "Ricevuta"
+    },
+    "emailLine": {
+      "greeting": "Saluto",
+      "contact": "Riga dei contatti",
+      "signoff": "Chiusura",
+      "confirmed": {
+        "subject": "Oggetto",
+        "intro": "Frase di apertura",
+        "reference": "Numero di prenotazione",
+        "vehicle": "Veicolo",
+        "pickup": "Ritiro",
+        "return": "Riconsegna",
+        "total": "Totale",
+        "paid_online": "Pagato online (solo se hanno pagato)",
+        "bring": "Cosa portare"
+      },
+      "cancelled": {
+        "subject": "Oggetto",
+        "intro": "Frase di apertura",
+        "refunded": "Pagamento rimborsato (solo se hanno pagato online)",
+        "kept": "Pagamento trattenuto (solo se hanno pagato online)"
+      },
+      "receipt": {
+        "subject": "Oggetto",
+        "intro": "Frase di apertura",
+        "invoice": "Fattura allegata"
+      }
     }
   },
   "config": {
@@ -448,6 +491,20 @@
       "too_large": "L'immagine è troppo grande. Il limite è {limit_mb, number} MB.",
       "unreadable": "Il file dell'immagine non può essere letto come immagine.",
       "wrong_type": "L'immagine deve essere un'immagine PNG o JPEG."
+    },
+    "email": {
+      "unknown_placeholder": "{name} non si può usare in questa riga. Puoi usare: {allowed}",
+      "braces": "Una parentesi graffa non ha la sua coppia. Scrivi il nome di un valore tra parentesi graffe, per esempio {example}.",
+      "too_long": "È troppo lungo (al massimo {max} caratteri).",
+      "subject_empty": "L'oggetto non può essere vuoto.",
+      "subject_one_line": "L'oggetto deve stare su una sola riga.",
+      "unknown_line": "Questa riga non esiste.",
+      "unknown_language": "Questa lingua non è supportata.",
+      "unknown_template": "Questa email non esiste.",
+      "not_set_up": "L'email non è ancora configurata su questo sistema.",
+      "test_address_invalid": "Inserisci un indirizzo email valido.",
+      "message_not_found": "Email non trovata.",
+      "only_failed_can_be_retried": "Si può reinviare solo un'email fallita."
     }
   },
   "c": {
@@ -1057,7 +1114,8 @@
           "returnCharges": "Addebiti di riconsegna",
           "securityDeposit": "Cauzione",
           "system": "Sistema",
-          "storefront": "Prenotazione online"
+          "storefront": "Prenotazione online",
+          "email": "Email"
         },
         "locations": {
           "failedLoadLocations": "Impossibile caricare le sedi.",
@@ -1197,6 +1255,69 @@
           "socialWhatsapp": "Link WhatsApp",
           "landingCtaHint": "La foto dietro il banner «Pronto a partire?» in fondo alla pagina.",
           "chooseCtaImageFile": "Scegli un file immagine per il banner"
+        },
+        "email": {
+          "failedLoad": "Impossibile caricare le impostazioni email.",
+          "failedSave": "Impossibile salvare la modifica.",
+          "failedTest": "Impossibile inviare l'email di prova.",
+          "failedPreview": "Impossibile mostrare l'anteprima.",
+          "loading": "Caricamento...",
+          "statusTitle": "Email ai clienti",
+          "statusIntro": "I clienti ricevono un'email quando la prenotazione è confermata, quando viene annullata e una ricevuta con la fattura quando pagano.",
+          "notSetUp": "L'email non è ancora configurata su questo sistema.",
+          "notSetUpSteps": "Il dominio di invio si configura una sola volta, quando il sistema viene predisposto (la guida alla distribuzione ha i passaggi): si crea il dominio di invio, si aggiungono i record DNS dove il dominio è gestito e si salva la connessione. Poi tutto il resto di questa pagina funziona. Fino ad allora non viene inviata nessuna email.",
+          "state": "Invio",
+          "stateOn": "Attivo",
+          "statePaused": "In pausa",
+          "sentFrom": "Inviata da",
+          "sentIn": "Scritta in",
+          "sentLast7": "Inviate negli ultimi 7 giorni",
+          "waiting": "In attesa di invio",
+          "oldest": "(la più vecchia dal {when})",
+          "gaveUp": "Fallite (abbandonate)",
+          "lastSent": "Ultima email inviata",
+          "sender": "Invio in background",
+          "senderRunning": "In funzione",
+          "senderStopped": "Non in funzione",
+          "pausedExplanation": "Non vengono create nuove email e quelle in attesa sono trattenute. Partono quando riprendi l'invio.",
+          "pause": "Metti in pausa l'invio",
+          "resume": "Riprendi l'invio",
+          "testTitle": "Invia un'email di prova",
+          "testIntro": "Invia subito un breve messaggio, così puoi verificare che la configurazione funzioni e vedere cosa dice Azure se non funziona.",
+          "testAddress": "Invia a",
+          "testAddressPlaceholder": "Lascia vuoto per usare il tuo indirizzo",
+          "sendTest": "Invia email di prova",
+          "testSent": "Inviata a {to}. Controlla la posta in arrivo (e lo spam).",
+          "testFailed": "Impossibile inviare a {to}. Il servizio email ha risposto:",
+          "wordingTitle": "Testi",
+          "wordingIntro": "Modifica l'oggetto e qualsiasi riga delle email. Una riga che non cambi mantiene il testo predefinito. Le email vengono inviate in una lingua alla volta, quella impostata come lingua dei documenti in Azienda; scrivi anche le altre se potresti cambiarla.",
+          "editingLanguage": "Lingua da modificare",
+          "currentlySent": "in uso ora",
+          "placeholdersHelp": "Scrivi il nome di un valore tra parentesi graffe, come {example}, dove deve andare un valore. In ogni riga si possono usare solo i valori elencati sotto di essa.",
+          "sharedHelp": "Queste righe compaiono in tutte e tre le email: cambiandone una cambia in ognuna.",
+          "preview": "Anteprima",
+          "leftOut": "Omessa",
+          "customised": "Personalizzata",
+          "canUse": "Puoi usare: {names}",
+          "emptyMeansLeftOut": "Vuota: questa riga viene omessa dall'email.",
+          "save": "Salva",
+          "resetToDefault": "Torna al testo predefinito",
+          "discard": "Annulla le modifiche",
+          "previewTitle": "Anteprima",
+          "previewIntro": "Con valori di esempio e le modifiche di questa pagina, salvate o no. Non viene inviato nulla.",
+          "close": "Chiudi",
+          "subject": "Oggetto",
+          "message": "Messaggio",
+          "logTitle": "Email recenti",
+          "logIntro": "Le ultime email che il sistema ha inviato o ha provato a inviare. Un'email fallita viene ritentata più volte prima di essere abbandonata.",
+          "filterStatus": "Filtra per stato",
+          "allStatuses": "Tutte",
+          "refresh": "Aggiorna",
+          "logEmpty": "Nessuna email per ora.",
+          "sentAt": "inviata {when}",
+          "createdAt": "in coda {when}",
+          "tries": "{count, plural, one {# tentativo} other {# tentativi}}",
+          "retry": "Invia di nuovo"
         }
       },
       "revenue": {

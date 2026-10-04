@@ -5,7 +5,7 @@ from app.models.check_out import CheckOut
 from app.models.condition_review import ConditionPhoto, ConditionReview
 from app.models.customer import Customer
 from app.models.customer_account import CustomerAccount, CustomerAccountBooking
-from app.models.email_message import EmailMessage
+from app.models.email_message import EmailMessage, EmailSettings, EmailTextOverride
 from app.models.extra import Extra
 from app.models.handover import Handover
 from app.models.invoice import Invoice, InvoiceCounter
@@ -35,6 +35,8 @@ __all__ = [
     "Extra",
     "Handover",
     "EmailMessage",
+    "EmailSettings",
+    "EmailTextOverride",
     "Invoice",
     "InvoiceCounter",
     "LandingAboutImage",

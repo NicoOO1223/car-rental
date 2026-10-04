@@ -34,10 +34,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount
-from app.i18n.emails import compose, line
-from app.models import Customer, EmailMessage, Invoice, Reservation
+from app.i18n.emails import compose
+from app.models import Customer, EmailMessage, EmailSettings, Invoice, Reservation
 from app.models.email_message import MAX_ATTEMPTS
 from app.services.configuration import get_configuration
+from app.services.email_content import (
+    build_booking_cancelled,
+    build_booking_confirmed,
+    build_receipt,
+    load_wording,
+)
 from app.services.pdf_common import format_local
 
 logger = logging.getLogger("email_outbox")
@@ -53,7 +59,23 @@ RETRY_DELAYS = (
 
 
 def email_enabled() -> bool:
+    """Whether email is set up on this stack at all (decided when it is provisioned)."""
+
     return bool(os.getenv("EMAIL_CONNECTION_STRING") and os.getenv("EMAIL_FROM_ADDRESS"))
+
+
+def email_paused(db: Session) -> bool:
+    """Whether an administrator has paused sending from the settings screen."""
+
+    settings = db.get(EmailSettings, 1)
+
+    return settings is not None and not settings.enabled
+
+
+def email_active(db: Session) -> bool:
+    """Set up, and not paused: the condition for queuing a new email."""
+
+    return email_enabled() and not email_paused(db)
 
 
 # --- queuing ---------------------------------------------------------------------------------
@@ -124,12 +146,8 @@ def _queue(
         return None
 
 
-def _closing(language: str, configuration) -> list[str]:
-    contact = " / ".join(part for part in (configuration.email, configuration.phone) if part)
-    paragraphs = [line(language, "contact", contact=contact)] if contact else []
-    paragraphs.append(line(language, "signoff", business=configuration.business_name))
-
-    return paragraphs
+def _closing_contact(configuration) -> str:
+    return " / ".join(part for part in (configuration.email, configuration.phone) if part)
 
 
 def _reference(reservation: Reservation) -> str:
@@ -139,7 +157,7 @@ def _reference(reservation: Reservation) -> str:
 
 
 def queue_booking_confirmed(db: Session, reservation: Reservation) -> EmailMessage | None:
-    if not email_enabled():
+    if not email_active(db):
         return None
 
     try:
@@ -150,38 +168,27 @@ def queue_booking_confirmed(db: Session, reservation: Reservation) -> EmailMessa
         language = document_language(configuration.document_language)
         currency = reservation.agreed_currency or configuration.default_currency
         car = reservation.car
+        customer = reservation.customer
         total = reservation_price_breakdown(db, reservation, car, configuration).total_amount
         paid_online = prepaid_amount(db, reservation.id)
-        customer = reservation.customer
 
-        details = [
-            line(language, "confirmed.reference", reference=_reference(reservation)),
-            line(language, "confirmed.vehicle", vehicle=f"{car.make} {car.model}"),
-            line(
-                language,
-                "confirmed.pickup",
-                place=reservation.pickup_location.name,
-                when=format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
-            ),
-            line(
-                language,
-                "confirmed.return",
-                place=reservation.return_location.name,
-                when=format_local(reservation.return_at, reservation.return_location.timezone, language),
-            ),
-            line(language, "confirmed.total", total=format_amount(total, currency, language)),
-        ]
-
-        if paid_online > 0:
-            details.append(line(language, "confirmed.paid_online", paid=format_amount(paid_online, currency, language)))
-
-        paragraphs = [
-            line(language, "greeting", name=customer.first_name),
-            line(language, "confirmed.intro"),
-            "\n".join(details),
-            line(language, "confirmed.bring"),
-            *_closing(language, configuration),
-        ]
+        subject, paragraphs = build_booking_confirmed(
+            load_wording(db),
+            language,
+            {
+                "name": customer.first_name,
+                "business": configuration.business_name,
+                "reference": _reference(reservation),
+                "vehicle": f"{car.make} {car.model}",
+                "pickup_place": reservation.pickup_location.name,
+                "pickup_time": format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
+                "return_place": reservation.return_location.name,
+                "return_time": format_local(reservation.return_at, reservation.return_location.timezone, language),
+                "total": format_amount(total, currency, language),
+                "paid_online": format_amount(paid_online, currency, language) if paid_online > 0 else "",
+                "contact": _closing_contact(configuration),
+            },
+        )
 
         return _queue(
             db,
@@ -190,7 +197,7 @@ def queue_booking_confirmed(db: Session, reservation: Reservation) -> EmailMessa
             language=language,
             customer=customer,
             reply_to=configuration.email,
-            subject=line(language, "confirmed.subject", reference=_reference(reservation), business=configuration.business_name),
+            subject=subject,
             paragraphs=paragraphs,
             reservation_id=reservation.id,
         )
@@ -210,7 +217,7 @@ def queue_booking_cancelled(
     """`online_payment` is what happened to the share paid online: "refunded",
     "kept", or anything else (nothing to say about money)."""
 
-    if not email_enabled():
+    if not email_active(db):
         return None
 
     try:
@@ -220,23 +227,20 @@ def queue_booking_cancelled(
         car = reservation.car
         customer = reservation.customer
 
-        paragraphs = [
-            line(language, "greeting", name=customer.first_name),
-            line(
-                language,
-                "cancelled.intro",
-                reference=_reference(reservation),
-                vehicle=f"{car.make} {car.model}",
-                when=format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
-            ),
-        ]
-
-        if online_amount and online_payment in ("refunded", "kept"):
-            paragraphs.append(
-                line(language, f"cancelled.{online_payment}", amount=format_amount(online_amount, currency, language))
-            )
-
-        paragraphs.extend(_closing(language, configuration))
+        subject, paragraphs = build_booking_cancelled(
+            load_wording(db),
+            language,
+            {
+                "name": customer.first_name,
+                "business": configuration.business_name,
+                "reference": _reference(reservation),
+                "vehicle": f"{car.make} {car.model}",
+                "when": format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
+                "note": online_payment or "",
+                "amount": format_amount(online_amount, currency, language) if online_amount else "",
+                "contact": _closing_contact(configuration),
+            },
+        )
 
         return _queue(
             db,
@@ -245,7 +249,7 @@ def queue_booking_cancelled(
             language=language,
             customer=customer,
             reply_to=configuration.email,
-            subject=line(language, "cancelled.subject", reference=_reference(reservation), business=configuration.business_name),
+            subject=subject,
             paragraphs=paragraphs,
             reservation_id=reservation.id,
         )
@@ -259,7 +263,7 @@ def queue_receipt(db: Session, invoice: Invoice) -> EmailMessage | None:
     """A receipt with the invoice attached, for a payment that was taken. Credit
     notes (refunds) are told in the cancellation email instead."""
 
-    if not email_enabled():
+    if not email_active(db):
         return None
 
     try:
@@ -268,12 +272,17 @@ def queue_receipt(db: Session, invoice: Invoice) -> EmailMessage | None:
         language = document_language(invoice.language)
         customer = reservation.customer
 
-        paragraphs = [
-            line(language, "greeting", name=customer.first_name),
-            line(language, "receipt.intro", amount=format_amount(invoice.total_amount, invoice.currency, language)),
-            line(language, "receipt.invoice", number=invoice.number),
-            *_closing(language, configuration),
-        ]
+        subject, paragraphs = build_receipt(
+            load_wording(db),
+            language,
+            {
+                "name": customer.first_name,
+                "business": configuration.business_name,
+                "number": invoice.number,
+                "amount": format_amount(invoice.total_amount, invoice.currency, language),
+                "contact": _closing_contact(configuration),
+            },
+        )
 
         return _queue(
             db,
@@ -282,7 +291,7 @@ def queue_receipt(db: Session, invoice: Invoice) -> EmailMessage | None:
             language=language,
             customer=customer,
             reply_to=configuration.email,
-            subject=line(language, "receipt.subject", number=invoice.number, business=configuration.business_name),
+            subject=subject,
             paragraphs=paragraphs,
             reservation_id=reservation.id,
             invoice_id=invoice.id,
@@ -428,7 +437,9 @@ def _run() -> None:
                 continue
 
             with SessionLocal() as db:
-                flush_outbox(db, sender)
+                # Paused: what is queued waits, and goes out when sending resumes.
+                if not email_paused(db):
+                    flush_outbox(db, sender)
         except Exception:  # noqa: BLE001 - the loop must outlive any one failure
             logger.exception("The email worker hit an error; it will try again")
 

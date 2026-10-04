@@ -50,7 +50,7 @@ ROUTES = _staff_routes()
 def _requirement(method: str, path: str) -> str | None:
     """What a route needs beyond being signed in, by hand. None = any role that can write (or read)."""
 
-    if path.startswith(("/api/users", "/api/configuration")):
+    if path.startswith(("/api/users", "/api/configuration", "/api/email")):
         return "admin"
 
     if path.startswith("/api/locations") and method != "GET":

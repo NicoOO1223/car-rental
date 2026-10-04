@@ -66,7 +66,9 @@ Renters get a booking confirmation, a cancellation notice and a receipt with the
 
 How it behaves: an email is queued in the same transaction as the booking or payment it is about, so it exists if and only if that happened, and a background sender inside the backend sends it. A failed send is retried at growing intervals (1 minute, 5, 30, 2 hours, 6) and given up on after six tries; given-up messages stay in the `email_messages` table with the error. Several backend replicas can run at once without sending anything twice. A stack with the backend scaled to zero sends when it next wakes up, so customer stacks should keep a minimum of one replica.
 
-Emails are written in the business's document language (Configuration). The Italian and Polish wording is a draft that a native speaker should read.
+Emails are written in the business's document language (Configuration > Business). The Italian and Polish wording is a draft that a native speaker should read.
+
+**Day to day it is run from the app, not from here.** Once the domain is verified, an administrator uses Configuration > Email to see whether sending works (sender, how many were sent, waiting and failed), pause and resume it, send a test email to themselves (Azure's own error is shown if it fails), reword the subject and every line of the three emails in each language with a preview and a reset to the built-in wording, and look at recent emails and send a failed one again. Only the one-off step above (creating and verifying the sending domain and storing the connection) stays in provisioning, because it needs Azure rights the application deliberately does not have.
 
 ## Removing a stack
 

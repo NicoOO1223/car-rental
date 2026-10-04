@@ -11,6 +11,8 @@ An email is plain text and a small, plain HTML version of the same lines (no
 images, no styling beyond paragraphs), which every mail program shows the same.
 """
 
+import re
+import string
 from html import escape
 
 from app.i18n.documents import DEFAULT_DOCUMENT_LANGUAGE, document_language
@@ -38,6 +40,8 @@ TEXT: dict[str, dict[str, str]] = {
         "receipt.subject": "Receipt {number} - {business}",
         "receipt.intro": "Thank you. We have received your payment of {amount}.",
         "receipt.invoice": "Your invoice {number} is attached to this email.",
+        "test.subject": "Test email from {business}",
+        "test.body": "This is a test email from {business}. If you are reading it, sending works.",
     },
     "it": {
         "greeting": "Buongiorno {name},",
@@ -59,6 +63,8 @@ TEXT: dict[str, dict[str, str]] = {
         "receipt.subject": "Ricevuta {number} - {business}",
         "receipt.intro": "Grazie. Abbiamo ricevuto il tuo pagamento di {amount}.",
         "receipt.invoice": "La tua fattura {number} è allegata a questa email.",
+        "test.subject": "Email di prova da {business}",
+        "test.body": "Questa è un'email di prova da {business}. Se la stai leggendo, l'invio funziona.",
     },
     "pl": {
         "greeting": "Dzień dobry {name},",
@@ -80,12 +86,14 @@ TEXT: dict[str, dict[str, str]] = {
         "receipt.subject": "Potwierdzenie płatności {number} - {business}",
         "receipt.intro": "Dziękujemy. Otrzymaliśmy Twoją płatność w wysokości {amount}.",
         "receipt.invoice": "Faktura {number} jest w załączniku do tej wiadomości.",
+        "test.subject": "Wiadomość testowa od {business}",
+        "test.body": "To jest wiadomość testowa od {business}. Jeśli ją czytasz, wysyłanie działa.",
     },
 }
 
 
 def line(language: str, key: str, **values) -> str:
-    """One line in `language` (English if that language lacks it), filled in."""
+    """One built-in line in `language` (English if that language lacks it), filled in."""
 
     catalog = TEXT[document_language(language)]
     text = catalog.get(key) or TEXT[DEFAULT_DOCUMENT_LANGUAGE][key]
@@ -93,11 +101,136 @@ def line(language: str, key: str, **values) -> str:
     return text.format(**values)
 
 
-def compose(paragraphs: list[str]) -> tuple[str, str]:
-    """The plain-text and HTML bodies of an email from its paragraphs. A
-    paragraph may hold several lines (details listed one under the other)."""
+# The lines of each email, in the order they appear, for the settings screen. The
+# lines every email shares (greeting, contact, sign-off) are one group: changing one
+# changes it in all three.
+GROUPS: dict[str, tuple[str, ...]] = {
+    "shared": ("greeting", "contact", "signoff"),
+    "booking_confirmed": (
+        "confirmed.subject",
+        "confirmed.intro",
+        "confirmed.reference",
+        "confirmed.vehicle",
+        "confirmed.pickup",
+        "confirmed.return",
+        "confirmed.total",
+        "confirmed.paid_online",
+        "confirmed.bring",
+    ),
+    "booking_cancelled": ("cancelled.subject", "cancelled.intro", "cancelled.refunded", "cancelled.kept"),
+    "receipt": ("receipt.subject", "receipt.intro", "receipt.invoice"),
+}
 
-    text = "\n\n".join(paragraphs)
-    html = "".join(f"<p>{escape(paragraph).replace(chr(10), '<br>')}</p>" for paragraph in paragraphs)
+MAX_TEXT_LENGTH = 2000
+
+
+def is_subject(key: str) -> bool:
+    return key.endswith(".subject")
+
+
+def placeholders_of(key: str) -> tuple[str, ...]:
+    """The {names} a line may use: the ones its built-in wording uses. The same in
+    every language (a test checks it)."""
+
+    return tuple(sorted(set(re.findall(r"\{(\w+)\}", TEXT[DEFAULT_DOCUMENT_LANGUAGE][key]))))
+
+
+class WordingError(ValueError):
+    """A line a business wrote cannot be used. `code` is a stable name for the
+    settings screen to word in the reader's language."""
+
+    def __init__(self, code: str, message: str, **params):
+        super().__init__(message)
+        self.code = code
+        self.params = params
+
+
+def check_text(key: str, text: str) -> str:
+    """Whether `text` is a valid wording for the line `key`, returning it tidied.
+    Only that line's own {names} are allowed, each plain (no {name.attribute},
+    {name[0]} or format tricks), braces must pair up, and a subject is one line.
+    Without this a typo would break every email of that kind at send time."""
+
+    if key not in TEXT[DEFAULT_DOCUMENT_LANGUAGE]:
+        raise WordingError("unknown_line", "There is no such line.")
+
+    text = text.replace("\r\n", "\n").strip()
+
+    if len(text) > MAX_TEXT_LENGTH:
+        raise WordingError("too_long", "This is too long.", max=MAX_TEXT_LENGTH)
+
+    if is_subject(key):
+        if not text:
+            raise WordingError("subject_empty", "The subject cannot be empty.")
+
+        if "\n" in text:
+            raise WordingError("subject_one_line", "The subject has to be a single line.")
+
+    allowed = set(placeholders_of(key))
+
+    try:
+        parsed = list(string.Formatter().parse(text))
+    except ValueError:
+        raise WordingError(
+            "braces",
+            "A curly bracket is not paired. Write a value's name in curly brackets, for example {example}.",
+            example="{name}",
+        )
+
+    for _, field, spec, conversion in parsed:
+        if field is None:
+            continue
+
+        if field not in allowed or spec or conversion:
+            raise WordingError(
+                "unknown_placeholder",
+                "{name} cannot be used in this line. You can use: {allowed}",
+                name="{" + field + "}",
+                allowed=", ".join("{" + name + "}" for name in sorted(allowed)) or "-",
+            )
+
+    return text
+
+
+class Wording:
+    """The lines of the emails: the business's own where it has written one, the
+    built-in wording otherwise. Built once per email from the stored overrides."""
+
+    def __init__(self, overrides: dict[tuple[str, str], str] | None = None):
+        self._overrides = overrides or {}
+
+    def line(self, language: str, key: str, **values) -> str:
+        """The line in `language`, filled in. An override that is empty means the
+        line is left out (an empty string comes back); an override that can no
+        longer be filled in falls back to the built-in wording, so a bad stored
+        line can never stop an email from being sent."""
+
+        language = document_language(language)
+        override = self._overrides.get((key, language))
+
+        if override is not None and not (is_subject(key) and not override.strip()):
+            try:
+                return override.format(**values).strip()
+            except (KeyError, IndexError, ValueError, AttributeError):
+                pass
+
+        return line(language, key, **values)
+
+
+def compose(paragraphs: list[str]) -> tuple[str, str]:
+    """The plain-text and HTML bodies of an email from its paragraphs. A paragraph
+    may hold several lines (details listed one under the other); lines and
+    paragraphs that came out empty are left out."""
+
+    cleaned = []
+
+    for paragraph in paragraphs:
+        lines = [part for part in paragraph.split("\n") if part.strip()]
+
+        if lines:
+            cleaned.append("\n".join(lines))
+
+    text = "\n\n".join(cleaned)
+    html = "".join(f"<p>{escape(paragraph).replace(chr(10), '<br>')}</p>" for paragraph in cleaned)
 
     return text, f"<!doctype html><html><body>{html}</body></html>"

@@ -2788,3 +2788,93 @@ export async function updateConfiguration(
 
   return response.json();
 }
+
+// --- Email (Configuration > Email, administrators only) -----------------------------------
+
+export type EmailStatus = {
+  /** Whether email is set up on this stack at all (sending domain verified, connection stored). */
+  set_up: boolean;
+  paused: boolean;
+  from_address: string | null;
+  worker_running: boolean;
+  pending: number;
+  failed: number;
+  sent_last_7_days: number;
+  oldest_pending_at: string | null;
+  last_sent_at: string | null;
+  /** The language the emails are sent in (the document language). */
+  language: string;
+};
+
+export type EmailTextLine = {
+  key: string;
+  is_subject: boolean;
+  /** The {names} this line may use. */
+  placeholders: string[];
+  defaults: Record<string, string>;
+  overrides: Record<string, string>;
+};
+
+export type EmailTexts = {
+  languages: string[];
+  sent_in: string;
+  groups: { id: string; lines: EmailTextLine[] }[];
+};
+
+export type EmailMessageItem = {
+  id: string;
+  template: string;
+  to_address: string;
+  subject: string;
+  status: "PENDING" | "SENT" | "FAILED";
+  attempts: number;
+  last_error: string | null;
+  created_at: string;
+  sent_at: string | null;
+  next_attempt_at: string;
+  reservation_id: string | null;
+};
+
+async function emailCall<T>(path: string, init: RequestInit = {}, fallback = "errors.generic.save"): Promise<T> {
+  const response = await apiFetch(`/api/email${path}`, {
+    ...init,
+    headers: init.body ? { "Content-Type": "application/json" } : undefined,
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, fallback);
+  }
+
+  return response.json();
+}
+
+export const getEmailStatus = () => emailCall<EmailStatus>("/status", {}, "errors.generic.load");
+
+export const setEmailPaused = (paused: boolean) =>
+  emailCall<EmailStatus>("/paused", { method: "PUT", body: JSON.stringify({ paused }) });
+
+export const getEmailTexts = () => emailCall<EmailTexts>("/texts", {}, "errors.generic.load");
+
+export const saveEmailText = (language: string, key: string, text: string) =>
+  emailCall<EmailTexts>("/texts", { method: "PUT", body: JSON.stringify({ language, key, text }) });
+
+export const resetEmailText = (language: string, key: string) =>
+  emailCall<EmailTexts>(`/texts/${language}/${key}`, { method: "DELETE" });
+
+export const previewEmail = (template: string, language: string, edits: Record<string, string>) =>
+  emailCall<{ subject: string; body: string }>("/preview", {
+    method: "POST",
+    body: JSON.stringify({ template, language, edits }),
+  });
+
+export const sendTestEmail = (toAddress: string | null) =>
+  emailCall<{ sent: boolean; error: string | null; to: string }>("/test", {
+    method: "POST",
+    body: JSON.stringify({ to_address: toAddress }),
+  });
+
+export const getEmailMessages = (status?: string) =>
+  emailCall<EmailMessageItem[]>(`/messages${status ? `?status=${status}` : ""}`, {}, "errors.generic.load");
+
+export const retryEmailMessage = (id: string) =>
+  emailCall<EmailMessageItem>(`/messages/${id}/retry`, { method: "POST" });

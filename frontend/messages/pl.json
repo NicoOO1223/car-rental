@@ -123,6 +123,49 @@
       "FAIR": "Dostateczny",
       "WORN": "Zużyty",
       "NEEDS_REPLACEMENT": "Do wymiany"
+    },
+    "emailGroup": {
+      "shared": "Wiersze w każdej wiadomości",
+      "booking_confirmed": "Potwierdzenie rezerwacji",
+      "booking_cancelled": "Anulowanie",
+      "receipt": "Potwierdzenie płatności z fakturą"
+    },
+    "emailStatus": {
+      "PENDING": "Oczekuje",
+      "SENT": "Wysłana",
+      "FAILED": "Nieudana"
+    },
+    "emailTemplate": {
+      "booking_confirmed": "Potwierdzenie rezerwacji",
+      "booking_cancelled": "Anulowanie",
+      "receipt": "Potwierdzenie płatności"
+    },
+    "emailLine": {
+      "greeting": "Powitanie",
+      "contact": "Wiersz kontaktowy",
+      "signoff": "Zakończenie",
+      "confirmed": {
+        "subject": "Temat",
+        "intro": "Zdanie otwierające",
+        "reference": "Numer rezerwacji",
+        "vehicle": "Pojazd",
+        "pickup": "Odbiór",
+        "return": "Zwrot",
+        "total": "Razem",
+        "paid_online": "Zapłacono online (tylko jeśli zapłacono)",
+        "bring": "Co zabrać"
+      },
+      "cancelled": {
+        "subject": "Temat",
+        "intro": "Zdanie otwierające",
+        "refunded": "Płatność zwrócona (tylko jeśli zapłacono online)",
+        "kept": "Płatność zatrzymana (tylko jeśli zapłacono online)"
+      },
+      "receipt": {
+        "subject": "Temat",
+        "intro": "Zdanie otwierające",
+        "invoice": "Faktura w załączniku"
+      }
     }
   },
   "config": {
@@ -448,6 +491,20 @@
       "too_large": "Zdjęcie jest za duże. Limit to {limit_mb, number} MB.",
       "unreadable": "Nie można odczytać pliku zdjęcia jako obrazu.",
       "wrong_type": "Zdjęcie musi być obrazem PNG lub JPEG."
+    },
+    "email": {
+      "unknown_placeholder": "{name} nie można użyć w tym wierszu. Możesz użyć: {allowed}",
+      "braces": "Nawias klamrowy nie ma pary. Wpisz nazwę wartości w nawiasach klamrowych, na przykład {example}.",
+      "too_long": "Tekst jest za długi (najwyżej {max} znaków).",
+      "subject_empty": "Temat nie może być pusty.",
+      "subject_one_line": "Temat musi mieścić się w jednym wierszu.",
+      "unknown_line": "Nie ma takiego wiersza.",
+      "unknown_language": "Ten język nie jest obsługiwany.",
+      "unknown_template": "Nie ma takiej wiadomości.",
+      "not_set_up": "Poczta nie jest jeszcze skonfigurowana w tym systemie.",
+      "test_address_invalid": "Wpisz prawidłowy adres e-mail.",
+      "message_not_found": "Nie znaleziono tej wiadomości.",
+      "only_failed_can_be_retried": "Ponownie można wysłać tylko nieudaną wiadomość."
     }
   },
   "c": {
@@ -1057,7 +1114,8 @@
           "returnCharges": "Opłaty za zwrot",
           "securityDeposit": "Kaucja",
           "system": "System",
-          "storefront": "Rezerwacja online"
+          "storefront": "Rezerwacja online",
+          "email": "E-mail"
         },
         "locations": {
           "failedLoadLocations": "Nie udało się wczytać lokalizacji.",
@@ -1197,6 +1255,69 @@
           "socialWhatsapp": "Link do WhatsAppa",
           "landingCtaHint": "Zdjęcie za banerem „Gotowy do drogi?” na dole strony.",
           "chooseCtaImageFile": "Wybierz plik obrazu banera"
+        },
+        "email": {
+          "failedLoad": "Nie udało się wczytać ustawień poczty.",
+          "failedSave": "Nie udało się zapisać zmiany.",
+          "failedTest": "Nie udało się wysłać wiadomości testowej.",
+          "failedPreview": "Nie udało się pokazać podglądu.",
+          "loading": "Wczytywanie...",
+          "statusTitle": "E-maile do klientów",
+          "statusIntro": "Klienci dostają e-mail, gdy rezerwacja zostanie potwierdzona, gdy zostanie anulowana, oraz potwierdzenie płatności z fakturą po zapłacie.",
+          "notSetUp": "Poczta nie jest jeszcze skonfigurowana w tym systemie.",
+          "notSetUpSteps": "Domenę wysyłkową konfiguruje się jednorazowo, przy przygotowaniu systemu (kroki są w instrukcji wdrożenia): tworzy się domenę wysyłkową, dodaje rekordy DNS tam, gdzie domena jest zarządzana, i zapisuje połączenie. Potem wszystko inne na tej stronie działa. Do tego czasu żadne e-maile nie są wysyłane.",
+          "state": "Wysyłanie",
+          "stateOn": "Włączone",
+          "statePaused": "Wstrzymane",
+          "sentFrom": "Nadawca",
+          "sentIn": "Język wiadomości",
+          "sentLast7": "Wysłane w ostatnich 7 dniach",
+          "waiting": "Oczekujące na wysłanie",
+          "oldest": "(najstarsza od {when})",
+          "gaveUp": "Nieudane (zaniechane)",
+          "lastSent": "Ostatnio wysłano",
+          "sender": "Wysyłka w tle",
+          "senderRunning": "Działa",
+          "senderStopped": "Nie działa",
+          "pausedExplanation": "Nowe e-maile nie są tworzone, a oczekujące są wstrzymane. Wyjdą po wznowieniu wysyłania.",
+          "pause": "Wstrzymaj wysyłanie",
+          "resume": "Wznów wysyłanie",
+          "testTitle": "Wyślij wiadomość testową",
+          "testIntro": "Wysyła od razu krótką wiadomość, żeby sprawdzić, czy konfiguracja działa, i zobaczyć odpowiedź Azure, jeśli nie działa.",
+          "testAddress": "Wyślij na",
+          "testAddressPlaceholder": "Zostaw puste, aby użyć własnego adresu",
+          "sendTest": "Wyślij wiadomość testową",
+          "testSent": "Wysłano na {to}. Sprawdź skrzynkę odbiorczą (i spam).",
+          "testFailed": "Nie udało się wysłać na {to}. Usługa poczty odpowiedziała:",
+          "wordingTitle": "Treść",
+          "wordingIntro": "Zmień temat i dowolny wiersz wiadomości. Wiersz, którego nie zmienisz, zachowuje treść wbudowaną. Wiadomości są wysyłane w jednym języku naraz, ustawionym jako język dokumentów w Firmie; wpisz także pozostałe, jeśli możesz go zmienić.",
+          "editingLanguage": "Edytowany język",
+          "currentlySent": "używany teraz",
+          "placeholdersHelp": "Wpisz nazwę wartości w nawiasach klamrowych, np. {example}, tam, gdzie ma się pojawić wartość. W danym wierszu można użyć tylko wartości wymienionych pod nim.",
+          "sharedHelp": "Te wiersze występują we wszystkich trzech wiadomościach: zmiana jednego zmienia go w każdej.",
+          "preview": "Podgląd",
+          "leftOut": "Pominięty",
+          "customised": "Zmieniony",
+          "canUse": "Możesz użyć: {names}",
+          "emptyMeansLeftOut": "Pusty: ten wiersz zostanie pominięty w wiadomości.",
+          "save": "Zapisz",
+          "resetToDefault": "Przywróć treść wbudowaną",
+          "discard": "Odrzuć zmiany",
+          "previewTitle": "Podgląd",
+          "previewIntro": "Z przykładowymi wartościami i zmianami z tej strony, zapisanymi lub nie. Nic nie jest wysyłane.",
+          "close": "Zamknij",
+          "subject": "Temat",
+          "message": "Wiadomość",
+          "logTitle": "Ostatnie e-maile",
+          "logIntro": "Ostatnie wiadomości, które system wysłał lub próbował wysłać. Nieudana wiadomość jest ponawiana kilka razy, zanim zostanie zaniechana.",
+          "filterStatus": "Filtruj według statusu",
+          "allStatuses": "Wszystkie",
+          "refresh": "Odśwież",
+          "logEmpty": "Na razie brak wiadomości.",
+          "sentAt": "wysłano {when}",
+          "createdAt": "w kolejce od {when}",
+          "tries": "{count, plural, one {# próba} few {# próby} many {# prób} other {# próby}}",
+          "retry": "Wyślij ponownie"
         }
       },
       "revenue": {

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -68,3 +68,35 @@ class EmailMessage(Base):
         Index("ix_email_messages_due", "status", "next_attempt_at"),
         Index("ix_email_messages_reservation_id", "reservation_id"),
     )
+
+
+class EmailSettings(Base):
+    """The one row of email settings an administrator can change from the panel.
+    Whether email is set up at all (the sending domain, the connection) is decided
+    when the stack is provisioned; this only lets sending be paused and resumed."""
+
+    __tablename__ = "email_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (CheckConstraint("id = 1", name="email_settings_singleton"),)
+
+
+class EmailTextOverride(Base):
+    """A line of an email the business has worded itself, in one language. A line
+    without a row here uses the built-in wording (app/i18n/emails.py). An empty
+    text means the line is left out of the email."""
+
+    __tablename__ = "email_text_overrides"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    language: Mapped[str] = mapped_column(String(5), primary_key=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))

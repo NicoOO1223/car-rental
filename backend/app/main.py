@@ -40,6 +40,7 @@ from app.routers.fleet_condition import router as fleet_condition_router
 from app.routers.condition_reviews import router as condition_reviews_router, photos_router as condition_photos_router
 from app.routers.notifications import router as notifications_router
 from app.routers.audit_logs import router as audit_logs_router
+from app.routers.email_admin import router as email_admin_router
 from app.routers.users import router as users_router
 from app.routers.branding import router as branding_router
 from app.routers.invoices import router as invoices_router
@@ -116,6 +117,7 @@ app.include_router(fleet_condition_router)
 app.include_router(condition_reviews_router)
 app.include_router(condition_photos_router)
 app.include_router(audit_logs_router)
+app.include_router(email_admin_router)
 app.include_router(users_router)
 app.include_router(public_configuration_router)
 app.include_router(branding_router)

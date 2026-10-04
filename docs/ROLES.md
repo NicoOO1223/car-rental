@@ -16,7 +16,7 @@ staff route as every role and fails if this table and the server disagree.
 | Decide to keep or refund an online payment when cancelling (staff cancel and the cancellation policy applies) | yes | yes | no | no |
 | Revenue report and the audit log | yes | yes | no | no |
 | Add, retire and re-price vehicles; the extras catalog | yes | yes | no | no |
-| Users, Configuration, locations, erase or export a customer | yes | no | no | no |
+| Users, Configuration (including the Email section: pause, wording, test, resend), locations, erase or export a customer | yes | no | no | no |
 
 ## How it is enforced
 

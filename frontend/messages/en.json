@@ -123,6 +123,49 @@
       "FAIR": "Fair",
       "WORN": "Worn",
       "NEEDS_REPLACEMENT": "Needs replacement"
+    },
+    "emailGroup": {
+      "shared": "Lines in every email",
+      "booking_confirmed": "Booking confirmation",
+      "booking_cancelled": "Cancellation",
+      "receipt": "Receipt with invoice"
+    },
+    "emailStatus": {
+      "PENDING": "Waiting",
+      "SENT": "Sent",
+      "FAILED": "Failed"
+    },
+    "emailTemplate": {
+      "booking_confirmed": "Booking confirmation",
+      "booking_cancelled": "Cancellation",
+      "receipt": "Receipt"
+    },
+    "emailLine": {
+      "greeting": "Greeting",
+      "contact": "Contact line",
+      "signoff": "Sign-off",
+      "confirmed": {
+        "subject": "Subject",
+        "intro": "Opening sentence",
+        "reference": "Booking number",
+        "vehicle": "Vehicle",
+        "pickup": "Pick-up",
+        "return": "Return",
+        "total": "Total",
+        "paid_online": "Paid online (only if they paid)",
+        "bring": "What to bring"
+      },
+      "cancelled": {
+        "subject": "Subject",
+        "intro": "Opening sentence",
+        "refunded": "Payment refunded (only if they paid online)",
+        "kept": "Payment kept (only if they paid online)"
+      },
+      "receipt": {
+        "subject": "Subject",
+        "intro": "Opening sentence",
+        "invoice": "Invoice attached"
+      }
     }
   },
   "config": {
@@ -448,6 +491,20 @@
       "too_large": "The image is too large. The limit is {limit_mb, number} MB.",
       "unreadable": "The image file could not be read as an image.",
       "wrong_type": "The image must be a PNG or JPEG image."
+    },
+    "email": {
+      "unknown_placeholder": "{name} cannot be used in this line. You can use: {allowed}",
+      "braces": "A curly bracket is not paired. Write a value's name in curly brackets, for example {example}.",
+      "too_long": "This is too long (at most {max} characters).",
+      "subject_empty": "The subject cannot be empty.",
+      "subject_one_line": "The subject has to be a single line.",
+      "unknown_line": "There is no such line.",
+      "unknown_language": "That language is not supported.",
+      "unknown_template": "There is no such email.",
+      "not_set_up": "Email is not set up on this system yet.",
+      "test_address_invalid": "Enter a valid email address.",
+      "message_not_found": "That email was not found.",
+      "only_failed_can_be_retried": "Only an email that failed can be sent again."
     }
   },
   "c": {
@@ -1057,7 +1114,8 @@
           "returnCharges": "Return charges",
           "securityDeposit": "Security deposit",
           "system": "System",
-          "storefront": "Online booking"
+          "storefront": "Online booking",
+          "email": "Email"
         },
         "locations": {
           "failedLoadLocations": "Failed to load locations.",
@@ -1197,6 +1255,69 @@
           "socialWhatsapp": "WhatsApp link",
           "landingCtaHint": "The photo behind the \"Ready to hit the road?\" banner near the bottom of the page.",
           "chooseCtaImageFile": "Choose a banner image file"
+        },
+        "email": {
+          "failedLoad": "Could not load the email settings.",
+          "failedSave": "Could not save the change.",
+          "failedTest": "Could not send the test email.",
+          "failedPreview": "Could not show the preview.",
+          "loading": "Loading...",
+          "statusTitle": "Email to renters",
+          "statusIntro": "Renters get an email when their booking is confirmed, when it is cancelled, and a receipt with the invoice when they pay.",
+          "notSetUp": "Email is not set up on this system yet.",
+          "notSetUpSteps": "Setting up the sending domain is done once, when the system is provisioned (the deployment guide has the steps): the sending domain is created, the DNS records are added where the domain is managed, and the connection is stored. Everything else on this page then works. Until then no emails are sent.",
+          "state": "Sending",
+          "stateOn": "On",
+          "statePaused": "Paused",
+          "sentFrom": "Sent from",
+          "sentIn": "Written in",
+          "sentLast7": "Sent in the last 7 days",
+          "waiting": "Waiting to be sent",
+          "oldest": "(oldest since {when})",
+          "gaveUp": "Failed (gave up)",
+          "lastSent": "Last email sent",
+          "sender": "Background sender",
+          "senderRunning": "Running",
+          "senderStopped": "Not running",
+          "pausedExplanation": "No new emails are being written and the ones waiting are held back. They go out when you resume.",
+          "pause": "Pause sending",
+          "resume": "Resume sending",
+          "testTitle": "Send a test email",
+          "testIntro": "Sends a short message right now, so you can check the setup works and see what Azure says if it does not.",
+          "testAddress": "Send it to",
+          "testAddressPlaceholder": "Leave empty to use your own address",
+          "sendTest": "Send test email",
+          "testSent": "Sent to {to}. Check the inbox (and the spam folder).",
+          "testFailed": "Could not send to {to}. The email service said:",
+          "wordingTitle": "Wording",
+          "wordingIntro": "Change the subject and any line of the emails. A line you do not change keeps the built-in wording. Emails are sent in one language at a time, the one set as the document language in Business; write the others too if you may switch.",
+          "editingLanguage": "Editing language",
+          "currentlySent": "currently sent",
+          "placeholdersHelp": "Write a value's name in curly brackets, like {example}, where a value should go. Only the values listed under a line can be used there.",
+          "sharedHelp": "These lines appear in all three emails: changing one changes it in each.",
+          "preview": "Preview",
+          "leftOut": "Left out",
+          "customised": "Customised",
+          "canUse": "You can use: {names}",
+          "emptyMeansLeftOut": "Empty: this line is left out of the email.",
+          "save": "Save",
+          "resetToDefault": "Back to the built-in wording",
+          "discard": "Discard changes",
+          "previewTitle": "Preview",
+          "previewIntro": "With sample values and the changes on this page, saved or not. Nothing is sent.",
+          "close": "Close",
+          "subject": "Subject",
+          "message": "Message",
+          "logTitle": "Recent emails",
+          "logIntro": "The latest emails the system has sent or tried to send. A failed email is tried again several times before it is given up on.",
+          "filterStatus": "Filter by status",
+          "allStatuses": "All",
+          "refresh": "Refresh",
+          "logEmpty": "No emails yet.",
+          "sentAt": "sent {when}",
+          "createdAt": "queued {when}",
+          "tries": "{count, plural, one {# try} other {# tries}}",
+          "retry": "Send again"
         }
       },
       "revenue": {
