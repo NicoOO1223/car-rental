@@ -5,6 +5,7 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.permissions import WRITE, has_permission
 from app.services.availability import lock_reservation
 from app.services.stripe_errors import stripe_app_error
 from app.errors import AppError, NotFoundError
@@ -60,6 +61,25 @@ def get_or_create_handover(db: Session, reservation_id, actor: User) -> Handover
     db.add(handover)
     db.commit()
     db.refresh(handover)
+
+    return handover
+
+
+def get_handover_for_viewing(db: Session, reservation_id, actor: User) -> Handover:
+    """
+    The handover to show. Opening the check-in screen starts a handover (an empty
+    row) for someone who works the counter; an account that can only look must not
+    cause that write, so for them a handover that was never started is simply not
+    found.
+    """
+
+    if has_permission(actor.role, WRITE):
+        return get_or_create_handover(db, reservation_id, actor=actor)
+
+    handover = db.scalar(select(Handover).where(Handover.reservation_id == reservation_id))
+
+    if handover is None:
+        raise NotFoundError("handover.not_started", "No handover has been started for this reservation.")
 
     return handover
 

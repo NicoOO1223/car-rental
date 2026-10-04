@@ -1,13 +1,14 @@
 from uuid import UUID
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.errors import AppError
 from app.database import get_db
 from app.models import User
+from app.permissions import WRITE, has_permission
 from app.services.auth import decode_access_token
 
 # auto_error=False so a missing header raises our own 401 (with a
@@ -53,8 +54,33 @@ def get_current_user(
     return user
 
 
-def require_authenticated_user(user: User = Depends(get_current_user)) -> User:
+_READ_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+def require_authenticated_user(request: Request, user: User = Depends(get_current_user)) -> User:
+    """
+    Access to the staff API. Every role may read; changing anything needs a role
+    that can write (not read-only). Because this is the dependency every staff
+    router already uses, a read-only user is refused on every change in one place,
+    and a route added later is safe without anyone remembering to protect it.
+    """
+
+    if request.method not in _READ_METHODS and not has_permission(user.role, WRITE):
+        raise AppError("auth.read_only", "Your account can only view, not change, anything.", status_code=403)
+
     return user
+
+
+def require_permission(permission: str):
+    """The signed-in user must hold this permission (see app/permissions.py)."""
+
+    def dependency(request: Request, user: User = Depends(require_authenticated_user)) -> User:
+        if not has_permission(user.role, permission):
+            raise AppError("auth.forbidden", "You do not have permission to perform this action.", status_code=403)
+
+        return user
+
+    return dependency
 
 
 def require_any_role(*roles: str):

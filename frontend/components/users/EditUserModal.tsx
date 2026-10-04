@@ -90,7 +90,9 @@ export function EditUserModal({ user, isSelf, onClose, onSaved }: Props) {
           hint={isSelf ? t("c.users.EditUserModal.youCannotChangeOwn") : undefined}
           onChange={(event) => setRole(event.target.value)}
         >
+          <option value="readonly">{t("c.users.EditUserModal.readonly")}</option>
           <option value="staff">{t("c.users.EditUserModal.staff")}</option>
+          <option value="manager">{t("c.users.EditUserModal.manager")}</option>
           <option value="admin">{t("c.users.EditUserModal.admin")}</option>
         </SelectField>
 

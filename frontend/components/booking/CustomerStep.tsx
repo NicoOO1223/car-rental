@@ -5,7 +5,7 @@ import { Search, UserRound, X } from "lucide-react";
 
 import { Field, Input, SelectField, TextField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { getCustomers, type CustomerListItem } from "@/lib/api";
+import { getCustomer, getCustomers, type CustomerListItem } from "@/lib/api";
 import { getCountries } from "@/lib/countries";
 import { formatDate } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
@@ -91,19 +91,30 @@ export function CustomerStep({
     };
   }, [term]);
 
-  function selectCustomer(customer: CustomerListItem) {
-    setSelected(customer);
+  async function selectCustomer(listed: CustomerListItem) {
+    setSelected(listed);
     setResults([]);
     setQuery("");
+
+    // The list may show this person's details masked. Booking for them needs the
+    // real ones, which opening the customer returns (and records as a view).
+    let customer: { date_of_birth: string | null; address: string | null; phone_number: string | null; email: string | null } = listed;
+
+    try {
+      customer = await getCustomer(listed.id);
+    } catch {
+      // Fall back to what the list gave; the form shows what is missing.
+    }
+
     onChange({
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      date_of_birth: customer.date_of_birth,
-      address: customer.address,
-      postal_code: customer.postal_code,
+      first_name: listed.first_name,
+      last_name: listed.last_name,
+      date_of_birth: customer.date_of_birth ?? "",
+      address: customer.address ?? "",
+      postal_code: listed.postal_code,
       phone_number: customer.phone_number ?? "",
       email: customer.email ?? "",
-      nationality: customer.nationality ?? "",
+      nationality: listed.nationality ?? "",
     });
   }
 
@@ -169,7 +180,14 @@ export function CustomerStep({
                             <p className="text-sm font-medium text-ink">
                               {customer.first_name} {customer.last_name}
                             </p>
-                            <p className="mt-0.5 text-xs text-ink-muted">{t("c.booking.CustomerStep.born", { date: formatDate(customer.date_of_birth) })}{customer.email ? ` · ${customer.email}` : ""}{customer.email ? ` · ${customer.email}` : ""}</p>
+                            <p className="mt-0.5 text-xs text-ink-muted">
+                              {[
+                                customer.date_of_birth ? t("c.booking.CustomerStep.born", { date: formatDate(customer.date_of_birth) }) : null,
+                                customer.email,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
                           </button>
                         </li>
                       ))}

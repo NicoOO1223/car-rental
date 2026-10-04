@@ -2,6 +2,7 @@ import { rememberExtras, type ExtraWording } from "@/lib/extras";
 import { throwApiError } from "@/lib/apiErrors";
 import { t } from "@/lib/i18n";
 import { hardNavigate } from "@/lib/hardNavigate";
+import type { Role } from "@/lib/permissions";
 import { getRuntimeConfig } from "@/lib/runtimeConfig";
 
 // This stack's API address, read when it is needed: it is a runtime value,
@@ -45,7 +46,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
 export type CurrentUser = {
   id: string;
   email: string;
-  role: "admin" | "staff";
+  role: Role;
   hidden_nav_items: string[];
   /** The language this person chose; null means the business default. */
   language: string | null;
@@ -1575,7 +1576,11 @@ export type Customer = {
   identity_verification: IdentityVerification | null;
 };
 
-export type CustomerListItem = Customer & {
+export type CustomerListItem = Omit<Customer, "date_of_birth" | "address"> & {
+  /** Null (and the phone and email masked) when the viewer's role does not browse customers' details in full. */
+  date_of_birth: string | null;
+  address: string | null;
+  masked: boolean;
   reservation_count: number;
   last_reservation_at: string | null;
 };

@@ -149,8 +149,10 @@ class CustomerListItem(BaseModel):
     id: UUID
     first_name: str
     last_name: str
-    date_of_birth: date
-    address: str
+    # Left out (null) with the phone and email masked when the viewer's role does
+    # not browse customers' details in full; see `masked`.
+    date_of_birth: date | None
+    address: str | None
     postal_code: str
     phone_number: str | None
     email: str | None
@@ -160,6 +162,9 @@ class CustomerListItem(BaseModel):
 
     reservation_count: int
     last_reservation_at: datetime | None
+
+    # True when the contact details above are hidden for this viewer.
+    masked: bool = False
 
 
 class CustomerPage(BaseModel):

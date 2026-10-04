@@ -32,6 +32,8 @@ import {
   formatNumber,
   formatTime,
 } from "@/lib/format";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { useNavigate } from "@/lib/useNavigate";
 import { extraName } from "@/lib/extras";
 import { enumLabel, t } from "@/lib/i18n";
@@ -48,6 +50,9 @@ export default function ReservationDetailsPage({
   params,
 }: Props) {
   const navigate = useNavigate();
+  // Whether this account may change things; the server refuses the rest anyway.
+  const { user: currentUser } = useCurrentUser();
+  const canWrite = can(currentUser?.role, "bookings.write");
   const [reservation, setReservation] =
     useState<Reservation | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -309,7 +314,7 @@ export default function ReservationDetailsPage({
                 <ReservationStatusBadge status={reservation.status} />
 
                 {EDITABLE_STATUSES.has(reservation.status) && (
-                  <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Button variant="secondary" onClick={() => setEditing(true)} disabled={!canWrite}>
                     <Pencil className="h-4 w-4" />{t("s.reservations.manage.id.edit")}</Button>
                 )}
               </div>
@@ -698,7 +703,7 @@ export default function ReservationDetailsPage({
                     onClick={() =>
                       handleStatusChange("CONFIRMED")
                     }
-                    disabled={updatingStatus || cancelling}
+                    disabled={!canWrite || updatingStatus || cancelling}
                     className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {updatingStatus
@@ -708,7 +713,7 @@ export default function ReservationDetailsPage({
 
                   <button
                     onClick={handleCancelReservation}
-                    disabled={updatingStatus || cancelling}
+                    disabled={!canWrite || updatingStatus || cancelling}
                     className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelling
@@ -732,7 +737,7 @@ export default function ReservationDetailsPage({
 
                   <button
                     onClick={handleCancelReservation}
-                    disabled={updatingStatus || cancelling}
+                    disabled={!canWrite || updatingStatus || cancelling}
                     className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelling
@@ -759,12 +764,13 @@ export default function ReservationDetailsPage({
                     onClick={() =>
                       navigate(`/handovers/${reservation.id}/check-in`)
                     }
+                    disabled={!canWrite}
                     className="w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                   >{t("s.reservations.manage.id.startCheckPaymentAgreement")}</button>
 
                   <button
                     onClick={handleCancelReservation}
-                    disabled={updatingStatus || cancelling}
+                    disabled={!canWrite || updatingStatus || cancelling}
                     className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 font-medium text-gray-900 hover:bg-gray-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelling
@@ -775,7 +781,7 @@ export default function ReservationDetailsPage({
                   {new Date(reservation.pickup_at) <= new Date() && (
                     <button
                       onClick={handleNoShow}
-                      disabled={updatingStatus || cancelling || markingNoShow}
+                      disabled={!canWrite || updatingStatus || cancelling || markingNoShow}
                       className="w-full rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {markingNoShow
@@ -803,6 +809,7 @@ export default function ReservationDetailsPage({
                     onClick={() =>
                       navigate(`/handovers/${reservation.id}/check-out`)
                     }
+                    disabled={!canWrite}
                     className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-3 font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                   >{t("s.reservations.manage.id.startCheckOut")}</button>
 

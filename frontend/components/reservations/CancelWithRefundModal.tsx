@@ -4,7 +4,9 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { cancelReservation, type Reservation } from "@/lib/api";
+import { can } from "@/lib/permissions";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -26,6 +28,11 @@ export function CancelWithRefundModal({
   const deadline = reservation.cancellation_deadline_at;
   const withinPolicy = deadline === null || new Date() <= new Date(deadline);
 
+  const { user } = useCurrentUser();
+  // Deciding against the policy is a manager's call. Anyone else cancels and the
+  // policy applies: refunded up to the deadline, kept after it.
+  const canDecide = can(user?.role, "money.approve");
+
   const [refund, setRefund] = useState(withinPolicy);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +46,7 @@ export function CancelWithRefundModal({
     setError("");
 
     try {
-      onCancelled(await cancelReservation(reservation.id, { refundPrepayment: refund }));
+      onCancelled(await cancelReservation(reservation.id, canDecide ? { refundPrepayment: refund } : {}));
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("c.reservations.CancelWithRefundModal.failed"));
@@ -77,7 +84,16 @@ export function CancelWithRefundModal({
         </>
       }
     >
-      <fieldset className="space-y-3">
+      {!canDecide && (
+        <p className="text-sm text-ink-secondary">
+          {withinPolicy
+            ? t("c.reservations.CancelWithRefundModal.policyRefunds", { amount })
+            : t("c.reservations.CancelWithRefundModal.policyKeeps", { amount })}{" "}
+          {t("c.reservations.CancelWithRefundModal.managerDecides")}
+        </p>
+      )}
+
+      <fieldset className={canDecide ? "space-y-3" : "hidden"}>
         <legend className="mb-2 text-sm text-ink-secondary">
           {t("c.reservations.CancelWithRefundModal.question", { amount })}
         </legend>

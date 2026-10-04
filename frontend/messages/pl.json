@@ -114,7 +114,9 @@
     },
     "role": {
       "admin": "Administrator",
-      "staff": "Pracownik"
+      "staff": "Pracownik",
+      "manager": "Kierownik",
+      "readonly": "Tylko do odczytu"
     },
     "tireCondition": {
       "GOOD": "Dobry",
@@ -136,7 +138,9 @@
       "forbidden": "Nie masz uprawnień do wykonania tej czynności.",
       "invalid_credentials": "Nieprawidłowy e-mail lub hasło.",
       "not_authenticated": "Nie jesteś zalogowany.",
-      "too_many_attempts": "Zbyt wiele prób logowania. Spróbuj ponownie później."
+      "too_many_attempts": "Zbyt wiele prób logowania. Spróbuj ponownie później.",
+      "read_only": "Twoje konto pozwala tylko przeglądać, nic nie można zmieniać.",
+      "needs_manager": "Kierownik musi zdecydować, czy płatność online zostaje zatrzymana, czy zwrócona."
     },
     "branding": {
       "no_logo": "Nie przesłano żadnego logo.",
@@ -266,7 +270,8 @@
       "nothing_due": "Ten wynajem został w całości opłacony online. Oznacz go jako opłacony zamiast przyjmować płatność.",
       "payment_already_taken": "Ten wynajem został już opłacony.",
       "payment_must_completed_before_generating_agreement": "Przed wygenerowaniem umowy płatność musi zostać zakończona.",
-      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja."
+      "security_deposit_required_before_generating_agreement": "Przed wygenerowaniem umowy wymagana jest kaucja.",
+      "not_started": "Dla tej rezerwacji nie rozpoczęto jeszcze wydania pojazdu."
     },
     "http": {
       "400": "Żądanie jest nieprawidłowe.",
@@ -520,7 +525,8 @@
       }
     },
     "AuthGuard": {
-      "skipContent": "Przejdź do treści"
+      "skipContent": "Przejdź do treści",
+      "readOnlyBanner": "Jesteś zalogowany na koncie tylko do odczytu. Możesz przeglądać, ale nic nie zmienisz."
     },
     "booking": {
       "BookingSummary": {
@@ -897,7 +903,10 @@
         "keep": "Zatrzymaj {amount}",
         "keepBooking": "Zostaw rezerwację",
         "cancelBooking": "Anuluj rezerwację",
-        "failed": "Nie udało się anulować rezerwacji."
+        "failed": "Nie udało się anulować rezerwacji.",
+        "policyRefunds": "Płatność online w wysokości {amount} zostanie zwrócona, zgodnie z zasadami anulowania.",
+        "policyKeeps": "Płatność online w wysokości {amount} zostanie zatrzymana, zgodnie z zasadami anulowania.",
+        "managerDecides": "Inną decyzję może podjąć tylko kierownik lub administrator."
       }
     },
     "users": {
@@ -913,7 +922,9 @@
         "visiblePages": "Widoczne strony",
         "uncheckedPagesHiddenFrom": "Niezaznaczone strony są ukryte w panelu bocznym tego pracownika. To preferencja wyświetlania, a nie ograniczenie dostępu.",
         "saving": "Zapisywanie",
-        "saveChanges": "Zapisz zmiany"
+        "saveChanges": "Zapisz zmiany",
+        "manager": "Kierownik",
+        "readonly": "Tylko do odczytu"
       },
       "NewUserModal": {
         "failedCreateUser": "Nie udało się utworzyć użytkownika.",
@@ -930,7 +941,9 @@
         "creating": "Tworzenie",
         "createUser": "Utwórz użytkownika",
         "copied": "Skopiowano",
-        "copy": "Kopiuj"
+        "copy": "Kopiuj",
+        "manager": "Kierownik",
+        "readonly": "Tylko do odczytu"
       },
       "ResetPasswordModal": {
         "failedResetPassword": "Nie udało się zresetować hasła.",
@@ -1229,7 +1242,9 @@
         "reactivate": "Aktywuj ponownie",
         "noUsersFound": "Nie znaleziono użytkowników",
         "nothingMatchesFilterRight": "Obecnie nic nie pasuje do tego filtra.",
-        "deactivateTheyWillBe": "Dezaktywować {email}? Użytkownik zostanie natychmiast wylogowany i nie będzie mógł się zalogować, dopóki konto nie zostanie ponownie aktywowane."
+        "deactivateTheyWillBe": "Dezaktywować {email}? Użytkownik zostanie natychmiast wylogowany i nie będzie mógł się zalogować, dopóki konto nie zostanie ponownie aktywowane.",
+        "manager": "Kierownik",
+        "readonly": "Tylko do odczytu"
       }
     },
     "cars": {
@@ -1538,7 +1553,9 @@
           "completing": "Kończenie...",
           "depositSettled": "Kaucja rozliczona: {kept} zatrzymano na poczet opłat.",
           "depositSettledHandBack": "Kaucja rozliczona: {kept} zatrzymano na poczet opłat — do zwrotu gotówką {returned}.",
-          "depositSettledReleased": "Kaucja rozliczona: {kept} zatrzymano na poczet opłat, {returned} zwolniono na karcie."
+          "depositSettledReleased": "Kaucja rozliczona: {kept} zatrzymano na poczet opłat, {returned} zwolniono na karcie.",
+          "waiverNeedsManager": "Opłaty za spóźnienie i paliwo może anulować tylko kierownik lub administrator.",
+          "depositNeedsManager": "Kaucję musi rozliczyć kierownik lub administrator."
         }
       },
       "lateByDH": "Opóźnienie: {v1} d {v2} godz.",

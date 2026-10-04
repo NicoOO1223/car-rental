@@ -6,6 +6,8 @@ import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { CurrentUserProvider } from "@/components/CurrentUserProvider";
 import { NotificationsProvider } from "@/components/NotificationsProvider";
 import Sidebar from "@/components/Sidebar";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { t } from "@/lib/i18n";
 
 // Owns whether the Sidebar renders at all — /login is a full-screen page with
@@ -15,6 +17,19 @@ import { t } from "@/lib/i18n";
 // Keeping signed-out visitors out is not done here: the session is an httpOnly
 // cookie a script cannot see, so proxy.ts redirects before any page renders, and
 // apiFetch sends anyone whose session has ended (a 401) back to /login.
+// Lets someone with a view-only account know why nothing can be changed.
+function ReadOnlyBanner() {
+  const { user } = useCurrentUser();
+
+  if (!user || can(user.role, "bookings.write")) return null;
+
+  return (
+    <p role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+      {t("c.AuthGuard.readOnlyBanner")}
+    </p>
+  );
+}
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -37,6 +52,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <Sidebar />
 
         <div id="main-content" className="min-w-0 flex-1">
+          <ReadOnlyBanner />
           {children}
         </div>
       </div>

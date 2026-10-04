@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/lib/api";
+import { can, canOpenAdminPage } from "@/lib/permissions";
 
 import { BrandMark } from "@/components/BrandMark";
 import { LanguagePicker } from "@/components/LanguagePicker";
@@ -69,9 +70,9 @@ const BASE_NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// Only shown to admins (see Sidebar()) — a client-side convenience, not
-// the security boundary. Every route/endpoint behind it is independently
-// gated server-side by require_role("admin").
+// Shown by role (see Sidebar()) — a client-side convenience, not the
+// security boundary. Every route/endpoint behind it is independently
+// gated server-side.
 const ADMIN_NAV_SECTION: NavSection = {
   labelKey: "admin",
   items: [
@@ -151,6 +152,8 @@ function SidebarContent({
   const isNewBooking = pathname.startsWith("/reservations/new");
   const { name: brandName } = useBrand();
   const { count: notificationCount, urgent: urgentCount } = useNotifications();
+  const { user: signedInUser } = useCurrentUser();
+  const canWrite = can(signedInUser?.role, "bookings.write");
 
   return (
     <div className="flex h-full flex-col bg-surface">
@@ -189,6 +192,7 @@ function SidebarContent({
         aria-label={t("nav.main")}
         className={`flex-1 overflow-y-auto py-5 ${collapsed ? "px-2" : "px-3"}`}
       >
+        {canWrite && (
         <Link
           href="/reservations/new"
           onClick={onNavigate}
@@ -202,6 +206,7 @@ function SidebarContent({
           {!collapsed && t("nav.newReservation")}
           {collapsed && <span className="sr-only">{t("nav.newReservation")}</span>}
         </Link>
+        )}
 
         {sections.map((section, sectionIndex) => (
           <div key={section.labelKey ?? sectionIndex} className="mt-6">
@@ -342,9 +347,10 @@ export default function Sidebar() {
     items: section.items.filter((item) => !hiddenNavItems.has(item.href)),
   })).filter((section) => section.items.length > 0);
 
+  const adminItems = ADMIN_NAV_SECTION.items.filter((item) => canOpenAdminPage(user?.role, item.href));
   const sections =
-    user?.role === "admin"
-      ? [...visibleBaseSections, ADMIN_NAV_SECTION]
+    adminItems.length > 0
+      ? [...visibleBaseSections, { ...ADMIN_NAV_SECTION, items: adminItems }]
       : visibleBaseSections;
 
   const collapsed = useSyncExternalStore(

@@ -6,11 +6,12 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.permissions import ROLES
 
 # Single source of truth for the set of roles the DB CheckConstraint
 # below also enforces — imported by create_staff_user.py and the user
 # management schemas/service rather than re-hardcoded in each place.
-VALID_ROLES = {"admin", "staff"}
+VALID_ROLES = set(ROLES)
 
 
 class User(Base):
@@ -97,7 +98,7 @@ class User(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "role IN ('admin','staff')",
+            "role IN ('admin','manager','staff','readonly')",
             name="valid_user_role",
         ),
     )

@@ -31,6 +31,8 @@ import {
   type SignaturePadHandle,
 } from "@/components/handover/SignaturePad";
 import { StepHeader, type StepStatus } from "@/components/handover/StepHeader";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { CLEANING_TYPES } from "@/lib/maintenance";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
@@ -68,6 +70,9 @@ function money(amount: number, currency?: string | null): string {
 
 export default function CheckOutPage({ params }: Props) {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  // Waiving a fee and settling the deposit are a manager's approvals.
+  const canApprove = can(user?.role, "money.approve");
 
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [reservation, setReservation] = useState<Reservation | null>(null);
@@ -708,7 +713,13 @@ export default function CheckOutPage({ params }: Props) {
                       </div>
                     </dl>
 
-                    {editable && (checkOut.late_fee > 0 || checkOut.fuel_fee > 0) && (
+                    {editable && (checkOut.late_fee > 0 || checkOut.fuel_fee > 0) && !canApprove && (
+                      <p className="rounded-lg bg-surface-sunken p-4 text-sm text-ink-secondary">
+                        {t("s.handovers.id.checkOut.waiverNeedsManager")}
+                      </p>
+                    )}
+
+                    {editable && (checkOut.late_fee > 0 || checkOut.fuel_fee > 0) && canApprove && (
                       <div className="space-y-3 rounded-lg bg-surface-sunken p-4">
                         <p className="text-sm font-medium text-ink">{t("s.handovers.id.checkOut.waiveCharge")}</p>
 
@@ -783,7 +794,11 @@ export default function CheckOutPage({ params }: Props) {
                           </p>
                         )}
 
-                        <Button onClick={handleSettleDeposit} disabled={settlingDeposit}>
+                        {!canApprove && (
+                          <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.depositNeedsManager")}</p>
+                        )}
+
+                        <Button onClick={handleSettleDeposit} disabled={settlingDeposit || !canApprove}>
                           {settlingDeposit ? t("s.handovers.id.checkOut.settling") : t("s.handovers.id.checkOut.settleDeposit")}
                         </Button>
                       </div>

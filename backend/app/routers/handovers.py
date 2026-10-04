@@ -27,6 +27,7 @@ from app.services.handovers import (
     confirm_payment,
     create_or_reuse_payment_intent,
     generate_agreement,
+    get_handover_for_viewing,
     get_or_create_handover,
     payment_summary,
     settle_prepaid_handover,
@@ -47,7 +48,7 @@ def get_handover_state(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    handover = get_or_create_handover(db, reservation_id, actor=current_user)
+    handover = get_handover_for_viewing(db, reservation_id, current_user)
 
     return HandoverResponse.from_model(handover)
 
@@ -232,7 +233,7 @@ def download_agreement_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
-    handover = get_or_create_handover(db, reservation_id, actor=current_user)
+    handover = get_handover_for_viewing(db, reservation_id, current_user)
 
     if handover.agreement_pdf is None:
         raise NotFoundError("handover.agreement_missing", "Agreement has not been generated yet.")

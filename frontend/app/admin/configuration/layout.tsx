@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { canOpenAdminPage } from "@/lib/permissions";
+
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { SubNav } from "@/components/ui/SubNav";
 import { t } from "@/lib/i18n";
@@ -26,8 +29,12 @@ export default function ConfigurationLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user } = useCurrentUser();
+  // A manager sees only the sections they may use.
+  const sections = SECTIONS.filter((section) => canOpenAdminPage(user?.role, section.href));
   const active =
-    SECTIONS.find((section) => pathname.startsWith(section.href))?.id ??
+    sections.find((section) => pathname.startsWith(section.href))?.id ??
+    sections[0]?.id ??
     SECTIONS[0].id;
 
   return (
@@ -39,7 +46,7 @@ export default function ConfigurationLayout({
 
       <SubNav
         label={t("s.admin.configuration.layout.configurationSections")}
-        items={SECTIONS}
+        items={sections}
         activeId={active}
         className="mb-6"
       />

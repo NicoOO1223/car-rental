@@ -114,7 +114,9 @@
     },
     "role": {
       "admin": "Amministratore",
-      "staff": "Personale"
+      "staff": "Personale",
+      "manager": "Responsabile",
+      "readonly": "Sola lettura"
     },
     "tireCondition": {
       "GOOD": "Buone",
@@ -136,7 +138,9 @@
       "forbidden": "Non hai i permessi per eseguire questa azione.",
       "invalid_credentials": "Email o password non corretti.",
       "not_authenticated": "Non hai effettuato l'accesso.",
-      "too_many_attempts": "Troppi tentativi di accesso. Riprova più tardi."
+      "too_many_attempts": "Troppi tentativi di accesso. Riprova più tardi.",
+      "read_only": "Il tuo account può solo consultare, non modificare nulla.",
+      "needs_manager": "Un responsabile deve decidere se il pagamento online viene trattenuto o rimborsato."
     },
     "branding": {
       "no_logo": "Non è stato caricato alcun logo.",
@@ -266,7 +270,8 @@
       "nothing_due": "Questo noleggio è stato pagato interamente online. Segnalo come pagato invece di incassare un pagamento.",
       "payment_already_taken": "Questo noleggio è già stato pagato.",
       "payment_must_completed_before_generating_agreement": "Il pagamento deve essere completato prima di generare il contratto.",
-      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto."
+      "security_deposit_required_before_generating_agreement": "Serve una cauzione prima di generare il contratto.",
+      "not_started": "Per questa prenotazione non è stata avviata alcuna consegna."
     },
     "http": {
       "400": "La richiesta non è valida.",
@@ -520,7 +525,8 @@
       }
     },
     "AuthGuard": {
-      "skipContent": "Vai al contenuto"
+      "skipContent": "Vai al contenuto",
+      "readOnlyBanner": "Hai effettuato l'accesso con un account di sola lettura. Puoi consultare ma non modificare nulla."
     },
     "booking": {
       "BookingSummary": {
@@ -897,7 +903,10 @@
         "keep": "Trattieni {amount}",
         "keepBooking": "Mantieni prenotazione",
         "cancelBooking": "Annulla prenotazione",
-        "failed": "Impossibile annullare la prenotazione."
+        "failed": "Impossibile annullare la prenotazione.",
+        "policyRefunds": "Il pagamento online di {amount} sarà rimborsato, come previsto dalla politica di cancellazione.",
+        "policyKeeps": "Il pagamento online di {amount} sarà trattenuto, come previsto dalla politica di cancellazione.",
+        "managerDecides": "Solo un responsabile o un amministratore può decidere diversamente."
       }
     },
     "users": {
@@ -913,7 +922,9 @@
         "visiblePages": "Pagine visibili",
         "uncheckedPagesHiddenFrom": "Le pagine non selezionate vengono nascoste dalla barra laterale di questo dipendente. È una preferenza di visualizzazione, non una restrizione di accesso.",
         "saving": "Salvataggio in corso",
-        "saveChanges": "Salva le modifiche"
+        "saveChanges": "Salva le modifiche",
+        "manager": "Responsabile",
+        "readonly": "Sola lettura"
       },
       "NewUserModal": {
         "failedCreateUser": "Impossibile creare l’utente.",
@@ -930,7 +941,9 @@
         "creating": "Creazione in corso",
         "createUser": "Crea utente",
         "copied": "Copiata",
-        "copy": "Copia"
+        "copy": "Copia",
+        "manager": "Responsabile",
+        "readonly": "Sola lettura"
       },
       "ResetPasswordModal": {
         "failedResetPassword": "Impossibile reimpostare la password.",
@@ -1229,7 +1242,9 @@
         "reactivate": "Riattiva",
         "noUsersFound": "Nessun utente trovato",
         "nothingMatchesFilterRight": "Al momento nulla corrisponde a questo filtro.",
-        "deactivateTheyWillBe": "Disattivare {email}? Verrà disconnesso subito e non potrà più accedere finché non viene riattivato."
+        "deactivateTheyWillBe": "Disattivare {email}? Verrà disconnesso subito e non potrà più accedere finché non viene riattivato.",
+        "manager": "Responsabile",
+        "readonly": "Sola lettura"
       }
     },
     "cars": {
@@ -1538,7 +1553,9 @@
           "completing": "Completamento in corso...",
           "depositSettled": "Cauzione saldata: {kept} trattenuti per gli addebiti.",
           "depositSettledHandBack": "Cauzione saldata: {kept} trattenuti per gli addebiti — da restituire {returned} in contanti.",
-          "depositSettledReleased": "Cauzione saldata: {kept} trattenuti per gli addebiti, {returned} rilasciati sulla carta."
+          "depositSettledReleased": "Cauzione saldata: {kept} trattenuti per gli addebiti, {returned} rilasciati sulla carta.",
+          "waiverNeedsManager": "Le penali per ritardo e carburante possono essere annullate solo da un responsabile o da un amministratore.",
+          "depositNeedsManager": "La cauzione deve essere chiusa da un responsabile o da un amministratore."
         }
       },
       "lateByDH": "In ritardo di {v1} g {v2} h",

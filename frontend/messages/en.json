@@ -114,7 +114,9 @@
     },
     "role": {
       "admin": "Administrator",
-      "staff": "Staff"
+      "staff": "Staff",
+      "manager": "Manager",
+      "readonly": "Read-only"
     },
     "tireCondition": {
       "GOOD": "Good",
@@ -136,7 +138,9 @@
       "forbidden": "You do not have permission to perform this action.",
       "invalid_credentials": "Incorrect email or password.",
       "not_authenticated": "Not authenticated.",
-      "too_many_attempts": "Too many login attempts. Try again later."
+      "too_many_attempts": "Too many login attempts. Try again later.",
+      "read_only": "Your account can only view, not change, anything.",
+      "needs_manager": "A manager has to decide whether the online payment is kept or refunded."
     },
     "branding": {
       "no_logo": "No logo has been uploaded.",
@@ -266,7 +270,8 @@
       "nothing_due": "This rental was paid in full online. Settle it as paid instead of taking a payment.",
       "payment_already_taken": "This rental has already been paid.",
       "payment_must_completed_before_generating_agreement": "Payment must be completed before generating the agreement.",
-      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement."
+      "security_deposit_required_before_generating_agreement": "A security deposit is required before generating the agreement.",
+      "not_started": "No handover has been started for this reservation."
     },
     "http": {
       "400": "The request was not valid.",
@@ -520,7 +525,8 @@
       }
     },
     "AuthGuard": {
-      "skipContent": "Skip to content"
+      "skipContent": "Skip to content",
+      "readOnlyBanner": "You are signed in with a view-only account. You can look around but not change anything."
     },
     "booking": {
       "BookingSummary": {
@@ -897,7 +903,10 @@
         "keep": "Keep {amount}",
         "keepBooking": "Keep booking",
         "cancelBooking": "Cancel booking",
-        "failed": "Failed to cancel the booking."
+        "failed": "Failed to cancel the booking.",
+        "policyRefunds": "The online payment of {amount} will be refunded, as the cancellation policy says.",
+        "policyKeeps": "The online payment of {amount} will be kept, as the cancellation policy says.",
+        "managerDecides": "Only a manager or an administrator can decide otherwise."
       }
     },
     "users": {
@@ -913,7 +922,9 @@
         "visiblePages": "Visible pages",
         "uncheckedPagesHiddenFrom": "Unchecked pages are hidden from this employee's sidebar. This is a display preference, not an access restriction.",
         "saving": "Saving",
-        "saveChanges": "Save changes"
+        "saveChanges": "Save changes",
+        "manager": "Manager",
+        "readonly": "Read-only"
       },
       "NewUserModal": {
         "failedCreateUser": "Failed to create user.",
@@ -930,7 +941,9 @@
         "creating": "Creating",
         "createUser": "Create user",
         "copied": "Copied",
-        "copy": "Copy"
+        "copy": "Copy",
+        "manager": "Manager",
+        "readonly": "Read-only"
       },
       "ResetPasswordModal": {
         "failedResetPassword": "Failed to reset password.",
@@ -1229,7 +1242,9 @@
         "reactivate": "Reactivate",
         "noUsersFound": "No users found",
         "nothingMatchesFilterRight": "Nothing matches this filter right now.",
-        "deactivateTheyWillBe": "Deactivate {email}? They will be signed out immediately and unable to log in again until reactivated."
+        "deactivateTheyWillBe": "Deactivate {email}? They will be signed out immediately and unable to log in again until reactivated.",
+        "manager": "Manager",
+        "readonly": "Read-only"
       }
     },
     "cars": {
@@ -1538,7 +1553,9 @@
           "completing": "Completing...",
           "depositSettled": "Deposit settled: {kept} kept for the charges.",
           "depositSettledHandBack": "Deposit settled: {kept} kept for the charges — hand back {returned} in cash.",
-          "depositSettledReleased": "Deposit settled: {kept} kept for the charges, {returned} released to the card."
+          "depositSettledReleased": "Deposit settled: {kept} kept for the charges, {returned} released to the card.",
+          "waiverNeedsManager": "Late and fuel fees can only be waived by a manager or an administrator.",
+          "depositNeedsManager": "A manager or an administrator has to settle the deposit."
         }
       },
       "lateByDH": "Late by {v1}d {v2}h",

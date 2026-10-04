@@ -81,7 +81,9 @@ export function NewUserModal({ onClose, onCreated }: Props) {
           value={role}
           onChange={(event) => setRole(event.target.value)}
         >
+          <option value="readonly">{t("c.users.NewUserModal.readonly")}</option>
           <option value="staff">{t("c.users.NewUserModal.staff")}</option>
+          <option value="manager">{t("c.users.NewUserModal.manager")}</option>
           <option value="admin">{t("c.users.NewUserModal.admin")}</option>
         </SelectField>
 

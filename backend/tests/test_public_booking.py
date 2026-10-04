@@ -6,6 +6,7 @@ the browser's sync call or the sweeper notices first.
 
 import itertools
 import random
+import uuid
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import UUID
@@ -43,7 +44,10 @@ class FakeStripe:
             raise stripe.StripeError("card machine on fire")
 
         intent = SimpleNamespace(
-            id=f"pi_test_{len(self.intents) + 1}_{random.randint(1000, 9999)}",
+            # Unique for good, not just for this run: the test database keeps its rows
+            # between runs and payment intent ids are unique, so a short random
+            # suffix collides now and then once enough leftovers have built up.
+            id=f"pi_test_{len(self.intents) + 1}_{uuid.uuid4().hex}",
             client_secret="secret_test",
             status="requires_payment_method",
             amount=kwargs["amount"],

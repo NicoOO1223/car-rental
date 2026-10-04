@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_role
+from app.dependencies import get_current_user, require_permission
+from app.permissions import FLEET_MANAGE
 from app.models import User
 from app.schemas.extra import (
     AdminExtraResponse,
@@ -24,7 +25,7 @@ from app.services.extras import (
 router = APIRouter(
     prefix="/api/admin/extras",
     tags=["Extras (admin)"],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(FLEET_MANAGE))],
 )
 
 

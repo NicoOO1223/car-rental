@@ -125,12 +125,12 @@ def test_cancelling_closes_a_card_payment_that_was_not_finished(fake_stripe):
         "SA-008-AA", "2027-07-07T10:00:00Z", "2027-07-08T10:00:00Z"
     )
     reservation_id = reservation["id"]
-    _start_card_payment(reservation_id, "pi_unfinished")
+    _start_card_payment(reservation_id, intent_id := f"pi_unfinished_{uuid4().hex}")
 
     assert client.patch(f"/api/reservations/{reservation_id}/cancel").status_code == 200
 
     # The customer can no longer complete it, and nothing was charged.
-    assert fake_stripe.cancelled == ["pi_unfinished"]
+    assert fake_stripe.cancelled == [intent_id]
     assert fake_stripe.refunds == []
     assert _handover(reservation_id).payment_status == "CANCELLED"
 
@@ -140,7 +140,7 @@ def test_cancelling_refunds_a_card_payment_that_went_through_meanwhile(fake_stri
         "SA-008-AA", "2027-07-09T10:00:00Z", "2027-07-10T10:00:00Z"
     )
     reservation_id = reservation["id"]
-    _start_card_payment(reservation_id, "pi_paid_meanwhile")
+    _start_card_payment(reservation_id, f"pi_paid_meanwhile_{uuid4().hex}")
     fake_stripe.intent_status = "succeeded"
 
     assert client.patch(f"/api/reservations/{reservation_id}/cancel").status_code == 200
@@ -158,7 +158,8 @@ def test_a_late_card_payment_on_a_cancelled_booking_is_refunded(fake_stripe):
         "SA-008-AA", "2027-07-11T10:00:00Z", "2027-07-12T10:00:00Z"
     )
     reservation_id = reservation["id"]
-    _start_card_payment(reservation_id, "pi_late")
+    intent_id = f"pi_late_{uuid4().hex}"
+    _start_card_payment(reservation_id, intent_id)
     assert client.patch(f"/api/reservations/{reservation_id}/cancel").status_code == 200
     assert _handover(reservation_id).payment_status == "CANCELLED"
 
@@ -171,7 +172,7 @@ def test_a_late_card_payment_on_a_cancelled_booking_is_refunded(fake_stripe):
             {
                 "id": f"evt_{uuid4().hex}",
                 "type": "payment_intent.succeeded",
-                "data": {"object": {"id": "pi_late", "status": "succeeded"}},
+                "data": {"object": {"id": intent_id, "status": "succeeded"}},
             },
         )
     finally:

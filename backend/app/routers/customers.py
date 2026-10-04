@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.errors import NotFoundError
 from app.database import get_db
-from app.dependencies import require_authenticated_user, require_role
+from app.dependencies import require_authenticated_user, require_permission, require_role
+from app.services.masking import mask_email, mask_phone
+from app.permissions import CUSTOMERS_LIST_FULL, IDENTITY_READ, has_permission
 from app.models import Customer, Reservation, User
 from app.schemas.customer import (
     CustomerDataExport,
@@ -49,21 +51,27 @@ def get_customers(
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
 ):
     rows, total = search_customers(
         db, q=q, segment=segment, sort=sort, limit=limit, offset=offset
     )
+
+    # The list is the one place every customer's details sit side by side, so
+    # only some roles see them in full. Opening a customer shows everything.
+    masked = not has_permission(current_user.role, CUSTOMERS_LIST_FULL)
 
     items = [
         CustomerListItem(
             id=row.Customer.id,
             first_name=row.Customer.first_name,
             last_name=row.Customer.last_name,
-            date_of_birth=row.Customer.date_of_birth,
-            address=row.Customer.address,
+            date_of_birth=None if masked else row.Customer.date_of_birth,
+            address=None if masked else row.Customer.address,
             postal_code=row.Customer.postal_code,
-            phone_number=row.Customer.phone_number,
-            email=row.Customer.email,
+            phone_number=mask_phone(row.Customer.phone_number) if masked else row.Customer.phone_number,
+            email=mask_email(row.Customer.email) if masked else row.Customer.email,
+            masked=masked,
             nationality=row.Customer.nationality,
             created_at=row.Customer.created_at,
             anonymized_at=row.Customer.anonymized_at,
@@ -173,7 +181,7 @@ def get_identity_details_endpoint(
     customer_id: UUID,
     reservation_id: UUID | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_permission(IDENTITY_READ)),
 ):
     return get_identity_details(db, customer_id, current_user, reservation_id)
 
@@ -187,7 +195,7 @@ def save_identity_details_endpoint(
     data: IdentityDetailsUpdate,
     reservation_id: UUID | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_permission(IDENTITY_READ)),
 ):
     return save_identity_details(
         db, customer_id, data, current_user, reservation_id

@@ -34,6 +34,8 @@ import {
   todayInZone,
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { t, enumLabel } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
 
@@ -62,6 +64,9 @@ function dateKey(date: Date): string {
 
 export default function CarDetailsPage({ params }: Props) {
   const navigate = useNavigate();
+  // Whether this account may change things; the server refuses the rest anyway.
+  const { user: currentUser } = useCurrentUser();
+  const canWrite = can(currentUser?.role, "bookings.write");
   const [car, setCar] = useState<Car | null>(null);
   const [reservations, setReservations] = useState<
     CarReservation[]
@@ -368,7 +373,7 @@ export default function CarDetailsPage({ params }: Props) {
             <div className="flex items-center gap-3">
               <CarStatusBadge status={car.status} className="px-4 py-2 text-sm" />
 
-              <Button variant="secondary" onClick={() => setEditing(true)}>
+              <Button variant="secondary" onClick={() => setEditing(true)} disabled={!canWrite}>
                 <Pencil className="h-4 w-4" />{t("s.cars.id.edit")}</Button>
             </div>
 
@@ -393,7 +398,7 @@ export default function CarDetailsPage({ params }: Props) {
             <Button
               variant="secondary"
               onClick={handleReturnToHome}
-              disabled={relocating}
+              disabled={relocating || !canWrite}
             >
               {relocating
                 ? t("s.cars.id.saving")
@@ -498,7 +503,7 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">{t("s.cars.id.vehicleCondition")}</h2>
 
-            <Button variant="secondary" onClick={() => setEditingCondition(true)}>
+            <Button variant="secondary" onClick={() => setEditingCondition(true)} disabled={!canWrite}>
               <Pencil className="h-4 w-4" />{t("s.cars.id.edit")}</Button>
           </div>
 
@@ -594,7 +599,7 @@ export default function CarDetailsPage({ params }: Props) {
               <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.maintenanceCleaningTasksLogged")}</p>
             </div>
 
-            <Button variant="secondary" onClick={() => setLoggingTask(true)}>
+            <Button variant="secondary" onClick={() => setLoggingTask(true)} disabled={!canWrite}>
               <Wrench className="h-4 w-4" />{t("s.cars.id.logTask")}</Button>
 
           </div>

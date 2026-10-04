@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_authenticated_user
+from app.dependencies import require_authenticated_user, require_permission
+from app.permissions import MONEY_APPROVE
 from app.models import Handover, User
 from app.schemas.check_out import (
     CheckOutCompleteResponse,
@@ -71,7 +72,7 @@ def waive_charges_endpoint(
     reservation_id: UUID,
     data: CheckOutWaiveInput,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_permission(MONEY_APPROVE)),
 ):
     check_out = waive_charges(db, reservation_id, data, current_user)
 
@@ -82,7 +83,7 @@ def waive_charges_endpoint(
 def settle_deposit_endpoint(
     reservation_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_authenticated_user),
+    current_user: User = Depends(require_permission(MONEY_APPROVE)),
 ):
     check_out = settle_deposit_step(db, reservation_id, current_user)
 

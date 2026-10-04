@@ -17,6 +17,7 @@ import { CustomerEditModal } from "@/components/customers/CustomerEditModal";
 import { SkeletonDetailPage } from "@/components/ui/Skeleton";
 import { bookingReference, formatDate, formatDateTime } from "@/lib/format";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { useNavigate } from "@/lib/useNavigate";
 import { t } from "@/lib/i18n";
 
@@ -29,6 +30,7 @@ type Props = {
 export default function CustomerDetailsPage({ params }: Props) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const canWrite = can(user?.role, "bookings.write");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [reservations, setReservations] = useState<CustomerReservation[]>([]);
 
@@ -170,7 +172,7 @@ export default function CustomerDetailsPage({ params }: Props) {
               )}
 
               {!customer.anonymized_at && (
-                <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Button variant="secondary" onClick={() => setEditing(true)} disabled={!canWrite}>
                   <Pencil className="h-4 w-4" />{t("s.customers.id.edit")}</Button>
               )}
             </div>

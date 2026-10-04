@@ -192,7 +192,9 @@ export default function UsersPage() {
             >
               <option value="ALL">{t("s.admin.users.allRoles")}</option>
               <option value="admin">{t("s.admin.users.admin")}</option>
+              <option value="manager">{t("s.admin.users.manager")}</option>
               <option value="staff">{t("s.admin.users.staff")}</option>
+              <option value="readonly">{t("s.admin.users.readonly")}</option>
             </Select>
           )}
         </Field>

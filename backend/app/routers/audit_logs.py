@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import require_role
+from app.dependencies import require_permission
+from app.permissions import REPORTS_READ
 from app.schemas.audit_log import AuditLogActor, AuditLogListItem, AuditLogListResponse
 from app.services.audit_logs import list_audit_log_actors, list_audit_logs
 
@@ -15,7 +16,7 @@ from app.services.audit_logs import list_audit_log_actors, list_audit_logs
 router = APIRouter(
     prefix="/api/audit-logs",
     tags=["Audit Log"],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(REPORTS_READ))],
 )
 
 

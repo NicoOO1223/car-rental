@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_role
+from app.dependencies import get_current_user, require_permission
+from app.permissions import FLEET_MANAGE
 from app.models import User
 from app.routers.cars import _with_current_status
 from app.schemas.car import CarCreate, CarPriceUpdate, CarResponse
@@ -12,12 +13,12 @@ from app.services.availability import get_current_maintenance_by_car
 from app.services.car_fleet import create_car, reactivate_car, retire_car
 from app.services.cars import update_car_price
 
-# A vehicle's daily rate is a pricing decision: admin-only, and kept out of
+# A vehicle's daily rate is a pricing decision: managers and admins only, and kept out of
 # the general car edit (PATCH /api/cars/{id}), which any staff member can use.
 router = APIRouter(
     prefix="/api/admin/cars",
     tags=["Cars (admin)"],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(FLEET_MANAGE))],
 )
 
 

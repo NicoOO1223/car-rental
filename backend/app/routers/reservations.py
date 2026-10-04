@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.errors import NotFoundError
 from app.database import get_db
 from app.dependencies import require_authenticated_user
+from app.errors import AppError
+from app.permissions import MONEY_APPROVE, has_permission
 from app.schemas.pricing import PriceBreakdownFields
 from app.services.configuration import get_configuration
 from app.schemas.reservation import (
@@ -117,6 +119,12 @@ def cancel_reservation_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
+    # Deciding what happens to the money (keep or refund the online payment,
+    # whatever the policy says) is an approval; without a decision the
+    # admin's cancellation policy applies, which any counter employee may trigger.
+    if data is not None and data.refund_prepayment is not None and not has_permission(current_user.role, MONEY_APPROVE):
+        raise AppError("auth.needs_manager", "A manager has to decide whether the online payment is kept or refunded.", status_code=403)
+
     reservation = cancel_reservation(
         db=db,
         reservation_id=reservation_id,

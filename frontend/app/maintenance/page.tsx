@@ -24,6 +24,8 @@ import { NewTaskModal } from "@/components/maintenance/NewTaskModal";
 import { maintenanceCategoryLabel } from "@/lib/maintenance";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { can } from "@/lib/permissions";
 import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
@@ -34,6 +36,9 @@ const FILTER_DEFAULTS = {
 const PAGE_SIZE = 25;
 
 export default function MaintenancePage() {
+  // Whether this account may change things; the server refuses the rest anyway.
+  const { user: currentUser } = useCurrentUser();
+  const canWrite = can(currentUser?.role, "bookings.write");
   const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS);
   const statusFilter = filters.status;
   const page = Number(filters.page) || 1;
@@ -234,7 +239,7 @@ export default function MaintenancePage() {
 
             <Button
               onClick={() => setShowNewTask(true)}
-              disabled={cars.length === 0}
+              disabled={cars.length === 0 || !canWrite}
             >
               <Plus className="h-4 w-4" aria-hidden="true" />{t("s.maintenance.newTask")}</Button>
           </>

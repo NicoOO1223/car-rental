@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.errors import AppError
 from app.database import get_db
-from app.dependencies import require_authenticated_user, require_role
+from app.dependencies import require_authenticated_user, require_permission
+from app.permissions import REPORTS_READ
 from app.models import Car, Location, Reservation
 from app.schemas.dashboard import (
     DashboardAwayCar,
@@ -416,7 +417,7 @@ def get_fleet_status(
     # Aggregate financial reporting — narrower than the rest of the
     # dashboard, which every staff member uses for routine day-to-day
     # operations.
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[Depends(require_permission(REPORTS_READ))],
 )
 def get_revenue(
     start_date: date | None = Query(None),
