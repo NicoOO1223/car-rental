@@ -9,12 +9,14 @@ from app.dependencies import require_authenticated_user
 from app.models import User
 from app.schemas.pricing import PriceBreakdownExtraLine
 from app.schemas.handover import (
+    AgreementTermsResponse,
     DepositIntentResponse,
     HandoverResponse,
     PaymentIntentResponse,
     PaymentSummaryResponse,
     SignatureSubmit,
 )
+from app.services.agreement_pdf import agreement_terms
 from app.services.deposits import (
     confirm_cash_deposit,
     confirm_deposit_hold,
@@ -48,6 +50,13 @@ def get_handover_state(
     handover = get_or_create_handover(db, reservation_id, actor=current_user)
 
     return HandoverResponse.from_model(handover)
+
+
+@router.get("/agreement-terms", response_model=AgreementTermsResponse)
+def get_agreement_terms(db: Session = Depends(get_db)):
+    """What the customer is about to sign. Does not start a handover."""
+
+    return AgreementTermsResponse(**agreement_terms(db))
 
 
 @router.get("/payment-summary", response_model=PaymentSummaryResponse)

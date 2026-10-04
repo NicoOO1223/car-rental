@@ -7,8 +7,9 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_role
 from app.models import User
 from app.routers.cars import _with_current_status
-from app.schemas.car import CarPriceUpdate, CarResponse
+from app.schemas.car import CarCreate, CarPriceUpdate, CarResponse
 from app.services.availability import get_current_maintenance_by_car
+from app.services.car_fleet import create_car, reactivate_car, retire_car
 from app.services.cars import update_car_price
 
 # A vehicle's daily rate is a pricing decision: admin-only, and kept out of
@@ -18,6 +19,41 @@ router = APIRouter(
     tags=["Cars (admin)"],
     dependencies=[Depends(require_role("admin"))],
 )
+
+
+@router.post("", response_model=CarResponse, status_code=201)
+def create_car_endpoint(
+    data: CarCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Adds a vehicle to the fleet. Its photo is added afterwards, like any car's."""
+
+    car = create_car(db, data, current_user)
+
+    return _with_current_status(car, get_current_maintenance_by_car(db))
+
+
+@router.post("/{car_id}/retire", response_model=CarResponse)
+def retire_car_endpoint(
+    car_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    car = retire_car(db, car_id, current_user)
+
+    return _with_current_status(car, get_current_maintenance_by_car(db))
+
+
+@router.post("/{car_id}/reactivate", response_model=CarResponse)
+def reactivate_car_endpoint(
+    car_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    car = reactivate_car(db, car_id, current_user)
+
+    return _with_current_status(car, get_current_maintenance_by_car(db))
 
 
 @router.patch("/{car_id}/price", response_model=CarResponse)

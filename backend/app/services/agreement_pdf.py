@@ -21,6 +21,26 @@ from app.services.pdf_common import (
 )
 
 
+def agreement_terms(db: Session) -> dict:
+    """
+    The terms exactly as the agreement will print them, so the customer can read
+    what they are signing before they sign. The business's own wording if it has
+    set any, else the built-in placeholder, which is flagged because it is not
+    real legal copy.
+    """
+
+    configuration = get_configuration(db)
+    language = document_language(configuration.document_language)
+    own = (configuration.agreement_terms or "").strip()
+
+    return {
+        "language": language,
+        "title": label(language, "agreement.terms"),
+        "terms": own or label(language, "agreement.default_terms"),
+        "is_placeholder": not own,
+    }
+
+
 def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
     """
     Draws the rental agreement in the business's current document language
@@ -162,7 +182,7 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
     heading(label(language, "agreement.terms"))
     # The business's own wording if it has set any (printed exactly as
     # written, in whatever language it wrote it), else the placeholder.
-    terms = configuration.agreement_terms or label(language, "agreement.default_terms")
+    terms = agreement_terms(db)["terms"]
 
     for terms_line in wrap_text(terms, size=8, width=width - 2 * left):
         line(terms_line, size=8, gap=4.5 * mm)

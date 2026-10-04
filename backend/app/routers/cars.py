@@ -50,16 +50,23 @@ def _with_current_status(car: Car, maintenance_now: dict) -> CarResponse:
 
 @router.get("", response_model=list[CarResponse])
 def get_cars(
+    include_retired: bool = False,
     db: Session = Depends(get_db),
 ):
-    cars = db.scalars(
+    query = (
         select(Car)
         .options(
             joinedload(Car.current_location),
             joinedload(Car.home_location),
         )
         .order_by(Car.license_plate)
-    ).all()
+    )
+
+    # Cars that left the fleet are only listed when asked for.
+    if not include_retired:
+        query = query.where(Car.retired_at.is_(None))
+
+    cars = db.scalars(query).all()
 
     maintenance_now = get_current_maintenance_by_car(db)
 

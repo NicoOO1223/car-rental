@@ -121,6 +121,7 @@ def get_dashboard(
 
     cars = db.scalars(
         select(Car)
+        .where(Car.retired_at.is_(None))
         .options(
             joinedload(Car.current_location),
             joinedload(Car.home_location),

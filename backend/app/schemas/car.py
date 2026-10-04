@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -42,6 +42,9 @@ class CarResponse(BaseModel):
     insured_until: date | None
     insurance_cost: Decimal | None
     offered_online: bool
+    # Set once the car has left the fleet; it is then left out of every list.
+    retired_at: datetime | None
+    is_retired: bool
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -71,6 +74,27 @@ class CarUpdate(BaseModel):
     insurance_cost: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     # Whether the public storefront may offer this car.
     offered_online: bool | None = None
+
+
+class CarCreate(BaseModel):
+    """A vehicle joining the fleet. It starts AVAILABLE at its home location;
+    everything after that is driven by reservations, handovers and maintenance."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    make: str = Field(min_length=1, max_length=50)
+    model: str = Field(min_length=1, max_length=50)
+    year: int = Field(ge=1980, le=2100)
+    license_plate: str = Field(min_length=1, max_length=20)
+    category: str | None = Field(default=None, max_length=50)
+    transmission: str | None = Field(default=None, max_length=20)
+    fuel_type: str | None = Field(default=None, max_length=20)
+    seats: int | None = Field(default=None, ge=1, le=20)
+    price_per_day: Decimal = Field(ge=0, max_digits=8, decimal_places=2)
+    home_location_id: UUID
+    mileage: int | None = Field(default=None, ge=0)
+    # Off until staff have added a photo and are ready to rent it online.
+    offered_online: bool = False
 
 
 class DailyRateResponse(BaseModel):

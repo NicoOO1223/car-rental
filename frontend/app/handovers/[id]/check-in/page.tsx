@@ -7,6 +7,7 @@ import {
   createPaymentIntent,
   generateAgreement,
   downloadAgreement,
+  getAgreementTerms,
   getHandover,
   getIdentityDetails,
   getPaymentSummary,
@@ -14,6 +15,7 @@ import {
   getReservation,
   submitEmployeeSignature,
   submitSignature,
+  type AgreementTerms,
   type Handover,
   type IdentityDetails,
   type PaymentIntent,
@@ -69,6 +71,11 @@ export default function FinalizeHandoverPage({ params }: Props) {
   // 0 = deposits are off.
   const [depositAmount, setDepositAmount] = useState(0);
 
+  // The terms the customer reads before signing, and whether they said they did.
+  const [terms, setTerms] = useState<AgreementTerms | null>(null);
+  const [termsError, setTermsError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   const signaturePadRef = useRef<SignaturePadHandle>(null);
   const employeeSignaturePadRef = useRef<SignaturePadHandle>(null);
 
@@ -91,6 +98,18 @@ export default function FinalizeHandoverPage({ params }: Props) {
         setDepositAmount(
           (await getPublicConfiguration()).security_deposit_amount,
         );
+
+        // Without the terms on screen the customer would sign unread, so a
+        // failure here keeps the signature step closed instead of failing quietly.
+        try {
+          setTerms(await getAgreementTerms(id));
+        } catch (termsLoadError) {
+          setTermsError(
+            termsLoadError instanceof Error
+              ? termsLoadError.message
+              : t("s.handovers.id.checkIn.failedLoadTerms"),
+          );
+        }
 
         const summaryData = await getPaymentSummary(id);
         setSummary(summaryData);
@@ -135,6 +154,11 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   async function handleSaveSignature() {
     if (!reservationId || !signaturePadRef.current) return;
+
+    if (!terms || !termsAccepted) {
+      setSignatureError(t("s.handovers.id.checkIn.termsMustBeAccepted"));
+      return;
+    }
 
     if (signaturePadRef.current.isEmpty()) {
       setSignatureError(t("s.handovers.id.checkIn.pleaseHaveCustomerSign"));
@@ -482,6 +506,42 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   <p className="text-sm text-gray-700">{t("s.handovers.id.checkIn.signatureCaptured")}</p>
                 ) : signatureStatus === "active" ? (
                   <div className="space-y-4">
+                    {termsError ? (
+                      <p className="text-sm text-red-600" role="alert">{termsError}</p>
+                    ) : terms ? (
+                      <div>
+                        <h3 className="text-sm font-semibold text-ink">{terms.title}</h3>
+
+                        {terms.is_placeholder && (
+                          <p className="mt-1 text-sm text-amber-700">
+                            {t("s.handovers.id.checkIn.placeholderTermsWarning")}
+                          </p>
+                        )}
+
+                        {/* Focusable, so a keyboard user can scroll it. */}
+                        <div
+                          tabIndex={0}
+                          role="region"
+                          aria-label={terms.title}
+                          className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border-subtle bg-canvas p-3 text-sm text-ink"
+                        >
+                          {terms.terms}
+                        </div>
+
+                        <label className="mt-3 flex items-start gap-3 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(event) => setTermsAccepted(event.target.checked)}
+                            className="mt-0.5 h-4 w-4 accent-gray-900"
+                          />
+                          <span>{t("s.handovers.id.checkIn.customerAcceptsTerms")}</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.loadingTerms")}</p>
+                    )}
+
                     <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.haveCustomerSignBelow")}</p>
 
                     <SignaturePad ref={signaturePadRef} />
@@ -496,7 +556,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                         onClick={() => signaturePadRef.current?.clear()}
                       >{t("s.handovers.id.checkIn.clear")}</Button>
 
-                      <Button onClick={handleSaveSignature} disabled={signing}>
+                      <Button onClick={handleSaveSignature} disabled={signing || !terms || !termsAccepted}>
                         {signing ? t("s.handovers.id.checkIn.saving") : t("s.handovers.id.checkIn.saveSignature")}
                       </Button>
                     </div>

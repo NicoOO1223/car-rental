@@ -151,7 +151,16 @@
       "license_plate_already_use": "Ta tablica rejestracyjna jest już używana.",
       "not_found": "Nie znaleziono pojazdu.",
       "no_photo": "Nie przesłano żadnego zdjęcia dla tego pojazdu.",
-      "insurance_end_before_start": "Data końca ubezpieczenia nie może być wcześniejsza niż data początku."
+      "insurance_end_before_start": "Data końca ubezpieczenia nie może być wcześniejsza niż data początku.",
+      "retired": "Ten pojazd opuścił flotę i nie można go zarezerwować.",
+      "retire_has_bookings": "Ten pojazd jest wynajęty lub ma niezakończone rezerwacje ({bookings}). Najpierw je anuluj lub przenieś.",
+      "retire_has_maintenance": "Ten pojazd ma jeszcze otwarty serwis lub sprzątanie ({tasks}). Najpierw je zakończ lub anuluj.",
+      "already_retired": "Ten pojazd już opuścił flotę.",
+      "not_retired": "Ten pojazd jest już we flocie.",
+      "invalid_category_value": "Wybierz prawidłową kategorię.",
+      "invalid_transmission_value": "Wybierz prawidłową skrzynię biegów.",
+      "invalid_fuel_type_value": "Wybierz prawidłowy rodzaj paliwa.",
+      "home_location_not_in_use": "To lotnisko nie jest już używane."
     },
     "car_photo": {
       "corrupted": "Plik zdjęcia jest uszkodzony.",
@@ -625,6 +634,28 @@
         "insuredUntil": "Ubezpieczony do",
         "insuranceCost": "Koszt ubezpieczenia",
         "insuranceCostHint": "Opcjonalne. Cena za powyższy okres."
+      },
+      "AddVehicleModal": {
+        "title": "Dodaj pojazd",
+        "description": "Zaczyna jako dostępny na lotnisku bazowym.",
+        "cancel": "Anuluj",
+        "add": "Dodaj pojazd",
+        "adding": "Dodawanie",
+        "failedAdd": "Nie udało się dodać pojazdu.",
+        "make": "Marka",
+        "model": "Model",
+        "licensePlate": "Numer rejestracyjny",
+        "year": "Rok",
+        "category": "Kategoria",
+        "notSet": "Nie ustawiono",
+        "pricePerDay": "Cena za dzień ({currency})",
+        "transmission": "Skrzynia biegów",
+        "fuelType": "Rodzaj paliwa",
+        "seats": "Liczba miejsc",
+        "mileage": "Przebieg (km)",
+        "homeAirport": "Lotnisko bazowe",
+        "homeAirportHint": "Gdzie samochód ma bazę i skąd zaczyna.",
+        "afterwardsHint": "Zdjęcie, ubezpieczenie i terminy przeglądów dodasz później na stronie pojazdu. Nie jest oferowany online, dopóki tego nie włączysz."
       }
     },
     "charts": {
@@ -1074,7 +1105,18 @@
           "dailyRate": "Stawka dobowa dla {license_plate}",
           "saving": "Zapisywanie",
           "saved": "Zapisano",
-          "save": "Zapisz"
+          "save": "Zapisz",
+          "addVehicle": "Dodaj pojazd",
+          "showRetired": "Pokaż wycofane pojazdy",
+          "retired": "Wycofany",
+          "retire": "Wycofaj",
+          "reactivate": "Przywróć do floty",
+          "retireTitle": "Wycofać {license_plate}?",
+          "retireExplanation": "Pojazd na stałe opuszcza flotę: nie jest już oferowany do nowych rezerwacji i znika z list i raportów floty. Dotychczasowe rezerwacje, faktury i historia serwisowa zostają zachowane. Możesz go później przywrócić.",
+          "keepInFleet": "Zostaw we flocie",
+          "confirmRetire": "Wycofaj pojazd",
+          "failedRetire": "Nie udało się wycofać pojazdu.",
+          "failedReactivate": "Nie udało się przywrócić pojazdu do floty."
         },
         "storefront": {
           "failedLoad": "Nie udało się wczytać ustawień rezerwacji online.",
@@ -1384,6 +1426,11 @@
           "identityDrivingLicence": "Tożsamość i prawo jazdy",
           "customerSignature": "Podpis klienta",
           "signatureCaptured": "Podpis zapisany.",
+          "failedLoadTerms": "Nie udało się wczytać warunków, które klient musi przeczytać.",
+          "loadingTerms": "Wczytywanie warunków...",
+          "placeholderTermsWarning": "To są warunki zastępcze, a nie własne warunki firmy. Ustaw właściwą treść w Konfiguracji, zanim zaczniesz polegać na tej umowie.",
+          "customerAcceptsTerms": "Klient przeczytał i akceptuje te warunki.",
+          "termsMustBeAccepted": "Klient musi przeczytać i zaakceptować warunki przed podpisaniem.",
           "haveCustomerSignBelow": "Poproś klienta o podpis poniżej.",
           "clear": "Wyczyść",
           "verifyCustomerSIdentity": "Najpierw zweryfikuj tożsamość klienta.",

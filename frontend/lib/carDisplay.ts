@@ -76,3 +76,8 @@ export function carSpecs(car: {
 
   return specs;
 }
+
+/** The choices a vehicle's category, gearbox and fuel can take (the server checks the same lists). */
+export const CATEGORY_OPTIONS = ["ECONOMY", "COMPACT", "MIDSIZE", "PREMIUM", "SUV", "VAN"];
+export const TRANSMISSION_OPTIONS = ["MANUAL", "AUTOMATIC"];
+export const FUEL_OPTIONS = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC"];

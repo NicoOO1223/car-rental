@@ -151,7 +151,16 @@
       "license_plate_already_use": "License plate already in use.",
       "not_found": "Car not found.",
       "no_photo": "No photo has been uploaded for this car.",
-      "insurance_end_before_start": "The insurance end date cannot be before its start date."
+      "insurance_end_before_start": "The insurance end date cannot be before its start date.",
+      "retired": "This vehicle has left the fleet and cannot be booked.",
+      "retire_has_bookings": "This vehicle is out on rental or has bookings that have not ended ({bookings}). Cancel or move them first.",
+      "retire_has_maintenance": "This vehicle still has open maintenance or cleaning ({tasks}). Complete or cancel it first.",
+      "already_retired": "This vehicle has already left the fleet.",
+      "not_retired": "This vehicle is already in the fleet.",
+      "invalid_category_value": "Choose a valid category.",
+      "invalid_transmission_value": "Choose a valid transmission.",
+      "invalid_fuel_type_value": "Choose a valid fuel type.",
+      "home_location_not_in_use": "That airport is no longer in use."
     },
     "car_photo": {
       "corrupted": "The photo file is corrupted.",
@@ -625,6 +634,28 @@
         "insuredUntil": "Insured until",
         "insuranceCost": "Insurance cost",
         "insuranceCostHint": "Optional. The price for the period above."
+      },
+      "AddVehicleModal": {
+        "title": "Add a vehicle",
+        "description": "It starts available at its home airport.",
+        "cancel": "Cancel",
+        "add": "Add vehicle",
+        "adding": "Adding",
+        "failedAdd": "Could not add the vehicle.",
+        "make": "Make",
+        "model": "Model",
+        "licensePlate": "License plate",
+        "year": "Year",
+        "category": "Category",
+        "notSet": "Not set",
+        "pricePerDay": "Price per day ({currency})",
+        "transmission": "Transmission",
+        "fuelType": "Fuel type",
+        "seats": "Seats",
+        "mileage": "Mileage (km)",
+        "homeAirport": "Home airport",
+        "homeAirportHint": "Where the car belongs and starts out.",
+        "afterwardsHint": "Add a photo, insurance and inspection dates from the vehicle's page afterwards. It is not offered online until you turn that on."
       }
     },
     "charts": {
@@ -1074,7 +1105,18 @@
           "dailyRate": "Daily rate for {license_plate}",
           "saving": "Saving",
           "saved": "Saved",
-          "save": "Save"
+          "save": "Save",
+          "addVehicle": "Add vehicle",
+          "showRetired": "Show retired vehicles",
+          "retired": "Retired",
+          "retire": "Retire",
+          "reactivate": "Put back in fleet",
+          "retireTitle": "Retire {license_plate}?",
+          "retireExplanation": "The vehicle leaves the fleet for good: it is no longer offered for new bookings and disappears from the fleet lists and reports. Its past bookings, invoices and maintenance history are kept. You can put it back later.",
+          "keepInFleet": "Keep in fleet",
+          "confirmRetire": "Retire vehicle",
+          "failedRetire": "Could not retire the vehicle.",
+          "failedReactivate": "Could not put the vehicle back."
         },
         "storefront": {
           "failedLoad": "Failed to load the online booking settings.",
@@ -1384,6 +1426,11 @@
           "identityDrivingLicence": "Identity & Driving Licence",
           "customerSignature": "Customer Signature",
           "signatureCaptured": "Signature captured.",
+          "failedLoadTerms": "Could not load the terms the customer has to read.",
+          "loadingTerms": "Loading the terms...",
+          "placeholderTermsWarning": "These are placeholder terms, not the business's own. Set the real wording in Configuration before relying on this agreement.",
+          "customerAcceptsTerms": "The customer has read and accepts these terms.",
+          "termsMustBeAccepted": "The customer has to read and accept the terms before signing.",
           "haveCustomerSignBelow": "Have the customer sign below.",
           "clear": "Clear",
           "verifyCustomerSIdentity": "Verify the customer's identity first.",

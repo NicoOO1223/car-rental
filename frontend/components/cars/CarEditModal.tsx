@@ -16,6 +16,7 @@ import {
   type Car,
   type Location,
 } from "@/lib/api";
+import { CATEGORY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS } from "@/lib/carDisplay";
 import { formatCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -30,19 +31,6 @@ function readAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-
-const CATEGORY_OPTIONS = [
-  "ECONOMY",
-  "COMPACT",
-  "MIDSIZE",
-  "PREMIUM",
-  "SUV",
-  "VAN",
-];
-
-const TRANSMISSION_OPTIONS = ["MANUAL", "AUTOMATIC"];
-
-const FUEL_OPTIONS = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC"];
 
 type Props = {
   car: Car;

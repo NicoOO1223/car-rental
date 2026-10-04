@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 
-import { getCars, updateCarPrice, type Car } from "@/lib/api";
+import {
+  getCars,
+  getLocations,
+  reactivateCar,
+  retireCar,
+  updateCarPrice,
+  type Car,
+  type Location,
+} from "@/lib/api";
+import { AddVehicleModal } from "@/components/cars/AddVehicleModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 import { formatCurrency, getDefaultCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
@@ -16,10 +26,18 @@ export default function VehicleRatesConfigurationPage() {
   const [error, setError] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
 
+  const [showRetired, setShowRetired] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [adding, setAdding] = useState(false);
+  // The car staff are about to retire, until they confirm or back out.
+  const [retiring, setRetiring] = useState<Car | null>(null);
+  const [retireError, setRetireError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
-    getCars()
+    getCars({ includeRetired: showRetired })
       .then((data) => {
         if (!cancelled) setCars(data);
       })
@@ -30,7 +48,56 @@ export default function VehicleRatesConfigurationPage() {
     return () => {
       cancelled = true;
     };
+  }, [showRetired]);
+
+  // A car can only join at a place that is in use.
+  useEffect(() => {
+    getLocations().then(setLocations).catch(() => undefined);
   }, []);
+
+  function replaceCar(updated: Car) {
+    setCars((current) =>
+      current ? current.map((item) => (item.id === updated.id ? updated : item)) : current,
+    );
+  }
+
+  async function confirmRetire() {
+    if (!retiring) return;
+
+    setBusyId(retiring.id);
+    setRetireError("");
+
+    try {
+      const updated = await retireCar(retiring.id);
+
+      // Gone from the list unless retired cars are being shown.
+      setCars((current) =>
+        current
+          ? showRetired
+            ? current.map((item) => (item.id === updated.id ? updated : item))
+            : current.filter((item) => item.id !== updated.id)
+          : current,
+      );
+      setRetiring(null);
+    } catch (err) {
+      setRetireError(err instanceof Error ? err.message : t("s.admin.configuration.vehicles.failedRetire"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function reactivate(car: Car) {
+    setBusyId(car.id);
+    setError("");
+
+    try {
+      replaceCar(await reactivateCar(car.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.vehicles.failedReactivate"));
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function save(car: Car) {
     const draft = drafts[car.id];
@@ -69,9 +136,27 @@ export default function VehicleRatesConfigurationPage() {
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.vehicles.vehicleRates")}</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.vehicles.vehicleRates")}</h2>
 
-      <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.dailyRateEachVehicle")}</p>
+          <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.dailyRateEachVehicle")}</p>
+        </div>
+
+        <Button onClick={() => setAdding(true)} disabled={locations.length === 0}>
+          {t("s.admin.configuration.vehicles.addVehicle")}
+        </Button>
+      </div>
+
+      <label className="mt-4 flex items-center gap-2 text-sm text-ink-secondary">
+        <input
+          type="checkbox"
+          checked={showRetired}
+          onChange={(event) => setShowRetired(event.target.checked)}
+          className="h-4 w-4 accent-gray-900"
+        />
+        {t("s.admin.configuration.vehicles.showRetired")}
+      </label>
 
       {error && (
         <p className="mt-4 text-sm text-red-600" role="alert">
@@ -100,6 +185,10 @@ export default function VehicleRatesConfigurationPage() {
                     </span>
                   </p>
 
+                  {car.is_retired && (
+                    <p className="text-sm font-medium text-amber-700">{t("s.admin.configuration.vehicles.retired")}</p>
+                  )}
+
                   <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
                 </div>
 
@@ -113,6 +202,7 @@ export default function VehicleRatesConfigurationPage() {
                       min={0}
                       step="0.01"
                       value={draft ?? car.price_per_day}
+                      disabled={car.is_retired}
                       onChange={(event) => {
                         setSavedId(null);
                         setDrafts({ ...drafts, [car.id]: event.target.value });
@@ -132,11 +222,65 @@ export default function VehicleRatesConfigurationPage() {
                   >
                     {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
                   </Button>
+
+                  {car.is_retired ? (
+                    <Button variant="ghost" onClick={() => reactivate(car)} loading={busyId === car.id}>
+                      {t("s.admin.configuration.vehicles.reactivate")}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setRetireError("");
+                        setRetiring(car);
+                      }}
+                    >
+                      {t("s.admin.configuration.vehicles.retire")}
+                    </Button>
+                  )}
                 </div>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {adding && (
+        <AddVehicleModal
+          locations={locations}
+          onClose={() => setAdding(false)}
+          onCreated={(car) =>
+            setCars((current) =>
+              current ? [...current, car].sort((a, b) => a.license_plate.localeCompare(b.license_plate)) : current,
+            )
+          }
+        />
+      )}
+
+      {retiring && (
+        <Modal
+          isOpen
+          title={t("s.admin.configuration.vehicles.retireTitle", { license_plate: retiring.license_plate })}
+          onClose={() => setRetiring(null)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setRetiring(null)}>
+                {t("s.admin.configuration.vehicles.keepInFleet")}
+              </Button>
+              <Button onClick={confirmRetire} loading={busyId === retiring.id}>
+                {t("s.admin.configuration.vehicles.confirmRetire")}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.retireExplanation")}</p>
+
+          {retireError && (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              {retireError}
+            </p>
+          )}
+        </Modal>
       )}
     </Card>
   );

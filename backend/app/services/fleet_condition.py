@@ -51,7 +51,7 @@ def get_fleet_condition(db: Session) -> dict:
     configuration = get_configuration(db)
     interval_km = configuration.oil_change_interval_km
 
-    cars = list(db.scalars(select(Car).order_by(Car.license_plate)).all())
+    cars = list(db.scalars(select(Car).where(Car.retired_at.is_(None)).order_by(Car.license_plate)).all())
 
     total_insurance_cost = db.scalar(
         select(func.coalesce(func.sum(Car.insurance_cost), 0))

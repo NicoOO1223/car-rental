@@ -67,6 +67,9 @@ def create_reservation(
     require_bookable_location(db, pickup_location_id, "pickup")
     require_bookable_location(db, return_location_id, "return")
 
+    if car.is_retired:
+        raise AppError("car.retired", "This car has left the fleet and cannot be booked.")
+
     # Where the car will be when the rental starts, not where it is today:
     # a car out on a rental now can be booked for a later date. Its status
     # today does not decide either; overlapping bookings and maintenance
@@ -508,6 +511,11 @@ def update_reservation(
 
     if target_car is None:
         raise NotFoundError("car.not_found", "Car not found.")
+
+    # Moving a booking onto a car that has left the fleet; a booking already on
+    # one (it was retired afterwards) can still be edited.
+    if is_reassignment and target_car.is_retired:
+        raise AppError("car.retired", "This car has left the fleet and cannot be booked.")
 
     # Only a location the booking is being moved to has to be in use; a
     # reservation already at a since-retired location stays editable.

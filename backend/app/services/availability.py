@@ -350,6 +350,7 @@ def get_available_cars(
     cars_query = (
         select(Car)
         .where(
+            Car.retired_at.is_(None),
             func.coalesce(last_return_location, Car.current_location_id) == pickup_location_id,
             ~reservation_conflict,
             ~maintenance_conflict,
@@ -398,6 +399,7 @@ def _compute_car_statuses_for_date(
     cars_query = (
         select(Car.id, Car.status, Location.timezone)
         .join(Location, Location.id == Car.current_location_id)
+        .where(Car.retired_at.is_(None))
     )
 
     if location_id is not None:

@@ -151,7 +151,16 @@
       "license_plate_already_use": "Questa targa è già in uso.",
       "not_found": "Veicolo non trovato.",
       "no_photo": "Non è stata caricata alcuna foto per questo veicolo.",
-      "insurance_end_before_start": "La data di fine dell’assicurazione non può precedere quella di inizio."
+      "insurance_end_before_start": "La data di fine dell’assicurazione non può precedere quella di inizio.",
+      "retired": "Questo veicolo è uscito dalla flotta e non può essere prenotato.",
+      "retire_has_bookings": "Questo veicolo è in noleggio o ha prenotazioni non concluse ({bookings}). Annullale o spostale prima.",
+      "retire_has_maintenance": "Questo veicolo ha ancora manutenzioni o pulizie aperte ({tasks}). Completale o annullale prima.",
+      "already_retired": "Questo veicolo è già uscito dalla flotta.",
+      "not_retired": "Questo veicolo è già in flotta.",
+      "invalid_category_value": "Scegli una categoria valida.",
+      "invalid_transmission_value": "Scegli un cambio valido.",
+      "invalid_fuel_type_value": "Scegli un'alimentazione valida.",
+      "home_location_not_in_use": "Quell'aeroporto non è più in uso."
     },
     "car_photo": {
       "corrupted": "Il file della foto è danneggiato.",
@@ -625,6 +634,28 @@
         "insuredUntil": "Assicurata fino al",
         "insuranceCost": "Costo assicurazione",
         "insuranceCostHint": "Facoltativo. Il prezzo per il periodo indicato."
+      },
+      "AddVehicleModal": {
+        "title": "Aggiungi un veicolo",
+        "description": "Parte disponibile nell'aeroporto di base.",
+        "cancel": "Annulla",
+        "add": "Aggiungi veicolo",
+        "adding": "Aggiunta",
+        "failedAdd": "Impossibile aggiungere il veicolo.",
+        "make": "Marca",
+        "model": "Modello",
+        "licensePlate": "Targa",
+        "year": "Anno",
+        "category": "Categoria",
+        "notSet": "Non impostato",
+        "pricePerDay": "Prezzo al giorno ({currency})",
+        "transmission": "Cambio",
+        "fuelType": "Alimentazione",
+        "seats": "Posti",
+        "mileage": "Chilometraggio (km)",
+        "homeAirport": "Aeroporto di base",
+        "homeAirportHint": "Dove l'auto è assegnata e da dove parte.",
+        "afterwardsHint": "Aggiungi foto, assicurazione e date delle revisioni dalla pagina del veicolo. Non è offerto online finché non lo attivi."
       }
     },
     "charts": {
@@ -1074,7 +1105,18 @@
           "dailyRate": "Tariffa giornaliera per {license_plate}",
           "saving": "Salvataggio in corso",
           "saved": "Salvato",
-          "save": "Salva"
+          "save": "Salva",
+          "addVehicle": "Aggiungi veicolo",
+          "showRetired": "Mostra i veicoli ritirati",
+          "retired": "Ritirato",
+          "retire": "Ritira",
+          "reactivate": "Rimetti in flotta",
+          "retireTitle": "Ritirare {license_plate}?",
+          "retireExplanation": "Il veicolo esce definitivamente dalla flotta: non viene più offerto per nuove prenotazioni e sparisce dagli elenchi e dai rapporti della flotta. Le prenotazioni passate, le fatture e la storia delle manutenzioni restano. Puoi rimetterlo in flotta in seguito.",
+          "keepInFleet": "Tieni in flotta",
+          "confirmRetire": "Ritira il veicolo",
+          "failedRetire": "Impossibile ritirare il veicolo.",
+          "failedReactivate": "Impossibile rimettere il veicolo in flotta."
         },
         "storefront": {
           "failedLoad": "Impossibile caricare le impostazioni della prenotazione online.",
@@ -1384,6 +1426,11 @@
           "identityDrivingLicence": "Identità e patente di guida",
           "customerSignature": "Firma del cliente",
           "signatureCaptured": "Firma acquisita.",
+          "failedLoadTerms": "Impossibile caricare i termini che il cliente deve leggere.",
+          "loadingTerms": "Caricamento dei termini...",
+          "placeholderTermsWarning": "Questi sono termini segnaposto, non quelli dell'attività. Imposta il testo vero in Configurazione prima di fare affidamento su questo contratto.",
+          "customerAcceptsTerms": "Il cliente ha letto e accetta questi termini.",
+          "termsMustBeAccepted": "Il cliente deve leggere e accettare i termini prima di firmare.",
           "haveCustomerSignBelow": "Fai firmare il cliente qui sotto.",
           "clear": "Cancella",
           "verifyCustomerSIdentity": "Verifica prima l’identità del cliente.",

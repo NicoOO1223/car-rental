@@ -57,6 +57,7 @@ def list_notifications(db: Session) -> dict:
         select(Car)
         .options(joinedload(Car.current_location), joinedload(Car.home_location))
         .where(
+            Car.retired_at.is_(None),
             or_(
                 Car.current_location_id != Car.home_location_id,
                 Car.next_inspection_due <= horizon,
@@ -111,7 +112,7 @@ def list_notifications(db: Session) -> dict:
     # their own pass over every car instead.
     interval_km = configuration.oil_change_interval_km
 
-    for car in db.scalars(select(Car).order_by(Car.license_plate)).all():
+    for car in db.scalars(select(Car).where(Car.retired_at.is_(None)).order_by(Car.license_plate)).all():
         if oil_change_overdue(car, interval_km):
             items.append(
                 {

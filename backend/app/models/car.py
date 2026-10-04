@@ -95,6 +95,16 @@ class Car(Base):
     # dev/test) via app/services/photo_storage.py, uploaded through
     # app/services/car_photos.py — only the path is kept here, the same
     # split used for condition photos and the landing hero/about images.
+    # When the car left the fleet (sold, written off, returned to the lessor).
+    # NULL = in the fleet. Never deleted: reservations, invoices and maintenance
+    # history point at it. Every list and search of the current fleet leaves out
+    # a car with this set; see services/cars.py (retire_car).
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def is_retired(self) -> bool:
+        return self.retired_at is not None
+
     photo_blob_path: Mapped[str | None] = mapped_column(String(300))
     photo_content_type: Mapped[str | None] = mapped_column(String(20))
     photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

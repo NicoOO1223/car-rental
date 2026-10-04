@@ -220,3 +220,59 @@ def test_a_credit_note_is_printed_in_the_language_of_its_invoice(document_langua
 
 def test_the_document_language_only_accepts_supported_codes():
     assert client.patch("/api/configuration", json={"document_language": "xx"}).status_code == 422
+
+
+# --- the terms the customer reads before signing ---------------------------------------------
+
+
+def _terms(reservation_id):
+    return client.get(f"/api/reservations/{reservation_id}/handover/agreement-terms")
+
+
+def test_the_customer_sees_the_placeholder_terms_in_the_document_language(document_language_setting):
+    original = client.get("/api/configuration").json()["agreement_terms"]
+    client.patch("/api/configuration", json={"agreement_terms": ""})
+    document_language_setting("it")
+    reservation = _reservation()
+
+    try:
+        body = _terms(reservation["id"]).json()
+
+        assert body["language"] == "it"
+        assert body["is_placeholder"] is True
+        assert body["title"] == "Termini e condizioni"
+        assert body["terms"].strip()
+    finally:
+        client.patch("/api/configuration", json={"agreement_terms": original})
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_the_customer_sees_exactly_the_businesss_own_terms_and_the_pdf_prints_the_same():
+    from app.services.agreement_pdf import agreement_terms
+
+    original = client.get("/api/configuration").json()["agreement_terms"]
+    own = "Clause one.\nClause two: no smoking."
+    client.patch("/api/configuration", json={"agreement_terms": own})
+    reservation = _reservation()
+
+    try:
+        body = _terms(reservation["id"]).json()
+
+        assert body["terms"] == own
+        assert body["is_placeholder"] is False
+
+        db = SessionLocal()
+        try:
+            assert agreement_terms(db)["terms"] == body["terms"]
+        finally:
+            db.close()
+
+        # Reading the terms does not start a handover.
+        db = SessionLocal()
+        try:
+            assert db.query(Handover).filter(Handover.reservation_id == UUID(reservation["id"])).count() == 0
+        finally:
+            db.close()
+    finally:
+        client.patch("/api/configuration", json={"agreement_terms": original})
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")

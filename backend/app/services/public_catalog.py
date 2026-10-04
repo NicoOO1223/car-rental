@@ -181,7 +181,7 @@ def offered_cars(db: Session) -> list[Car]:
     """Every car the storefront may show, for the fleet page (no dates)."""
 
     return list(
-        db.scalars(select(Car).where(Car.offered_online.is_(True)).order_by(Car.make, Car.model, Car.license_plate))
+        db.scalars(select(Car).where(Car.offered_online.is_(True), Car.retired_at.is_(None)).order_by(Car.make, Car.model, Car.license_plate))
     )
 
 

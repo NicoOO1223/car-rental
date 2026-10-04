@@ -142,3 +142,14 @@ class DepositIntentResponse(BaseModel):
     deposit_status: str | None
     deposit_amount: float | None
     deposit_currency: str | None
+
+
+class AgreementTermsResponse(BaseModel):
+    """The terms the agreement will print, shown to the customer before they sign."""
+
+    language: str
+    title: str
+    terms: str
+    # True while the business has not written its own: the built-in text is not
+    # real legal copy.
+    is_placeholder: bool

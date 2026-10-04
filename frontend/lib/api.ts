@@ -776,6 +776,9 @@ export type Car = {
   insurance_cost: string | null;
   /** Whether the public storefront may offer this car. */
   offered_online: boolean;
+  /** Set once the car has left the fleet; it is then left out of every list. */
+  retired_at: string | null;
+  is_retired: boolean;
 };
 
 export type Notification = {
@@ -835,6 +838,50 @@ export async function updateCarPrice(
   return response.json();
 }
 
+export type NewCar = {
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  category: string | null;
+  transmission: string | null;
+  fuel_type: string | null;
+  seats: number | null;
+  price_per_day: string;
+  home_location_id: string;
+  mileage: number | null;
+  offered_online: boolean;
+};
+
+async function postCar(path: string, body?: object): Promise<Car> {
+  const response = await apiFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** Admin only: adds a vehicle to the fleet. */
+export function createCar(data: NewCar): Promise<Car> {
+  return postCar("/api/admin/cars", data);
+}
+
+/** Admin only: takes a vehicle out of the fleet for good. Its history stays. */
+export function retireCar(carId: string): Promise<Car> {
+  return postCar(`/api/admin/cars/${carId}/retire`);
+}
+
+/** Admin only: puts a retired vehicle back in the fleet. */
+export function reactivateCar(carId: string): Promise<Car> {
+  return postCar(`/api/admin/cars/${carId}/reactivate`);
+}
+
 /** Records that the car was moved back to its home airport. */
 export async function returnCarToHome(carId: string): Promise<Car> {
   const response = await apiFetch(`/api/cars/${carId}/return-to-home`, {
@@ -848,8 +895,8 @@ export async function returnCarToHome(carId: string): Promise<Car> {
   return response.json();
 }
 
-export async function getCars(): Promise<Car[]> {
-  const response = await apiFetch("/api/cars");
+export async function getCars(options: { includeRetired?: boolean } = {}): Promise<Car[]> {
+  const response = await apiFetch(`/api/cars${options.includeRetired ? "?include_retired=true" : ""}`);
 
   if (!response.ok) {
     await throwApiError(response, "errors.generic.load");
@@ -2148,6 +2195,25 @@ export async function markReservationNoShow(reservationId: string): Promise<Rese
 
 export async function getHandover(reservationId: string): Promise<Handover> {
   const response = await apiFetch(`/api/reservations/${reservationId}/handover`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
+export type AgreementTerms = {
+  language: string;
+  title: string;
+  terms: string;
+  /** True while the business has not written its own terms. */
+  is_placeholder: boolean;
+};
+
+/** The terms the agreement will print, for the customer to read before signing. */
+export async function getAgreementTerms(reservationId: string): Promise<AgreementTerms> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/handover/agreement-terms`);
 
   if (!response.ok) {
     await throwApiError(response, "errors.generic.load");

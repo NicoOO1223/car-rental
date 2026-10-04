@@ -43,6 +43,7 @@ def get_daily_rates(
         select(func.avg(Car.price_per_day)).where(
             Car.current_location_id == location_id,
             Car.status == "AVAILABLE",
+            Car.retired_at.is_(None),
         )
     )
 
