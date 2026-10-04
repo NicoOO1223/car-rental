@@ -149,6 +149,15 @@ if ($manifest.legacySecrets) {
     if (-not $SentryDsn) { $SentryDsn = Get-EnvFileValue "$repoRoot\backend\.env" "SENTRY_DSN" }
 }
 
+# Shared by the backend and the staff web app. The web app calls the API from its
+# own server, so the API would see every staff member at one address; with this
+# secret the web app can say who the visitor is (see backend/app/services/client_ip.py).
+$proxySecret = Get-StackValue "proxysecret" {
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "-").Replace("/", "_")
+}
+
 $webhookSecret = if (Test-Path "$stateDir\webhooksecret") { (Get-Content "$stateDir\webhooksecret" -Raw).Trim() } else { "" }
 $adminPassword = Get-StackValue "adminpassword" { New-RandomText 20 "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789" }
 
@@ -346,7 +355,7 @@ $isNew = -not $exists
 # secret to exist (empty is fine) before its settings can refer to them.
 # The database login of an existing stack is only changed on request
 # (-UseAppRole): it may already be on the DML-only role.
-$secretArgs = @("migration-database-url=$migrationDatabaseUrl", "secret-key=$secretKey")
+$secretArgs = @("migration-database-url=$migrationDatabaseUrl", "secret-key=$secretKey", "trusted-proxy-secret=$proxySecret")
 if ($isNew -or $UseAppRole) { $secretArgs += "database-url=$databaseUrl" }
 $existingSecrets = @()
 if ($exists -and -not $DryRun) { $existingSecrets = @(az containerapp secret list --name $backendApp --resource-group $rg --query "[].name" -o tsv) }
@@ -378,7 +387,7 @@ if ($manifest.business) {
 
 $backendEnv = @(
     "DATABASE_URL=secretref:database-url", "MIGRATION_DATABASE_URL=secretref:migration-database-url",
-    "SECRET_KEY=secretref:secret-key", "ENVIRONMENT=production",
+    "SECRET_KEY=secretref:secret-key", "TRUSTED_PROXY_SECRET=secretref:trusted-proxy-secret", "ENVIRONMENT=production",
     # Not a secret — the backend authenticates to it with its own managed
     # identity (granted above), the same way it already does for ACR.
     "AZURE_STORAGE_ACCOUNT_URL=https://$photoAccount.blob.core.windows.net"
@@ -428,7 +437,12 @@ if (-not $DryRun) { Grant-AcrPull $frontendApp }
 # The frontend reads these when it runs, so the same image serves every stack.
 # The environment variables are given a value even when empty on a new app,
 # so the setting exists; on an existing one an empty value is left alone.
-$frontendEnv = @("API_URL=$apiUrl")
+# The proxy secret is a Container App secret on the frontend too, not a plain
+# setting, so it never shows in the app's configuration.
+Invoke-Checked {
+    az containerapp secret set --name $frontendApp --resource-group $rg --secrets "trusted-proxy-secret=$proxySecret" --output none
+} "set frontend secrets"
+$frontendEnv = @("API_URL=$apiUrl", "TRUSTED_PROXY_SECRET=secretref:trusted-proxy-secret")
 if (-not $fexists -or $StripePublishableKey) { $frontendEnv += "STRIPE_PUBLISHABLE_KEY=$StripePublishableKey" }
 if (-not $fexists -or $SentryDsn) { $frontendEnv += "SENTRY_DSN=$SentryDsn" }
 Invoke-Checked {
