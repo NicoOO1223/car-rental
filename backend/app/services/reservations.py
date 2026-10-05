@@ -23,6 +23,7 @@ from app.services.email_outbox import (
     queue_booking_cancelled,
     queue_booking_changed,
     queue_booking_confirmed,
+    queue_online_cancellation,
 )
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
@@ -316,6 +317,14 @@ def cancel_reservation(
             online_payment=prepayment,
             online_amount=Decimal(online.payment_amount) if online is not None and online.payment_amount else None,
         )
+
+        if reason == "RENTER":
+            queue_online_cancellation(
+                db,
+                reservation,
+                online_payment=prepayment,
+                online_amount=Decimal(online.payment_amount) if online is not None and online.payment_amount else None,
+            )
 
     audit_log(
         db,

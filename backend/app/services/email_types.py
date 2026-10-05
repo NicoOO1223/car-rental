@@ -150,6 +150,25 @@ TYPES: dict[str, EmailType] = {
         parts=("signoff",),
         options=(Option("attach_credit_note", "bool", True),),
     ),
+    # --- to the business: instant alerts to the recipients set in Configuration > Email
+    "new_online_booking": EmailType(
+        key="new_online_booking",
+        audience=BUSINESS,
+        values=("reference", "name", "email", "vehicle", "pickup_place", "pickup_time", "return_time", "paid_online"),
+        parts=(),
+    ),
+    "online_cancellation": EmailType(
+        key="online_cancellation",
+        audience=BUSINESS,
+        values=("reference", "name", "vehicle", "pickup_time", "payment_outcome"),
+        parts=(),
+    ),
+    "needs_attention": EmailType(
+        key="needs_attention",
+        audience=BUSINESS,
+        values=("what", "details"),
+        parts=(),
+    ),
 }
 
 PARTS: dict[str, Part] = {
@@ -263,6 +282,32 @@ SAMPLE_VALUES.update(
             "amount": "27.00 EUR",
             "credit_note_number": "CN-000004",
             "attached_credit_note": "CN-000004",
+        },
+    }
+)
+
+SAMPLE_VALUES.update(
+    {
+        "new_online_booking": {
+            "reference": "AB12CD34E",
+            "name": "Giulia Rossi",
+            "email": "giulia@example.com",
+            "vehicle": "Fiat Panda",
+            "pickup_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "pickup_time": "2030-06-01 10:00 CEST",
+            "return_time": "2030-06-04 10:00 CEST",
+            "paid_online": "27.00 EUR",
+        },
+        "online_cancellation": {
+            "reference": "AB12CD34E",
+            "name": "Giulia Rossi",
+            "vehicle": "Fiat Panda",
+            "pickup_time": "2030-06-01 10:00 CEST",
+            "payment_outcome": "The online payment of 27.00 EUR was refunded.",
+        },
+        "needs_attention": {
+            "what": "A late online payment was refunded",
+            "details": "Booking AB12CD34E was paid after its hold ran out and the car had been taken, so 27.00 EUR was refunded automatically.",
         },
     }
 )

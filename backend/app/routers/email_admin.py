@@ -9,6 +9,7 @@ from app.dependencies import get_current_user, require_permission
 from app.models import User
 from app.permissions import ADMINISTER
 from app.schemas.email_admin import (
+    EmailAlertRecipients,
     EmailMessageItem,
     EmailPartRow,
     EmailPartSave,
@@ -49,6 +50,15 @@ def set_paused(data: EmailPause, db: Session = Depends(get_db), current_user: Us
 @router.put("/reply-to", response_model=EmailStatus)
 def set_reply_to(data: EmailReplyTo, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     email_admin.set_reply_to(db, current_user, data.reply_to)
+
+    return email_admin.status(db)
+
+
+@router.put("/alert-recipients", response_model=EmailStatus)
+def set_alert_recipients(
+    data: EmailAlertRecipients, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    email_admin.set_alert_recipients(db, current_user, data.recipients)
 
     return email_admin.status(db)
 

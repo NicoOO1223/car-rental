@@ -41,7 +41,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount
-from app.i18n.email_templates import CHANGES
+from app.i18n.email_templates import ALERTS, CHANGES
 from app.languages import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 from app.models import (
     Customer,
@@ -56,7 +56,7 @@ from app.models import (
 from app.models.email_message import MAX_ATTEMPTS
 from app.services.configuration import get_configuration
 from app.services.email_render import Wording, footer_lines, render
-from app.services.email_types import TYPES, options_with_defaults
+from app.services.email_types import BUSINESS, TYPES, options_with_defaults
 from app.services.pdf_common import format_local
 
 logger = logging.getLogger("email_outbox")
@@ -230,7 +230,7 @@ def queue_email(
             language,
             {"business": configuration.business_name, "contact": contact_line(configuration), **values},
             part_variants=part_variants,
-            footer=build_footer(db, language),
+            footer=build_footer(db, language) if email_type.audience != BUSINESS else None,
         )
 
         # A savepoint: whatever goes wrong here undoes only the email, never the
@@ -245,7 +245,7 @@ def queue_email(
                 language=language,
                 to_address=to_address,
                 to_name=(to_name or "")[:200] or None,
-                reply_to=reply_to_address(db),
+                reply_to=reply_to_address(db) if email_type.audience != BUSINESS else None,
                 subject=rendered.subject[:300],
                 body_text=rendered.text,
                 body_html=rendered.html,
@@ -758,6 +758,132 @@ def queue_refund_notice(db: Session, note: Invoice) -> EmailMessage | None:
         return None
 
 
+# --- alerts to the business ------------------------------------------------------------------
+
+
+def alert_recipients(db: Session) -> list[str]:
+    settings = db.get(EmailSettings, 1)
+
+    return list(settings.alert_recipients) if settings is not None and settings.alert_recipients else []
+
+
+def queue_alert(db: Session, type_key: str, values: dict[str, str], dedupe_key: str, reservation_id=None) -> int:
+    """One alert email to each recipient set in Configuration > Email, in the business's
+    own language. Nothing when no one is listed. Returns how many were queued."""
+
+    recipients = alert_recipients(db)
+
+    if not recipients or not email_active(db) or not type_enabled(db, type_key):
+        return 0
+
+    language = document_language(get_configuration(db).default_language)
+    queued = 0
+
+    for address in recipients:
+        message = queue_email(
+            db,
+            type_key,
+            to_address=address,
+            to_name=None,
+            language=language,
+            values=values,
+            dedupe_key=f"{dedupe_key}:{address}"[:120],
+            reservation_id=reservation_id,
+        )
+        queued += message is not None
+
+    return queued
+
+
+def alert_text(key: str, language: str, **fields) -> str:
+    return ALERTS[key][document_language(language)].format(**fields)
+
+
+def queue_new_online_booking(db: Session, reservation: Reservation, paid) -> None:
+    if not alert_recipients(db):
+        return
+
+    try:
+        configuration = get_configuration(db)
+        language = document_language(configuration.default_language)
+        currency = reservation.agreed_currency or configuration.default_currency
+        customer = reservation.customer
+        pickup = reservation.pickup_location
+
+        queue_alert(
+            db,
+            "new_online_booking",
+            {
+                "reference": _reference(reservation),
+                "name": _full_name(customer),
+                "email": customer.email or "",
+                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "pickup_place": _place(pickup),
+                "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
+                "return_time": format_local(reservation.return_at, reservation.return_location.timezone, language),
+                "paid_online": _money(paid, currency, language),
+            },
+            f"new_online_booking:{reservation.id}",
+            reservation.id,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the new-booking alert for %s", reservation.id)
+
+
+def queue_online_cancellation(db: Session, reservation: Reservation, *, online_payment: str | None, online_amount) -> None:
+    if not alert_recipients(db):
+        return
+
+    try:
+        configuration = get_configuration(db)
+        language = document_language(configuration.default_language)
+        currency = reservation.agreed_currency or configuration.default_currency
+        pickup = reservation.pickup_location
+        outcome = ""
+
+        if online_amount and online_payment in ("refunded", "kept"):
+            outcome = alert_text(f"outcome.{online_payment}", language, amount=format_amount(online_amount, currency, language))
+
+        queue_alert(
+            db,
+            "online_cancellation",
+            {
+                "reference": _reference(reservation),
+                "name": _full_name(reservation.customer),
+                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
+                "payment_outcome": outcome,
+            },
+            f"online_cancellation:{reservation.id}",
+            reservation.id,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the online-cancellation alert for %s", reservation.id)
+
+
+def queue_needs_attention(db: Session, kind: str, dedupe_key: str, reservation_id=None, **fields) -> None:
+    """`kind` is "late_payment_refunded" or "email_failed" (see ALERTS)."""
+
+    if not alert_recipients(db):
+        return
+
+    try:
+        language = document_language(get_configuration(db).default_language)
+
+        queue_alert(
+            db,
+            "needs_attention",
+            {
+                "what": alert_text(f"{kind}.what", language),
+                "details": alert_text(f"{kind}.details", language, **fields),
+            },
+            f"needs_attention:{dedupe_key}",
+            reservation_id,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the needs-attention alert %s", dedupe_key)
+
+
 # --- sending ---------------------------------------------------------------------------------
 
 
@@ -875,6 +1001,18 @@ def flush_outbox(db: Session, sender: Sender, *, limit: int = 20, now: datetime 
             if message.attempts >= MAX_ATTEMPTS:
                 message.status = "FAILED"
                 result["given_up"] += 1
+
+                # Tell the business, unless this was itself an alert (no loop).
+                if TYPES[message.template].audience != BUSINESS:
+                    queue_needs_attention(
+                        db,
+                        "email_failed",
+                        f"email:{message.id}",
+                        template=message.template,
+                        to=message.to_address,
+                        attempts=message.attempts,
+                        error=(message.last_error or "")[:200],
+                    )
                 logger.error("Gave up on email %s (%s) after %s tries: %s", message.id, message.template, message.attempts, error)
             else:
                 message.next_attempt_at = now + RETRY_DELAYS[min(message.attempts - 1, len(RETRY_DELAYS) - 1)]

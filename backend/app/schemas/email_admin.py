@@ -12,6 +12,7 @@ class EmailStatus(BaseModel):
     # Where replies go: what an administrator set, else the Business email.
     reply_to: str | None
     reply_to_default: str | None
+    alert_recipients: list[str]
     # Links in emails need this; without it they are left out.
     storefront_url: str | None
     worker_running: bool
@@ -32,6 +33,12 @@ class EmailReplyTo(BaseModel):
 
     # Empty or null = the business's own email.
     reply_to: str | None = Field(default=None, max_length=254)
+
+
+class EmailAlertRecipients(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    recipients: list[str] = Field(max_length=20)
 
 
 class EmailTypeRow(BaseModel):

@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { TextField } from "@/components/ui/Field";
-import { getEmailStatus, sendTestEmail, setEmailPaused, setEmailReplyTo, type EmailStatus } from "@/lib/api";
+import { Textarea, TextField } from "@/components/ui/Field";
+import {
+  getEmailStatus,
+  sendTestEmail,
+  setEmailAlertRecipients,
+  setEmailPaused,
+  setEmailReplyTo,
+  type EmailStatus,
+} from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -36,6 +43,10 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
   const [savingReplyTo, setSavingReplyTo] = useState(false);
   const [replyToError, setReplyToError] = useState("");
 
+  const [alerts, setAlerts] = useState("");
+  const [savingAlerts, setSavingAlerts] = useState(false);
+  const [alertsError, setAlertsError] = useState("");
+
   const [testAddress, setTestAddress] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ sent: boolean; error: string | null; to: string } | null>(null);
@@ -49,6 +60,7 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
         if (cancelled) return;
         setStatus(data);
         setReplyTo(data.reply_to ?? "");
+        setAlerts(data.alert_recipients.join("\n"));
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedLoad"));
@@ -89,6 +101,29 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
       setReplyToError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedSave"));
     } finally {
       setSavingReplyTo(false);
+    }
+  }
+
+  const alertLines = (text: string) =>
+    text
+      .split(/[\n,;]+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  async function saveAlerts(event: React.FormEvent) {
+    event.preventDefault();
+
+    setSavingAlerts(true);
+    setAlertsError("");
+
+    try {
+      const updated = await setEmailAlertRecipients(alertLines(alerts));
+      setStatus(updated);
+      setAlerts(updated.alert_recipients.join("\n"));
+    } catch (err) {
+      setAlertsError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedSave"));
+    } finally {
+      setSavingAlerts(false);
     }
   }
 
@@ -195,6 +230,44 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
               <Button type="submit" variant="secondary" loading={savingReplyTo} disabled={(replyTo ?? "") === (status.reply_to ?? "")}>
                 {t("s.admin.configuration.email.save")}
               </Button>
+            </div>
+          </form>
+
+          <form onSubmit={saveAlerts} className="mt-6 border-t border-border-subtle pt-5">
+            <h3 className="text-sm font-semibold text-ink">{t("s.admin.configuration.email.alertsTitle")}</h3>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.email.alertsIntro")}</p>
+
+            <label htmlFor="email-alert-recipients" className="mt-3 block text-sm font-medium text-ink">
+              {t("s.admin.configuration.email.alertsLabel")}
+            </label>
+            <Textarea
+              id="email-alert-recipients"
+              className="mt-2 w-96 max-w-full"
+              rows={4}
+              placeholder={t("s.admin.configuration.email.alertsPlaceholder")}
+              value={alerts}
+              invalid={Boolean(alertsError)}
+              onChange={(event) => setAlerts(event.target.value)}
+            />
+
+            {alertsError && (
+              <p className="mt-1 text-sm text-red-600" role="alert">
+                {alertsError}
+              </p>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                type="submit"
+                variant="secondary"
+                loading={savingAlerts}
+                disabled={alertLines(alerts).join("\n") === status.alert_recipients.join("\n")}
+              >
+                {t("s.admin.configuration.email.save")}
+              </Button>
+              <span className="text-xs text-ink-muted">
+                {t("s.admin.configuration.email.alertsCount", { count: alertLines(alerts).length, max: 5 })}
+              </span>
             </div>
           </form>
 

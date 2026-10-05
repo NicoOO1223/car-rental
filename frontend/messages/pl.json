@@ -137,7 +137,10 @@
       "pickup_reminder": "Przypomnienie o odbiorze",
       "agreement_copy": "Kopia umowy najmu",
       "return_summary": "Podsumowanie zwrotu",
-      "refund_notice": "Powiadomienie o zwrocie pieniędzy"
+      "refund_notice": "Powiadomienie o zwrocie pieniędzy",
+      "new_online_booking": "Nowa rezerwacja online",
+      "online_cancellation": "Anulowanie online",
+      "needs_attention": "Wymaga uwagi"
     },
     "emailAudience": {
       "renter": "Do klientów",
@@ -152,7 +155,10 @@
       "pickup_reminder": "Przed odbiorem, o czasie ustawionym poniżej. Tylko dla potwierdzonych rezerwacji, nie dla tych zrobionych w tym oknie.",
       "agreement_copy": "Gdy umowa najmu jest generowana przy wydaniu. Podpisana umowa jest w załączniku.",
       "return_summary": "Gdy samochód zostanie przyjęty z powrotem. Wymienia opłaty i co stało się z kaucją.",
-      "refund_notice": "Gdy pieniądze wracają na kartę klienta. Faktura korygująca jest w załączniku."
+      "refund_notice": "Gdy pieniądze wracają na kartę klienta. Faktura korygująca jest w załączniku.",
+      "new_online_booking": "Gdy rezerwacja zrobiona na stronie zostanie opłacona i potwierdzona. Wysyłane na adresy powiadomień.",
+      "online_cancellation": "Gdy klient anuluje rezerwację na stronie. Mówi, czy płatność online została zwrócona, czy zatrzymana.",
+      "needs_attention": "Gdy potrzebny jest człowiek: spóźniona płatność została zwrócona, bo samochód był już zajęty, albo nie udało się dostarczyć wiadomości."
     },
     "emailValue": {
       "name": "Imię klienta",
@@ -181,7 +187,11 @@
       "deposit_returned": "Część kaucji, która została zwolniona",
       "credit_note_number": "Numer faktury korygującej",
       "attached_agreement": "Numer rezerwacji załączonej umowy, pusty gdy nie ma załącznika",
-      "attached_credit_note": "Numer faktury korygującej, pusty gdy nie ma załącznika"
+      "attached_credit_note": "Numer faktury korygującej, pusty gdy nie ma załącznika",
+      "email": "Adres e-mail klienta",
+      "payment_outcome": "Co stało się z płatnością online (puste, jeśli nic nie zapłacono)",
+      "what": "Krótki tytuł tego, co wymaga uwagi",
+      "details": "Co się stało i co z tym zrobić"
     },
     "emailPart": {
       "signoff": "Zakończenie",
@@ -545,7 +555,8 @@
       "not_set_up": "Poczta nie jest jeszcze skonfigurowana w tym systemie.",
       "test_address_invalid": "Wpisz prawidłowy adres e-mail.",
       "message_not_found": "Nie znaleziono tej wiadomości.",
-      "only_failed_can_be_retried": "Ponownie można wysłać tylko nieudaną wiadomość."
+      "only_failed_can_be_retried": "Ponownie można wysłać tylko nieudaną wiadomość.",
+      "too_many_recipients": "Powiadomienia może otrzymywać najwyżej {limit} adresów."
     }
   },
   "c": {
@@ -1386,7 +1397,12 @@
           "sentAt": "wysłano {when}",
           "createdAt": "w kolejce od {when}",
           "tries": "{count, plural, one {# próba} few {# próby} many {# prób} other {# próby}}",
-          "retry": "Wyślij ponownie"
+          "retry": "Wyślij ponownie",
+          "alertsTitle": "Powiadomienia dla firmy",
+          "alertsIntro": "Te adresy są od razu informowane, gdy rezerwacja zostanie opłacona na stronie, gdy klient anuluje online i gdy potrzebny jest człowiek. Jeden adres w linii, do 5. Zostaw puste, aby nie wysyłać powiadomień.",
+          "alertsLabel": "Kto dostaje powiadomienia",
+          "alertsPlaceholder": "wlasciciel@twojafirma.com",
+          "alertsCount": "{count} z {max} adresów"
         }
       },
       "revenue": {

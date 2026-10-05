@@ -137,7 +137,10 @@
       "pickup_reminder": "Pick-up reminder",
       "agreement_copy": "Rental agreement copy",
       "return_summary": "Return summary",
-      "refund_notice": "Refund notice"
+      "refund_notice": "Refund notice",
+      "new_online_booking": "New online booking",
+      "online_cancellation": "Online cancellation",
+      "needs_attention": "Needs attention"
     },
     "emailAudience": {
       "renter": "To renters",
@@ -152,7 +155,10 @@
       "pickup_reminder": "Before the pick-up, at the time set below. Only for confirmed bookings, and not for one made inside that window.",
       "agreement_copy": "When the rental agreement is generated at check-in. The signed agreement is attached.",
       "return_summary": "When the car is checked back in. Lists the charges and what became of the deposit.",
-      "refund_notice": "When money is refunded to the renter's card. The credit note is attached."
+      "refund_notice": "When money is refunded to the renter's card. The credit note is attached.",
+      "new_online_booking": "When a booking made on the website is paid and confirmed. Sent to the alert recipients.",
+      "online_cancellation": "When a renter cancels their booking on the website. Says whether the online payment was refunded or kept.",
+      "needs_attention": "When something needs a person: a late payment had to be refunded because the car was taken, or an email could not be delivered."
     },
     "emailValue": {
       "name": "The renter's first name",
@@ -181,7 +187,11 @@
       "deposit_returned": "The part of the deposit released",
       "credit_note_number": "The credit note number",
       "attached_agreement": "The booking number of the attached agreement, empty when it is not attached",
-      "attached_credit_note": "The credit note number, empty when it is not attached"
+      "attached_credit_note": "The credit note number, empty when it is not attached",
+      "email": "The renter's email address",
+      "payment_outcome": "What happened to the online payment (empty if nothing was paid)",
+      "what": "A short title of what needs attention",
+      "details": "What happened and what to do about it"
     },
     "emailPart": {
       "signoff": "Sign-off",
@@ -545,7 +555,8 @@
       "not_set_up": "Email is not set up on this system yet.",
       "test_address_invalid": "Enter a valid email address.",
       "message_not_found": "That email was not found.",
-      "only_failed_can_be_retried": "Only an email that failed can be sent again."
+      "only_failed_can_be_retried": "Only an email that failed can be sent again.",
+      "too_many_recipients": "At most {limit} addresses can receive alerts."
     }
   },
   "c": {
@@ -1386,7 +1397,12 @@
           "sentAt": "sent {when}",
           "createdAt": "queued {when}",
           "tries": "{count, plural, one {# try} other {# tries}}",
-          "retry": "Send again"
+          "retry": "Send again",
+          "alertsTitle": "Alerts to the business",
+          "alertsIntro": "These addresses are told at once when a booking is paid on the website, when a renter cancels online, and when something needs a person. One address per line, up to 5. Leave empty to send no alerts.",
+          "alertsLabel": "Who receives alerts",
+          "alertsPlaceholder": "owner@yourcompany.com",
+          "alertsCount": "{count} of {max} addresses"
         }
       },
       "revenue": {

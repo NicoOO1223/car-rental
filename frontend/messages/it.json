@@ -137,7 +137,10 @@
       "pickup_reminder": "Promemoria del ritiro",
       "agreement_copy": "Copia del contratto di noleggio",
       "return_summary": "Riepilogo della riconsegna",
-      "refund_notice": "Avviso di rimborso"
+      "refund_notice": "Avviso di rimborso",
+      "new_online_booking": "Nuova prenotazione online",
+      "online_cancellation": "Annullamento online",
+      "needs_attention": "Richiede attenzione"
     },
     "emailAudience": {
       "renter": "Ai clienti",
@@ -152,7 +155,10 @@
       "pickup_reminder": "Prima del ritiro, all'orario indicato sotto. Solo per prenotazioni confermate, e non per quelle fatte dentro quell'intervallo.",
       "agreement_copy": "Quando il contratto di noleggio viene generato al check-in. Il contratto firmato è allegato.",
       "return_summary": "Quando l'auto viene riconsegnata. Elenca gli addebiti e cosa è successo alla cauzione.",
-      "refund_notice": "Quando una somma viene rimborsata sulla carta del cliente. La nota di credito è allegata."
+      "refund_notice": "Quando una somma viene rimborsata sulla carta del cliente. La nota di credito è allegata.",
+      "new_online_booking": "Quando una prenotazione fatta sul sito viene pagata e confermata. Inviata ai destinatari degli avvisi.",
+      "online_cancellation": "Quando un cliente annulla la prenotazione sul sito. Indica se il pagamento online è stato rimborsato o trattenuto.",
+      "needs_attention": "Quando serve una persona: un pagamento tardivo è stato rimborsato perché l'auto era stata presa, oppure un'email non è stata consegnata."
     },
     "emailValue": {
       "name": "Il nome del cliente",
@@ -181,7 +187,11 @@
       "deposit_returned": "La parte della cauzione rilasciata",
       "credit_note_number": "Il numero della nota di credito",
       "attached_agreement": "Il numero di prenotazione del contratto allegato, vuoto se non è allegato",
-      "attached_credit_note": "Il numero della nota di credito, vuoto se non è allegata"
+      "attached_credit_note": "Il numero della nota di credito, vuoto se non è allegata",
+      "email": "L'indirizzo email del cliente",
+      "payment_outcome": "Cosa è successo al pagamento online (vuoto se non è stato pagato nulla)",
+      "what": "Un breve titolo di ciò che richiede attenzione",
+      "details": "Cosa è successo e cosa fare"
     },
     "emailPart": {
       "signoff": "Chiusura",
@@ -545,7 +555,8 @@
       "not_set_up": "L'email non è ancora configurata su questo sistema.",
       "test_address_invalid": "Inserisci un indirizzo email valido.",
       "message_not_found": "Email non trovata.",
-      "only_failed_can_be_retried": "Si può reinviare solo un'email fallita."
+      "only_failed_can_be_retried": "Si può reinviare solo un'email fallita.",
+      "too_many_recipients": "Al massimo {limit} indirizzi possono ricevere gli avvisi."
     }
   },
   "c": {
@@ -1386,7 +1397,12 @@
           "sentAt": "inviata {when}",
           "createdAt": "in coda {when}",
           "tries": "{count, plural, one {# tentativo} other {# tentativi}}",
-          "retry": "Invia di nuovo"
+          "retry": "Invia di nuovo",
+          "alertsTitle": "Avvisi all'azienda",
+          "alertsIntro": "Questi indirizzi vengono avvisati subito quando una prenotazione viene pagata sul sito, quando un cliente annulla online e quando serve una persona. Un indirizzo per riga, fino a 5. Lascia vuoto per non inviare avvisi.",
+          "alertsLabel": "Chi riceve gli avvisi",
+          "alertsPlaceholder": "titolare@tuaazienda.com",
+          "alertsCount": "{count} di {max} indirizzi"
         }
       },
       "revenue": {

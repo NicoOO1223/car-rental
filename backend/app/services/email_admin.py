@@ -44,7 +44,9 @@ from app.services.email_render import (
     render,
     to_html,
 )
+from app.models.email_message import MAX_ALERT_RECIPIENTS
 from app.services.email_types import (
+    BUSINESS,
     PARTS,
     SAMPLE_BUSINESS,
     SAMPLE_FOOTER,
@@ -114,6 +116,7 @@ def status(db: Session) -> dict:
         "from_address": os.getenv("EMAIL_FROM_ADDRESS") or None,
         "reply_to": settings.reply_to if settings is not None else None,
         "reply_to_default": configuration.email or None,
+        "alert_recipients": email_outbox.alert_recipients(db),
         "storefront_url": email_outbox.storefront_url() or None,
         "worker_running": bool(sender is not None and sender.is_alive()),
         "pending": count(EmailMessage.status == "PENDING"),
@@ -153,6 +156,41 @@ def set_reply_to(db: Session, actor: User, address: str | None) -> None:
     settings.reply_to = address
     settings.updated_at = datetime.now(timezone.utc)
     _audit(db, actor, "email.reply_to_changed")
+    db.commit()
+
+
+def set_alert_recipients(db: Session, actor: User, addresses: list[str]) -> None:
+    """Who gets the business alerts: up to MAX_ALERT_RECIPIENTS valid addresses, no repeats."""
+
+    cleaned: list[str] = []
+
+    for address in addresses:
+        address = address.strip()
+
+        if not address:
+            continue
+
+        if not _ADDRESS.match(address):
+            raise AppError("email.address_invalid", "Enter a valid email address.")
+
+        if address.lower() not in (item.lower() for item in cleaned):
+            cleaned.append(address)
+
+    if len(cleaned) > MAX_ALERT_RECIPIENTS:
+        raise AppError(
+            "email.too_many_recipients",
+            f"At most {MAX_ALERT_RECIPIENTS} addresses can receive alerts.",
+            limit=MAX_ALERT_RECIPIENTS,
+        )
+
+    settings = _settings(db)
+
+    if list(settings.alert_recipients or []) == cleaned:
+        return
+
+    settings.alert_recipients = cleaned
+    settings.updated_at = datetime.now(timezone.utc)
+    _audit(db, actor, "email.alert_recipients_changed", count=len(cleaned))
     db.commit()
 
 
@@ -409,7 +447,7 @@ def _render_sample(db: Session, key: str, language: str, wording: Wording):
         language,
         {**SAMPLE_BUSINESS, **SAMPLE_VALUES[key]},
         part_variants=SAMPLE_VARIANTS.get(key),
-        footer=SAMPLE_FOOTER,
+        footer=SAMPLE_FOOTER if email_type.audience != BUSINESS else None,
     )
 
 

@@ -2801,6 +2801,8 @@ export type EmailStatus = {
   /** Where replies go when set here; otherwise the Business email. */
   reply_to: string | null;
   reply_to_default: string | null;
+  /** Who receives the business alerts. */
+  alert_recipients: string[];
   /** Links in emails (view or manage a booking, privacy) need this; without it they are left out. */
   storefront_url: string | null;
   worker_running: boolean;
@@ -2887,6 +2889,9 @@ export const setEmailPaused = (paused: boolean) => emailCall<EmailStatus>("/paus
 
 export const setEmailReplyTo = (replyTo: string | null) =>
   emailCall<EmailStatus>("/reply-to", send("PUT", { reply_to: replyTo }));
+
+export const setEmailAlertRecipients = (recipients: string[]) =>
+  emailCall<EmailStatus>("/alert-recipients", send("PUT", { recipients }));
 
 export const getEmailTypes = () => emailCall<EmailTypeRow[]>("/types", {}, "errors.generic.load");
 

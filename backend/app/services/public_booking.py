@@ -33,7 +33,14 @@ from app.config import SECRET_KEY, STRIPE_SECRET_KEY
 from app.errors import AppError, ConflictError
 from app.models import Customer, Reservation, ReservationPayment
 from app.services.audit import audit_log
-from app.services.email_outbox import queue_booking_confirmed
+from app.i18n.documents import format_amount
+from app.services.configuration import get_configuration
+from app.services.email_outbox import (
+    queue_booking_confirmed,
+    queue_needs_attention,
+    queue_new_online_booking,
+    queue_online_cancellation,
+)
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
@@ -360,6 +367,7 @@ def on_prepayment_succeeded(db: Session, payment: ReservationPayment, now: datet
         )
 
         queue_booking_confirmed(db, reservation)
+        queue_new_online_booking(db, reservation, payment.payment_amount)
 
         return "confirmed"
 
@@ -375,6 +383,20 @@ def on_prepayment_succeeded(db: Session, payment: ReservationPayment, now: datet
         entity_type="reservation",
         entity_id=reservation.id,
         metadata={"amount": str(payment.payment_amount), "reason": "car_no_longer_free"},
+    )
+
+    configuration = get_configuration(db)
+    queue_needs_attention(
+        db,
+        "late_payment_refunded",
+        f"late:{reservation.id}",
+        reservation.id,
+        reference=reservation.public_reference or str(reservation.id),
+        amount=format_amount(
+            payment.payment_amount,
+            reservation.agreed_currency or configuration.default_currency,
+            configuration.default_language,
+        ),
     )
 
     return "refunded"

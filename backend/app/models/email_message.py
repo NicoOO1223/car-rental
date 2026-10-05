@@ -11,6 +11,8 @@ from app.database import Base
 # stays in the table for someone to look at.
 MAX_ATTEMPTS = 6
 
+MAX_ALERT_RECIPIENTS = 5
+
 
 class EmailMessage(Base):
     """
@@ -97,6 +99,8 @@ class EmailSettings(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Where a renter reply goes. NULL = the business own email (Configuration > Business).
     reply_to: Mapped[str | None] = mapped_column(String(254))
+    # Who gets the business alerts (new online booking, ...): up to MAX_ALERT_RECIPIENTS addresses.
+    alert_recipients: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
