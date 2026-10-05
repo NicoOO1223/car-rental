@@ -10,12 +10,17 @@ from app.routers.public.catalog import enabled_configuration
 from app.schemas.public import (
     AccountBookingAccess,
     AccountClaim,
+    AccountForgotPassword,
+    AccountLinkToken,
     AccountLogin,
     AccountProfile,
     AccountRegister,
+    AccountResetPassword,
     AccountSession,
+    AccountStatus,
     PublicBooking,
 )
+from app.languages import SUPPORTED_LANGUAGES
 from app.services.auth import AccountLocked
 from app.services.client_ip import client_ip
 from app.services.customer_accounts import (
@@ -26,7 +31,12 @@ from app.services.customer_accounts import (
     link_booking,
     owned_reservation,
     register_account,
+    reset_password,
+    send_reset_email,
+    send_verification_email,
     sign_out_everywhere,
+    verified_account,
+    verify_email,
 )
 from app.services.manage_token import create_manage_token
 from app.services.login_throttle import is_ip_blocked, record_ip_failure
@@ -38,7 +48,12 @@ router = APIRouter(prefix="/account")
 
 
 def _profile(account: CustomerAccount) -> AccountProfile:
-    return AccountProfile(email=account.email, first_name=account.first_name, last_name=account.last_name)
+    return AccountProfile(
+        email=account.email,
+        first_name=account.first_name,
+        last_name=account.last_name,
+        email_verified=account.email_verified_at is not None,
+    )
 
 
 def _session(account: CustomerAccount) -> AccountSession:
@@ -47,8 +62,8 @@ def _session(account: CustomerAccount) -> AccountSession:
 
 @router.post(
     "/register",
-    response_model=AccountSession,
-    status_code=201,
+    response_model=AccountStatus,
+    status_code=202,
     dependencies=[Depends(limit_by_ip("account-register", 5))],
 )
 def register(
@@ -59,8 +74,67 @@ def register(
 ):
     require_human(data.captcha_token, client_ip(request))
 
-    return _session(register_account(db, data.email, data.password, data.first_name, data.last_name))
+    language = data.language if data.language in SUPPORTED_LANGUAGES else None
+    account = register_account(db, data.email, data.password, data.first_name, data.last_name, language)
 
+    # The same answer whether or not the address already had an account, so this
+    # cannot be used to find out who does. The new owner gets a link to confirm.
+    if account is not None:
+        send_verification_email(db, account)
+
+    return AccountStatus(status="check_email")
+
+
+@router.post(
+    "/verify",
+    response_model=AccountStatus,
+    dependencies=[Depends(limit_by_ip("account-verify", 20))],
+)
+def verify(data: AccountLinkToken, db: Session = Depends(get_db)):
+    verify_email(db, data.token)
+
+    return AccountStatus(status="verified")
+
+
+@router.post(
+    "/resend-verification",
+    response_model=AccountStatus,
+    dependencies=[Depends(limit_by_ip("account-resend", 5))],
+)
+def resend_verification(account: CustomerAccount = Depends(current_account), db: Session = Depends(get_db)):
+    send_verification_email(db, account)
+
+    return AccountStatus(status="sent")
+
+
+@router.post(
+    "/forgot-password",
+    response_model=AccountStatus,
+    status_code=202,
+    dependencies=[Depends(limit_by_ip("account-forgot", 5))],
+)
+def forgot_password(
+    data: AccountForgotPassword,
+    request: Request,
+    configuration=Depends(enabled_configuration),
+    db: Session = Depends(get_db),
+):
+    require_human(data.captcha_token, client_ip(request))
+    send_reset_email(db, data.email)
+
+    # Always the same: nothing says whether the address has an account.
+    return AccountStatus(status="check_email")
+
+
+@router.post(
+    "/reset-password",
+    response_model=AccountStatus,
+    dependencies=[Depends(limit_by_ip("account-reset", 10))],
+)
+def reset(data: AccountResetPassword, db: Session = Depends(get_db)):
+    reset_password(db, data.token, data.password)
+
+    return AccountStatus(status="reset")
 
 @router.post(
     "/login",
@@ -113,7 +187,7 @@ def me(account: CustomerAccount = Depends(current_account)):
 
 
 @router.get("/bookings", response_model=list[PublicBooking])
-def my_bookings(account: CustomerAccount = Depends(current_account), db: Session = Depends(get_db)):
+def my_bookings(account: CustomerAccount = Depends(verified_account), db: Session = Depends(get_db)):
     return [booking_view(db, reservation) for reservation in account_reservations(db, account)]
 
 
@@ -124,7 +198,7 @@ def my_bookings(account: CustomerAccount = Depends(current_account), db: Session
 )
 def claim_booking(
     data: AccountClaim,
-    account: CustomerAccount = Depends(current_account),
+    account: CustomerAccount = Depends(verified_account),
     configuration=Depends(enabled_configuration),
     db: Session = Depends(get_db),
 ):
@@ -140,7 +214,7 @@ def claim_booking(
 @router.post("/bookings/{reference}/access", response_model=AccountBookingAccess)
 def booking_access(
     reference: str,
-    account: CustomerAccount = Depends(current_account),
+    account: CustomerAccount = Depends(verified_account),
     db: Session = Depends(get_db),
 ):
     """Opens one of the account's own bookings without asking for the email

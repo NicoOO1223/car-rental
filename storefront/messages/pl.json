@@ -333,7 +333,9 @@
     },
     "account": {
       "email_taken": "Konto z tym adresem e-mail już istnieje. Spróbuj się zalogować.",
-      "signed_out": "Sesja wygasła. Zaloguj się ponownie."
+      "signed_out": "Sesja wygasła. Zaloguj się ponownie.",
+      "email_not_verified": "Najpierw potwierdź swój adres e-mail. Wysłaliśmy Ci link.",
+      "link_invalid": "Ten link wygasł lub jest nieprawidłowy. Poproś o nowy."
     },
     "auth": {
       "invalid_credentials": "Nieprawidłowy e-mail lub hasło.",
@@ -357,7 +359,10 @@
     "registering": "Tworzenie konta…",
     "haveAccount": "Masz już konto?",
     "guestHint": "Rezerwowałeś bez konta?",
-    "guestLink": "Zarządzaj rezerwacją"
+    "guestLink": "Zarządzaj rezerwacją",
+    "forgotLink": "Nie pamiętasz hasła?",
+    "checkEmailTitle": "Sprawdź swoją skrzynkę",
+    "checkEmailBody": "Wysłaliśmy link potwierdzający na adres {email}. Otwórz go, aby dokończyć zakładanie konta, a potem zaloguj się."
   },
   "account": {
     "title": "Moje konto",
@@ -374,5 +379,36 @@
     "claimSubmit": "Dodaj do mojego konta",
     "claiming": "Dodawanie…",
     "claimed": "Rezerwacja została dodana."
+  },
+  "accountMail": {
+    "email": "E-mail",
+    "sending": "Wysyłanie…",
+    "saving": "Zapisywanie…",
+    "backToLogin": "Wróć do logowania",
+    "toLogin": "Zaloguj się",
+    "toAccount": "Przejdź do mojego konta",
+    "askAgain": "Poproś o nowy link",
+    "passwordHint": "Co najmniej 8 znaków.",
+    "verifying": "Potwierdzanie adresu e-mail…",
+    "verifiedTitle": "Adres e-mail potwierdzony",
+    "verifiedBody": "Dziękujemy. Twoje konto widzi teraz Twoje rezerwacje i może je dodawać.",
+    "verifyFailedTitle": "Nie udało się potwierdzić adresu e-mail",
+    "linkMissing": "Ten link jest niekompletny. Otwórz ponownie link z wiadomości albo poproś o nowy.",
+    "forgotTitle": "Zresetuj hasło",
+    "forgotIntro": "Podaj swój adres e-mail, a wyślemy link do ustawienia nowego hasła.",
+    "forgotSubmit": "Wyślij link",
+    "forgotSentTitle": "Sprawdź swoją skrzynkę",
+    "forgotSentBody": "Jeśli {email} ma konto, link do zresetowania hasła jest w drodze. Działa przez godzinę.",
+    "resetTitle": "Ustaw nowe hasło",
+    "resetIntro": "Wybierz nowe hasło do konta. Zostaniesz wylogowany wszędzie i zalogujesz się nowym.",
+    "newPassword": "Nowe hasło",
+    "resetSubmit": "Zapisz nowe hasło",
+    "resetDoneTitle": "Hasło zmienione",
+    "resetDoneBody": "Możesz teraz zalogować się nowym hasłem.",
+    "resetFailedTitle": "Tego linku nie można użyć",
+    "bannerTitle": "Potwierdź swój adres e-mail",
+    "bannerBody": "Twoje rezerwacje pozostają ukryte, dopóki nie potwierdzisz {email}. Otwórz link, który Ci wysłaliśmy.",
+    "bannerResend": "Wyślij wiadomość ponownie",
+    "bannerSent": "Wiadomość wysłana"
   }
 }

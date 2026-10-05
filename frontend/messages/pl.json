@@ -140,7 +140,9 @@
       "refund_notice": "Powiadomienie o zwrocie pieniędzy",
       "new_online_booking": "Nowa rezerwacja online",
       "online_cancellation": "Anulowanie online",
-      "needs_attention": "Wymaga uwagi"
+      "needs_attention": "Wymaga uwagi",
+      "verify_email": "Potwierdzenie adresu e-mail",
+      "reset_password": "Reset hasła"
     },
     "emailAudience": {
       "renter": "Do klientów",
@@ -158,7 +160,9 @@
       "refund_notice": "Gdy pieniądze wracają na kartę klienta. Faktura korygująca jest w załączniku.",
       "new_online_booking": "Gdy rezerwacja zrobiona na stronie zostanie opłacona i potwierdzona. Wysyłane na adresy powiadomień.",
       "online_cancellation": "Gdy klient anuluje rezerwację na stronie. Mówi, czy płatność online została zwrócona, czy zatrzymana.",
-      "needs_attention": "Gdy potrzebny jest człowiek: spóźniona płatność została zwrócona, bo samochód był już zajęty, albo nie udało się dostarczyć wiadomości."
+      "needs_attention": "Gdy potrzebny jest człowiek: spóźniona płatność została zwrócona, bo samochód był już zajęty, albo nie udało się dostarczyć wiadomości.",
+      "verify_email": "Gdy ktoś zakłada konto na stronie oraz gdy prosi o link ponownie. Zawsze włączona: to wiadomość bezpieczeństwa.",
+      "reset_password": "Gdy ktoś mówi, że zapomniał hasła. Link działa jednorazowo, przez godzinę. Zawsze włączona: to wiadomość bezpieczeństwa."
     },
     "emailValue": {
       "name": "Imię klienta",
@@ -191,7 +195,9 @@
       "email": "Adres e-mail klienta",
       "payment_outcome": "Co stało się z płatnością online (puste, jeśli nic nie zapłacono)",
       "what": "Krótki tytuł tego, co wymaga uwagi",
-      "details": "Co się stało i co z tym zrobić"
+      "details": "Co się stało i co z tym zrobić",
+      "link": "Osobisty link (nie usuwaj go: bez niego wiadomość jest bezużyteczna)",
+      "expires": "Jak długo działa link"
     },
     "emailPart": {
       "signoff": "Zakończenie",
@@ -530,7 +536,9 @@
     },
     "account": {
       "email_taken": "Konto z tym adresem e-mail już istnieje.",
-      "signed_out": "Sesja wygasła. Zaloguj się ponownie."
+      "signed_out": "Sesja wygasła. Zaloguj się ponownie.",
+      "email_not_verified": "Najpierw potwierdź swój adres e-mail.",
+      "link_invalid": "Ten link wygasł lub jest nieprawidłowy. Poproś o nowy."
     },
     "landing_cta": {
       "corrupted": "Plik zdjęcia jest uszkodzony.",

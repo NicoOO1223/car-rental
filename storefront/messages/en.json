@@ -333,7 +333,9 @@
     },
     "account": {
       "email_taken": "An account with this email already exists. Try logging in instead.",
-      "signed_out": "Your session has ended. Please log in again."
+      "signed_out": "Your session has ended. Please log in again.",
+      "email_not_verified": "Please confirm your email address first. We sent you a link.",
+      "link_invalid": "This link has expired or is not valid. Please ask for a new one."
     },
     "auth": {
       "invalid_credentials": "Incorrect email or password.",
@@ -357,7 +359,10 @@
     "registering": "Creating account…",
     "haveAccount": "Already have an account?",
     "guestHint": "Booked without an account?",
-    "guestLink": "Manage a booking"
+    "guestLink": "Manage a booking",
+    "forgotLink": "Forgot your password?",
+    "checkEmailTitle": "Check your email",
+    "checkEmailBody": "We sent a confirmation link to {email}. Follow it to finish setting up your account, then log in."
   },
   "account": {
     "title": "My account",
@@ -374,5 +379,36 @@
     "claimSubmit": "Add to my account",
     "claiming": "Adding…",
     "claimed": "Booking added."
+  },
+  "accountMail": {
+    "email": "Email",
+    "sending": "Sending…",
+    "saving": "Saving…",
+    "backToLogin": "Back to log in",
+    "toLogin": "Log in",
+    "toAccount": "Go to my account",
+    "askAgain": "Ask for a new link",
+    "passwordHint": "At least 8 characters.",
+    "verifying": "Confirming your email…",
+    "verifiedTitle": "Email confirmed",
+    "verifiedBody": "Thank you. Your account can now see and add your bookings.",
+    "verifyFailedTitle": "We could not confirm your email",
+    "linkMissing": "This link is incomplete. Open the link from the email again, or ask for a new one.",
+    "forgotTitle": "Reset your password",
+    "forgotIntro": "Enter your email and we will send you a link to choose a new password.",
+    "forgotSubmit": "Send the link",
+    "forgotSentTitle": "Check your email",
+    "forgotSentBody": "If {email} has an account, a link to reset the password is on its way. It works for an hour.",
+    "resetTitle": "Choose a new password",
+    "resetIntro": "Pick a new password for your account. You will be signed out everywhere and can log in with the new one.",
+    "newPassword": "New password",
+    "resetSubmit": "Save the new password",
+    "resetDoneTitle": "Password changed",
+    "resetDoneBody": "You can now log in with your new password.",
+    "resetFailedTitle": "This link cannot be used",
+    "bannerTitle": "Confirm your email address",
+    "bannerBody": "Your bookings stay hidden until you confirm {email}. Follow the link we emailed you.",
+    "bannerResend": "Send the email again",
+    "bannerSent": "Email sent"
   }
 }

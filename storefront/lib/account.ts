@@ -33,18 +33,34 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
-export type AccountProfile = { email: string; first_name: string; last_name: string };
+export type AccountProfile = { email: string; first_name: string; last_name: string; email_verified: boolean };
 
 export type Credentials = { email: string; password: string; captcha_token: string };
 
-export type Registration = Credentials & { first_name: string; last_name: string };
+export type Registration = Credentials & { first_name: string; last_name: string; language: string };
+
+function mail<T>(action: string, body: Record<string, unknown>): Promise<T> {
+  return request<T>("/api/account/mail", { method: "POST", body: JSON.stringify({ action, ...body }) });
+}
 
 export const accountApi = {
   login: (values: Credentials) =>
     request<{ account: AccountProfile }>("/api/account/session", { method: "POST", body: JSON.stringify({ mode: "login", ...values }) }),
 
+  /** Creates the account and emails a confirmation link; there is no session until they sign in. */
   register: (values: Registration) =>
-    request<{ account: AccountProfile }>("/api/account/session", { method: "POST", body: JSON.stringify({ mode: "register", ...values }) }),
+    request<{ status: string }>("/api/account/session", { method: "POST", body: JSON.stringify({ mode: "register", ...values }) }),
+
+  /** The link in the confirmation email. */
+  verifyEmail: (token: string) => mail<{ status: string }>("verify", { token }),
+
+  /** Another confirmation email, for the signed-in account. */
+  resendVerification: () => mail<{ status: string }>("resend-verification", {}),
+
+  /** Emails a reset link if the address has an account; the answer is the same either way. */
+  forgotPassword: (values: { email: string; captcha_token: string }) => mail<{ status: string }>("forgot-password", values),
+
+  resetPassword: (values: { token: string; password: string }) => mail<{ status: string }>("reset-password", values),
 
   logout: () => request<void>("/api/account/session", { method: "DELETE" }),
 

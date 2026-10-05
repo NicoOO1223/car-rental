@@ -45,6 +45,9 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Registering makes no session: they sign in once they have the confirmation email.
+  if (!data.access_token) return NextResponse.json({ status: data.status }, { status: upstream.status });
+
   const response = NextResponse.json({ account: data.account }, { status: upstream.status });
 
   response.cookies.set(ACCOUNT_COOKIE, data.access_token, {

@@ -356,6 +356,69 @@ TEMPLATES.update(
     }
 )
 
+TEMPLATES.update(
+    {
+        "verify_email": {
+            "en": (
+                "Confirm your email - {business}",
+                "Hello {name},\n\n"
+                "Please confirm your email address to finish setting up your account:\n\n"
+                "{link}\n\n"
+                "The link works for {expires}. If you did not create an account, you can ignore this email.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Conferma la tua email - {business}",
+                "Buongiorno {name},\n\n"
+                "Conferma il tuo indirizzo email per completare la creazione dell'account:\n\n"
+                "{link}\n\n"
+                "Il link è valido per {expires}. Se non hai creato un account, puoi ignorare questa email.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Potwierdź swój adres e-mail - {business}",
+                "Dzień dobry {name},\n\n"
+                "Potwierdź swój adres e-mail, aby dokończyć zakładanie konta:\n\n"
+                "{link}\n\n"
+                "Link działa przez {expires}. Jeśli nie zakładasz konta, zignoruj tę wiadomość.\n\n"
+                "{signoff}",
+            ),
+        },
+        "reset_password": {
+            "en": (
+                "Reset your password - {business}",
+                "Hello {name},\n\n"
+                "We received a request to reset the password of your account. Choose a new one here:\n\n"
+                "{link}\n\n"
+                "The link works once, for {expires}. If you did not ask for this, ignore this email: your password stays as it is.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Reimposta la tua password - {business}",
+                "Buongiorno {name},\n\n"
+                "Abbiamo ricevuto una richiesta di reimpostare la password del tuo account. Scegline una nuova qui:\n\n"
+                "{link}\n\n"
+                "Il link funziona una sola volta, per {expires}. Se non l'hai richiesto, ignora questa email: la password resta invariata.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Zresetuj hasło - {business}",
+                "Dzień dobry {name},\n\n"
+                "Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta. Ustaw nowe tutaj:\n\n"
+                "{link}\n\n"
+                "Link działa jednorazowo, przez {expires}. Jeśli to nie Ty, zignoruj tę wiadomość: hasło pozostaje bez zmian.\n\n"
+                "{signoff}",
+            ),
+        },
+    }
+)
+
+# How long a link works, as the email says it: EXPIRES[kind][language].
+EXPIRES: dict[str, dict[str, str]] = {
+    "verify_email": {"en": "24 hours", "it": "24 ore", "pl": "24 godziny"},
+    "reset_password": {"en": "1 hour", "it": "1 ora", "pl": "1 godzinę"},
+}
+
 # What the business is told in the "needs attention" email, and how an online
 # cancellation ended for the money: ALERTS[kind][language], filled with {fields}.
 ALERTS: dict[str, dict[str, str]] = {

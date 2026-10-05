@@ -26,6 +26,14 @@ class CustomerAccount(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+    # When the owner proved they can read mail sent to this address (the link in the
+    # verification email, or a password reset). Until then the account cannot see or
+    # claim bookings. Accounts that existed before verification are unverified.
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # The language of the page they registered on: the language of their account emails.
+    language: Mapped[str | None] = mapped_column(String(5))
+
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

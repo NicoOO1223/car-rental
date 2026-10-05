@@ -57,25 +57,60 @@ def _email():
     return f"renter-{uuid.uuid4().hex[:10]}@example.com"
 
 
-def _register(email=None, password=PASSWORD):
+def _register(email=None, password=PASSWORD, verified=True):
+    """Registers, confirms the address (as the link in the email would) and signs in:
+    returns the address and the sign-in response, which has the session."""
+
     email = email or _email()
     response = client.post(
         "/api/public/account/register",
         json={"email": email, "password": password, "first_name": "Ada", "last_name": "Lovelace"},
     )
 
-    return email, response
+    assert response.status_code == 202, response.text
+
+    if verified:
+        _verify_in_database(email)
+
+    return email, client.post("/api/public/account/login", json={"email": email, "password": password})
+
+
+def _verify_in_database(email):
+    from datetime import datetime, timezone
+
+    from app.models import CustomerAccount
+
+    db = SessionLocal()
+    try:
+        db.execute(
+            update(CustomerAccount)
+            .where(CustomerAccount.email == email.lower())
+            .values(email_verified_at=datetime.now(timezone.utc))
+        )
+        db.commit()
+    finally:
+        db.close()
 
 
 def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_register_returns_a_session(storefront):
-    email, response = _register(email=f"Mixed.Case-{uuid.uuid4().hex[:8]}@Example.com")
+def test_registering_makes_an_unverified_account_and_gives_no_session(storefront):
+    email = f"Mixed.Case-{uuid.uuid4().hex[:8]}@Example.com"
+    registered = client.post(
+        "/api/public/account/register",
+        json={"email": email, "password": PASSWORD, "first_name": "Ada", "last_name": "Lovelace"},
+    )
 
-    assert response.status_code == 201, response.text
+    assert registered.status_code == 202
+    assert registered.json() == {"status": "check_email"}
+
+    _, response = _register(email=email, verified=False)
+
+    assert response.status_code == 200, response.text
     assert response.json()["account"]["email"] == email.lower()
+    assert response.json()["account"]["email_verified"] is False
 
     me = client.get("/api/public/account/me", headers=_auth(response.json()["access_token"]))
 
@@ -83,19 +118,27 @@ def test_register_returns_a_session(storefront):
     assert me.json()["first_name"] == "Ada"
 
 
-def test_duplicate_email_is_refused_whatever_the_case(storefront):
+def test_registering_an_address_that_has_an_account_answers_the_same_and_changes_nothing(storefront):
     email, first = _register(email=f"dup-{uuid.uuid4().hex[:8]}@example.com")
 
-    assert first.status_code == 201
+    assert first.status_code == 200
 
-    _, second = _register(email=email.upper())
+    again = client.post(
+        "/api/public/account/register",
+        json={"email": email.upper(), "password": "a different password", "first_name": "Eve", "last_name": "X"},
+    )
 
-    assert second.status_code == 409
-    assert second.json()["code"] == "account.email_taken"
+    assert again.status_code == 202 and again.json() == {"status": "check_email"}
+    # The existing account is untouched: its own password still works, the new one does not.
+    assert client.post("/api/public/account/login", json={"email": email, "password": PASSWORD}).status_code == 200
+    assert client.post("/api/public/account/login", json={"email": email, "password": "a different password"}).status_code == 401
 
 
 def test_short_password_is_refused(storefront):
-    _, response = _register(password="short")
+    response = client.post(
+        "/api/public/account/register",
+        json={"email": _email(), "password": "short", "first_name": "Ada", "last_name": "Lovelace"},
+    )
 
     assert response.status_code == 422
 
@@ -162,13 +205,19 @@ def test_registering_with_a_bookers_email_does_not_expose_their_bookings(storefr
 
     assert booked.status_code == 201, booked.text
 
-    # Addresses are not verified, so an attacker can register with the
-    # victim's. They must still see nothing.
-    _, session = _register(email=victim_email)
-    listed = client.get("/api/public/account/bookings", headers=_auth(session.json()["access_token"]))
+    # Anyone can register with the victim's address; until the link in the email is
+    # followed, the account cannot see or claim a thing.
+    _, session = _register(email=victim_email, verified=False)
+    headers = _auth(session.json()["access_token"])
+    listed = client.get("/api/public/account/bookings", headers=headers)
+    claimed = client.post(
+        "/api/public/account/bookings/claim",
+        json={"reference": booked.json()["reference"], "email": victim_email},
+        headers=headers,
+    )
 
-    assert listed.status_code == 200
-    assert listed.json() == []
+    assert listed.status_code == 403 and listed.json()["code"] == "account.email_not_verified"
+    assert claimed.status_code == 403
 
 
 def test_claiming_a_booking_needs_reference_and_email(storefront, fake_stripe):

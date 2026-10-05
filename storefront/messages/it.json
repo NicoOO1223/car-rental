@@ -333,7 +333,9 @@
     },
     "account": {
       "email_taken": "Esiste già un account con questa email. Prova ad accedere.",
-      "signed_out": "La sessione è terminata. Accedi di nuovo."
+      "signed_out": "La sessione è terminata. Accedi di nuovo.",
+      "email_not_verified": "Conferma prima il tuo indirizzo email. Ti abbiamo inviato un link.",
+      "link_invalid": "Questo link è scaduto o non è valido. Richiedine uno nuovo."
     },
     "auth": {
       "invalid_credentials": "Email o password non corretti.",
@@ -357,7 +359,10 @@
     "registering": "Creazione dell'account…",
     "haveAccount": "Hai già un account?",
     "guestHint": "Hai prenotato senza account?",
-    "guestLink": "Gestisci una prenotazione"
+    "guestLink": "Gestisci una prenotazione",
+    "forgotLink": "Hai dimenticato la password?",
+    "checkEmailTitle": "Controlla la tua email",
+    "checkEmailBody": "Abbiamo inviato un link di conferma a {email}. Aprilo per completare la creazione dell'account, poi accedi."
   },
   "account": {
     "title": "Il mio account",
@@ -374,5 +379,36 @@
     "claimSubmit": "Aggiungi al mio account",
     "claiming": "Aggiunta in corso…",
     "claimed": "Prenotazione aggiunta."
+  },
+  "accountMail": {
+    "email": "Email",
+    "sending": "Invio…",
+    "saving": "Salvataggio…",
+    "backToLogin": "Torna all'accesso",
+    "toLogin": "Accedi",
+    "toAccount": "Vai al mio account",
+    "askAgain": "Richiedi un nuovo link",
+    "passwordHint": "Almeno 8 caratteri.",
+    "verifying": "Conferma dell'email…",
+    "verifiedTitle": "Email confermata",
+    "verifiedBody": "Grazie. Il tuo account può ora vedere e aggiungere le tue prenotazioni.",
+    "verifyFailedTitle": "Non siamo riusciti a confermare la tua email",
+    "linkMissing": "Questo link è incompleto. Apri di nuovo il link dell'email, oppure richiedine uno nuovo.",
+    "forgotTitle": "Reimposta la password",
+    "forgotIntro": "Inserisci la tua email e ti invieremo un link per scegliere una nuova password.",
+    "forgotSubmit": "Invia il link",
+    "forgotSentTitle": "Controlla la tua email",
+    "forgotSentBody": "Se {email} ha un account, un link per reimpostare la password è in arrivo. Vale un'ora.",
+    "resetTitle": "Scegli una nuova password",
+    "resetIntro": "Scegli una nuova password per il tuo account. Verrai disconnesso ovunque e potrai accedere con quella nuova.",
+    "newPassword": "Nuova password",
+    "resetSubmit": "Salva la nuova password",
+    "resetDoneTitle": "Password cambiata",
+    "resetDoneBody": "Ora puoi accedere con la nuova password.",
+    "resetFailedTitle": "Questo link non può essere usato",
+    "bannerTitle": "Conferma il tuo indirizzo email",
+    "bannerBody": "Le tue prenotazioni restano nascoste finché non confermi {email}. Apri il link che ti abbiamo inviato.",
+    "bannerResend": "Invia di nuovo l'email",
+    "bannerSent": "Email inviata"
   }
 }

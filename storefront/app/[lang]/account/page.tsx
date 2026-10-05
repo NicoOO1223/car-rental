@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { ClaimForm } from "@/components/ClaimForm";
+import { VerifyBanner } from "@/components/VerifyBanner";
 import { ViewBookingButton } from "@/components/ViewBookingButton";
 import { VehicleArt } from "@/components/VehicleArt";
 import { getAccount, getAccountBookings } from "@/lib/accountServer";
@@ -27,7 +28,7 @@ export default async function AccountPage({ params }: { params: Promise<{ lang: 
 
   if (!account) redirect(`/${lang}/login?next=${encodeURIComponent(`/${lang}/account`)}`);
 
-  const bookings = (await getAccountBookings()) ?? [];
+  const bookings = account.email_verified ? ((await getAccountBookings()) ?? []) : [];
 
   // The status is data from the API, so its key is not known to the type checker.
   const untyped = t as unknown as ((key: string) => string) & { has: (key: string) => boolean };
@@ -37,6 +38,8 @@ export default async function AccountPage({ params }: { params: Promise<{ lang: 
     <main className="mx-auto max-w-4xl px-4 py-10 sm:py-14">
       <h1 className="text-3xl font-bold tracking-tight">{t("account.welcome", { name: account.first_name })}</h1>
       <p className="mt-1 text-ink-secondary">{account.email}</p>
+
+      {!account.email_verified && <VerifyBanner email={account.email} />}
 
       <h2 className="mt-10 text-xl font-semibold">{t("account.bookingsTitle")}</h2>
 
@@ -79,9 +82,11 @@ export default async function AccountPage({ params }: { params: Promise<{ lang: 
         </ul>
       )}
 
-      <div className="mt-10">
-        <ClaimForm />
-      </div>
+      {account.email_verified && (
+        <div className="mt-10">
+          <ClaimForm />
+        </div>
+      )}
     </main>
   );
 }

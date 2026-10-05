@@ -9,7 +9,7 @@ import { runtimeConfig } from "@/lib/runtime";
  * so page scripts never see the token. */
 export const ACCOUNT_COOKIE = "storefront_account";
 
-export type Account = { email: string; first_name: string; last_name: string };
+export type Account = { email: string; first_name: string; last_name: string; email_verified: boolean };
 
 async function accountToken(): Promise<string | null> {
   return (await cookies()).get(ACCOUNT_COOKIE)?.value ?? null;

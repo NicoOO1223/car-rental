@@ -41,7 +41,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount
-from app.i18n.email_templates import ALERTS, CHANGES
+from app.i18n.email_templates import ALERTS, CHANGES, EXPIRES
 from app.languages import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 from app.models import (
     Customer,
@@ -756,6 +756,52 @@ def queue_refund_notice(db: Session, note: Invoice) -> EmailMessage | None:
         logger.exception("Could not write the refund notice for credit note %s", note.id)
 
         return None
+
+
+# --- account emails --------------------------------------------------------------------------
+
+# A second request inside this time sends nothing new, so no one can be flooded.
+ACCOUNT_EMAIL_COOLDOWN = timedelta(minutes=2)
+
+
+def queue_account_email(db: Session, type_key: str, account, path: str, token: str) -> EmailMessage | None:
+    """The verification or password-reset email for a storefront account, with the
+    link carrying `token` in its fragment (so it never reaches a server log).
+    Nothing without a storefront address to link to. Does not commit."""
+
+    base = storefront_url()
+
+    if not base or not email_active(db) or not type_enabled(db, type_key):
+        return None
+
+    key = f"{type_key}:{account.id}"
+    recent = db.scalar(
+        select(EmailMessage.id).where(
+            EmailMessage.coalesce_key == key,
+            EmailMessage.created_at > datetime.now(timezone.utc) - ACCOUNT_EMAIL_COOLDOWN,
+        )
+    )
+
+    if recent is not None:
+        return None
+
+    language = account.language if account.language in SUPPORTED_LANGUAGES else None
+    language = language or document_language(get_configuration(db).default_language)
+
+    return queue_email(
+        db,
+        type_key,
+        to_address=account.email,
+        to_name=f"{account.first_name} {account.last_name}".strip(),
+        language=language,
+        dedupe_key=f"{key}:{uuid.uuid4().hex}",
+        coalesce_key=key,
+        values={
+            "name": account.first_name,
+            "link": f"{base}/{language}/account/{path}#token={token}",
+            "expires": EXPIRES[type_key][document_language(language)],
+        },
+    )
 
 
 # --- alerts to the business ------------------------------------------------------------------

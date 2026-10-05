@@ -140,7 +140,9 @@
       "refund_notice": "Avviso di rimborso",
       "new_online_booking": "Nuova prenotazione online",
       "online_cancellation": "Annullamento online",
-      "needs_attention": "Richiede attenzione"
+      "needs_attention": "Richiede attenzione",
+      "verify_email": "Conferma dell'email",
+      "reset_password": "Reimpostazione della password"
     },
     "emailAudience": {
       "renter": "Ai clienti",
@@ -158,7 +160,9 @@
       "refund_notice": "Quando una somma viene rimborsata sulla carta del cliente. La nota di credito è allegata.",
       "new_online_booking": "Quando una prenotazione fatta sul sito viene pagata e confermata. Inviata ai destinatari degli avvisi.",
       "online_cancellation": "Quando un cliente annulla la prenotazione sul sito. Indica se il pagamento online è stato rimborsato o trattenuto.",
-      "needs_attention": "Quando serve una persona: un pagamento tardivo è stato rimborsato perché l'auto era stata presa, oppure un'email non è stata consegnata."
+      "needs_attention": "Quando serve una persona: un pagamento tardivo è stato rimborsato perché l'auto era stata presa, oppure un'email non è stata consegnata.",
+      "verify_email": "Quando qualcuno crea un account sul sito, e quando chiede di nuovo il link. Sempre attiva: è un'email di sicurezza.",
+      "reset_password": "Quando qualcuno dice di aver dimenticato la password. Il link funziona una volta, per un'ora. Sempre attiva: è un'email di sicurezza."
     },
     "emailValue": {
       "name": "Il nome del cliente",
@@ -191,7 +195,9 @@
       "email": "L'indirizzo email del cliente",
       "payment_outcome": "Cosa è successo al pagamento online (vuoto se non è stato pagato nulla)",
       "what": "Un breve titolo di ciò che richiede attenzione",
-      "details": "Cosa è successo e cosa fare"
+      "details": "Cosa è successo e cosa fare",
+      "link": "Il link personale (non toglierlo: senza di esso l'email è inutile)",
+      "expires": "Per quanto tempo il link funziona"
     },
     "emailPart": {
       "signoff": "Chiusura",
@@ -530,7 +536,9 @@
     },
     "account": {
       "email_taken": "Esiste già un account con questa email.",
-      "signed_out": "La sessione è terminata. Accedi di nuovo."
+      "signed_out": "La sessione è terminata. Accedi di nuovo.",
+      "email_not_verified": "Conferma prima il tuo indirizzo email.",
+      "link_invalid": "Questo link è scaduto o non è valido. Richiedine uno nuovo."
     },
     "landing_cta": {
       "corrupted": "Il file dell'immagine è danneggiato.",

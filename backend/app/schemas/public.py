@@ -256,11 +256,36 @@ class AccountRegister(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     captcha_token: str | None = Field(default=None, max_length=4096)
+    # The language of the page, for the emails the account gets.
+    language: str | None = Field(default=None, max_length=5)
 
     @field_validator("password")
     @classmethod
     def password_fits_bcrypt(cls, value: str) -> str:
         return check_password_bytes(value)
+
+
+class AccountForgotPassword(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+
+class AccountResetPassword(BaseModel):
+    token: str = Field(min_length=10, max_length=2000)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        return check_password_bytes(value)
+
+
+class AccountLinkToken(BaseModel):
+    token: str = Field(min_length=10, max_length=2000)
+
+
+class AccountStatus(BaseModel):
+    status: str
 
 
 class AccountLogin(BaseModel):
@@ -273,6 +298,7 @@ class AccountProfile(BaseModel):
     email: str
     first_name: str
     last_name: str
+    email_verified: bool
 
 
 class AccountSession(BaseModel):

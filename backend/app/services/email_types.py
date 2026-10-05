@@ -150,6 +150,21 @@ TYPES: dict[str, EmailType] = {
         parts=("signoff",),
         options=(Option("attach_credit_note", "bool", True),),
     ),
+    # --- storefront account emails: security emails, cannot be switched off
+    "verify_email": EmailType(
+        key="verify_email",
+        audience=ACCOUNT,
+        values=("name", "link", "expires"),
+        parts=("signoff",),
+        can_disable=False,
+    ),
+    "reset_password": EmailType(
+        key="reset_password",
+        audience=ACCOUNT,
+        values=("name", "link", "expires"),
+        parts=("signoff",),
+        can_disable=False,
+    ),
     # --- to the business: instant alerts to the recipients set in Configuration > Email
     "new_online_booking": EmailType(
         key="new_online_booking",
@@ -288,6 +303,16 @@ SAMPLE_VALUES.update(
 
 SAMPLE_VALUES.update(
     {
+        "verify_email": {
+            "name": "Giulia",
+            "link": "https://www.example.com/en/account/verify#token=sample",
+            "expires": "24 hours",
+        },
+        "reset_password": {
+            "name": "Giulia",
+            "link": "https://www.example.com/en/account/reset-password#token=sample",
+            "expires": "1 hour",
+        },
         "new_online_booking": {
             "reference": "AB12CD34E",
             "name": "Giulia Rossi",

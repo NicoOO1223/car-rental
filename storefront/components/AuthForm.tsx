@@ -27,6 +27,7 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
   const [resetKey, setResetKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [registered, setRegistered] = useState(false);
 
   const humanChecked = token !== null && (token !== "" || !window.__RUNTIME_CONFIG__?.turnstileSiteKey);
 
@@ -43,10 +44,14 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
 
     try {
       if (registering) {
-        await accountApi.register({ ...credentials, first_name: firstName.trim(), last_name: lastName.trim() });
-      } else {
-        await accountApi.login(credentials);
+        await accountApi.register({ ...credentials, first_name: firstName.trim(), last_name: lastName.trim(), language });
+        setRegistered(true);
+        setBusy(false);
+
+        return;
       }
+
+      await accountApi.login(credentials);
 
       router.push(destination);
       // The header reads the session on the server: ask it to look again.
@@ -59,6 +64,21 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
   }
 
   const otherHref = `/${language}/${registering ? "login" : "register"}${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+
+  if (registered) {
+    return (
+      <div className="rounded-2xl border border-border-subtle bg-surface p-6 shadow-sm sm:p-8" role="status">
+        <h1 className="text-2xl font-bold tracking-tight">{t("checkEmailTitle")}</h1>
+        <p className="mt-3 text-ink-secondary">{t("checkEmailBody", { email: email.trim() })}</p>
+        <Link
+          href={`/${language}/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+          className="mt-6 inline-block rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+        >
+          {t("loginTitle")}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border border-border-subtle bg-surface p-6 shadow-sm sm:p-8">
@@ -126,6 +146,14 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
             </span>
           )}
         </label>
+
+        {!registering && (
+          <p className="text-right text-sm">
+            <Link href={`/${language}/account/forgot-password`} className="font-medium text-ink-secondary underline underline-offset-4">
+              {t("forgotLink")}
+            </Link>
+          </p>
+        )}
 
         <Turnstile onToken={setToken} resetKey={resetKey} language={language} />
       </div>
