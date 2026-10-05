@@ -164,8 +164,9 @@ def offer_for(car: Car, members: list[Car] | None = None) -> Offer:
         transmission=example.transmission,
         fuel_type=example.fuel_type,
         seats=example.seats,
-        has_photo=example.has_photo,
-        photo_version=example.photo_version,
+        # The class's own photo when it has one, else the example car's.
+        has_photo=example.has_photo or (cls is not None and cls.has_photo),
+        photo_version=cls.photo_version if cls is not None and cls.has_photo else example.photo_version,
         price_per_day=car.price_per_day,
     )
 

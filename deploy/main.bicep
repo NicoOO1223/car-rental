@@ -37,6 +37,8 @@ var photoContainerName = 'condition-photos'
 var landingContainerName = 'landing-images'
 // Uploaded car photos — same account and reasoning as landingContainerName.
 var carPhotoContainerName = 'car-photos'
+// Uploaded vehicle-class photos (see app/services/class_photos.py): same account and reasoning.
+var classPhotoContainerName = 'class-photos'
 var sharingEnvironment = !empty(existingContainerAppsEnvironmentId)
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!sharingEnvironment) {
@@ -296,6 +298,15 @@ resource landingContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
 resource carPhotoContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: photoBlobService
   name: carPhotoContainerName
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// Uploaded vehicle-class photos, served through the API like the car photos.
+resource classPhotoContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: photoBlobService
+  name: classPhotoContainerName
   properties: {
     publicAccess: 'None'
   }

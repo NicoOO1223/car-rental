@@ -41,6 +41,20 @@ class VehicleClass(Base):
 
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # The class's own photo, kept like a car's (see app/services/class_photos.py).
+    # Without one the storefront shows the photo of one of its cars.
+    photo_blob_path: Mapped[str | None] = mapped_column(String(300))
+    photo_content_type: Mapped[str | None] = mapped_column(String(20))
+    photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def has_photo(self) -> bool:
+        return self.photo_blob_path is not None
+
+    @property
+    def photo_version(self) -> int | None:
+        return int(self.photo_updated_at.timestamp()) if self.photo_updated_at is not None else None
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )

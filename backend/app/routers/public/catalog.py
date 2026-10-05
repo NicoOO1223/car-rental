@@ -4,12 +4,13 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Response
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.errors import AppError, NotFoundError
 from app.languages import SUPPORTED_LANGUAGES
-from app.models import Car
+from app.models import Car, VehicleClass
 from app.schemas.pricing import PriceBreakdownFields
 from app.schemas.public import (
     PublicAvailabilityResponse,
@@ -25,6 +26,7 @@ from app.schemas.public import (
 from app.schemas.reservation import ReservationQuoteRequest
 from app.services.branding import get_logo
 from app.services.car_photos import read_car_photo
+from app.services.class_photos import read_class_photo
 from app.services.landing_about import get_about_image
 from app.services.landing_cta import get_cta_image
 from app.services.landing_hero import get_hero_image
@@ -223,12 +225,26 @@ def public_offer_photo(key: str, request: Request, db: Session = Depends(get_db)
     opaque offer_key already used to group identical cars and to book one.
     """
 
-    car = car_for_offer_key(db, key)
+    # A class's own photo comes first; without one, a car's stands for it.
+    holder = None
 
-    if car is None or car.photo_blob_path is None:
-        raise NotFoundError("car.no_photo", "No photo has been uploaded for this car.")
+    if key.startswith("class-"):
+        holder = db.scalar(select(VehicleClass).where(VehicleClass.slug == key.removeprefix("class-")))
 
-    etag = f'"{car.photo_version}"'
+        if holder is not None and not holder.has_photo:
+            holder = None
+
+    if holder is not None:
+        reader, version, content_type = read_class_photo, holder.photo_version, holder.photo_content_type
+    else:
+        holder = car_for_offer_key(db, key)
+
+        if holder is None or holder.photo_blob_path is None:
+            raise NotFoundError("car.no_photo", "No photo has been uploaded for this car.")
+
+        reader, version, content_type = read_car_photo, holder.photo_version, holder.photo_content_type
+
+    etag = f'"{version}"'
     headers = {
         "ETag": etag,
         "Cache-Control": "public, max-age=300",
@@ -238,8 +254,8 @@ def public_offer_photo(key: str, request: Request, db: Session = Depends(get_db)
         return Response(status_code=304, headers=headers)
 
     return Response(
-        content=read_car_photo(car),
-        media_type=car.photo_content_type,
+        content=reader(holder),
+        media_type=content_type,
         headers=headers,
     )
 

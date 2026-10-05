@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.errors import AppError, NotFoundError
 from app.languages import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
-from app.models import Car, User, VehicleClass
+from app.models import Car, Reservation, User, VehicleClass
 from app.schemas.vehicle_class import VehicleClassCreate, VehicleClassUpdate
 from app.services.audit import audit_log
 from app.services.availability import lock_car
@@ -97,7 +97,16 @@ def list_classes(db: Session, include_retired: bool = False) -> list[dict]:
 
     for row in db.scalars(query):
         cars, online = counts.get(row.id, (0, 0))
-        rows.append({**{c.name: getattr(row, c.name) for c in VehicleClass.__table__.columns}, "is_retired": row.is_retired, "car_count": cars, "online_car_count": online})
+        rows.append(
+            {
+                **{c.name: getattr(row, c.name) for c in VehicleClass.__table__.columns},
+                "is_retired": row.is_retired,
+                "has_photo": row.has_photo,
+                "photo_version": row.photo_version,
+                "car_count": cars,
+                "online_car_count": online,
+            }
+        )
 
     return rows
 
@@ -238,29 +247,29 @@ def reactivate_class(db: Session, class_id: UUID, actor: User) -> VehicleClass:
     return row
 
 
-def set_car_class(db: Session, car_id: UUID, class_id: UUID | None, actor: User) -> Car:
-    """Puts a car in a class (it takes the class price) or out of it (it keeps the
-    price it had). Cars already booked keep the price they were booked at."""
+def _target_class(db: Session, class_id: UUID | None) -> VehicleClass | None:
+    if class_id is None:
+        return None
 
-    car = db.get(Car, car_id)
+    target = get_class(db, class_id)
 
-    if car is None:
-        raise NotFoundError("car.not_found", "Car not found.")
+    if target.is_retired:
+        raise AppError("class.retired", "That class has been retired.")
 
-    target = None
+    return target
 
-    if class_id is not None:
-        target = get_class(db, class_id)
 
-        if target.is_retired:
-            raise AppError("class.retired", "That class has been retired.")
+def _assign(db: Session, car: Car, target: VehicleClass | None, actor: User) -> bool:
+    """Moves one car (no commit). True when it changed class."""
 
-    if car.class_id == class_id:
-        return car
+    target_id = target.id if target is not None else None
+
+    if car.class_id == target_id:
+        return False
 
     lock_car(db, car.id)
     previous = car.class_id
-    car.class_id = class_id
+    car.class_id = target_id
 
     if target is not None:
         car.price_per_day = target.price_per_day
@@ -274,11 +283,115 @@ def set_car_class(db: Session, car_id: UUID, class_id: UUID | None, actor: User)
         metadata={
             "license_plate": car.license_plate,
             "from": str(previous) if previous else None,
-            "to": str(class_id) if class_id else None,
+            "to": str(target_id) if target_id else None,
         },
     )
 
-    db.commit()
-    db.refresh(car)
+    return True
+
+
+def set_car_class(db: Session, car_id: UUID, class_id: UUID | None, actor: User) -> Car:
+    """Puts a car in a class (it takes the class price) or out of it (it keeps the
+    price it had). Cars already booked keep the price they were booked at."""
+
+    car = db.get(Car, car_id)
+
+    if car is None:
+        raise NotFoundError("car.not_found", "Car not found.")
+
+    if _assign(db, car, _target_class(db, class_id), actor):
+        db.commit()
+        db.refresh(car)
 
     return car
+
+
+def add_cars_to_class(db: Session, class_id: UUID, car_ids: list[UUID], actor: User) -> VehicleClass:
+    """Several cars into one class in one go (from no class or from other classes)."""
+
+    target = _target_class(db, class_id)
+    cars = {car.id: car for car in db.scalars(select(Car).where(Car.id.in_(car_ids)))}
+
+    if set(cars) != set(car_ids):
+        raise NotFoundError("car.not_found", "Car not found.")
+
+    # In id order, like every other multi-car lock.
+    for car_id in sorted(cars, key=str):
+        _assign(db, cars[car_id], target, actor)
+
+    db.commit()
+    db.refresh(target)
+
+    return target
+
+
+def reorder_classes(db: Session, ids: list[UUID], actor: User) -> None:
+    """The order the website lists the classes in: the ids are exactly the classes in
+    the fleet (not retired), in the new order."""
+
+    current = {row.id: row for row in db.scalars(select(VehicleClass).where(VehicleClass.retired_at.is_(None)))}
+
+    if len(ids) != len(set(ids)) or set(ids) != set(current):
+        raise AppError("class.order_mismatch", "The list of classes has changed. Reload and try again.")
+
+    for position, class_id in enumerate(ids):
+        current[class_id].sort_order = position
+
+    audit_log(
+        db,
+        user=actor,
+        action="vehicle_class.reordered",
+        entity_type="vehicle_class",
+        entity_id=None,
+        metadata={"count": len(ids)},
+    )
+
+    db.commit()
+
+
+def remove_class(db: Session, class_id: UUID, move_cars_to: UUID | None, actor: User) -> str:
+    """
+    Takes a class away. Its cars first go to another class (or to none, keeping their
+    price). Then, if no booking was ever made for the class, it is deleted; otherwise
+    it is only retired, so the history that points at it stays readable.
+    Returns "deleted" or "retired".
+    """
+
+    from datetime import datetime, timezone
+
+    from app.services.class_photos import delete_class_photo_file
+
+    row = get_class(db, class_id)
+
+    if move_cars_to == class_id:
+        raise AppError("class.cannot_move_into_itself", "Choose another class for its cars.")
+
+    target = _target_class(db, move_cars_to)
+
+    for car in sorted(db.scalars(select(Car).where(Car.class_id == row.id)), key=lambda item: str(item.id)):
+        _assign(db, car, target, actor)
+
+    db.flush()
+
+    used = db.scalar(select(func.count()).select_from(Reservation).where(Reservation.class_id == row.id))
+
+    if used:
+        row.retired_at = row.retired_at or datetime.now(timezone.utc)
+        outcome = "retired"
+    else:
+        delete_class_photo_file(row)
+        db.delete(row)
+        outcome = "deleted"
+
+    audit_log(
+        db,
+        user=actor,
+        action=f"vehicle_class.{outcome}",
+        entity_type="vehicle_class",
+        entity_id=class_id,
+        metadata={"name": (row.name or {}).get(DEFAULT_LANGUAGE), "cars_moved_to": str(move_cars_to) if move_cars_to else None},
+    )
+
+    db.commit()
+
+    return outcome

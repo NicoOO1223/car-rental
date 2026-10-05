@@ -25,6 +25,8 @@ class VehicleClassResponse(BaseModel):
     offered_online: bool
     retired_at: datetime | None
     is_retired: bool
+    has_photo: bool = False
+    photo_version: int | None = None
     # Cars in the fleet (not retired) and how many of them may be offered online.
     car_count: int
     online_car_count: int
@@ -51,6 +53,35 @@ class VehicleClassUpdate(BaseModel):
     price_per_day: Decimal | None = Field(default=None, ge=0, max_digits=8, decimal_places=2)
     sort_order: int | None = Field(default=None, ge=0, le=10_000)
     offered_online: bool | None = None
+
+
+class ClassOrder(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ids: list[UUID] = Field(max_length=500)
+
+
+class ClassCars(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    car_ids: list[UUID] = Field(min_length=1, max_length=200)
+
+
+class ClassRemove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Where its cars go; none = they keep their price and have no class.
+    move_cars_to: UUID | None = None
+
+
+class ClassRemoved(BaseModel):
+    # "deleted" (nothing ever pointed at it) or "retired" (it has bookings, so it is hidden).
+    outcome: str
+
+
+class ClassPhotoUpload(BaseModel):
+    # A data URL (data:image/png;base64,...), sized like a car's photo.
+    data_url: str = Field(max_length=5_000_000)
 
 
 class CarClassAssign(BaseModel):
