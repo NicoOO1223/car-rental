@@ -1,0 +1,7 @@
+**/node_modules
+**/.next
+backend
+frontend
+deploy
+docs
+.git

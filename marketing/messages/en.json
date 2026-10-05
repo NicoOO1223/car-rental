@@ -1,0 +1,242 @@
+{
+  "meta": {
+    "homeTitle": "{brand}: rental software for independent car and van rental",
+    "homeDescription": "Bookings, handover with signature, deposits and invoices in one system with its own booking site. Plans by fleet size. Request a demo.",
+    "demoTitle": "Request a demo | {brand}",
+    "demoDescription": "Tell us about your fleet and we will show you the system in a 30-minute walkthrough.",
+    "thanksTitle": "Request received | {brand}",
+    "privacyTitle": "Privacy | {brand}",
+    "privacyDescription": "How we use the details you send us.",
+    "termsTitle": "Terms | {brand}",
+    "termsDescription": "Terms for using this website and requesting a demo.",
+    "notFoundTitle": "Page not found | {brand}"
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "home": "{brand}, home",
+    "main": "Main",
+    "features": "Features",
+    "how": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "cta": "Request a demo",
+    "menu": "Menu",
+    "close": "Close menu"
+  },
+  "screens": {
+    "placeholder": "Screenshot: {name}",
+    "placeholderNote": "Captured from a fictional demo business",
+    "dashboard": {
+      "name": "Dashboard",
+      "alt": "The dashboard of the staff panel: today's pickups and returns, upcoming bookings and alerts."
+    },
+    "storefront": {
+      "name": "Booking site on a phone",
+      "alt": "The online booking site on a phone, showing vehicle classes with photos and a price per day.",
+      "caption": "The booking site your renters see."
+    },
+    "handover": {
+      "name": "Handover",
+      "alt": "The handover screen: payment, deposit, ID details, car condition and the signature pad.",
+      "caption": "Handover: payment, deposit, ID, condition and signatures."
+    },
+    "fleet": {
+      "name": "Fleet timeline",
+      "alt": "A 30-day fleet timeline with a bar for every booking on every car.",
+      "caption": "Classes, cars and what is booked when."
+    },
+    "revenue": {
+      "name": "Revenue and invoices",
+      "alt": "The revenue page with a chart of payments over twelve weeks.",
+      "caption": "Revenue, invoices and refunds."
+    },
+    "email": {
+      "name": "Email editor",
+      "alt": "The email editor: the booking confirmation wording on the left and a live preview on the right.",
+      "caption": "Reword any email and preview it."
+    },
+    "audit": {
+      "name": "Audit log",
+      "alt": "The audit log: a list of who changed what and when.",
+      "caption": "Who did what."
+    }
+  },
+  "hero": {
+    "title": "Run the counter, the fleet and the money from one system.",
+    "sub": "Online bookings, handover with signature, deposits and invoices for independent car and van rental. Your own system, set up for you.",
+    "cta": "Request a demo",
+    "secondary": "See what's included"
+  },
+  "facts": {
+    "f1": "Your own isolated system",
+    "f2": "English, Italian and Polish",
+    "f3": "Cards and cash",
+    "f4": "Daily backups"
+  },
+  "promise": {
+    "title": "One place instead of five",
+    "text": "Bookings in WhatsApp. Prices in a spreadsheet. Deposits in someone's head. {brand} puts bookings, the counter, the fleet and the money in one place, and gives your renters a booking site of their own.",
+    "c1": "WhatsApp",
+    "c2": "Spreadsheets",
+    "c3": "Paper agreements"
+  },
+  "features": {
+    "title": "Everything the counter, the fleet and the office need",
+    "booking": {
+      "title": "Let renters book while you sleep.",
+      "sub": "A booking site with your name, logo and photos. Renters pick a class, pay a share by card, and pay the rest at pickup.",
+      "b1": "Search by place and dates with live availability.",
+      "b2": "Pay a share online with Stripe (you set the percentage); the rest is paid at pickup.",
+      "b3": "Renters can look up and cancel their own booking with a reference; refunds follow the cutoff you set."
+    },
+    "counter": {
+      "title": "Hand over a car in one screen flow.",
+      "sub": "Take the booking at the counter, then run the handover on a tablet.",
+      "b1": "A booking wizard for walk-ins and phone bookings.",
+      "b2": "Record ID and licence details, check the car's condition with photos, and take both signatures on screen.",
+      "b3": "An agreement PDF at handover, with cash or card payment and a security deposit in the same flow.",
+      "b4": "At return: late, fuel and damage charges, and the deposit released or partly kept."
+    },
+    "fleet": {
+      "title": "Sell classes, assign cars later.",
+      "sub": "Price a class once. Keep track of every car behind it.",
+      "b1": "One price per vehicle class (\"Compact, Fiat Panda or similar\"), with photos and drag-to-reorder.",
+      "b2": "Bookings hold a provisional car, marked \"car not final\" until you confirm it.",
+      "b3": "A fleet timeline, maintenance tasks, and inspection and insurance dates with a notification bell.",
+      "b4": "The database itself refuses overlapping bookings for one car."
+    },
+    "money": {
+      "title": "Every payment accounted for.",
+      "sub": "Cash or card, deposits, refunds and a paper trail your accountant can follow.",
+      "b1": "Numbered invoices, issued when a rental payment is taken and never edited afterwards, and a credit note when you refund.",
+      "b2": "Card deposits held, then captured or released at return.",
+      "b3": "One VAT rate, with prices including or excluding VAT.",
+      "b4": "A revenue page with a download."
+    },
+    "emails": {
+      "title": "Renters hear from you without you typing.",
+      "sub": "Ready-made emails in the renter's language, in your words.",
+      "b1": "Confirmation, changes, cancellation, pickup reminder, receipt, agreement copy, return summary and refund notice.",
+      "b2": "Alerts to you for new online bookings, online cancellations and bookings that need attention.",
+      "b3": "Edit the subject and wording in English, Italian or Polish, with a live preview and a test send. Switch each email on or off."
+    },
+    "control": {
+      "title": "Know who did what, and keep your data yours.",
+      "sub": "Your own system, not a shared account.",
+      "b1": "Roles: admin, manager, staff and read-only.",
+      "b2": "An audit log of the changes that matter, and phone numbers and emails masked in customer lists for staff.",
+      "b3": "Your own database and your own backups, restore-tested daily, hosted in the EU by default (Sweden).",
+      "b4": "Export or erase a customer's data on request."
+    }
+  },
+  "how": {
+    "title": "From first call to first booking.",
+    "s1Title": "Request a demo",
+    "s1Body": "We show you the system with a fleet like yours.",
+    "s2Title": "We set it up",
+    "s2Body": "Your own system, your business details, your classes and prices, your Stripe account.",
+    "s3Title": "You go live",
+    "s3Body": "We train you at the counter and stay reachable for questions."
+  },
+  "pricing": {
+    "title": "Prices by fleet size. Every feature in every plan.",
+    "sub": "No per-booking commission from us. Card fees go to Stripe.",
+    "perMonth": "per month, excluding VAT",
+    "quote": "Ask for a quote",
+    "from": "from",
+    "popular": "Mid-size fleets",
+    "cta": "Request a demo",
+    "upTo": "Up to {count} vehicles",
+    "unlimited": "More than 30 vehicles, or several sites",
+    "starter": "Starter",
+    "growth": "Growth",
+    "fleet": "Fleet",
+    "include": {
+      "i1": "Every feature",
+      "i2": "Your own isolated system",
+      "i3": "Daily backups",
+      "i4": "Onboarding by us"
+    },
+    "setup": "One-time setup: your business profile, classes and prices, Stripe connection, email sending and a training session.",
+    "setupFee": "Setup fee {amount}, excluding VAT.",
+    "annual": "Pay yearly and get two months free.",
+    "footnote": "Prices exclude VAT. Larger fleet or several sites? Ask for a quote."
+  },
+  "faq": {
+    "title": "Questions owners ask",
+    "q1": "Who is it for?",
+    "a1": "Independent operators renting cars and vans, from a handful of vehicles to a few dozen, who want bookings, counter, fleet and money in one place. It is not built for franchises or networks with hundreds of vehicles.",
+    "q2": "How long does setup take?",
+    "a2": "About one week from your details to a working system. We create your system, enter your locations, classes and prices, connect Stripe and email sending, and train you.",
+    "q3": "What does setup include and cost?",
+    "a3": "A one-time fee, shown in Pricing. It covers everything needed to take the first booking. We enter your fleet and rates with you.",
+    "q4": "How do payments work?",
+    "a4": "Card payments go through your own Stripe account, straight to you. We take no commission; Stripe charges its normal fees. Cash is supported at the counter. Security deposits can be held on a card and released or captured at return.",
+    "q5": "Who owns my data?",
+    "a5": "You do. Your system has its own database, separate from every other customer. You can export a customer's data at any time and erase it on request. At the end of the contract you receive a full export.",
+    "q6": "Which languages does it speak?",
+    "a6": "The staff screens, the booking site, the emails and the printed agreement and invoices work in English, Italian and Polish. You can reword every email and the agreement yourself.",
+    "q7": "Can I cancel?",
+    "a7": "Monthly plans: cancel any time with 30 days' notice. Annual plans are paid yearly, with no refund for the remainder.",
+    "q8": "What about invoices and tax?",
+    "a8": "Invoices are numbered and gap-free, with credit notes for refunds and one VAT rate. They are PDFs: electronic invoicing through Italy's SDI or Poland's KSeF is not included yet. We check invoice wording for your country with your accountant at setup, and we do not give tax advice.",
+    "q9": "Is it secure, and where is it hosted?",
+    "a9": "Each customer gets an isolated system and database in the EU (Sweden), with daily backups that are restore-tested. Staff have roles, and changes are recorded in an audit log. No system is risk-free; we share the security details on request.",
+    "q10": "Do I need to be technical?",
+    "a10": "No. You need a web browser and, for handover, a tablet or any screen you can sign on. We set everything up; you edit prices, extras and wording yourself in Configuration."
+  },
+  "final": {
+    "title": "See it with your own fleet.",
+    "sub": "A 30-minute walkthrough, no obligation, no account needed.",
+    "cta": "Request a demo",
+    "orWrite": "Or write to {email}."
+  },
+  "footer": {
+    "tagline": "Rental software for independent car and van rental.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "contactPending": "Contact details to be added.",
+    "rights": "© {year} {entity}",
+    "legalPending": "Company details to be added."
+  },
+  "demo": {
+    "title": "Request a demo",
+    "sub": "We reply within one working day with a time to show you the system using your kind of fleet.",
+    "pendingTitle": "The request form is coming soon",
+    "pendingBody": "Until it is online, write to us directly.",
+    "emailUs": "Email {email}",
+    "noEmail": "Our contact address will be published here before launch.",
+    "back": "Back to home"
+  },
+  "notFound": {
+    "title": "This page is not here.",
+    "body": "The page may have moved, or the address may be mistyped.",
+    "home": "Go to home",
+    "demo": "Request a demo"
+  },
+  "legal": {
+    "draftBanner": "Draft: pending legal review. This text is a structure only and is not yet in force.",
+    "updated": "Last updated: not yet published",
+    "pending": "To be written by the company's lawyer.",
+    "privacy": {
+      "title": "Privacy",
+      "s1": "Who we are",
+      "s2": "What the request form collects",
+      "s3": "Why we use it, and the legal basis",
+      "s4": "Who processes it for us",
+      "s5": "How long we keep it",
+      "s6": "Your rights",
+      "s7": "How to contact us"
+    },
+    "terms": {
+      "title": "Terms",
+      "s1": "The service and this website",
+      "s2": "Requesting a demo",
+      "s3": "Plans and prices",
+      "s4": "Contract",
+      "s5": "Liability",
+      "s6": "Governing law"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* The marketing site shares the staff panel's monochrome look (graphite,
+   white, near-black ink) and adds ONE accent, used only as a fill with dark
+   ink on top of it. Red is never decorative: as in the panel it means error.
+   Light page with dark "deep" bands. */
+:root {
+  --canvas: #f9fafb;
+  --surface: #ffffff;
+  --surface-sunken: #f3f4f6;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --ink: #0a0a0a;
+  --ink-secondary: #4b5563;
+  --ink-muted: #6b7280;
+  --deep: #0a0a0a;
+  --deep-raised: #171717;
+  --on-deep: #f9fafb;
+  --on-deep-muted: #a3a3a3;
+  /* The accent: one token. Placeholder "signal" colour. */
+  --accent: #c6f432;
+  --accent-ink: #0a0a0a;
+  --danger: #b91c1c;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border-subtle: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-deep: var(--deep);
+  --color-deep-raised: var(--deep-raised);
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-muted: var(--on-deep-muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Anchors land below the sticky header. */
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Visible keyboard focus on both light and dark bands: a dark ring with a
+   white halo is at least 3:1 against either. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px #ffffff;
+  border-radius: 4px;
+}
+
+.display {
+  font-family: var(--font-display), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* FAQ: the native <details> marker is replaced by a plus that turns to a minus. */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] .faq-icon-v {
+  display: none;
+}

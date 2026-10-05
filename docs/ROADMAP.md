@@ -27,7 +27,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L6 | Configuration (admin-editable business rules) | Shipped, extended with return charges and security deposit |
 | L7 | Identity and licence details | Shipped as manual entry |
 | L8 | Data export and erasure | Shipped |
-| L9 | Email and SMS | Email to renters built (confirmation, cancellation, receipt with invoice); SMS, reminders and staff-facing email still deferred |
+| L9 | Email and SMS | Email built: 13 emails (8 to renters, 3 to the business, 2 storefront-account), editable per language in Configuration, Email; includes the pickup reminder. SMS and overdue-return reminders not built |
 | L10 | Finance reporting | Partial: admin revenue page only, scope not audited |
 | L11 | Visual redesign | Deferred |
 | L12 | Production hardening | Shipped and live on `demo` |
@@ -109,7 +109,7 @@ Deployment notes:
 - A maintenance task can carry a cost, typed in when it is logged and replaceable when a technical inspection is completed. Empty means not entered, not zero. The maintenance list and each vehicle's history show it. This is the input for the cost tracking to come.
 - A vehicle has an insured-since date, an insured-until date and an insurance cost for that period, edited with the rest of its condition.
 - Notifications are worked out from the data each time, never stored: a vehicle away from its home airport, an inspection due soon or overdue, insurance ending soon or ended. A bell in the sidebar shows the count (red when something is urgent) and opens a list that links to each vehicle. Items disappear when the thing is fixed, so nothing needs marking as read. The lead time is Configuration, System, "Reminder window (days)", 30 by default.
-- Staff notifications are in-app only. Renters get a confirmation, a cancellation notice and a receipt by email once a stack's sending domain is verified (see deploy/PROVISIONING.md, Email). SMS, pickup and overdue reminders, and staff-facing email are not built.
+- Staff notifications are in-app only. Renters get a confirmation, a cancellation notice and a receipt by email once a stack's sending domain is verified (see deploy/PROVISIONING.md, Email). Later layers added the rest of the email set (pickup reminder, agreement copy, return summary, refund notice, and three emails to the business); see deploy/PROVISIONING.md, Email. SMS and overdue-return reminders are not built.
 - Not covered: a cost on cleaning or non-inspection completions beyond what was entered when logging, and cost reports.
 
 **L14 Per-customer stack automation.** Built, pushed and rolled out to the live `demo` stack (the canary).
@@ -163,10 +163,14 @@ Deployment notes:
 
 ## Deferred
 
-- SMS and the rest of L9. Staff invites and password resets stay admin-driven, reminders do not exist, and the personal Settings layer stays blocked. Renter email (confirmation, cancellation, receipt) exists; it needs the provider to be provisioned and a verified domain per stack.
+- SMS and the rest of L9. Staff invites and password resets stay admin-driven, overdue-return reminders do not exist, and the personal Settings layer stays blocked. Renter and business email exists (13 emails, pickup reminder included); it needs the provider to be provisioned and a verified domain per stack.
 - True multi-tenancy, which becomes relevant after several customers exist.
 - In-product billing for the SaaS itself. Invoice the first customers manually.
 - The broader visual redesign (L11).
+
+## Marketing site
+
+A separate app, `marketing/`, sells the product (request-a-demo page, public plans). Design brief approved 2026-10-05; build in progress, not live, brand and prices are placeholders until the owner decides. It claims only shipped features; known gaps it states plainly: no SMS, no scooter category, no custom domain for a stack's storefront, no Italian SDI or Polish KSeF e-invoicing, Italian and Polish text not yet natively reviewed.
 
 ## Naming rule
 

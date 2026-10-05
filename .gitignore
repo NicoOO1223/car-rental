@@ -33,3 +33,6 @@ deploy/*.log
 # Playwright
 frontend/test-results/
 frontend/playwright-report/
+
+# Marketing site
+marketing/tsconfig.tsbuildinfo
