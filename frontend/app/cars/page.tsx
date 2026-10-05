@@ -20,6 +20,7 @@ import { formatCalendarDate, formatDate, formatDateTime as formatMoment, formatT
 import { useNavigate } from "@/lib/useNavigate";
 import { t, enumLabel } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
+import { classWords } from "@/lib/classDisplay";
 
 // Only bookings that are actually confirmed or currently underway are
 // operationally relevant to the fleet schedule — pending requests and
@@ -466,6 +467,12 @@ export default function FleetPage() {
                             <span>{car.year}</span>
                             <span className="h-1 w-1 rounded-full bg-gray-300" />
                             <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
+                            {car.vehicle_class && (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-gray-300" />
+                                <span className="font-medium text-gray-500">{classWords(car.vehicle_class.name)}</span>
+                              </>
+                            )}
                           </p>
                         </div>
 
@@ -628,6 +635,12 @@ export default function FleetPage() {
                               <span>{car.year}</span>
                               <span className="w-1 h-1 rounded-full bg-gray-300" />
                               <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
+                              {car.vehicle_class && (
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                  <span className="font-medium text-gray-500">{classWords(car.vehicle_class.name)}</span>
+                                </>
+                              )}
                             </p>
                           </div>
                         </button>

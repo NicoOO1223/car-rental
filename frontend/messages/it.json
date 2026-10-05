@@ -260,7 +260,9 @@
       "invalid_category_value": "Scegli una categoria valida.",
       "invalid_transmission_value": "Scegli un cambio valido.",
       "invalid_fuel_type_value": "Scegli un'alimentazione valida.",
-      "home_location_not_in_use": "Quell'aeroporto non è più in uso."
+      "home_location_not_in_use": "Quell'aeroporto non è più in uso.",
+      "price_set_by_class": "Il prezzo di questa auto è deciso dalla sua classe. Cambia il prezzo della classe, oppure sposta l'auto fuori dalla classe.",
+      "price_required": "Indica il prezzo giornaliero dell'auto, oppure inseriscila in una classe."
     },
     "car_photo": {
       "corrupted": "Il file della foto è danneggiato.",
@@ -565,6 +567,16 @@
       "message_not_found": "Email non trovata.",
       "only_failed_can_be_retried": "Si può reinviare solo un'email fallita.",
       "too_many_recipients": "Al massimo {limit} indirizzi possono ricevere gli avvisi."
+    },
+    "class": {
+      "not_found": "Questa classe non esiste.",
+      "name_required": "Dai alla classe un nome in inglese.",
+      "unknown_language": "Questa lingua non è supportata.",
+      "text_too_long": "Il testo è troppo lungo (al massimo {limit} caratteri).",
+      "has_cars": "Questa classe ha ancora delle auto. Spostale prima in un'altra classe.",
+      "already_retired": "Questa classe è già ritirata.",
+      "not_retired": "Questa classe non è ritirata.",
+      "retired": "Questa classe è stata ritirata."
     }
   },
   "c": {
@@ -781,7 +793,9 @@
         "mileage": "Chilometraggio (km)",
         "homeAirport": "Aeroporto di base",
         "homeAirportHint": "Dove l'auto è assegnata e da dove parte.",
-        "afterwardsHint": "Aggiungi foto, assicurazione e date delle revisioni dalla pagina del veicolo. Non è offerto online finché non lo attivi."
+        "afterwardsHint": "Aggiungi foto, assicurazione e date delle revisioni dalla pagina del veicolo. Non è offerto online finché non lo attivi.",
+        "class": "Classe",
+        "noClass": "Nessuna classe (prezzo proprio)"
       }
     },
     "charts": {
@@ -1077,6 +1091,23 @@
         "copied": "Copiata",
         "copy": "Copia"
       }
+    },
+    "classes": {
+      "ClassModal": {
+        "addTitle": "Aggiungi una classe",
+        "editTitle": "Modifica classe",
+        "description": "Scrivi il nome e la breve descrizione come devono leggerli i clienti. L'inglese è obbligatorio; le altre lingue lo usano se lasciate vuote.",
+        "cancel": "Annulla",
+        "save": "Salva",
+        "name": "Nome",
+        "descriptionLabel": "Breve descrizione",
+        "price": "Prezzo giornaliero ({currency})",
+        "order": "Posizione nell'elenco",
+        "online": "Sito web",
+        "onlineYes": "Offerta online",
+        "onlineNo": "Non offerta online",
+        "failedSave": "Impossibile salvare la classe."
+      }
     }
   },
   "s": {
@@ -1178,7 +1209,8 @@
           "securityDeposit": "Cauzione",
           "system": "Sistema",
           "storefront": "Prenotazione online",
-          "email": "Email"
+          "email": "Email",
+          "classes": "Classi"
         },
         "locations": {
           "failedLoadLocations": "Impossibile caricare le sedi.",
@@ -1250,7 +1282,10 @@
           "keepInFleet": "Tieni in flotta",
           "confirmRetire": "Ritira il veicolo",
           "failedRetire": "Impossibile ritirare il veicolo.",
-          "failedReactivate": "Impossibile rimettere il veicolo in flotta."
+          "failedReactivate": "Impossibile rimettere il veicolo in flotta.",
+          "noClass": "Nessuna classe",
+          "classOf": "Classe di {license_plate}",
+          "pricedByClass": "Prezzo deciso dalla classe. Cambia il prezzo della classe, oppure togli l'auto dalla classe."
         },
         "storefront": {
           "failedLoad": "Impossibile caricare le impostazioni della prenotazione online.",
@@ -1411,6 +1446,23 @@
           "alertsLabel": "Chi riceve gli avvisi",
           "alertsPlaceholder": "titolare@tuaazienda.com",
           "alertsCount": "{count} di {max} indirizzi"
+        },
+        "classes": {
+          "title": "Classi di veicoli",
+          "intro": "Raggruppa le auto noleggiate allo stesso modo. Una classe ha un unico prezzo giornaliero che tutte le sue auto adottano, ed è ciò che i clienti vedono e prenotano sul sito. Assegna le auto a una classe da Tariffe veicoli.",
+          "add": "Aggiungi una classe",
+          "showRetired": "Mostra le classi ritirate",
+          "loading": "Caricamento delle classi…",
+          "empty": "Nessuna classe. Aggiungine una, poi assegna le auto da Tariffe veicoli.",
+          "failedLoad": "Impossibile caricare le classi.",
+          "failedSave": "Impossibile salvare la classe.",
+          "perDay": "{price} / giorno",
+          "cars": "{count, plural, one {# auto} other {# auto}} ({online} offerte online)",
+          "notOnline": "Non offerta online",
+          "retired": "Ritirata",
+          "edit": "Modifica",
+          "retire": "Ritira",
+          "reactivate": "Riattiva"
         }
       },
       "revenue": {
@@ -1543,7 +1595,10 @@
         "insuranceCost": "Costo assicurazione",
         "expired": "Scaduta",
         "endsSoon": "In scadenza",
-        "taskCost": "Costo {cost}"
+        "taskCost": "Costo {cost}",
+        "class": "Classe",
+        "noClass": "Nessuna",
+        "pricedByClass": "Prezzo deciso dalla classe"
       },
       "standard": "Standard",
       "noPhoneFile": "Nessun telefono registrato",

@@ -61,6 +61,15 @@ class Car(Base):
         nullable=False,
     )
 
+    # The class this car belongs to (see VehicleClass). A car in a class always has
+    # the class price in price_per_day; one without a class is priced on its own.
+    class_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("vehicle_classes.id"),
+    )
+
+    vehicle_class: Mapped["VehicleClass | None"] = relationship("VehicleClass", lazy="joined")
+
     current_location_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("locations.id"),
@@ -166,4 +175,5 @@ class Car(Base):
             name="valid_car_status",
         ),
         Index("ix_cars_current_location_id_status", "current_location_id", "status"),
+        Index("ix_cars_class_id", "class_id"),
     )

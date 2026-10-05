@@ -260,7 +260,9 @@
       "invalid_category_value": "Choose a valid category.",
       "invalid_transmission_value": "Choose a valid transmission.",
       "invalid_fuel_type_value": "Choose a valid fuel type.",
-      "home_location_not_in_use": "That airport is no longer in use."
+      "home_location_not_in_use": "That airport is no longer in use.",
+      "price_set_by_class": "This car is priced by its class. Change the class price, or move the car out of the class.",
+      "price_required": "Give the car a daily price, or put it in a class."
     },
     "car_photo": {
       "corrupted": "The photo file is corrupted.",
@@ -565,6 +567,16 @@
       "message_not_found": "That email was not found.",
       "only_failed_can_be_retried": "Only an email that failed can be sent again.",
       "too_many_recipients": "At most {limit} addresses can receive alerts."
+    },
+    "class": {
+      "not_found": "That class does not exist.",
+      "name_required": "Give the class a name in English.",
+      "unknown_language": "That language is not supported.",
+      "text_too_long": "That text is too long (at most {limit} characters).",
+      "has_cars": "This class still has cars. Move them to another class first.",
+      "already_retired": "This class is already retired.",
+      "not_retired": "This class is not retired.",
+      "retired": "That class has been retired."
     }
   },
   "c": {
@@ -781,7 +793,9 @@
         "mileage": "Mileage (km)",
         "homeAirport": "Home airport",
         "homeAirportHint": "Where the car belongs and starts out.",
-        "afterwardsHint": "Add a photo, insurance and inspection dates from the vehicle's page afterwards. It is not offered online until you turn that on."
+        "afterwardsHint": "Add a photo, insurance and inspection dates from the vehicle's page afterwards. It is not offered online until you turn that on.",
+        "class": "Class",
+        "noClass": "No class (own price)"
       }
     },
     "charts": {
@@ -1077,6 +1091,23 @@
         "copied": "Copied",
         "copy": "Copy"
       }
+    },
+    "classes": {
+      "ClassModal": {
+        "addTitle": "Add a class",
+        "editTitle": "Edit class",
+        "description": "Write the name and short description the way customers should read them. English is required; the other languages use it when left empty.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "name": "Name",
+        "descriptionLabel": "Short description",
+        "price": "Daily price ({currency})",
+        "order": "Position in the list",
+        "online": "Website",
+        "onlineYes": "Offered online",
+        "onlineNo": "Not offered online",
+        "failedSave": "Failed to save the class."
+      }
     }
   },
   "s": {
@@ -1178,7 +1209,8 @@
           "securityDeposit": "Security deposit",
           "system": "System",
           "storefront": "Online booking",
-          "email": "Email"
+          "email": "Email",
+          "classes": "Classes"
         },
         "locations": {
           "failedLoadLocations": "Failed to load locations.",
@@ -1250,7 +1282,10 @@
           "keepInFleet": "Keep in fleet",
           "confirmRetire": "Retire vehicle",
           "failedRetire": "Could not retire the vehicle.",
-          "failedReactivate": "Could not put the vehicle back."
+          "failedReactivate": "Could not put the vehicle back.",
+          "noClass": "No class",
+          "classOf": "Class of {license_plate}",
+          "pricedByClass": "Priced by its class. Change the class price, or take the car out of the class."
         },
         "storefront": {
           "failedLoad": "Failed to load the online booking settings.",
@@ -1411,6 +1446,23 @@
           "alertsLabel": "Who receives alerts",
           "alertsPlaceholder": "owner@yourcompany.com",
           "alertsCount": "{count} of {max} addresses"
+        },
+        "classes": {
+          "title": "Vehicle classes",
+          "intro": "Group cars that are rented out alike. A class has one daily price that every car in it takes, and it is what customers see and book on the website. Put cars in a class from Vehicle rates.",
+          "add": "Add a class",
+          "showRetired": "Show retired classes",
+          "loading": "Loading classes…",
+          "empty": "No classes yet. Add one, then put cars in it from Vehicle rates.",
+          "failedLoad": "Failed to load the classes.",
+          "failedSave": "Failed to save the class.",
+          "perDay": "{price} / day",
+          "cars": "{count, plural, one {# car} other {# cars}} ({online} offered online)",
+          "notOnline": "Not offered online",
+          "retired": "Retired",
+          "edit": "Edit",
+          "retire": "Retire",
+          "reactivate": "Reactivate"
         }
       },
       "revenue": {
@@ -1543,7 +1595,10 @@
         "insuranceCost": "Insurance Cost",
         "expired": "Expired",
         "endsSoon": "Ends soon",
-        "taskCost": "Cost {cost}"
+        "taskCost": "Cost {cost}",
+        "class": "Class",
+        "noClass": "None",
+        "pricedByClass": "Price set by the class"
       },
       "standard": "Standard",
       "noPhoneFile": "No phone on file",

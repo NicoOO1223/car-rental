@@ -260,7 +260,9 @@
       "invalid_category_value": "Wybierz prawidłową kategorię.",
       "invalid_transmission_value": "Wybierz prawidłową skrzynię biegów.",
       "invalid_fuel_type_value": "Wybierz prawidłowy rodzaj paliwa.",
-      "home_location_not_in_use": "To lotnisko nie jest już używane."
+      "home_location_not_in_use": "To lotnisko nie jest już używane.",
+      "price_set_by_class": "Cenę tego samochodu ustala jego klasa. Zmień cenę klasy albo przenieś samochód poza klasę.",
+      "price_required": "Podaj cenę za dobę samochodu albo przypisz go do klasy."
     },
     "car_photo": {
       "corrupted": "Plik zdjęcia jest uszkodzony.",
@@ -565,6 +567,16 @@
       "message_not_found": "Nie znaleziono tej wiadomości.",
       "only_failed_can_be_retried": "Ponownie można wysłać tylko nieudaną wiadomość.",
       "too_many_recipients": "Powiadomienia może otrzymywać najwyżej {limit} adresów."
+    },
+    "class": {
+      "not_found": "Taka klasa nie istnieje.",
+      "name_required": "Podaj nazwę klasy po angielsku.",
+      "unknown_language": "Ten język nie jest obsługiwany.",
+      "text_too_long": "Ten tekst jest za długi (najwyżej {limit} znaków).",
+      "has_cars": "W tej klasie są jeszcze samochody. Najpierw przenieś je do innej klasy.",
+      "already_retired": "Ta klasa jest już wycofana.",
+      "not_retired": "Ta klasa nie jest wycofana.",
+      "retired": "Ta klasa została wycofana."
     }
   },
   "c": {
@@ -781,7 +793,9 @@
         "mileage": "Przebieg (km)",
         "homeAirport": "Lotnisko bazowe",
         "homeAirportHint": "Gdzie samochód ma bazę i skąd zaczyna.",
-        "afterwardsHint": "Zdjęcie, ubezpieczenie i terminy przeglądów dodasz później na stronie pojazdu. Nie jest oferowany online, dopóki tego nie włączysz."
+        "afterwardsHint": "Zdjęcie, ubezpieczenie i terminy przeglądów dodasz później na stronie pojazdu. Nie jest oferowany online, dopóki tego nie włączysz.",
+        "class": "Klasa",
+        "noClass": "Bez klasy (własna cena)"
       }
     },
     "charts": {
@@ -1077,6 +1091,23 @@
         "copied": "Skopiowano",
         "copy": "Kopiuj"
       }
+    },
+    "classes": {
+      "ClassModal": {
+        "addTitle": "Dodaj klasę",
+        "editTitle": "Edytuj klasę",
+        "description": "Napisz nazwę i krótki opis tak, jak mają je czytać klienci. Angielski jest wymagany; pozostałe języki go użyją, gdy zostaną puste.",
+        "cancel": "Anuluj",
+        "save": "Zapisz",
+        "name": "Nazwa",
+        "descriptionLabel": "Krótki opis",
+        "price": "Cena za dobę ({currency})",
+        "order": "Pozycja na liście",
+        "online": "Strona internetowa",
+        "onlineYes": "Oferowana online",
+        "onlineNo": "Nieoferowana online",
+        "failedSave": "Nie udało się zapisać klasy."
+      }
     }
   },
   "s": {
@@ -1178,7 +1209,8 @@
           "securityDeposit": "Kaucja",
           "system": "System",
           "storefront": "Rezerwacja online",
-          "email": "E-mail"
+          "email": "E-mail",
+          "classes": "Klasy"
         },
         "locations": {
           "failedLoadLocations": "Nie udało się wczytać lokalizacji.",
@@ -1250,7 +1282,10 @@
           "keepInFleet": "Zostaw we flocie",
           "confirmRetire": "Wycofaj pojazd",
           "failedRetire": "Nie udało się wycofać pojazdu.",
-          "failedReactivate": "Nie udało się przywrócić pojazdu do floty."
+          "failedReactivate": "Nie udało się przywrócić pojazdu do floty.",
+          "noClass": "Bez klasy",
+          "classOf": "Klasa pojazdu {license_plate}",
+          "pricedByClass": "Cenę ustala klasa. Zmień cenę klasy albo wyjmij samochód z klasy."
         },
         "storefront": {
           "failedLoad": "Nie udało się wczytać ustawień rezerwacji online.",
@@ -1411,6 +1446,23 @@
           "alertsLabel": "Kto dostaje powiadomienia",
           "alertsPlaceholder": "wlasciciel@twojafirma.com",
           "alertsCount": "{count} z {max} adresów"
+        },
+        "classes": {
+          "title": "Klasy pojazdów",
+          "intro": "Grupuj samochody wynajmowane tak samo. Klasa ma jedną cenę za dobę, którą przyjmują wszystkie jej samochody, i to ją klienci widzą i rezerwują na stronie. Przypisz samochody do klasy w Stawkach pojazdów.",
+          "add": "Dodaj klasę",
+          "showRetired": "Pokaż wycofane klasy",
+          "loading": "Wczytywanie klas…",
+          "empty": "Brak klas. Dodaj jedną, a potem przypisz samochody w Stawkach pojazdów.",
+          "failedLoad": "Nie udało się wczytać klas.",
+          "failedSave": "Nie udało się zapisać klasy.",
+          "perDay": "{price} / doba",
+          "cars": "{count, plural, one {# samochód} few {# samochody} many {# samochodów} other {# samochodu}} ({online} oferowanych online)",
+          "notOnline": "Nieoferowana online",
+          "retired": "Wycofana",
+          "edit": "Edytuj",
+          "retire": "Wycofaj",
+          "reactivate": "Przywróć"
         }
       },
       "revenue": {
@@ -1543,7 +1595,10 @@
         "insuranceCost": "Koszt ubezpieczenia",
         "expired": "Wygasło",
         "endsSoon": "Wkrótce koniec",
-        "taskCost": "Koszt {cost}"
+        "taskCost": "Koszt {cost}",
+        "class": "Klasa",
+        "noClass": "Brak",
+        "pricedByClass": "Cenę ustala klasa"
       },
       "standard": "Standardowa",
       "noPhoneFile": "Brak numeru telefonu",

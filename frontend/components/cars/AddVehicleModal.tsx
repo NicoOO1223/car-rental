@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
-import { createCar, type Car, type Location } from "@/lib/api";
+import { createCar, getVehicleClasses, type Car, type Location, type VehicleClass } from "@/lib/api";
+import { classWords } from "@/lib/classDisplay";
 import { CATEGORY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS } from "@/lib/carDisplay";
 import { getDefaultCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
@@ -31,11 +32,17 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
   const [fuelType, setFuelType] = useState("");
   const [seats, setSeats] = useState("");
   const [pricePerDay, setPricePerDay] = useState("");
+  const [classId, setClassId] = useState("");
+  const [classes, setClasses] = useState<VehicleClass[]>([]);
   const [mileage, setMileage] = useState("");
   const [homeLocationId, setHomeLocationId] = useState(locations[0]?.id ?? "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    getVehicleClasses().then(setClasses).catch(() => undefined);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -53,7 +60,9 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
         transmission: transmission || null,
         fuel_type: fuelType || null,
         seats: seats === "" ? null : Number(seats),
-        price_per_day: pricePerDay,
+        // A car in a class is priced by the class.
+        price_per_day: classId ? null : pricePerDay,
+        class_id: classId || null,
         home_location_id: homeLocationId,
         mileage: mileage === "" ? null : Number(mileage),
         // Offered online once it has a photo; that is a decision for the vehicle's page.
@@ -120,15 +129,26 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
             ))}
           </SelectField>
 
-          <TextField
-            label={t("c.cars.AddVehicleModal.pricePerDay", { currency: getDefaultCurrency() })}
-            type="number"
-            required
-            min={0}
-            step="0.01"
-            value={pricePerDay}
-            onChange={(event) => setPricePerDay(event.target.value)}
-          />
+          <SelectField label={t("c.cars.AddVehicleModal.class")} value={classId} onChange={(event) => setClassId(event.target.value)}>
+            <option value="">{t("c.cars.AddVehicleModal.noClass")}</option>
+            {classes.map((option) => (
+              <option key={option.id} value={option.id}>
+                {classWords(option.name)} · {option.price_per_day}
+              </option>
+            ))}
+          </SelectField>
+
+          {classId === "" && (
+            <TextField
+              label={t("c.cars.AddVehicleModal.pricePerDay", { currency: getDefaultCurrency() })}
+              type="number"
+              required
+              min={0}
+              step="0.01"
+              value={pricePerDay}
+              onChange={(event) => setPricePerDay(event.target.value)}
+            />
+          )}
 
           <SelectField label={t("c.cars.AddVehicleModal.transmission")} value={transmission} onChange={(event) => setTransmission(event.target.value)}>
             <option value="">{t("c.cars.AddVehicleModal.notSet")}</option>

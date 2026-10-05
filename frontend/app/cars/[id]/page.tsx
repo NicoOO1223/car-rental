@@ -38,6 +38,7 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { can } from "@/lib/permissions";
 import { t, enumLabel } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
+import { classWords } from "@/lib/classDisplay";
 
 type Props = {
   params: Promise<{
@@ -428,6 +429,14 @@ export default function CarDetailsPage({ params }: Props) {
               <p className="mt-1 font-medium">
                 {car.year}
               </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500">{t("s.cars.id.class")}</p>
+
+              <p className="mt-1 font-medium">{car.vehicle_class ? classWords(car.vehicle_class.name) : t("s.cars.id.noClass")}</p>
+
+              {car.vehicle_class && <p className="text-xs text-gray-400">{t("s.cars.id.pricedByClass")}</p>}
             </div>
 
             <div>

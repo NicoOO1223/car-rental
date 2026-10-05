@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: "locations", get label() { return t("s.admin.configuration.layout.locations"); }, href: "/admin/configuration/locations" },
   { id: "pricing", get label() { return t("s.admin.configuration.layout.generalPricing"); }, href: "/admin/configuration/pricing" },
   { id: "extras", get label() { return t("s.admin.configuration.layout.extras"); }, href: "/admin/configuration/extras" },
+  { id: "classes", get label() { return t("s.admin.configuration.layout.classes"); }, href: "/admin/configuration/classes" },
   { id: "vehicles", get label() { return t("s.admin.configuration.layout.vehicleRates"); }, href: "/admin/configuration/vehicles" },
   { id: "returns", get label() { return t("s.admin.configuration.layout.returnCharges"); }, href: "/admin/configuration/returns" },
   { id: "deposit", get label() { return t("s.admin.configuration.layout.securityDeposit"); }, href: "/admin/configuration/deposit" },

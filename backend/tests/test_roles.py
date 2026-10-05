@@ -59,7 +59,7 @@ def _requirement(method: str, path: str) -> str | None:
     if re.fullmatch(r"/api/customers/\{[^/]+\}/(erase|export)", path):
         return "admin"
 
-    if path.startswith(("/api/admin/cars", "/api/admin/extras")):
+    if path.startswith(("/api/admin/cars", "/api/admin/extras", "/api/admin/vehicle-classes")):
         return "fleet"
 
     if path.startswith("/api/audit-logs") or path == "/api/dashboard/revenue":

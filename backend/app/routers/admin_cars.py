@@ -9,9 +9,11 @@ from app.permissions import FLEET_MANAGE
 from app.models import User
 from app.routers.cars import _with_current_status
 from app.schemas.car import CarCreate, CarPriceUpdate, CarResponse
+from app.schemas.vehicle_class import CarClassAssign
 from app.services.availability import get_current_maintenance_by_car
 from app.services.car_fleet import create_car, reactivate_car, retire_car
 from app.services.cars import update_car_price
+from app.services.vehicle_classes import set_car_class
 
 # A vehicle's daily rate is a pricing decision: managers and admins only, and kept out of
 # the general car edit (PATCH /api/cars/{id}), which any staff member can use.
@@ -53,6 +55,20 @@ def reactivate_car_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     car = reactivate_car(db, car_id, current_user)
+
+    return _with_current_status(car, get_current_maintenance_by_car(db))
+
+
+@router.put("/{car_id}/class", response_model=CarResponse)
+def set_car_class_endpoint(
+    car_id: UUID,
+    data: CarClassAssign,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Puts the car in a class (it takes the class price) or out of its class."""
+
+    car = set_car_class(db, car_id, data.class_id, current_user)
 
     return _with_current_status(car, get_current_maintenance_by_car(db))
 

@@ -750,6 +750,9 @@ export type Car = {
    * anyone did arithmetic on it.
    */
   price_per_day: string;
+  /** The class this car belongs to; its price is the class price. */
+  class_id: string | null;
+  vehicle_class: ClassSummary | null;
   /** False for most of the fleet; the UI falls back to a category illustration. */
   has_photo: boolean;
   photo_version: number | null;
@@ -841,6 +844,83 @@ export async function updateCarPrice(
   return response.json();
 }
 
+/** Words the business wrote per language ({ en, it, pl }); English is always there. */
+export type ClassText = Record<string, string>;
+
+export type ClassSummary = { id: string; slug: string; name: ClassText };
+
+export type VehicleClass = {
+  id: string;
+  slug: string;
+  name: ClassText;
+  description: ClassText;
+  price_per_day: string;
+  sort_order: number;
+  offered_online: boolean;
+  retired_at: string | null;
+  is_retired: boolean;
+  car_count: number;
+  online_car_count: number;
+};
+
+export type VehicleClassInput = {
+  name: ClassText;
+  description: ClassText;
+  price_per_day: string;
+  sort_order: number;
+  offered_online: boolean;
+};
+
+export async function getVehicleClasses(options: { includeRetired?: boolean } = {}): Promise<VehicleClass[]> {
+  const response = await apiFetch(`/api/vehicle-classes${options.includeRetired ? "?include_retired=true" : ""}`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return response.json();
+}
+
+async function sendClass(path: string, method: string, body?: object): Promise<VehicleClass> {
+  const response = await apiFetch(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** Managers and administrators: add a class. */
+export const createVehicleClass = (data: VehicleClassInput) => sendClass("/api/admin/vehicle-classes", "POST", data);
+
+export const updateVehicleClass = (classId: string, data: Partial<VehicleClassInput>) =>
+  sendClass(`/api/admin/vehicle-classes/${classId}`, "PATCH", data);
+
+export const retireVehicleClass = (classId: string) => sendClass(`/api/admin/vehicle-classes/${classId}/retire`, "POST");
+
+export const reactivateVehicleClass = (classId: string) =>
+  sendClass(`/api/admin/vehicle-classes/${classId}/reactivate`, "POST");
+
+/** Puts a car in a class (it takes the class price) or, with null, out of its class. */
+export async function setCarClass(carId: string, classId: string | null): Promise<Car> {
+  const response = await apiFetch(`/api/admin/cars/${carId}/class`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ class_id: classId }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
 export type NewCar = {
   make: string;
   model: string;
@@ -850,7 +930,9 @@ export type NewCar = {
   transmission: string | null;
   fuel_type: string | null;
   seats: number | null;
-  price_per_day: string;
+  /** Not needed when the car joins a class: it takes the class price. */
+  price_per_day: string | null;
+  class_id?: string | null;
   home_location_id: string;
   mileage: number | null;
   offered_online: boolean;

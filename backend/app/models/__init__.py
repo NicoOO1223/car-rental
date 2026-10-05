@@ -26,6 +26,7 @@ from app.models.reservation import Reservation
 from app.models.reservation_extra import ReservationExtra
 from app.models.reservation_payment import ReservationPayment
 from app.models.user import User
+from app.models.vehicle_class import VehicleClass
 
 __all__ = [
     "AuditLog",
@@ -57,4 +58,5 @@ __all__ = [
     "ReservationExtra",
     "ReservationPayment",
     "User",
+    "VehicleClass",
 ]

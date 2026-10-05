@@ -171,6 +171,12 @@ def update_car_price(
     if car is None:
         raise NotFoundError("car.not_found", "Car not found.")
 
+    if car.class_id is not None:
+        raise AppError(
+            "car.price_set_by_class",
+            "This car is priced by its class. Change the class price, or move the car out of the class.",
+        )
+
     if data.price_per_day != car.price_per_day:
         audit_log(
             db,

@@ -13,7 +13,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.errors import AppError, NotFoundError
-from app.models import Car, Location, MaintenanceTask, Reservation, User
+from app.models import Car, Location, MaintenanceTask, Reservation, User, VehicleClass
 from app.schemas.car import CarCreate
 from app.services.audit import audit_log
 from app.services.availability import lock_car
@@ -54,6 +54,23 @@ def create_car(db: Session, data: CarCreate, actor: User) -> Car:
     if data.fuel_type is not None and data.fuel_type not in VALID_FUEL_TYPES:
         raise AppError("car.invalid_fuel_type_value", "Invalid fuel type.")
 
+    price = data.price_per_day
+    vehicle_class = None
+
+    if data.class_id is not None:
+        vehicle_class = db.get(VehicleClass, data.class_id)
+
+        if vehicle_class is None:
+            raise AppError("class.not_found", "That class does not exist.")
+
+        if vehicle_class.is_retired:
+            raise AppError("class.retired", "That class has been retired.")
+
+        price = vehicle_class.price_per_day
+
+    if price is None:
+        raise AppError("car.price_required", "Give the car a daily price, or put it in a class.")
+
     car = Car(
         make=data.make.strip(),
         model=data.model.strip(),
@@ -63,7 +80,8 @@ def create_car(db: Session, data: CarCreate, actor: User) -> Car:
         transmission=data.transmission,
         fuel_type=data.fuel_type,
         seats=data.seats,
-        price_per_day=data.price_per_day,
+        price_per_day=price,
+        class_id=vehicle_class.id if vehicle_class else None,
         current_location_id=location.id,
         home_location_id=location.id,
         mileage=data.mileage,

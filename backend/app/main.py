@@ -27,6 +27,8 @@ from app.database import SessionLocal
 from app.routers.auth import router as auth_router
 from app.routers.admin_cars import router as admin_cars_router
 from app.routers.cars import router as cars_router
+from app.routers.vehicle_classes import admin_router as vehicle_classes_admin_router
+from app.routers.vehicle_classes import router as vehicle_classes_router
 from app.routers.admin_extras import router as admin_extras_router
 from app.routers.extras import router as extras_router
 from app.routers.locations import router as locations_router
@@ -107,6 +109,8 @@ app.include_router(admin_extras_router)
 app.include_router(cars_router)
 app.include_router(notifications_router)
 app.include_router(admin_cars_router)
+app.include_router(vehicle_classes_router)
+app.include_router(vehicle_classes_admin_router)
 app.include_router(reservations_router)
 app.include_router(dashboard_router)
 app.include_router(customers_router)

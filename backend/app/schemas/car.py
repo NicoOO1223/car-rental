@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.vehicle_class import ClassSummary
+
 
 class LocationSummary(BaseModel):
     id: UUID
@@ -24,6 +26,9 @@ class CarResponse(BaseModel):
     fuel_type: str | None
     seats: int | None
     price_per_day: Decimal
+    # The class this car belongs to; its price is the class price.
+    class_id: UUID | None = None
+    vehicle_class: ClassSummary | None = None
     has_photo: bool
     photo_version: int | None
     current_location: LocationSummary
@@ -90,7 +95,9 @@ class CarCreate(BaseModel):
     transmission: str | None = Field(default=None, max_length=20)
     fuel_type: str | None = Field(default=None, max_length=20)
     seats: int | None = Field(default=None, ge=1, le=20)
-    price_per_day: Decimal = Field(ge=0, max_digits=8, decimal_places=2)
+    # Required unless the car joins a class, which sets its price.
+    price_per_day: Decimal | None = Field(default=None, ge=0, max_digits=8, decimal_places=2)
+    class_id: UUID | None = None
     home_location_id: UUID
     mileage: int | None = Field(default=None, ge=0)
     # Off until staff have added a photo and are ready to rent it online.

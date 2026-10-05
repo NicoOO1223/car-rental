@@ -49,7 +49,11 @@ export function can(role: string | null | undefined, permission: Permission): bo
 
 // The pages under /admin and what each needs. Managers use the reports, the audit
 // log and the vehicle and extras settings; the rest is for administrators.
-const MANAGER_CONFIGURATION_SECTIONS = ["/admin/configuration/vehicles", "/admin/configuration/extras"];
+const MANAGER_CONFIGURATION_SECTIONS = [
+  "/admin/configuration/vehicles",
+  "/admin/configuration/classes",
+  "/admin/configuration/extras",
+];
 
 /** Whether a role may open an /admin page (or an admin menu entry). */
 export function canOpenAdminPage(role: string | null | undefined, pathname: string): boolean {

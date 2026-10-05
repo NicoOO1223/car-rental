@@ -5,11 +5,14 @@ import { useEffect, useState } from "react";
 import {
   getCars,
   getLocations,
+  getVehicleClasses,
   reactivateCar,
   retireCar,
+  setCarClass,
   updateCarPrice,
   type Car,
   type Location,
+  type VehicleClass,
 } from "@/lib/api";
 import { AddVehicleModal } from "@/components/cars/AddVehicleModal";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +21,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatCurrency, getDefaultCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
+import { classWords } from "@/lib/classDisplay";
 
 export default function VehicleRatesConfigurationPage() {
   const [cars, setCars] = useState<Car[] | null>(null);
@@ -29,6 +33,7 @@ export default function VehicleRatesConfigurationPage() {
   const [showRetired, setShowRetired] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [adding, setAdding] = useState(false);
+  const [classes, setClasses] = useState<VehicleClass[]>([]);
   // The car staff are about to retire, until they confirm or back out.
   const [retiring, setRetiring] = useState<Car | null>(null);
   const [retireError, setRetireError] = useState("");
@@ -54,6 +59,23 @@ export default function VehicleRatesConfigurationPage() {
   useEffect(() => {
     getLocations().then(setLocations).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    getVehicleClasses().then(setClasses).catch(() => undefined);
+  }, []);
+
+  async function changeClass(car: Car, classId: string) {
+    setBusyId(car.id);
+    setError("");
+
+    try {
+      replaceCar(await setCarClass(car.id, classId || null));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.vehicles.failedUpdateRate"));
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   function replaceCar(updated: Car) {
     setCars((current) =>
@@ -192,7 +214,25 @@ export default function VehicleRatesConfigurationPage() {
                   <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <label className="sr-only" htmlFor={`class-${car.id}`}>
+                    {t("s.admin.configuration.vehicles.classOf", { license_plate: car.license_plate })}
+                  </label>
+                  <select
+                    id={`class-${car.id}`}
+                    value={car.class_id ?? ""}
+                    disabled={car.is_retired || busyId === car.id}
+                    onChange={(event) => void changeClass(car, event.target.value)}
+                    className="max-w-40 rounded-lg border border-border-strong bg-white px-2 py-1.5 text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  >
+                    <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
+                    {classes.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {classWords(option.name)}
+                      </option>
+                    ))}
+                  </select>
+
                   <label className="sr-only" htmlFor={`rate-${car.id}`}>{t("s.admin.configuration.vehicles.dailyRate", { license_plate: car.license_plate })}</label>
 
                   <div className="flex items-center gap-1.5">
@@ -202,7 +242,8 @@ export default function VehicleRatesConfigurationPage() {
                       min={0}
                       step="0.01"
                       value={draft ?? car.price_per_day}
-                      disabled={car.is_retired}
+                      disabled={car.is_retired || car.class_id !== null}
+                      title={car.class_id ? t("s.admin.configuration.vehicles.pricedByClass") : undefined}
                       onChange={(event) => {
                         setSavedId(null);
                         setDrafts({ ...drafts, [car.id]: event.target.value });
@@ -218,7 +259,7 @@ export default function VehicleRatesConfigurationPage() {
                   <Button
                     variant="secondary"
                     onClick={() => save(car)}
-                    disabled={!dirty || savingId === car.id}
+                    disabled={!dirty || savingId === car.id || car.class_id !== null}
                   >
                     {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
                   </Button>
