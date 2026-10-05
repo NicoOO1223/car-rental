@@ -28,7 +28,8 @@
     "placeholderNote": "Captured from a fictional demo business",
     "dashboard": {
       "name": "Dashboard",
-      "alt": "The dashboard of the staff panel: today's pickups and returns, upcoming bookings and alerts."
+      "alt": "The dashboard of the staff panel: today's pickups and returns, upcoming bookings and alerts.",
+      "caption": "Today at a glance."
     },
     "storefront": {
       "name": "Booking site on a phone",
@@ -43,7 +44,7 @@
     "fleet": {
       "name": "Fleet timeline",
       "alt": "A 30-day fleet timeline with a bar for every booking on every car.",
-      "caption": "Classes, cars and what is booked when."
+      "caption": "Every car, every day."
     },
     "revenue": {
       "name": "Revenue and invoices",
@@ -57,8 +58,28 @@
     },
     "audit": {
       "name": "Audit log",
-      "alt": "The audit log: a list of who changed what and when.",
+      "alt": "The audit log filtered to one person: agreements generated, signatures and deposits with their time.",
       "caption": "Who did what."
+    },
+    "wizard": {
+      "name": "Booking wizard",
+      "alt": "The booking wizard listing available vehicle classes with photos, prices and a Select button.",
+      "caption": "Take a booking in a minute."
+    },
+    "reservation": {
+      "name": "Reservation",
+      "alt": "A reservation for a vehicle class with the assigned car marked as not final until confirmed.",
+      "caption": "Sell a class, confirm the car later."
+    },
+    "checkout": {
+      "name": "Check-out",
+      "alt": "The check-out screen with late and fuel charges and the security deposit applied.",
+      "caption": "Charges and deposit at return."
+    },
+    "classes": {
+      "name": "Vehicle classes",
+      "alt": "The vehicle classes screen: a card per class with a photo, a daily price and the number of cars.",
+      "caption": "One price per class."
     }
   },
   "hero": {

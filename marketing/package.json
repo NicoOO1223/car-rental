@@ -10,7 +10,11 @@
     "typecheck": "tsc --noEmit",
     "check:messages": "node scripts/check-messages.mjs",
     "test": "vitest run",
-    "check:launch": "node scripts/check-launch.mjs"
+    "check:launch": "node scripts/check-launch.mjs",
+    "demo:up": "powershell -NoProfile -File scripts/demo-stack.ps1 up",
+    "demo:reseed": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed",
+    "demo:down": "powershell -NoProfile -File scripts/demo-stack.ps1 down",
+    "screens": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed && node scripts/make-demo-assets.mjs && node scripts/capture-screens.mjs"
   },
   "dependencies": {
     "next": "^16.3.6",
@@ -25,6 +29,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.3.6",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"

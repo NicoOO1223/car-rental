@@ -36,3 +36,7 @@ frontend/playwright-report/
 
 # Marketing site
 marketing/tsconfig.tsbuildinfo
+marketing/.demo-stack/
+marketing/scripts/demo-manifest.json
+marketing/scripts/real-values.local.txt
+marketing/scripts/failed-*.png

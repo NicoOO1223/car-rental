@@ -29,10 +29,23 @@ export function FeatureBlock({ feature, language, reverse }: { feature: Feature;
         </ul>
       </div>
 
-      <figure className={reverse ? "md:order-1" : ""}>
-        <Screenshot id={feature.screen} language={language} />
-        <figcaption className="mt-3 text-center text-sm text-ink-muted">{t(`screens.${feature.screen}.caption`)}</figcaption>
-      </figure>
+      <div className={reverse ? "md:order-1" : ""}>
+        <figure>
+          <Screenshot id={feature.screen} language={language} />
+          <figcaption className="mt-3 text-center text-sm text-ink-muted">{t(`screens.${feature.screen}.caption`)}</figcaption>
+        </figure>
+
+        {feature.more && (
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            {feature.more.map((id) => (
+              <figure key={id}>
+                <Screenshot id={id} language={language} small />
+                <figcaption className="mt-2 text-center text-xs text-ink-muted">{t(`screens.${id}.caption`)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+      </div>
     </article>
   );
 }

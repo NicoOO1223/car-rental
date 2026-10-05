@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The throwaway copies the demo stack builds from (scripts/demo-stack.ps1), and generated images.
+    ".demo-stack/**",
+    "public/**",
   ]),
 ]);
 

@@ -32,7 +32,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
           </div>
         </div>
         <div className="mx-auto mt-12 max-w-360 px-4">
-          <Screenshot id="dashboard" language={lang} priority dark />
+          <Screenshot id="dashboard" language={lang} priority dark wide />
         </div>
       </section>
 

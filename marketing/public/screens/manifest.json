@@ -1,0 +1,182 @@
+{
+  "seedBuiltAt": "2026-10-05T20:00:00+00:00",
+  "business": "Isola Rent",
+  "shots": {
+    "dashboard": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "dashboard-800.webp",
+          "bytes": 22058,
+          "sha256": "32be2b1f02a84883"
+        },
+        "1600": {
+          "file": "dashboard-1600.webp",
+          "bytes": 64060,
+          "sha256": "fb7271f2a93ce119"
+        }
+      }
+    },
+    "reservation": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "reservation-800.webp",
+          "bytes": 21384,
+          "sha256": "e91524b2b9fbbc5d"
+        },
+        "1600": {
+          "file": "reservation-1600.webp",
+          "bytes": 60434,
+          "sha256": "56e3fef820b0fb51"
+        }
+      }
+    },
+    "fleet": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "fleet-800.webp",
+          "bytes": 19858,
+          "sha256": "9be164e407240fe1"
+        },
+        "1600": {
+          "file": "fleet-1600.webp",
+          "bytes": 55584,
+          "sha256": "1d30fd105065ec7c"
+        }
+      }
+    },
+    "handover": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "handover-800.webp",
+          "bytes": 15948,
+          "sha256": "e17ba4af3138341a"
+        },
+        "1600": {
+          "file": "handover-1600.webp",
+          "bytes": 48128,
+          "sha256": "a7ffc13975761b06"
+        }
+      }
+    },
+    "classes": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "classes-800.webp",
+          "bytes": 17750,
+          "sha256": "7fb41d377fc2d759"
+        },
+        "1600": {
+          "file": "classes-1600.webp",
+          "bytes": 55422,
+          "sha256": "b39a8b579def83f8"
+        }
+      }
+    },
+    "revenue": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "revenue-800.webp",
+          "bytes": 22014,
+          "sha256": "d657a3d4451d7731"
+        },
+        "1600": {
+          "file": "revenue-1600.webp",
+          "bytes": 59522,
+          "sha256": "e4b047b92b447f68"
+        }
+      }
+    },
+    "audit": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "audit-800.webp",
+          "bytes": 38330,
+          "sha256": "5e549d79bba0c1b0"
+        },
+        "1600": {
+          "file": "audit-1600.webp",
+          "bytes": 113852,
+          "sha256": "b43c617bb94543bb"
+        }
+      }
+    },
+    "storefront": {
+      "kind": "phone",
+      "source": "390x844",
+      "files": {
+        "390": {
+          "file": "storefront-390.webp",
+          "bytes": 19666,
+          "sha256": "80deb0122308b21a"
+        },
+        "780": {
+          "file": "storefront-780.webp",
+          "bytes": 44988,
+          "sha256": "dff16c217006c498"
+        }
+      }
+    },
+    "email": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "email-800.webp",
+          "bytes": 18378,
+          "sha256": "bd41f3bf000515d4"
+        },
+        "1600": {
+          "file": "email-1600.webp",
+          "bytes": 56884,
+          "sha256": "c39c75ce2bbb50f0"
+        }
+      }
+    },
+    "wizard": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "wizard-800.webp",
+          "bytes": 24100,
+          "sha256": "39b5aec6a878016f"
+        },
+        "1600": {
+          "file": "wizard-1600.webp",
+          "bytes": 62456,
+          "sha256": "49298b2b2d18f632"
+        }
+      }
+    },
+    "checkout": {
+      "kind": "browser",
+      "source": "1440x900",
+      "files": {
+        "800": {
+          "file": "checkout-800.webp",
+          "bytes": 14548,
+          "sha256": "3c71cf86e7bb17c7"
+        },
+        "1600": {
+          "file": "checkout-1600.webp",
+          "bytes": 42640,
+          "sha256": "e0c5d0634eec648a"
+        }
+      }
+    }
+  }
+}
