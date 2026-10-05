@@ -156,6 +156,102 @@ export default function VehicleRatesConfigurationPage() {
     }
   }
 
+  function renderRows(list: Car[]) {
+    return list.map((car) => {
+              const draft = drafts[car.id];
+              const dirty = draft !== undefined && draft !== car.price_per_day;
+
+              return (
+                <li
+                  key={car.id}
+                  className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">
+                      {car.make} {car.model}
+                      <span className="ml-2 text-sm font-normal text-ink-muted">
+                        {car.license_plate}
+                      </span>
+                    </p>
+
+                    {car.is_retired && (
+                      <p className="text-sm font-medium text-amber-700">{t("s.admin.configuration.vehicles.retired")}</p>
+                    )}
+
+                    <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <label className="sr-only" htmlFor={`class-${car.id}`}>
+                      {t("s.admin.configuration.vehicles.classOf", { license_plate: car.license_plate })}
+                    </label>
+                    <select
+                      id={`class-${car.id}`}
+                      value={car.class_id ?? ""}
+                      disabled={car.is_retired || busyId === car.id}
+                      onChange={(event) => void changeClass(car, event.target.value)}
+                      className="max-w-40 rounded-lg border border-border-strong bg-white px-2 py-1.5 text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    >
+                      <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
+                      {classes.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {classWords(option.name)}
+                        </option>
+                      ))}
+                    </select>
+
+                    <label className="sr-only" htmlFor={`rate-${car.id}`}>{t("s.admin.configuration.vehicles.dailyRate", { license_plate: car.license_plate })}</label>
+
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        id={`rate-${car.id}`}
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={draft ?? car.price_per_day}
+                        disabled={car.is_retired || car.class_id !== null}
+                        title={car.class_id ? t("s.admin.configuration.vehicles.pricedByClass") : undefined}
+                        onChange={(event) => {
+                          setSavedId(null);
+                          setDrafts({ ...drafts, [car.id]: event.target.value });
+                        }}
+                        className="w-28 rounded-lg border border-border-strong bg-white px-3 py-1.5 text-right text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      />
+
+                      <span className="text-sm text-ink-muted">
+                        {getDefaultCurrency()}
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => save(car)}
+                      disabled={!dirty || savingId === car.id || car.class_id !== null}
+                    >
+                      {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
+                    </Button>
+
+                    {car.is_retired ? (
+                      <Button variant="ghost" onClick={() => reactivate(car)} loading={busyId === car.id}>
+                        {t("s.admin.configuration.vehicles.reactivate")}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setRetireError("");
+                          setRetiring(car);
+                        }}
+                      >
+                        {t("s.admin.configuration.vehicles.retire")}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+    });
+  }
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -189,101 +285,19 @@ export default function VehicleRatesConfigurationPage() {
       {!cars ? (
         !error && <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.vehicles.loadingVehicles")}</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border-subtle">
-          {cars.map((car) => {
-            const draft = drafts[car.id];
-            const dirty = draft !== undefined && draft !== car.price_per_day;
+        <>
+          <ul className="mt-6 divide-y divide-border-subtle">{renderRows(cars.filter((car) => !car.class_id))}</ul>
 
-            return (
-              <li
-                key={car.id}
-                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-ink">
-                    {car.make} {car.model}
-                    <span className="ml-2 text-sm font-normal text-ink-muted">
-                      {car.license_plate}
-                    </span>
-                  </p>
-
-                  {car.is_retired && (
-                    <p className="text-sm font-medium text-amber-700">{t("s.admin.configuration.vehicles.retired")}</p>
-                  )}
-
-                  <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <label className="sr-only" htmlFor={`class-${car.id}`}>
-                    {t("s.admin.configuration.vehicles.classOf", { license_plate: car.license_plate })}
-                  </label>
-                  <select
-                    id={`class-${car.id}`}
-                    value={car.class_id ?? ""}
-                    disabled={car.is_retired || busyId === car.id}
-                    onChange={(event) => void changeClass(car, event.target.value)}
-                    className="max-w-40 rounded-lg border border-border-strong bg-white px-2 py-1.5 text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  >
-                    <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
-                    {classes.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {classWords(option.name)}
-                      </option>
-                    ))}
-                  </select>
-
-                  <label className="sr-only" htmlFor={`rate-${car.id}`}>{t("s.admin.configuration.vehicles.dailyRate", { license_plate: car.license_plate })}</label>
-
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      id={`rate-${car.id}`}
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={draft ?? car.price_per_day}
-                      disabled={car.is_retired || car.class_id !== null}
-                      title={car.class_id ? t("s.admin.configuration.vehicles.pricedByClass") : undefined}
-                      onChange={(event) => {
-                        setSavedId(null);
-                        setDrafts({ ...drafts, [car.id]: event.target.value });
-                      }}
-                      className="w-28 rounded-lg border border-border-strong bg-white px-3 py-1.5 text-right text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                    />
-
-                    <span className="text-sm text-ink-muted">
-                      {getDefaultCurrency()}
-                    </span>
-                  </div>
-
-                  <Button
-                    variant="secondary"
-                    onClick={() => save(car)}
-                    disabled={!dirty || savingId === car.id || car.class_id !== null}
-                  >
-                    {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
-                  </Button>
-
-                  {car.is_retired ? (
-                    <Button variant="ghost" onClick={() => reactivate(car)} loading={busyId === car.id}>
-                      {t("s.admin.configuration.vehicles.reactivate")}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setRetireError("");
-                        setRetiring(car);
-                      }}
-                    >
-                      {t("s.admin.configuration.vehicles.retire")}
-                    </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+          {cars.some((car) => car.class_id) && (
+            <details className="mt-8 rounded-lg border border-border-subtle p-4">
+              <summary className="cursor-pointer text-sm font-medium text-ink">
+                {t("s.admin.configuration.vehicles.inClasses", { count: cars.filter((car) => car.class_id).length })}
+              </summary>
+              <p className="mt-2 text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.inClassesHint")}</p>
+              <ul className="mt-3 divide-y divide-border-subtle">{renderRows(cars.filter((car) => car.class_id))}</ul>
+            </details>
+          )}
+        </>
       )}
 
       {adding && (

@@ -880,6 +880,8 @@ export type VehicleClass = {
   offered_online: boolean;
   retired_at: string | null;
   is_retired: boolean;
+  has_photo: boolean;
+  photo_version: number | null;
   car_count: number;
   online_car_count: number;
 };
@@ -888,9 +890,55 @@ export type VehicleClassInput = {
   name: ClassText;
   description: ClassText;
   price_per_day: string;
-  sort_order: number;
+  /** Where a new class goes in the list; left out when editing (the order is set by dragging). */
+  sort_order?: number;
   offered_online: boolean;
 };
+
+/** A class's own photo as the storefront serves it (public, no token). */
+export function classPhotoUrl(slug: string, version: number | null): string {
+  return `${apiUrl()}/api/public/offers/class-${slug}/photo${version ? `?v=${version}` : ""}`;
+}
+
+export async function uploadClassPhoto(classId: string, dataUrl: string): Promise<VehicleClass> {
+  return sendClass(`/api/admin/vehicle-classes/${classId}/photo`, "PUT", { data_url: dataUrl });
+}
+
+export async function deleteClassPhoto(classId: string): Promise<VehicleClass> {
+  return sendClass(`/api/admin/vehicle-classes/${classId}/photo`, "DELETE");
+}
+
+/** The order the website lists the classes in: every class in the fleet, in the new order. */
+export async function reorderVehicleClasses(ids: string[]): Promise<void> {
+  const response = await apiFetch("/api/admin/vehicle-classes/order", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+}
+
+/** Moves cars into the class; they take its price. */
+export const addCarsToClass = (classId: string, carIds: string[]) =>
+  sendClass(`/api/admin/vehicle-classes/${classId}/cars`, "POST", { car_ids: carIds });
+
+/** Moves the class's cars elsewhere, then deletes it, or retires it when bookings were made for it. */
+export async function removeVehicleClass(classId: string, moveCarsTo: string | null): Promise<"deleted" | "retired"> {
+  const response = await apiFetch(`/api/admin/vehicle-classes/${classId}/remove`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ move_cars_to: moveCarsTo }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return (await response.json()).outcome;
+}
 
 export async function getVehicleClasses(options: { includeRetired?: boolean } = {}): Promise<VehicleClass[]> {
   const response = await apiFetch(`/api/vehicle-classes${options.includeRetired ? "?include_retired=true" : ""}`);

@@ -579,7 +579,9 @@
       "already_retired": "This class is already retired.",
       "not_retired": "This class is not retired.",
       "retired": "That class has been retired.",
-      "has_no_cars": "That class has no cars."
+      "has_no_cars": "That class has no cars.",
+      "order_mismatch": "The list of classes has changed. Reload the page and try again.",
+      "cannot_move_into_itself": "Choose another class for its cars."
     }
   },
   "c": {
@@ -1110,6 +1112,40 @@
         "onlineYes": "Offered online",
         "onlineNo": "Not offered online",
         "failedSave": "Failed to save the class."
+      },
+      "ClassCard": {
+        "photoType": "Choose a PNG or JPEG image.",
+        "photoTooLarge": "That file is too large. The limit is {mb} MB.",
+        "failedPhoto": "Failed to save the photo.",
+        "failedCars": "Failed to change the cars of this class.",
+        "dragHandle": "Drag to move {name}",
+        "choosePhoto": "Choose a photo file for {name}",
+        "replacePhoto": "Replace photo",
+        "uploadPhoto": "Upload photo",
+        "removePhoto": "Remove photo",
+        "hideCars": "Hide cars",
+        "showCars": "{count, plural, one {Show # car} other {Show # cars}}",
+        "remove": "Remove",
+        "moveUp": "Move {name} up",
+        "moveDown": "Move {name} down",
+        "carsTitle": "Cars in this class",
+        "noCars": "No cars yet. Add some on the right.",
+        "takeOut": "Take out",
+        "addCars": "Add cars",
+        "priceNote": "Cars added take the class price ({price} / day).",
+        "nothingToAdd": "There are no other cars to add.",
+        "movesFrom": "moves from {class}",
+        "noClass": "no class",
+        "addSelected": "{count, plural, =0 {Add cars} one {Add # car} other {Add # cars}}"
+      },
+      "RemoveClassModal": {
+        "failed": "Failed to remove the class.",
+        "title": "Remove {name}?",
+        "cancel": "Cancel",
+        "confirm": "Remove class",
+        "explanation": "If no booking was ever made for this class it is deleted. Otherwise it is only hidden, so the history of those bookings stays readable.",
+        "moveCars": "{count, plural, one {Where should its # car go?} other {Where should its # cars go?}}",
+        "noClass": "No class (the cars keep their price)"
       }
     }
   },
@@ -1288,7 +1324,9 @@
           "failedReactivate": "Could not put the vehicle back.",
           "noClass": "No class",
           "classOf": "Class of {license_plate}",
-          "pricedByClass": "Priced by its class. Change the class price, or take the car out of the class."
+          "pricedByClass": "Priced by its class. Change the class price, or take the car out of the class.",
+          "inClasses": "{count, plural, one {# car in a class} other {# cars in classes}}",
+          "inClassesHint": "These cars are priced by their class. Manage the classes and their cars on the Classes screen."
         },
         "storefront": {
           "failedLoad": "Failed to load the online booking settings.",
@@ -1465,7 +1503,11 @@
           "retired": "Retired",
           "edit": "Edit",
           "retire": "Retire",
-          "reactivate": "Reactivate"
+          "reactivate": "Reactivate",
+          "orderHint": "Drag the cards to set the order the website lists the classes in, or use the arrows.",
+          "failedOrder": "Failed to save the order.",
+          "removedDeleted": "Class removed.",
+          "removedRetired": "Class hidden: bookings were made for it, so it is retired, not deleted. You can see it under Show retired classes."
         }
       },
       "revenue": {

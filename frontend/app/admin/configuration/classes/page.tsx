@@ -1,74 +1,85 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ClassCard } from "@/components/classes/ClassCard";
 import { ClassModal } from "@/components/classes/ClassModal";
-import { Badge } from "@/components/ui/Badge";
+import { RemoveClassModal } from "@/components/classes/RemoveClassModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
+  getCars,
   getVehicleClasses,
   reactivateVehicleClass,
-  retireVehicleClass,
+  reorderVehicleClasses,
+  type Car,
   type VehicleClass,
 } from "@/lib/api";
-import { classWords } from "@/lib/classDisplay";
-import { formatCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
 export default function ClassesConfigurationPage() {
   const [classes, setClasses] = useState<VehicleClass[] | null>(null);
+  const [cars, setCars] = useState<Car[]>([]);
   const [showRetired, setShowRetired] = useState(false);
   const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState<string | null>(null);
-  // Adding (true), editing (the class), or neither.
+  const [notice, setNotice] = useState("");
+  // Adding (new), editing (the class), or neither.
   const [editing, setEditing] = useState<VehicleClass | "new" | null>(null);
+  const [removing, setRemoving] = useState<VehicleClass | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  // A class just added opens with its cars panel, so cars can go straight in.
+  const [openNew, setOpenNew] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(async () => {
+    try {
+      const [rows, fleet] = await Promise.all([getVehicleClasses({ includeRetired: showRetired }), getCars()]);
 
-    getVehicleClasses({ includeRetired: showRetired })
-      .then((data) => {
-        if (!cancelled) setClasses(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError(t("s.admin.configuration.classes.failedLoad"));
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      setClasses(rows);
+      setCars(fleet);
+    } catch {
+      setError(t("s.admin.configuration.classes.failedLoad"));
+    }
   }, [showRetired]);
 
-  function applySaved(saved: VehicleClass) {
-    setClasses((current) => {
-      if (!current) return current;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
-      const exists = current.some((item) => item.id === saved.id);
-      const next = exists ? current.map((item) => (item.id === saved.id ? saved : item)) : [...current, saved];
+  // The classes that can be put in order: those in the fleet, in the website's order.
+  const orderable = (classes ?? []).filter((row) => !row.is_retired);
 
-      return next.sort((a, b) => a.sort_order - b.sort_order || classWords(a.name).localeCompare(classWords(b.name)));
-    });
-  }
+  async function moveClass(id: string, toIndex: number) {
+    if (!classes) return;
 
-  async function toggleRetired(row: VehicleClass) {
-    setBusyId(row.id);
+    const from = orderable.findIndex((row) => row.id === id);
+
+    if (from < 0 || toIndex < 0 || toIndex >= orderable.length || from === toIndex) return;
+
+    const next = [...orderable];
+    const [moved] = next.splice(from, 1);
+    next.splice(toIndex, 0, moved);
+
+    const before = classes;
+
+    // The list moves at once; it goes back if the server says no.
+    setClasses([...next, ...classes.filter((row) => row.is_retired)]);
     setError("");
 
     try {
-      const updated = row.is_retired ? await reactivateVehicleClass(row.id) : await retireVehicleClass(row.id);
+      await reorderVehicleClasses(next.map((row) => row.id));
+    } catch (err) {
+      setClasses(before);
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.classes.failedOrder"));
+    }
+  }
 
-      setClasses((current) =>
-        current
-          ? showRetired || updated.is_retired === false
-            ? current.map((item) => (item.id === updated.id ? updated : item))
-            : current.filter((item) => item.id !== updated.id)
-          : current,
-      );
+  async function reactivate(row: VehicleClass) {
+    try {
+      await reactivateVehicleClass(row.id);
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("s.admin.configuration.classes.failedSave"));
-    } finally {
-      setBusyId(null);
     }
   }
 
@@ -93,6 +104,14 @@ export default function ClassesConfigurationPage() {
         {t("s.admin.configuration.classes.showRetired")}
       </label>
 
+      {orderable.length > 1 && <p className="mt-3 text-xs text-ink-muted">{t("s.admin.configuration.classes.orderHint")}</p>}
+
+      {notice && (
+        <p className="mt-4 text-sm text-ink" role="status">
+          {notice}
+        </p>
+      )}
+
       {error && (
         <p className="mt-4 text-sm text-red-600" role="alert">
           {error}
@@ -104,55 +123,64 @@ export default function ClassesConfigurationPage() {
       ) : classes.length === 0 ? (
         <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.classes.empty")}</p>
       ) : (
-        <ul className="mt-6 divide-y divide-border-subtle">
-          {classes.map((row) => (
-            <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="font-medium text-ink">
-                  {classWords(row.name)}
-                  <span className="ml-2 text-sm font-normal text-ink-muted">{row.slug}</span>
-                </p>
+        <ul className="mt-6 space-y-3">
+          {classes.map((row) => {
+            const position = orderable.findIndex((item) => item.id === row.id);
 
-                {classWords(row.description) && (
-                  <p className="mt-0.5 text-sm text-ink-secondary">{classWords(row.description)}</p>
-                )}
+            return (
+              <ClassCard
+                key={row.id}
+                row={row}
+                classes={classes}
+                cars={cars}
+                position={position}
+                total={orderable.length}
+                dragging={dragId === row.id}
+                startOpen={openNew === row.id}
+                onEdit={() => setEditing(row)}
+                onRemove={() => setRemoving(row)}
+                onToggleRetired={() => void reactivate(row)}
+                onMove={(direction) => void moveClass(row.id, position + direction)}
+                onDragStart={() => setDragId(row.id)}
+                onDragEnd={() => setDragId(null)}
+                onDropHere={() => {
+                  if (dragId && dragId !== row.id) void moveClass(dragId, position);
 
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-                  <span>{t("s.admin.configuration.classes.perDay", { price: formatCurrency(row.price_per_day) })}</span>
-                  <span>·</span>
-                  <span>
-                    {t("s.admin.configuration.classes.cars", { count: row.car_count, online: row.online_car_count })}
-                  </span>
-                  {!row.offered_online && (
-                    <Badge colorClass="bg-surface-sunken text-ink-secondary">
-                      {t("s.admin.configuration.classes.notOnline")}
-                    </Badge>
-                  )}
-                  {row.is_retired && (
-                    <Badge colorClass="bg-amber-100 text-amber-800">{t("s.admin.configuration.classes.retired")}</Badge>
-                  )}
-                </p>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <Button variant="secondary" onClick={() => setEditing(row)}>
-                  {t("s.admin.configuration.classes.edit")}
-                </Button>
-
-                <Button variant="ghost" onClick={() => toggleRetired(row)} loading={busyId === row.id}>
-                  {row.is_retired ? t("s.admin.configuration.classes.reactivate") : t("s.admin.configuration.classes.retire")}
-                </Button>
-              </div>
-            </li>
-          ))}
+                  setDragId(null);
+                }}
+                onChanged={() => void load()}
+              />
+            );
+          })}
         </ul>
       )}
 
       {editing && (
         <ClassModal
           existing={editing === "new" ? undefined : editing}
+          nextOrder={orderable.length}
           onClose={() => setEditing(null)}
-          onSaved={applySaved}
+          onSaved={(saved) => {
+            if (editing === "new") setOpenNew(saved.id);
+
+            void load();
+          }}
+        />
+      )}
+
+      {removing && (
+        <RemoveClassModal
+          row={removing}
+          classes={classes ?? []}
+          onClose={() => setRemoving(null)}
+          onRemoved={(outcome) => {
+            setNotice(
+              outcome === "deleted"
+                ? t("s.admin.configuration.classes.removedDeleted")
+                : t("s.admin.configuration.classes.removedRetired"),
+            );
+            void load();
+          }}
         />
       )}
     </Card>

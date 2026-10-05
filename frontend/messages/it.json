@@ -579,7 +579,9 @@
       "already_retired": "Questa classe è già ritirata.",
       "not_retired": "Questa classe non è ritirata.",
       "retired": "Questa classe è stata ritirata.",
-      "has_no_cars": "Questa classe non ha auto."
+      "has_no_cars": "Questa classe non ha auto.",
+      "order_mismatch": "L'elenco delle classi è cambiato. Ricarica la pagina e riprova.",
+      "cannot_move_into_itself": "Scegli un'altra classe per le sue auto."
     }
   },
   "c": {
@@ -1110,6 +1112,40 @@
         "onlineYes": "Offerta online",
         "onlineNo": "Non offerta online",
         "failedSave": "Impossibile salvare la classe."
+      },
+      "ClassCard": {
+        "photoType": "Scegli un'immagine PNG o JPEG.",
+        "photoTooLarge": "Il file è troppo grande. Il limite è {mb} MB.",
+        "failedPhoto": "Impossibile salvare la foto.",
+        "failedCars": "Impossibile modificare le auto di questa classe.",
+        "dragHandle": "Trascina per spostare {name}",
+        "choosePhoto": "Scegli un file foto per {name}",
+        "replacePhoto": "Sostituisci foto",
+        "uploadPhoto": "Carica foto",
+        "removePhoto": "Rimuovi foto",
+        "hideCars": "Nascondi le auto",
+        "showCars": "{count, plural, one {Mostra # auto} other {Mostra # auto}}",
+        "remove": "Rimuovi",
+        "moveUp": "Sposta {name} su",
+        "moveDown": "Sposta {name} giù",
+        "carsTitle": "Auto di questa classe",
+        "noCars": "Ancora nessuna auto. Aggiungine a destra.",
+        "takeOut": "Togli",
+        "addCars": "Aggiungi auto",
+        "priceNote": "Le auto aggiunte prendono il prezzo della classe ({price} / giorno).",
+        "nothingToAdd": "Non ci sono altre auto da aggiungere.",
+        "movesFrom": "si sposta da {class}",
+        "noClass": "senza classe",
+        "addSelected": "{count, plural, =0 {Aggiungi auto} one {Aggiungi # auto} other {Aggiungi # auto}}"
+      },
+      "RemoveClassModal": {
+        "failed": "Impossibile rimuovere la classe.",
+        "title": "Rimuovere {name}?",
+        "cancel": "Annulla",
+        "confirm": "Rimuovi classe",
+        "explanation": "Se per questa classe non è mai stata fatta una prenotazione viene eliminata. Altrimenti viene solo nascosta, così lo storico di quelle prenotazioni resta leggibile.",
+        "moveCars": "{count, plural, one {Dove deve andare la sua # auto?} other {Dove devono andare le sue # auto?}}",
+        "noClass": "Nessuna classe (le auto mantengono il prezzo)"
       }
     }
   },
@@ -1288,7 +1324,9 @@
           "failedReactivate": "Impossibile rimettere il veicolo in flotta.",
           "noClass": "Nessuna classe",
           "classOf": "Classe di {license_plate}",
-          "pricedByClass": "Prezzo deciso dalla classe. Cambia il prezzo della classe, oppure togli l'auto dalla classe."
+          "pricedByClass": "Prezzo deciso dalla classe. Cambia il prezzo della classe, oppure togli l'auto dalla classe.",
+          "inClasses": "{count, plural, one {# auto in una classe} other {# auto in classi}}",
+          "inClassesHint": "Queste auto hanno il prezzo della loro classe. Gestisci le classi e le loro auto nella schermata Classi."
         },
         "storefront": {
           "failedLoad": "Impossibile caricare le impostazioni della prenotazione online.",
@@ -1465,7 +1503,11 @@
           "retired": "Ritirata",
           "edit": "Modifica",
           "retire": "Ritira",
-          "reactivate": "Riattiva"
+          "reactivate": "Riattiva",
+          "orderHint": "Trascina le schede per stabilire l'ordine in cui il sito elenca le classi, oppure usa le frecce.",
+          "failedOrder": "Impossibile salvare l'ordine.",
+          "removedDeleted": "Classe rimossa.",
+          "removedRetired": "Classe nascosta: per essa sono state fatte prenotazioni, quindi è ritirata e non eliminata. La trovi sotto Mostra le classi ritirate."
         }
       },
       "revenue": {

@@ -17,6 +17,8 @@ import { LANGUAGES, t } from "@/lib/i18n";
 type Props = {
   /** The class being edited; none to add a new one. */
   existing?: VehicleClass;
+  /** Where a new class goes: after the others. */
+  nextOrder?: number;
   onClose: () => void;
   onSaved: (saved: VehicleClass) => void;
 };
@@ -26,11 +28,10 @@ type Props = {
  * the others fall back to it), the daily price every car in it is rented at, where
  * it sits in the list, and whether the website may offer it.
  */
-export function ClassModal({ existing, onClose, onSaved }: Props) {
+export function ClassModal({ existing, nextOrder = 0, onClose, onSaved }: Props) {
   const [name, setName] = useState<Record<string, string>>({ ...(existing?.name ?? {}) });
   const [description, setDescription] = useState<Record<string, string>>({ ...(existing?.description ?? {}) });
   const [price, setPrice] = useState(existing?.price_per_day ?? "");
-  const [order, setOrder] = useState(String(existing?.sort_order ?? 0));
   const [online, setOnline] = useState(existing?.offered_online ?? true);
 
   const [saving, setSaving] = useState(false);
@@ -46,7 +47,8 @@ export function ClassModal({ existing, onClose, onSaved }: Props) {
       name,
       description,
       price_per_day: price,
-      sort_order: Number(order) || 0,
+      // The order of existing classes is set by dragging them on the list.
+      ...(existing ? {} : { sort_order: nextOrder }),
       offered_online: online,
     };
 
@@ -116,14 +118,6 @@ export function ClassModal({ existing, onClose, onSaved }: Props) {
             step="0.01"
             value={price}
             onChange={(event) => setPrice(event.target.value)}
-          />
-
-          <TextField
-            label={t("c.classes.ClassModal.order")}
-            type="number"
-            min={0}
-            value={order}
-            onChange={(event) => setOrder(event.target.value)}
           />
 
           <SelectField
