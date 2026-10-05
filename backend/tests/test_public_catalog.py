@@ -119,6 +119,7 @@ def test_locations_extras_and_fleet_have_no_internal_fields(storefront):
         == {
             "make", "model", "year", "category", "transmission", "fuel_type", "seats",
             "has_photo", "photo_version", "offer_key", "price_per_day",
+            "class_slug", "class_name", "class_description", "seats_min", "seats_max", "transmissions", "fuel_types",
         }
         for item in fleet
     )
@@ -150,6 +151,7 @@ def test_availability_lists_offers_without_plates_or_car_ids(storefront):
         assert set(offer) == {
             "offer_key", "make", "model", "year", "category", "transmission", "fuel_type", "seats",
             "has_photo", "photo_version", "price_per_day", "currency", "total_amount", "online_amount", "due_at_pickup",
+            "class_slug", "class_name", "class_description", "seats_min", "seats_max", "transmissions", "fuel_types",
         }
         assert round(offer["online_amount"] + offer["due_at_pickup"], 2) == offer["total_amount"]
 

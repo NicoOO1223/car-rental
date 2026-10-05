@@ -6,8 +6,9 @@ import type { PublicLocation } from "@shared/publicApi";
 
 import type { Quote } from "@/lib/client";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
+import { vehicleName } from "@/lib/vehicleText";
 
-type Vehicle = { make: string; model: string };
+type Vehicle = Parameters<typeof vehicleName>[0];
 
 /** The booking so far: what, where, when, and the price with how it is paid. */
 export function PriceSummary({
@@ -44,7 +45,7 @@ export function PriceSummary({
         <div>
           <dt className="text-ink-muted">{t("vehicle")}</dt>
           <dd className="font-medium">
-            {vehicle.make} {vehicle.model}
+            {vehicleName(vehicle, language)}
           </dd>
         </div>
         <div>

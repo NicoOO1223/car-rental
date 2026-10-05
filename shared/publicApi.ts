@@ -69,6 +69,16 @@ export type PublicVehicle = {
   // identical cars as one offer (see backend/app/schemas/public.py).
   offer_key: string;
   price_per_day: number;
+  // Set when the offer is a vehicle class: its address and the business's own words
+  // per language. make and model are then only an example ("... or similar"), and
+  // the specs below span every car in the class.
+  class_slug: string | null;
+  class_name: Record<string, string> | null;
+  class_description: Record<string, string> | null;
+  seats_min: number | null;
+  seats_max: number | null;
+  transmissions: string[];
+  fuel_types: string[];
 };
 
 export type PublicOffer = PublicVehicle & {

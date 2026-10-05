@@ -1,7 +1,7 @@
 "use client";
 
 import type { StorefrontRuntimeConfig } from "@shared/runtimeConfig";
-import type { ApiError, PublicLocation, PublicOffer } from "@shared/publicApi";
+import type { ApiError, PublicLocation, PublicOffer, PublicVehicle } from "@shared/publicApi";
 
 declare global {
   interface Window {
@@ -138,19 +138,7 @@ export type Booking = {
   return_at: string;
   pickup_location: PublicLocation;
   return_location: PublicLocation;
-  vehicle: {
-    make: string;
-    model: string;
-    year: number;
-    category: string | null;
-    transmission: string | null;
-    fuel_type: string | null;
-    seats: number | null;
-    has_photo: boolean;
-    photo_version: number | null;
-    offer_key: string;
-    price_per_day: number;
-  };
+  vehicle: PublicVehicle;
   extras: { name: string; quantity: number }[];
   currency: string;
   total_amount: number;

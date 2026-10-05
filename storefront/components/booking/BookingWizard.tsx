@@ -13,6 +13,7 @@ import { PaymentPanel } from "@/components/booking/PaymentPanel";
 import { PriceSummary } from "@/components/booking/PriceSummary";
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
+import { exampleCar, vehicleDescription, vehicleName } from "@/lib/vehicleText";
 import { accountApi } from "@/lib/account";
 import { ApiFailure, api, carPhotoUrl, type Availability, type PublicExtra, type Quote } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
@@ -221,7 +222,7 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
         totalAmount: created.total_amount,
         onlineAmount: created.online_amount,
         dueAtPickup: created.due_at_pickup,
-        summary: { vehicle: `${offer.make} ${offer.model}`, pickup: search.from, dropoff: search.to },
+        summary: { vehicle: vehicleName(offer, language), pickup: search.from, dropoff: search.to },
       };
 
       manageToken.set(created.reference, created.manage_token);
@@ -382,15 +383,22 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
                   <VehicleArt
                     imageUrl={candidate.has_photo ? carPhotoUrl(candidate.offer_key, candidate.photo_version) : null}
                     category={candidate.category}
-                    alt={`${candidate.make} ${candidate.model}`}
+                    alt={vehicleName(candidate, language)}
                     className="aspect-[16/9] w-full"
                   />
 
                   <div className="flex flex-1 flex-col p-5">
                     <h2 className="font-semibold">
-                      {candidate.make} {candidate.model}{" "}
-                      <span className="text-sm font-normal text-ink-muted">{t("vehicles.orSimilar")}</span>
+                      {vehicleName(candidate, language)}{" "}
+                      <span className="text-sm font-normal text-ink-muted">
+                        {exampleCar(candidate, language) ? `${exampleCar(candidate, language)} ` : ""}
+                        {t("vehicles.orSimilar")}
+                      </span>
                     </h2>
+
+                    {vehicleDescription(candidate, language) && (
+                      <p className="mt-1 text-sm text-ink-secondary">{vehicleDescription(candidate, language)}</p>
+                    )}
 
                     <div className="mt-2">
                       <VehicleSpecs
@@ -398,6 +406,10 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
                         transmission={candidate.transmission}
                         fuelType={candidate.fuel_type}
                         seats={candidate.seats}
+                        transmissions={candidate.transmissions}
+                        fuelTypes={candidate.fuel_types}
+                        seatsMin={candidate.seats_min}
+                        seatsMax={candidate.seats_max}
                       />
                     </div>
 

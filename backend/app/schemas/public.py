@@ -110,6 +110,16 @@ class PublicVehicle(BaseModel):
     # without exposing which actual car it is — the same opaque, non-guessable
     # key used elsewhere to address a group of identical cars as one offer.
     offer_key: str
+    # Set when the offer is a vehicle class: its address, and the business's own
+    # words per language. make/model are then an example ("... or similar") and
+    # the specs below span every car in the class.
+    class_slug: str | None = None
+    class_name: dict[str, str] | None = None
+    class_description: dict[str, str] | None = None
+    seats_min: int | None = None
+    seats_max: int | None = None
+    transmissions: list[str] = []
+    fuel_types: list[str] = []
 
 
 class PublicOffer(PublicVehicle):

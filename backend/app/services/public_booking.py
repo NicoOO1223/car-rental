@@ -55,7 +55,9 @@ from app.services.prepayments import refund_prepayment
 from app.services.public_catalog import (
     cancellation_deadline,
     cars_for_offer,
+    offer_for,
     offer_key,
+    public_vehicle_fields,
     require_locations,
     require_storefront_enabled,
     split_payment,
@@ -591,17 +593,10 @@ def booking_view(db: Session, reservation: Reservation):
         pickup_location=location(reservation.pickup_location),
         return_location=location(reservation.return_location),
         vehicle=PublicVehicle(
-            make=car.make,
-            model=car.model,
-            year=car.year,
-            category=car.category,
-            transmission=car.transmission,
-            fuel_type=car.fuel_type,
-            seats=car.seats,
-            has_photo=car.has_photo,
-            photo_version=car.photo_version,
-            offer_key=offer_key(car),
-            price_per_day=float(reservation.agreed_price_per_day or car.price_per_day),
+            **{
+                **public_vehicle_fields(offer_for(car)),
+                "price_per_day": float(reservation.agreed_price_per_day or car.price_per_day),
+            }
         ),
         extras=[PublicBookingExtra(name=line.name, quantity=line.quantity) for line in reservation.extras],
         currency=reservation.agreed_currency or "",

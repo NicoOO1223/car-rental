@@ -3,7 +3,7 @@ import { connection } from "next/server";
 
 import { LANGUAGES } from "@shared/languages";
 
-import { getPublicConfig } from "@/lib/publicApi";
+import { getFleet, getPublicConfig } from "@/lib/publicApi";
 import { runtimeConfig } from "@/lib/runtime";
 
 // The pages worth finding: the home page, the cars and the two legal texts, in
@@ -17,7 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (!site || !config?.storefront_enabled) return [];
 
-  const pages = ["", "/fleet", "/terms", "/privacy"];
+  const classes = ((await getFleet()) ?? []).flatMap((vehicle) => (vehicle.class_slug ? [`/fleet/${vehicle.class_slug}`] : []));
+  const pages = ["", "/fleet", ...classes, "/terms", "/privacy"];
 
   return pages.flatMap((page) =>
     LANGUAGES.map((language) => ({

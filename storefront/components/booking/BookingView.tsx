@@ -11,6 +11,7 @@ import { api, carPhotoUrl, type Booking } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
 import { manageToken } from "@/lib/session";
+import { vehicleName } from "@/lib/vehicleText";
 
 const primary =
   "rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50";
@@ -142,16 +143,14 @@ export function BookingView({ language, reference }: { language: string; referen
             booking.vehicle.has_photo ? carPhotoUrl(booking.vehicle.offer_key, booking.vehicle.photo_version) : null
           }
           category={booking.vehicle.category}
-          alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
+          alt={vehicleName(booking.vehicle, language)}
           className="aspect-[16/9] w-full rounded-lg"
         />
 
         <div className="space-y-4 text-sm">
           <div>
             <p className="text-ink-muted">{t("car")}</p>
-            <p className="font-semibold">
-              {booking.vehicle.make} {booking.vehicle.model}
-            </p>
+            <p className="font-semibold">{vehicleName(booking.vehicle, language)}</p>
             <div className="mt-2">
               <VehicleSpecs
                 category={booking.vehicle.category}

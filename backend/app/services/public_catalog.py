@@ -1,11 +1,13 @@
 """
 What the public storefront may show and how it prices a rental.
 
-Renters choose an offer, never a car. Cars that look the same to a renter (same
-make, model, year, specification, photo and daily price) are one offer, named by
-an opaque key. The server picks a real car when the booking is made, so no plate
-or other internal detail is ever exposed, and it can swap one identical car for
-another without the renter noticing.
+Renters choose an offer, never a car. A vehicle class (see VehicleClass) is one
+offer, named "class-<slug>": the business's own name and price, shown with an
+example car ("Fiat Panda or similar"). Cars not in a class that look the same to
+a renter (same make, model, year, specification, photo and daily price) are one
+offer, named by an opaque key. The server picks a real car when the booking is
+made, so no plate or other internal detail is ever exposed, and it can swap one
+car for another in the offer without the renter noticing.
 """
 
 import hashlib
@@ -77,6 +79,17 @@ def validate_window(
 @dataclass(frozen=True)
 class Offer:
     key: str
+    # Set for a vehicle class: its words per language ({"en": ..}) and address.
+    class_slug: str | None
+    class_name: dict | None
+    class_description: dict | None
+    sort_order: int
+    # What the cars in the offer have between them: a class may mix.
+    seats_min: int | None
+    seats_max: int | None
+    transmissions: tuple[str, ...]
+    fuel_types: tuple[str, ...]
+    # The example car: make and model of the one shown ("... or similar").
     make: str
     model: str
     year: int
@@ -107,45 +120,120 @@ def _identity(car: Car) -> list:
 
 
 def offer_key(car: Car) -> str:
-    """Opaque, stable for as long as the cars look the same, and not guessable."""
+    """A class: "class-<slug>". Otherwise opaque, stable for as long as the cars
+    look the same, and not guessable."""
+
+    if car.vehicle_class is not None:
+        return f"class-{car.vehicle_class.slug}"
 
     payload = json.dumps(_identity(car), separators=(",", ":")).encode()
 
     return hmac.new(SECRET_KEY.encode(), b"offer|" + payload, hashlib.sha256).hexdigest()[:24]
 
 
-def offer_for(car: Car) -> Offer:
+def _example_car(cars: list[Car]) -> Car:
+    """The car that stands for the offer: one with a photo if any has, and always the
+    same one for the same cars (by plate), so the page does not change on every visit."""
+
+    return sorted(cars, key=lambda car: (not car.has_photo, car.license_plate))[0]
+
+
+def offer_for(car: Car, members: list[Car] | None = None) -> Offer:
+    """The offer a car belongs to. `members` are all the cars in it that are on show,
+    for a class made of different cars; without them the car stands alone."""
+
+    cars = members or [car]
+    example = _example_car(cars) if car.vehicle_class is not None else car
+    seats = [item.seats for item in cars if item.seats is not None]
+    cls = car.vehicle_class
+
     return Offer(
         key=offer_key(car),
-        make=car.make,
-        model=car.model,
-        year=car.year,
-        category=car.category,
-        transmission=car.transmission,
-        fuel_type=car.fuel_type,
-        seats=car.seats,
-        has_photo=car.has_photo,
-        photo_version=car.photo_version,
+        class_slug=cls.slug if cls else None,
+        class_name=dict(cls.name) if cls else None,
+        class_description=dict(cls.description) if cls else None,
+        sort_order=cls.sort_order if cls else 10_000,
+        seats_min=min(seats) if seats else None,
+        seats_max=max(seats) if seats else None,
+        transmissions=tuple(sorted({item.transmission for item in cars if item.transmission})),
+        fuel_types=tuple(sorted({item.fuel_type for item in cars if item.fuel_type})),
+        make=example.make,
+        model=example.model,
+        year=example.year,
+        category=example.category,
+        transmission=example.transmission,
+        fuel_type=example.fuel_type,
+        seats=example.seats,
+        has_photo=example.has_photo,
+        photo_version=example.photo_version,
         price_per_day=car.price_per_day,
     )
 
 
-def group_into_offers(cars: list[Car]) -> list[tuple[Offer, list[Car]]]:
-    """Cars grouped by offer, cheapest first, then by name."""
+def public_vehicle_fields(offer: Offer) -> dict:
+    """The offer as the fields of PublicVehicle (the one place they are listed)."""
 
-    groups: dict[str, tuple[Offer, list[Car]]] = {}
+    return {
+        "offer_key": offer.key,
+        "class_slug": offer.class_slug,
+        "class_name": offer.class_name,
+        "class_description": offer.class_description,
+        "seats_min": offer.seats_min,
+        "seats_max": offer.seats_max,
+        "transmissions": list(offer.transmissions),
+        "fuel_types": list(offer.fuel_types),
+        "make": offer.make,
+        "model": offer.model,
+        "year": offer.year,
+        "category": offer.category,
+        "transmission": offer.transmission,
+        "fuel_type": offer.fuel_type,
+        "seats": offer.seats,
+        "has_photo": offer.has_photo,
+        "photo_version": offer.photo_version,
+        "price_per_day": float(offer.price_per_day),
+    }
+
+
+def group_into_offers(cars: list[Car]) -> list[tuple[Offer, list[Car]]]:
+    """Cars grouped by offer: classes first in the business's own order, then the
+    cars without a class, cheapest first."""
+
+    grouped: dict[str, list[Car]] = {}
 
     for car in cars:
-        offer = offer_for(car)
-        groups.setdefault(offer.key, (offer, []))[1].append(car)
+        grouped.setdefault(offer_key(car), []).append(car)
 
-    return sorted(groups.values(), key=lambda pair: (pair[0].price_per_day, pair[0].make, pair[0].model))
+    offers = [(offer_for(members[0], members), members) for members in grouped.values()]
+
+    return sorted(
+        offers,
+        key=lambda pair: (
+            pair[0].class_slug is None,
+            pair[0].sort_order,
+            pair[0].price_per_day,
+            pair[0].make,
+            pair[0].model,
+        ),
+    )
+
+
+def offerable(car: Car) -> bool:
+    """A car in a class is on show only while its class is: not retired, and offered online."""
+
+    cls = car.vehicle_class
+
+    return cls is None or (cls.retired_at is None and cls.offered_online)
 
 
 def bookable_cars(db: Session, pickup_location_id, pickup_at: datetime, return_at: datetime) -> list[Car]:
     """The cars the storefront may offer for this period, at this pickup place."""
 
-    return get_available_cars(db, pickup_location_id, pickup_at, return_at, online_only=True)
+    return [
+        car
+        for car in get_available_cars(db, pickup_location_id, pickup_at, return_at, online_only=True)
+        if offerable(car)
+    ]
 
 
 def cars_for_offer(db: Session, key: str, pickup_location_id, pickup_at: datetime, return_at: datetime) -> list[Car]:
@@ -165,7 +253,19 @@ def car_for_offer_key(db: Session, key: str) -> Car | None:
     availability, so it looks at the whole fleet, not just bookable cars).
     """
 
-    for car in db.scalars(select(Car)).all():
+    if key.startswith("class-"):
+        # A class has a stable address: no need to hash the fleet. Prefer a car with a photo.
+        from app.models import VehicleClass
+
+        return db.scalars(
+            select(Car)
+            .join(VehicleClass, VehicleClass.id == Car.class_id)
+            .where(VehicleClass.slug == key.removeprefix("class-"), Car.retired_at.is_(None))
+            .order_by(Car.photo_blob_path.is_(None), Car.license_plate)
+            .limit(1)
+        ).first()
+
+    for car in db.scalars(select(Car).where(Car.class_id.is_(None))).all():
         if hmac.compare_digest(offer_key(car), key):
             return car
 
@@ -180,9 +280,11 @@ def require_locations(db: Session, pickup_location_id, return_location_id) -> No
 def offered_cars(db: Session) -> list[Car]:
     """Every car the storefront may show, for the fleet page (no dates)."""
 
-    return list(
-        db.scalars(select(Car).where(Car.offered_online.is_(True), Car.retired_at.is_(None)).order_by(Car.make, Car.model, Car.license_plate))
+    cars = db.scalars(
+        select(Car).where(Car.offered_online.is_(True), Car.retired_at.is_(None)).order_by(Car.make, Car.model, Car.license_plate)
     )
+
+    return [car for car in cars if offerable(car)]
 
 
 # --- The online share -------------------------------------------------------------------------

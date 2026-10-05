@@ -8,6 +8,7 @@ import { VehicleArt } from "@/components/VehicleArt";
 import { getAccount, getAccountBookings } from "@/lib/accountServer";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n";
+import { vehicleName } from "@/lib/vehicleText";
 import { getPublicConfig } from "@/lib/publicApi";
 import { carPhotoUrl } from "@/lib/runtime";
 
@@ -52,15 +53,13 @@ export default async function AccountPage({ params }: { params: Promise<{ lang: 
               <VehicleArt
                 imageUrl={booking.vehicle.has_photo ? carPhotoUrl(booking.vehicle.offer_key, booking.vehicle.photo_version) : null}
                 category={booking.vehicle.category}
-                alt={`${booking.vehicle.make} ${booking.vehicle.model}`}
+                alt={vehicleName(booking.vehicle, lang)}
                 className="aspect-[16/9] w-full sm:aspect-auto sm:w-56 sm:shrink-0"
               />
 
               <div className="flex flex-1 flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1 text-sm">
-                  <p className="text-lg font-semibold">
-                    {booking.vehicle.make} {booking.vehicle.model}
-                  </p>
+                  <p className="text-lg font-semibold">{vehicleName(booking.vehicle, lang)}</p>
                   <p className="font-mono text-xs text-ink-muted">
                     {booking.reference} · {statusLabel(booking.status)}
                   </p>

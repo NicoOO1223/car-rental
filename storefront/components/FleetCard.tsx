@@ -5,6 +5,8 @@ import type { PublicVehicle } from "@shared/publicApi";
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
 import { getTranslator } from "@/lib/i18n";
+import { formatMoney } from "@/lib/format";
+import { exampleCar, vehicleDescription, vehicleName } from "@/lib/vehicleText";
 import { carPhotoUrl } from "@/lib/runtime";
 
 /**
@@ -15,14 +17,20 @@ export function FleetCard({
   vehicle,
   language,
   bookHref,
+  currency,
 }: {
   vehicle: PublicVehicle;
   language: string;
+  /** With it, the card says what the class costs a day. */
+  currency?: string;
   /** Where Book now goes: a page, or a `#anchor` on the page already open. */
   bookHref: string;
 }) {
   const t = getTranslator(language);
-  const name = `${vehicle.make} ${vehicle.model}`;
+  const name = vehicleName(vehicle, language);
+  const example = exampleCar(vehicle, language);
+  const description = vehicleDescription(vehicle, language);
+  const classPage = vehicle.class_slug ? `/${language}/fleet/${vehicle.class_slug}` : null;
 
   const button =
     "inline-flex items-center rounded-xl border-2 border-white bg-transparent px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40";
@@ -45,7 +53,10 @@ export function FleetCard({
 
         <div className="absolute inset-x-0 top-0 p-5 text-white">
           <h3 className="text-xl font-semibold">{name}</h3>
-          <p className="text-sm text-white/80">{t("fleet.orSimilar")}</p>
+          <p className="text-sm text-white/80">
+            {example ? `${example} ` : ""}
+            {t("fleet.orSimilar")}
+          </p>
         </div>
 
         <div className="absolute bottom-0 left-0 p-5">
@@ -61,13 +72,33 @@ export function FleetCard({
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="space-y-3 p-5">
+        {description && <p className="text-sm text-ink-secondary">{description}</p>}
+
         <VehicleSpecs
           category={vehicle.category}
           transmission={vehicle.transmission}
           fuelType={vehicle.fuel_type}
           seats={vehicle.seats}
+          transmissions={vehicle.transmissions}
+          fuelTypes={vehicle.fuel_types}
+          seatsMin={vehicle.seats_min}
+          seatsMax={vehicle.seats_max}
         />
+
+        {currency && (
+          <p className="flex items-baseline justify-between gap-3">
+            <span className="text-lg font-bold tabular-nums">
+              {t("fleet.fromPrice", { price: formatMoney(vehicle.price_per_day, currency, language) })}
+            </span>
+
+            {classPage && (
+              <Link href={classPage} className="text-sm font-medium text-ink-secondary underline underline-offset-4 hover:text-ink">
+                {t("fleet.details")}
+              </Link>
+            )}
+          </p>
+        )}
       </div>
     </li>
   );

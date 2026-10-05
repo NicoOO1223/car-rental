@@ -2,17 +2,28 @@
 
 import { useTranslations } from "use-intl";
 
-/** The facts about a car as small labels. Works in server and client components. */
+/**
+ * The facts about a car as small labels. A class spans several cars, so it can give
+ * every transmission and fuel it has and a range of seats. Works in server and client components.
+ */
 export function VehicleSpecs({
   category,
   transmission,
   fuelType,
   seats,
+  transmissions,
+  fuelTypes,
+  seatsMin,
+  seatsMax,
 }: {
   category: string | null;
   transmission: string | null;
   fuelType: string | null;
   seats: number | null;
+  transmissions?: string[];
+  fuelTypes?: string[];
+  seatsMin?: number | null;
+  seatsMax?: number | null;
 }) {
   const t = useTranslations();
   const labels: string[] = [];
@@ -25,10 +36,15 @@ export function VehicleSpecs({
   };
 
   add("category", category);
-  add("transmission", transmission);
-  add("fuel", fuelType);
 
-  if (seats) labels.push(t("vehicles.seats", { count: seats }));
+  for (const value of transmissions?.length ? transmissions : [transmission]) add("transmission", value);
+  for (const value of fuelTypes?.length ? fuelTypes : [fuelType]) add("fuel", value);
+
+  if (seatsMin && seatsMax && seatsMin !== seatsMax) {
+    labels.push(t("vehicles.seatsRange", { min: seatsMin, max: seatsMax }));
+  } else if (seatsMax ?? seats) {
+    labels.push(t("vehicles.seats", { count: (seatsMax ?? seats) as number }));
+  }
 
   if (labels.length === 0) return null;
 

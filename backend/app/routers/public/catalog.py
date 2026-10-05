@@ -40,6 +40,7 @@ from app.services.public_catalog import (
     cars_for_offer,
     group_into_offers,
     offered_cars,
+    public_vehicle_fields,
     require_locations,
     require_storefront_enabled,
     split_payment,
@@ -179,19 +180,7 @@ def public_fleet(configuration=Depends(enabled_configuration), db: Session = Dep
     """The kinds of car on offer, without dates: for the fleet page."""
 
     return [
-        PublicVehicle(
-            make=offer.make,
-            model=offer.model,
-            year=offer.year,
-            category=offer.category,
-            transmission=offer.transmission,
-            fuel_type=offer.fuel_type,
-            seats=offer.seats,
-            has_photo=offer.has_photo,
-            photo_version=offer.photo_version,
-            offer_key=offer.key,
-            price_per_day=float(offer.price_per_day),
-        )
+        PublicVehicle(**public_vehicle_fields(offer))
         for offer, _ in group_into_offers(offered_cars(db))
     ]
 
@@ -284,17 +273,7 @@ def public_availability(
 
         offers.append(
             PublicOffer(
-                offer_key=offer.key,
-                make=offer.make,
-                model=offer.model,
-                year=offer.year,
-                category=offer.category,
-                transmission=offer.transmission,
-                fuel_type=offer.fuel_type,
-                seats=offer.seats,
-                has_photo=offer.has_photo,
-                photo_version=offer.photo_version,
-                price_per_day=float(offer.price_per_day),
+                **public_vehicle_fields(offer),
                 currency=currency,
                 total_amount=float(breakdown.total_amount),
                 online_amount=float(online),

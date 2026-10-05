@@ -102,7 +102,12 @@
     "empty": "No cars are listed yet.",
     "search": "Search availability",
     "bookNow": "Book now",
-    "orSimilar": "or similar"
+    "orSimilar": "or similar",
+    "fromPrice": "From {price} / day",
+    "details": "Details",
+    "backToAll": "All cars",
+    "carAssigned": "The exact car is assigned when you pick it up.",
+    "freeCancellation": "Free cancellation up to {hours} hours before pickup."
   },
   "enums": {
     "category": {
@@ -156,7 +161,8 @@
     "perDay": "{price} / day",
     "payNow": "Pay {amount} now",
     "atPickup": "{amount} at pickup",
-    "select": "Select"
+    "select": "Select",
+    "seatsRange": "{min}–{max} seats"
   },
   "extras": {
     "title": "Add extras",

@@ -102,7 +102,12 @@
     "empty": "Nie ma jeszcze aut na liście.",
     "search": "Sprawdź dostępność",
     "bookNow": "Zarezerwuj teraz",
-    "orSimilar": "lub podobny"
+    "orSimilar": "lub podobny",
+    "fromPrice": "Od {price} / doba",
+    "details": "Szczegóły",
+    "backToAll": "Wszystkie samochody",
+    "carAssigned": "Dokładny samochód zostanie przydzielony przy odbiorze.",
+    "freeCancellation": "Bezpłatne anulowanie do {hours} godz. przed odbiorem."
   },
   "enums": {
     "category": {
@@ -156,7 +161,8 @@
     "perDay": "{price} / dzień",
     "payNow": "Płacisz teraz {amount}",
     "atPickup": "{amount} przy odbiorze",
-    "select": "Wybierz"
+    "select": "Wybierz",
+    "seatsRange": "{min}–{max} miejsc"
   },
   "extras": {
     "title": "Dodaj dodatki",
