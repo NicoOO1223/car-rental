@@ -97,6 +97,59 @@ TYPES: dict[str, EmailType] = {
         parts=("manage_link", "signoff"),
         options=(Option("attach_invoice", "bool", True),),
     ),
+    "booking_changed": EmailType(
+        key="booking_changed",
+        audience=RENTER,
+        values=(
+            "name",
+            "reference",
+            "vehicle",
+            "pickup_place",
+            "pickup_time",
+            "return_place",
+            "return_time",
+            "changes",
+            "manage_url",
+        ),
+        parts=("manage_link", "signoff"),
+    ),
+    "pickup_reminder": EmailType(
+        key="pickup_reminder",
+        audience=RENTER,
+        values=("name", "reference", "vehicle", "pickup_place", "pickup_time", "manage_url"),
+        parts=("bring_list", "manage_link", "signoff"),
+        # How long before the pickup the reminder goes out.
+        options=(Option("hours_before", "hours", 24),),
+    ),
+    "agreement_copy": EmailType(
+        key="agreement_copy",
+        audience=RENTER,
+        values=("name", "reference", "vehicle", "return_place", "return_time", "attached_agreement"),
+        parts=("signoff",),
+        options=(Option("attach_agreement", "bool", True),),
+    ),
+    "return_summary": EmailType(
+        key="return_summary",
+        audience=RENTER,
+        values=(
+            "name",
+            "reference",
+            "vehicle",
+            "returned_at",
+            "late_fee",
+            "fuel_fee",
+            "damage_charge",
+            "total_charge",
+        ),
+        parts=("deposit_note", "signoff"),
+    ),
+    "refund_notice": EmailType(
+        key="refund_notice",
+        audience=RENTER,
+        values=("name", "reference", "amount", "credit_note_number", "attached_credit_note"),
+        parts=("signoff",),
+        options=(Option("attach_credit_note", "bool", True),),
+    ),
 }
 
 PARTS: dict[str, Part] = {
@@ -106,6 +159,13 @@ PARTS: dict[str, Part] = {
     "bring_list": Part("bring_list", values=()),
     "manage_link": Part("manage_link", values=("manage_url",)),
     "payment_note": Part("payment_note", values=("amount",), variants=("refunded", "kept")),
+    # What happened to the security deposit at return: all of it released, or part of
+    # it used for the charges.
+    "deposit_note": Part(
+        "deposit_note",
+        values=("deposit_applied", "deposit_returned"),
+        variants=("returned", "applied"),
+    ),
 }
 
 # Which part keys exist in storage, and the part each belongs to.
@@ -156,8 +216,60 @@ SAMPLE_VALUES: dict[str, dict[str, str]] = {
     },
 }
 
+SAMPLE_VALUES.update(
+    {
+        "booking_changed": {
+            "name": "Giulia",
+            "reference": "AB12CD34E",
+            "vehicle": "Fiat Panda",
+            "pickup_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "pickup_time": "2030-06-02 10:00 CEST",
+            "return_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "return_time": "2030-06-05 10:00 CEST",
+            "changes": "Pick-up: 2030-06-01 10:00 CEST -> 2030-06-02 10:00 CEST\nReturn: 2030-06-04 10:00 CEST -> 2030-06-05 10:00 CEST",
+            "manage_url": "https://www.example.com/en/manage?reference=AB12CD34E",
+        },
+        "pickup_reminder": {
+            "name": "Giulia",
+            "reference": "AB12CD34E",
+            "vehicle": "Fiat Panda",
+            "pickup_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "pickup_time": "2030-06-01 10:00 CEST",
+            "manage_url": "https://www.example.com/en/manage?reference=AB12CD34E",
+        },
+        "agreement_copy": {
+            "name": "Giulia",
+            "reference": "AB12CD34E",
+            "vehicle": "Fiat Panda",
+            "return_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "return_time": "2030-06-04 10:00 CEST",
+            "attached_agreement": "AB12CD34E",
+        },
+        "return_summary": {
+            "name": "Giulia",
+            "reference": "AB12CD34E",
+            "vehicle": "Fiat Panda",
+            "returned_at": "2030-06-04 11:30 CEST",
+            "late_fee": "10.00 EUR",
+            "fuel_fee": "",
+            "damage_charge": "",
+            "total_charge": "10.00 EUR",
+            "deposit_applied": "10.00 EUR",
+            "deposit_returned": "190.00 EUR",
+        },
+        "refund_notice": {
+            "name": "Giulia",
+            "reference": "AB12CD34E",
+            "amount": "27.00 EUR",
+            "credit_note_number": "CN-000004",
+            "attached_credit_note": "CN-000004",
+        },
+    }
+)
+
 SAMPLE_VARIANTS: dict[str, dict[str, str]] = {
     "booking_cancelled": {"payment_note": "refunded"},
+    "return_summary": {"deposit_note": "applied"},
 }
 
 SAMPLE_BUSINESS = {"business": "Sample Rentals", "contact": "info@example.com / +39 0789 000000"}

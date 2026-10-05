@@ -30,6 +30,8 @@ import base64
 import logging
 import os
 import threading
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Protocol
@@ -39,6 +41,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount
+from app.i18n.email_templates import CHANGES
 from app.languages import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 from app.models import (
     Customer,
@@ -199,6 +202,9 @@ def queue_email(
     part_variants: dict[str, str] | None = None,
     reservation_id=None,
     attachment: tuple[str, object] | None = None,
+    send_after: datetime | None = None,
+    coalesce_key: str | None = None,
+    context: dict | None = None,
 ) -> EmailMessage | None:
     """
     Writes one email to the outbox, rendered now in `language` from `values`. Does
@@ -207,7 +213,8 @@ def queue_email(
     transaction through a savepoint and logs what goes wrong.
 
     `attachment` is (kind, id): "invoice" / "credit_note" (an invoice's id) or
-    "agreement" (a handover's id).
+    "agreement" (a handover's id). `send_after` holds the email back until then;
+    `coalesce_key` and `context` are described on EmailMessage.
     """
 
     if not email_active(db) or not type_enabled(db, type_key):
@@ -245,7 +252,13 @@ def queue_email(
                 reservation_id=reservation_id,
                 attachment_kind=attachment[0] if attachment else None,
                 attachment_id=attachment[1] if attachment else None,
+                coalesce_key=coalesce_key,
+                context=context,
             )
+
+            if send_after is not None:
+                message.next_attempt_at = send_after
+
             db.add(message)
             db.flush()
 
@@ -414,6 +427,337 @@ def queue_receipt(db: Session, invoice: Invoice) -> EmailMessage | None:
         return None
 
 
+def _full_name(customer: Customer) -> str:
+    return f"{customer.first_name} {customer.last_name}".strip()
+
+
+def _money(value, currency: str, language: str) -> str:
+    """An amount for an email, or "" for nothing, so a line about it disappears."""
+
+    if not value:
+        return ""
+
+    return format_amount(value, currency, language)
+
+
+# How long a booking change is held, so several edits in a row make one email.
+CHANGE_HOLD = timedelta(minutes=5)
+
+
+def booking_snapshot(reservation: Reservation) -> dict:
+    """What a renter cares about in a booking, in a form that can be compared and
+    stored: the same whatever language the email ends up in."""
+
+    pickup = reservation.pickup_location
+    drop = reservation.return_location
+
+    return {
+        "vehicle": f"{reservation.car.make} {reservation.car.model}",
+        "pickup_time": reservation.pickup_at.astimezone(timezone.utc).isoformat(),
+        "pickup_tz": pickup.timezone,
+        "return_time": reservation.return_at.astimezone(timezone.utc).isoformat(),
+        "return_tz": drop.timezone,
+        "pickup_place": _place(pickup),
+        "return_place": _place(drop),
+    }
+
+
+def _snapshot_text(snapshot: dict, field: str, language: str) -> str:
+    if field in ("pickup_time", "return_time"):
+        zone = snapshot["pickup_tz" if field == "pickup_time" else "return_tz"]
+
+        return format_local(datetime.fromisoformat(snapshot[field]), zone, language)
+
+    return snapshot[field]
+
+
+def describe_changes(before: dict, after: dict, language: str) -> str:
+    """One line per thing that differs, "Pick-up time: <was> -> <now>"; empty when nothing does."""
+
+    lines = []
+
+    for field in ("vehicle", "pickup_time", "return_time", "pickup_place", "return_place"):
+        was = _snapshot_text(before, field, language)
+        now = _snapshot_text(after, field, language)
+
+        if was != now:
+            lines.append(f"{CHANGES[field][language]}: {was} -> {now}")
+
+    return "\n".join(lines)
+
+
+def queue_booking_changed(db: Session, reservation: Reservation, before: dict) -> EmailMessage | None:
+    """Tells the renter their booking was changed, listing what differs. Held for
+    CHANGE_HOLD; another edit in that time replaces it, comparing with the booking
+    as it was before the first edit, and an edit back to the original cancels it."""
+
+    if not email_active(db) or not type_enabled(db, "booking_changed"):
+        return None
+
+    try:
+        customer = reservation.customer
+        address = _address_of(customer)
+
+        if address is None:
+            return None
+
+        key = f"booking_changed:{reservation.id}"
+        pending = db.scalar(
+            select(EmailMessage)
+            .where(EmailMessage.coalesce_key == key, EmailMessage.status == "PENDING")
+            .with_for_update(skip_locked=True)
+            .limit(1)
+        )
+
+        if pending is not None and pending.context:
+            before = pending.context["before"]
+
+        language = renter_language(db, reservation)
+        after = booking_snapshot(reservation)
+        changes = describe_changes(before, after, language)
+
+        if pending is not None:
+            db.delete(pending)
+            db.flush()
+
+        if not changes:
+            return None
+
+        return queue_email(
+            db,
+            "booking_changed",
+            to_address=address,
+            to_name=_full_name(customer),
+            language=language,
+            dedupe_key=f"{key}:{uuid.uuid4().hex}",
+            reservation_id=reservation.id,
+            send_after=datetime.now(timezone.utc) + CHANGE_HOLD,
+            coalesce_key=key,
+            context={"before": before},
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": after["vehicle"],
+                "pickup_place": after["pickup_place"],
+                "pickup_time": _snapshot_text(after, "pickup_time", language),
+                "return_place": after["return_place"],
+                "return_time": _snapshot_text(after, "return_time", language),
+                "changes": changes,
+                "manage_url": manage_url(reservation, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the booking-changed email for %s", reservation.id)
+
+        return None
+
+
+def queue_pickup_reminder(db: Session, reservation: Reservation) -> EmailMessage | None:
+    if not email_active(db) or not type_enabled(db, "pickup_reminder"):
+        return None
+
+    try:
+        customer = reservation.customer
+        address = _address_of(customer)
+
+        if address is None:
+            return None
+
+        language = renter_language(db, reservation)
+        pickup = reservation.pickup_location
+
+        return queue_email(
+            db,
+            "pickup_reminder",
+            to_address=address,
+            to_name=_full_name(customer),
+            language=language,
+            dedupe_key=f"pickup_reminder:{reservation.id}",
+            reservation_id=reservation.id,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "pickup_place": _place(pickup),
+                "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
+                "manage_url": manage_url(reservation, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the pickup reminder for %s", reservation.id)
+
+        return None
+
+
+def queue_due_pickup_reminders(db: Session, now: datetime | None = None) -> int:
+    """Queues the reminders that have come due: confirmed bookings whose pickup is
+    ahead but less than the configured hours away. A booking made inside that window
+    is not reminded (the renter has just been told). Returns how many were queued.
+    Commits."""
+
+    now = now or datetime.now(timezone.utc)
+
+    if not email_active(db) or not type_enabled(db, "pickup_reminder"):
+        return 0
+
+    hours = int(type_options(db, "pickup_reminder")["hours_before"])
+    queued = 0
+
+    due = db.scalars(
+        select(Reservation)
+        .where(
+            Reservation.status == "CONFIRMED",
+            Reservation.pickup_at > now,
+            Reservation.pickup_at <= now + timedelta(hours=hours),
+        )
+        .order_by(Reservation.pickup_at)
+        .limit(200)
+    ).all()
+
+    for reservation in due:
+        reminder_time = reservation.pickup_at - timedelta(hours=hours)
+        confirmed_at = db.scalar(
+            select(EmailMessage.created_at).where(EmailMessage.dedupe_key == f"booking_confirmed:{reservation.id}")
+        )
+
+        if max(reservation.created_at, confirmed_at or reservation.created_at) > reminder_time:
+            continue
+
+        if queue_pickup_reminder(db, reservation) is not None:
+            queued += 1
+
+    db.commit()
+
+    return queued
+
+
+def queue_agreement_copy(db: Session, reservation: Reservation, handover) -> EmailMessage | None:
+    if not email_active(db) or not type_enabled(db, "agreement_copy"):
+        return None
+
+    try:
+        customer = reservation.customer
+        address = _address_of(customer)
+
+        if address is None:
+            return None
+
+        language = renter_language(db, reservation)
+        attach = bool(type_options(db, "agreement_copy")["attach_agreement"]) and handover.agreement_pdf is not None
+        drop = reservation.return_location
+
+        return queue_email(
+            db,
+            "agreement_copy",
+            to_address=address,
+            to_name=_full_name(customer),
+            language=language,
+            dedupe_key=f"agreement_copy:{handover.id}",
+            reservation_id=reservation.id,
+            attachment=("agreement", handover.id) if attach else None,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "return_place": _place(drop),
+                "return_time": format_local(reservation.return_at, drop.timezone, language),
+                "attached_agreement": _reference(reservation) if attach else "",
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the agreement email for %s", reservation.id)
+
+        return None
+
+
+def queue_return_summary(db: Session, reservation: Reservation, check_out) -> EmailMessage | None:
+    """What happened at return: when, the charges, and what became of the deposit."""
+
+    if not email_active(db) or not type_enabled(db, "return_summary"):
+        return None
+
+    try:
+        customer = reservation.customer
+        address = _address_of(customer)
+
+        if address is None:
+            return None
+
+        configuration = get_configuration(db)
+        language = renter_language(db, reservation)
+        currency = reservation.agreed_currency or configuration.default_currency
+        applied = check_out.deposit_applied or Decimal("0")
+        returned = check_out.deposit_returned or Decimal("0")
+        has_deposit = applied > 0 or returned > 0
+
+        return queue_email(
+            db,
+            "return_summary",
+            to_address=address,
+            to_name=_full_name(customer),
+            language=language,
+            dedupe_key=f"return_summary:{check_out.id}",
+            reservation_id=reservation.id,
+            part_variants={"deposit_note": "applied" if applied > 0 else "returned"} if has_deposit else None,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "returned_at": format_local(check_out.returned_at, reservation.return_location.timezone, language),
+                "late_fee": _money(check_out.late_fee, currency, language),
+                "fuel_fee": _money(check_out.fuel_fee, currency, language),
+                "damage_charge": _money(check_out.damage_charge, currency, language),
+                "total_charge": _money(check_out.total_charge, currency, language) or format_amount(0, currency, language),
+                "deposit_applied": _money(applied, currency, language),
+                "deposit_returned": _money(returned, currency, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the return summary for %s", reservation.id)
+
+        return None
+
+
+def queue_refund_notice(db: Session, note: Invoice) -> EmailMessage | None:
+    """Tells the renter money went back to their card, with the credit note."""
+
+    if not email_active(db) or not type_enabled(db, "refund_notice"):
+        return None
+
+    try:
+        reservation = db.get(Reservation, note.reservation_id)
+        customer = reservation.customer
+        address = _address_of(customer)
+
+        if address is None:
+            return None
+
+        language = renter_language(db, reservation)
+        attach = bool(type_options(db, "refund_notice")["attach_credit_note"])
+
+        return queue_email(
+            db,
+            "refund_notice",
+            to_address=address,
+            to_name=_full_name(customer),
+            language=language,
+            dedupe_key=f"refund_notice:{note.id}",
+            reservation_id=reservation.id,
+            attachment=("credit_note", note.id) if attach else None,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "amount": format_amount(abs(note.total_amount), note.currency, language),
+                "credit_note_number": note.number,
+                "attached_credit_note": note.number if attach else "",
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the refund notice for credit note %s", note.id)
+
+        return None
+
+
 # --- sending ---------------------------------------------------------------------------------
 
 
@@ -554,10 +898,29 @@ _stop = threading.Event()
 _thread: threading.Thread | None = None
 
 POLL_SECONDS = 20
+# Reminders are looked for this often (a multiple of the poll).
+SCHEDULE_SECONDS = 300
+# One advisory lock id for "this replica runs the schedule tick".
+SCHEDULE_LOCK = 7_204_113
+
+
+def run_schedule(db: Session, now: datetime | None = None) -> int:
+    """The timed emails (pickup reminders). Safe with several replicas: the one that
+    gets the lock does the work, the rest skip it; and each reminder has a unique key,
+    so a repeat could not send twice in any case."""
+
+    from sqlalchemy import text
+
+    if not db.scalar(text("SELECT pg_try_advisory_xact_lock(:id)"), {"id": SCHEDULE_LOCK}):
+        return 0
+
+    return queue_due_pickup_reminders(db, now)
 
 
 def _run() -> None:
     from app.database import SessionLocal
+
+    last_schedule = 0.0
 
     while not _stop.wait(POLL_SECONDS):
         try:
@@ -569,6 +932,10 @@ def _run() -> None:
             with SessionLocal() as db:
                 # Paused: what is queued waits, and goes out when sending resumes.
                 if not email_paused(db):
+                    if time.monotonic() - last_schedule >= SCHEDULE_SECONDS:
+                        last_schedule = time.monotonic()
+                        run_schedule(db)
+
                     flush_outbox(db, sender)
         except Exception:  # noqa: BLE001 - the loop must outlive any one failure
             logger.exception("The email worker hit an error; it will try again")

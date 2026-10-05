@@ -11,6 +11,7 @@ from app.services.stripe_errors import stripe_app_error
 from app.errors import AppError, NotFoundError
 from app.config import STRIPE_SECRET_KEY
 from app.models import Car, Handover, Reservation, User
+from app.services.email_outbox import queue_agreement_copy
 from app.services.invoices import issue_credit_note_for_handover, issue_invoice_for_handover
 from app.services.money import to_cents
 from app.services.stripe_sync import apply_payment_intent_status
@@ -637,6 +638,8 @@ def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
         entity_id=handover.id,
         metadata={"reservation_id": str(reservation.id)},
     )
+
+    queue_agreement_copy(db, reservation, handover)
 
     db.commit()
     db.refresh(handover)

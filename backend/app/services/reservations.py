@@ -18,7 +18,12 @@ from app.services.availability import (
     projected_location_id,
 )
 from app.services.customers import find_matching_customer
-from app.services.email_outbox import queue_booking_cancelled, queue_booking_confirmed
+from app.services.email_outbox import (
+    booking_snapshot,
+    queue_booking_cancelled,
+    queue_booking_changed,
+    queue_booking_confirmed,
+)
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
 from app.services.prepayments import get_prepayment, settle_prepayment_for_cancellation
@@ -605,6 +610,9 @@ def update_reservation(
     # 4. Apply changes
     # ---------------------------------------------------------
 
+    # What the renter was last told, for the "booking changed" email.
+    before = booking_snapshot(reservation) if booking_moved and reservation.status in ("CONFIRMED", "ACTIVE") else None
+
     reservation.pickup_at = effective_pickup_at
     reservation.return_at = effective_return_at
     reservation.pickup_location_id = effective_pickup_location_id
@@ -664,6 +672,12 @@ def update_reservation(
     # keep pricing from the live rates.)
     if reservation.agreed_price_per_day is not None and (booking_moved or data.extras is not None):
         stamp_agreed_prices(db, reservation, target_car)
+
+    if before is not None:
+        # The relationships still point at the old car and places until reloaded.
+        db.flush()
+        db.refresh(reservation)
+        queue_booking_changed(db, reservation, before)
 
     db.commit()
     db.refresh(reservation)

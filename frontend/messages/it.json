@@ -132,7 +132,12 @@
     "emailTemplate": {
       "booking_confirmed": "Conferma della prenotazione",
       "booking_cancelled": "Prenotazione annullata",
-      "receipt": "Ricevuta con fattura"
+      "receipt": "Ricevuta con fattura",
+      "booking_changed": "Prenotazione modificata",
+      "pickup_reminder": "Promemoria del ritiro",
+      "agreement_copy": "Copia del contratto di noleggio",
+      "return_summary": "Riepilogo della riconsegna",
+      "refund_notice": "Avviso di rimborso"
     },
     "emailAudience": {
       "renter": "Ai clienti",
@@ -142,7 +147,12 @@
     "emailWhen": {
       "booking_confirmed": "Quando una prenotazione diventa confermata: sul sito appena è pagata, o quando il personale la approva.",
       "booking_cancelled": "Quando una prenotazione confermata viene annullata. Dice se il pagamento online viene rimborsato o trattenuto.",
-      "receipt": "Quando viene incassato un pagamento. La fattura è allegata."
+      "receipt": "Quando viene incassato un pagamento. La fattura è allegata.",
+      "booking_changed": "Quando lo staff cambia date, auto o luoghi di una prenotazione confermata o attiva. Trattenuta 5 minuti, così più modifiche fanno una sola email.",
+      "pickup_reminder": "Prima del ritiro, all'orario indicato sotto. Solo per prenotazioni confermate, e non per quelle fatte dentro quell'intervallo.",
+      "agreement_copy": "Quando il contratto di noleggio viene generato al check-in. Il contratto firmato è allegato.",
+      "return_summary": "Quando l'auto viene riconsegnata. Elenca gli addebiti e cosa è successo alla cauzione.",
+      "refund_notice": "Quando una somma viene rimborsata sulla carta del cliente. La nota di credito è allegata."
     },
     "emailValue": {
       "name": "Il nome del cliente",
@@ -160,7 +170,18 @@
       "number": "Il numero della fattura",
       "attached_invoice": "Il numero della fattura, vuoto se non è allegata",
       "business": "Il nome dell'azienda",
-      "contact": "L'email e il telefono dell'azienda"
+      "contact": "L'email e il telefono dell'azienda",
+      "changes": "Cosa è cambiato, una riga ciascuno: prima e ora",
+      "returned_at": "Quando l'auto è stata riconsegnata",
+      "late_fee": "La penale per ritardo (vuota se non c'è)",
+      "fuel_fee": "Il costo del carburante (vuoto se non c'è)",
+      "damage_charge": "L'addebito per danni (vuoto se non ce ne sono)",
+      "total_charge": "Il totale addebitato alla riconsegna",
+      "deposit_applied": "La parte della cauzione usata per gli addebiti",
+      "deposit_returned": "La parte della cauzione rilasciata",
+      "credit_note_number": "Il numero della nota di credito",
+      "attached_agreement": "Il numero di prenotazione del contratto allegato, vuoto se non è allegato",
+      "attached_credit_note": "Il numero della nota di credito, vuoto se non è allegata"
     },
     "emailPart": {
       "signoff": "Chiusura",
@@ -171,10 +192,17 @@
       "payment_note": {
         "refunded": "Pagamento online rimborsato",
         "kept": "Pagamento online trattenuto"
+      },
+      "deposit_note": {
+        "returned": "Cauzione rilasciata per intero",
+        "applied": "Cauzione usata per gli addebiti"
       }
     },
     "emailOption": {
-      "attach_invoice": "Allega la fattura in PDF"
+      "attach_invoice": "Allega la fattura in PDF",
+      "attach_agreement": "Allega il contratto firmato in PDF",
+      "attach_credit_note": "Allega la nota di credito in PDF",
+      "hours_before": "Invia il promemoria questo numero di ore prima del ritiro (da 1 a 720)"
     }
   },
   "config": {

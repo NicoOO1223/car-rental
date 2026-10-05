@@ -114,6 +114,187 @@ TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
     },
 }
 
+TEMPLATES.update(
+    {
+        "booking_changed": {
+            "en": (
+                "Your booking {reference} has changed - {business}",
+                "Hello {name},\n\n"
+                "Your booking {reference} has been changed. Here is what is different:\n\n"
+                "{changes}\n\n"
+                "Your booking now stands at:\n"
+                "Vehicle: {vehicle}\n"
+                "Pick-up: {pickup_place}, {pickup_time}\n"
+                "Return: {return_place}, {return_time}\n\n"
+                "If this is not what you agreed, please contact us.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "La tua prenotazione {reference} è cambiata - {business}",
+                "Buongiorno {name},\n\n"
+                "La tua prenotazione {reference} è stata modificata. Ecco cosa è cambiato:\n\n"
+                "{changes}\n\n"
+                "Ora la prenotazione è:\n"
+                "Veicolo: {vehicle}\n"
+                "Ritiro: {pickup_place}, {pickup_time}\n"
+                "Riconsegna: {return_place}, {return_time}\n\n"
+                "Se non è quanto concordato, contattaci.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Twoja rezerwacja {reference} została zmieniona - {business}",
+                "Dzień dobry {name},\n\n"
+                "Twoja rezerwacja {reference} została zmieniona. Oto co się zmieniło:\n\n"
+                "{changes}\n\n"
+                "Rezerwacja wygląda teraz tak:\n"
+                "Pojazd: {vehicle}\n"
+                "Odbiór: {pickup_place}, {pickup_time}\n"
+                "Zwrot: {return_place}, {return_time}\n\n"
+                "Jeśli to nie jest zgodne z ustaleniami, skontaktuj się z nami.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+        },
+        "pickup_reminder": {
+            "en": (
+                "Your pick-up is coming up: {reference} - {business}",
+                "Hello {name},\n\n"
+                "A reminder that you are picking up your {vehicle} soon.\n\n"
+                "When: {pickup_time}\n"
+                "Where: {pickup_place}\n"
+                "Booking number: {reference}\n\n"
+                "{bring_list}\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Il ritiro si avvicina: {reference} - {business}",
+                "Buongiorno {name},\n\n"
+                "Ti ricordiamo che a breve ritirerai la tua {vehicle}.\n\n"
+                "Quando: {pickup_time}\n"
+                "Dove: {pickup_place}\n"
+                "Numero di prenotazione: {reference}\n\n"
+                "{bring_list}\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Zbliża się odbiór: {reference} - {business}",
+                "Dzień dobry {name},\n\n"
+                "Przypominamy, że wkrótce odbierasz samochód: {vehicle}.\n\n"
+                "Kiedy: {pickup_time}\n"
+                "Gdzie: {pickup_place}\n"
+                "Numer rezerwacji: {reference}\n\n"
+                "{bring_list}\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+        },
+        "agreement_copy": {
+            "en": (
+                "Your rental agreement {reference} - {business}",
+                "Hello {name},\n\n"
+                "Enjoy your {vehicle}. Your signed rental agreement {attached_agreement} is attached for your records.\n\n"
+                "Please return the car to {return_place} by {return_time}.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Il tuo contratto di noleggio {reference} - {business}",
+                "Buongiorno {name},\n\n"
+                "Buon viaggio con la tua {vehicle}. Il contratto di noleggio firmato {attached_agreement} è allegato per i tuoi archivi.\n\n"
+                "Riconsegna l'auto a {return_place} entro {return_time}.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Twoja umowa najmu {reference} - {business}",
+                "Dzień dobry {name},\n\n"
+                "Udanej jazdy: {vehicle}. Podpisana umowa najmu {attached_agreement} jest w załączniku do Twojej dokumentacji.\n\n"
+                "Zwróć samochód w miejscu {return_place} do {return_time}.\n\n"
+                "{signoff}",
+            ),
+        },
+        "return_summary": {
+            "en": (
+                "Thank you for renting with {business} - {reference}",
+                "Hello {name},\n\n"
+                "Thank you for renting with us. Your return is complete.\n\n"
+                "Booking number: {reference}\n"
+                "Vehicle: {vehicle}\n"
+                "Returned: {returned_at}\n"
+                "Late return fee: {late_fee}\n"
+                "Fuel fee: {fuel_fee}\n"
+                "Damage charge: {damage_charge}\n"
+                "Total charged at return: {total_charge}\n\n"
+                "{deposit_note}\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Grazie per aver noleggiato con {business} - {reference}",
+                "Buongiorno {name},\n\n"
+                "Grazie per aver noleggiato con noi. La riconsegna è completata.\n\n"
+                "Numero di prenotazione: {reference}\n"
+                "Veicolo: {vehicle}\n"
+                "Riconsegnato: {returned_at}\n"
+                "Penale per ritardo: {late_fee}\n"
+                "Costo carburante: {fuel_fee}\n"
+                "Danni: {damage_charge}\n"
+                "Totale addebitato alla riconsegna: {total_charge}\n\n"
+                "{deposit_note}\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Dziękujemy za wynajem w {business} - {reference}",
+                "Dzień dobry {name},\n\n"
+                "Dziękujemy za skorzystanie z naszych usług. Zwrot został zakończony.\n\n"
+                "Numer rezerwacji: {reference}\n"
+                "Pojazd: {vehicle}\n"
+                "Zwrócono: {returned_at}\n"
+                "Opłata za spóźnienie: {late_fee}\n"
+                "Opłata za paliwo: {fuel_fee}\n"
+                "Opłata za uszkodzenia: {damage_charge}\n"
+                "Łącznie pobrano przy zwrocie: {total_charge}\n\n"
+                "{deposit_note}\n\n"
+                "{signoff}",
+            ),
+        },
+        "refund_notice": {
+            "en": (
+                "Your refund of {amount} - {business}",
+                "Hello {name},\n\n"
+                "We have refunded {amount} for booking {reference} to your card. It can take a few days to appear.\n\n"
+                "The credit note {attached_credit_note} is attached.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Il tuo rimborso di {amount} - {business}",
+                "Buongiorno {name},\n\n"
+                "Abbiamo rimborsato {amount} sulla tua carta per la prenotazione {reference}. Possono servire alcuni giorni perché compaia.\n\n"
+                "La nota di credito {attached_credit_note} è allegata.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Twój zwrot {amount} - {business}",
+                "Dzień dobry {name},\n\n"
+                "Zwróciliśmy {amount} na Twoją kartę za rezerwację {reference}. Zwrot może być widoczny po kilku dniach.\n\n"
+                "Faktura korygująca {attached_credit_note} jest w załączniku.\n\n"
+                "{signoff}",
+            ),
+        },
+    }
+)
+
+# --- what changed, for the "booking changed" email: CHANGES[label][language] ---------------
+
+CHANGES: dict[str, dict[str, str]] = {
+    "vehicle": {"en": "Vehicle", "it": "Veicolo", "pl": "Pojazd"},
+    "pickup_time": {"en": "Pick-up time", "it": "Orario di ritiro", "pl": "Czas odbioru"},
+    "return_time": {"en": "Return time", "it": "Orario di riconsegna", "pl": "Czas zwrotu"},
+    "pickup_place": {"en": "Pick-up place", "it": "Luogo di ritiro", "pl": "Miejsce odbioru"},
+    "return_place": {"en": "Return place", "it": "Luogo di riconsegna", "pl": "Miejsce zwrotu"},
+}
+
 # --- parts: PARTS[storage key][language] ----------------------------------------------------
 # A part with variants is stored as "<part>.<variant>", e.g. "payment_note.refunded".
 
@@ -147,6 +328,16 @@ PARTS: dict[str, dict[str, str]] = {
         "en": "The {amount} you paid online will be refunded to your card. It can take a few days to appear.",
         "it": "I {amount} pagati online ti saranno rimborsati sulla carta. Possono servire alcuni giorni perché compaiano.",
         "pl": "Kwota {amount} zapłacona online zostanie zwrócona na Twoją kartę. Zwrot może być widoczny po kilku dniach.",
+    },
+    "deposit_note.returned": {
+        "en": "Your security deposit of {deposit_returned} has been released.",
+        "it": "La tua cauzione di {deposit_returned} è stata rilasciata.",
+        "pl": "Twoja kaucja w wysokości {deposit_returned} została zwolniona.",
+    },
+    "deposit_note.applied": {
+        "en": "{deposit_applied} of your security deposit was used for the charges above. The remaining {deposit_returned} has been released.",
+        "it": "{deposit_applied} della tua cauzione sono stati usati per gli addebiti sopra. I restanti {deposit_returned} sono stati rilasciati.",
+        "pl": "Kwota {deposit_applied} Twojej kaucji została wykorzystana na powyższe opłaty. Pozostałe {deposit_returned} zostało zwolnione.",
     },
     "payment_note.kept": {
         "en": "The {amount} you paid online is not refunded, as the cancellation conditions say.",

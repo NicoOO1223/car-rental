@@ -305,7 +305,7 @@ def test_the_parts_list_has_every_part_and_variant_with_where_it_is_used():
     assert set(rows) == {key for part in PARTS.values() for key in part.storage_keys}
     assert rows["payment_note.refunded"]["part"] == "payment_note" and rows["payment_note.refunded"]["variant"] == "refunded"
     assert rows["signoff"]["variant"] is None and set(rows["signoff"]["used_by"]) == set(TYPES)
-    assert rows["bring_list"]["used_by"] == ["booking_confirmed"]
+    assert sorted(rows["bring_list"]["used_by"]) == ["booking_confirmed", "pickup_reminder"]
     assert rows["manage_link"]["values"] == ["manage_url"]
     assert rows["bring_list"]["languages"]["en"]["customised"] is False
 

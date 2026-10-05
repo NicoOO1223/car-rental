@@ -52,6 +52,13 @@ class EmailMessage(Base):
     attachment_kind: Mapped[str | None] = mapped_column(String(20))
     attachment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
 
+    # Emails about the same thing that are held back before sending (a booking being
+    # edited several times) share a key, so the pending one can be replaced by the
+    # newest. `context` keeps what the replacement needs from the first (the booking
+    # as it was before the first edit).
+    coalesce_key: Mapped[str | None] = mapped_column(String(120))
+    context: Mapped[dict | None] = mapped_column(JSONB)
+
     status: Mapped[str] = mapped_column(String(10), nullable=False, default="PENDING")
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     next_attempt_at: Mapped[datetime] = mapped_column(
@@ -74,6 +81,7 @@ class EmailMessage(Base):
         # What the worker looks for: pending messages that are due.
         Index("ix_email_messages_due", "status", "next_attempt_at"),
         Index("ix_email_messages_reservation_id", "reservation_id"),
+        Index("ix_email_messages_coalesce_key", "coalesce_key"),
     )
 
 

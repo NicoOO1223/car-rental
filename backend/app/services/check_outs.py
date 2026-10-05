@@ -24,6 +24,7 @@ from app.models import Car, CheckOut, Handover, Reservation, User
 from app.services.money import to_cents
 from app.services.stripe_sync import apply_payment_intent_status
 from app.services.audit import audit_log
+from app.services.email_outbox import queue_return_summary
 from app.services.availability import (
     has_conflicting_maintenance,
     has_conflicting_reservation,
@@ -757,6 +758,8 @@ def complete_check_out(
             "cleaning_task_id": str(cleaning_task_id) if cleaning_task_id else None,
         },
     )
+
+    queue_return_summary(db, reservation, check_out)
 
     db.commit()
     db.refresh(check_out)

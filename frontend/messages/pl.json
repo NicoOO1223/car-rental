@@ -132,7 +132,12 @@
     "emailTemplate": {
       "booking_confirmed": "Potwierdzenie rezerwacji",
       "booking_cancelled": "Rezerwacja anulowana",
-      "receipt": "Potwierdzenie płatności z fakturą"
+      "receipt": "Potwierdzenie płatności z fakturą",
+      "booking_changed": "Zmiana rezerwacji",
+      "pickup_reminder": "Przypomnienie o odbiorze",
+      "agreement_copy": "Kopia umowy najmu",
+      "return_summary": "Podsumowanie zwrotu",
+      "refund_notice": "Powiadomienie o zwrocie pieniędzy"
     },
     "emailAudience": {
       "renter": "Do klientów",
@@ -142,7 +147,12 @@
     "emailWhen": {
       "booking_confirmed": "Gdy rezerwacja zostaje potwierdzona: na stronie po opłaceniu lub gdy zatwierdzi ją pracownik.",
       "booking_cancelled": "Gdy potwierdzona rezerwacja zostaje anulowana. Informuje, czy płatność online jest zwracana, czy zatrzymana.",
-      "receipt": "Gdy płatność zostaje przyjęta. Faktura jest w załączniku."
+      "receipt": "Gdy płatność zostaje przyjęta. Faktura jest w załączniku.",
+      "booking_changed": "Gdy personel zmieni daty, samochód lub miejsca potwierdzonej albo aktywnej rezerwacji. Wstrzymywana na 5 minut, więc kilka zmian daje jedną wiadomość.",
+      "pickup_reminder": "Przed odbiorem, o czasie ustawionym poniżej. Tylko dla potwierdzonych rezerwacji, nie dla tych zrobionych w tym oknie.",
+      "agreement_copy": "Gdy umowa najmu jest generowana przy wydaniu. Podpisana umowa jest w załączniku.",
+      "return_summary": "Gdy samochód zostanie przyjęty z powrotem. Wymienia opłaty i co stało się z kaucją.",
+      "refund_notice": "Gdy pieniądze wracają na kartę klienta. Faktura korygująca jest w załączniku."
     },
     "emailValue": {
       "name": "Imię klienta",
@@ -160,7 +170,18 @@
       "number": "Numer faktury",
       "attached_invoice": "Numer faktury, puste, gdy faktura nie jest załączona",
       "business": "Nazwa firmy",
-      "contact": "E-mail i telefon firmy"
+      "contact": "E-mail i telefon firmy",
+      "changes": "Co się zmieniło, po jednej linii: było i jest",
+      "returned_at": "Kiedy samochód został zwrócony",
+      "late_fee": "Opłata za spóźnienie (pusta, jeśli jej nie ma)",
+      "fuel_fee": "Opłata za paliwo (pusta, jeśli jej nie ma)",
+      "damage_charge": "Opłata za uszkodzenia (pusta, jeśli ich nie ma)",
+      "total_charge": "Łączna kwota pobrana przy zwrocie",
+      "deposit_applied": "Część kaucji wykorzystana na opłaty",
+      "deposit_returned": "Część kaucji, która została zwolniona",
+      "credit_note_number": "Numer faktury korygującej",
+      "attached_agreement": "Numer rezerwacji załączonej umowy, pusty gdy nie ma załącznika",
+      "attached_credit_note": "Numer faktury korygującej, pusty gdy nie ma załącznika"
     },
     "emailPart": {
       "signoff": "Zakończenie",
@@ -171,10 +192,17 @@
       "payment_note": {
         "refunded": "Płatność online zwrócona",
         "kept": "Płatność online zatrzymana"
+      },
+      "deposit_note": {
+        "returned": "Kaucja zwolniona w całości",
+        "applied": "Kaucja wykorzystana na opłaty"
       }
     },
     "emailOption": {
-      "attach_invoice": "Dołącz fakturę jako PDF"
+      "attach_invoice": "Dołącz fakturę jako PDF",
+      "attach_agreement": "Dołącz podpisaną umowę jako PDF",
+      "attach_credit_note": "Dołącz fakturę korygującą jako PDF",
+      "hours_before": "Wyślij przypomnienie tyle godzin przed odbiorem (od 1 do 720)"
     }
   },
   "config": {

@@ -20,6 +20,50 @@ import {
 } from "@/lib/api";
 import { enumLabel, t } from "@/lib/i18n";
 
+/** A whole number of hours, saved when the field is left; anything else goes back to what was saved. */
+function HoursOption({
+  name,
+  value,
+  disabled,
+  onSave,
+}: {
+  name: string;
+  value: number;
+  disabled: boolean;
+  onSave: (hours: number) => void;
+}) {
+  const [text, setText] = useState(String(value));
+
+  function commit() {
+    const hours = Number(text);
+
+    if (Number.isInteger(hours) && hours >= 1 && hours <= 720 && hours !== value) {
+      onSave(hours);
+    } else {
+      setText(String(value));
+    }
+  }
+
+  return (
+    <label className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <span className="text-ink">{enumLabel("emailOption", name)}</span>
+      <Input
+        type="number"
+        min={1}
+        max={720}
+        className="w-24"
+        value={text}
+        disabled={disabled}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") commit();
+        }}
+      />
+    </label>
+  );
+}
+
 function languageName(code: string): string {
   return new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code;
 }
@@ -235,7 +279,15 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
               />
               <span className="text-ink">{enumLabel("emailOption", name)}</span>
             </label>
-          ) : null,
+          ) : (
+            <HoursOption
+              key={`${name}-${detail.options[name]}`}
+              name={name}
+              value={Number(detail.options[name])}
+              disabled={busy === "toggle"}
+              onSave={(hours) => void setOption(name, hours)}
+            />
+          ),
         )}
       </Card>
 

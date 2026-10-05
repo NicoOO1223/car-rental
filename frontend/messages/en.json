@@ -132,7 +132,12 @@
     "emailTemplate": {
       "booking_confirmed": "Booking confirmation",
       "booking_cancelled": "Booking cancelled",
-      "receipt": "Receipt with invoice"
+      "receipt": "Receipt with invoice",
+      "booking_changed": "Booking changed",
+      "pickup_reminder": "Pick-up reminder",
+      "agreement_copy": "Rental agreement copy",
+      "return_summary": "Return summary",
+      "refund_notice": "Refund notice"
     },
     "emailAudience": {
       "renter": "To renters",
@@ -142,7 +147,12 @@
     "emailWhen": {
       "booking_confirmed": "When a booking becomes confirmed: on the website once it is paid, or when staff approve it.",
       "booking_cancelled": "When a confirmed booking is cancelled. Says whether the online payment is refunded or kept.",
-      "receipt": "When a payment is taken. The invoice is attached."
+      "receipt": "When a payment is taken. The invoice is attached.",
+      "booking_changed": "When staff change the dates, car or places of a confirmed or active booking. Held for 5 minutes, so several edits make one email.",
+      "pickup_reminder": "Before the pick-up, at the time set below. Only for confirmed bookings, and not for one made inside that window.",
+      "agreement_copy": "When the rental agreement is generated at check-in. The signed agreement is attached.",
+      "return_summary": "When the car is checked back in. Lists the charges and what became of the deposit.",
+      "refund_notice": "When money is refunded to the renter's card. The credit note is attached."
     },
     "emailValue": {
       "name": "The renter's first name",
@@ -160,7 +170,18 @@
       "number": "The invoice number",
       "attached_invoice": "The invoice number, empty when no invoice is attached",
       "business": "The business name",
-      "contact": "The business email and phone"
+      "contact": "The business email and phone",
+      "changes": "What changed, one line each: was and now",
+      "returned_at": "When the car was returned",
+      "late_fee": "The late-return fee (empty if none)",
+      "fuel_fee": "The fuel fee (empty if none)",
+      "damage_charge": "The charge for damage (empty if none)",
+      "total_charge": "The total charged at return",
+      "deposit_applied": "The part of the deposit used for charges",
+      "deposit_returned": "The part of the deposit released",
+      "credit_note_number": "The credit note number",
+      "attached_agreement": "The booking number of the attached agreement, empty when it is not attached",
+      "attached_credit_note": "The credit note number, empty when it is not attached"
     },
     "emailPart": {
       "signoff": "Sign-off",
@@ -171,10 +192,17 @@
       "payment_note": {
         "refunded": "Online payment refunded",
         "kept": "Online payment kept"
+      },
+      "deposit_note": {
+        "returned": "Deposit released in full",
+        "applied": "Deposit used for charges"
       }
     },
     "emailOption": {
-      "attach_invoice": "Attach the invoice as a PDF"
+      "attach_invoice": "Attach the invoice as a PDF",
+      "attach_agreement": "Attach the signed agreement as a PDF",
+      "attach_credit_note": "Attach the credit note as a PDF",
+      "hours_before": "Send the reminder this many hours before pick-up (1 to 720)"
     }
   },
   "config": {
