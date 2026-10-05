@@ -1,0 +1,11 @@
+{
+  "resourceGroup": "marketing-rg",
+  "region": "swedencentral",
+  "appName": "marketing-site",
+  "environmentStack": "demo",
+  "minReplicas": 0,
+  "notifyAddress": "hello@example.com",
+  "siteDomain": "",
+  "indexable": false,
+  "mail": { "domain": "", "fromUsername": "hello", "fromName": "" }
+}

@@ -1,4 +1,5 @@
 import { ButtonLink } from "@/components/Button";
+import { JsonLd } from "@/components/JsonLd";
 import { FeatureBlock } from "@/components/FeatureBlock";
 import { Faq } from "@/components/Faq";
 import { Pricing } from "@/components/Pricing";
@@ -7,6 +8,7 @@ import { brand } from "@/content/brand";
 import { features } from "@/content/features";
 import { getTranslator } from "@/lib/i18n";
 import { contactEmail, href } from "@/lib/links";
+import { faqStructuredData, softwareStructuredData } from "@/lib/seo";
 
 const FACTS = ["f1", "f2", "f3", "f4"] as const;
 const CHIPS = ["c1", "c2", "c3"] as const;
@@ -82,6 +84,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
       <Pricing language={lang} />
 
       <Faq language={lang} />
+      <JsonLd data={[softwareStructuredData(lang), faqStructuredData(lang)]} />
 
       <section className="bg-deep py-16 text-on-deep md:py-24">
         <div className="mx-auto max-w-300 px-4">

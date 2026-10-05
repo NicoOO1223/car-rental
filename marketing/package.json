@@ -15,7 +15,8 @@
     "demo:reseed": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed",
     "demo:down": "powershell -NoProfile -File scripts/demo-stack.ps1 down",
     "screens": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed && node scripts/make-demo-assets.mjs && node scripts/capture-screens.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "lighthouse": "node scripts/lighthouse.mjs"
   },
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
@@ -26,12 +27,14 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.3.6",
+    "lighthouse": "^13.5.0",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",

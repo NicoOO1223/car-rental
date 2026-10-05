@@ -29,7 +29,7 @@ export function StickyCta({ label }: { label: string }) {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-deep p-3 md:hidden">
-      <Link
+      <Link prefetch={false}
         href="/demo"
         className="flex min-h-12 w-full items-center justify-center rounded-lg bg-accent px-5 text-base font-semibold text-accent-ink"
       >

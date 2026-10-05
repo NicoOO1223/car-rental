@@ -245,7 +245,7 @@ export function DemoForm({ copy, thanksHref, privacyHref }: { copy: FormCopy; th
 
       <p className="text-sm text-ink-secondary">
         {copy.noticeBefore}
-        <Link href={privacyHref} className="underline underline-offset-2">
+        <Link prefetch={false} href={privacyHref} className="underline underline-offset-2">
           {copy.privacyLink}
         </Link>
         {copy.noticeAfter}

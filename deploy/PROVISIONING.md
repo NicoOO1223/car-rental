@@ -78,6 +78,31 @@ The thirteen emails (pinned by `backend/tests/test_email_catalogue.py`) are: to 
 
 Only the one-off step above (creating and verifying the sending domain and storing the connection) stays in provisioning, because it needs Azure rights the application does not have.
 
+## The marketing site
+
+The public landing page (`marketing/`) is **not a customer stack**: no manifest, no canary, no database, no customer data. It is one Container App in its own resource group, `marketing-rg`, so removing a customer stack can never touch it.
+
+| Thing | Where |
+|---|---|
+| Its settings (no secrets) | `deploy/marketing.json` |
+| Its infrastructure | `deploy/marketing.bicep` (the app and a pull identity) and `deploy/marketing-acrpull.bicep` (the registry role) |
+| Create or update it | `deploy/provision-marketing.ps1` |
+| Its release | `.github/workflows/marketing.yml` (separate from `deploy.yml`) |
+
+```
+.\deploy\provision-marketing.ps1 -DryRun                    # every step, nothing changed
+.\deploy\provision-marketing.ps1 -Staging                   # a noindex site with the placeholders
+.\deploy\provision-marketing.ps1 -TurnstileSiteKey 0x4AAA... -TurnstileSecretKey 0x4BBB...
+```
+
+What it does: creates the resource group; deploys the pull identity and lets it pull from the shared registry (phase 1, then waits a minute for the role); sets up email when `marketing.json` names a mail domain (the same two-pass DNS flow as a customer stack, with `email.bicep`); builds and pushes the image; deploys the app (phase 2) into the **canary stack's Container Apps environment**, because a subscription can be capped at one; adds a custom domain with a managed certificate once `siteDomain` is set (it prints the CNAME and `asuid` TXT records first); creates the GitHub Environment `marketing` with its OIDC login and just two roles (update this app, push to the registry); and smoke-tests the live site.
+
+It refuses a real deployment while `marketing.json` holds placeholders (`notifyAddress` on `example.com`, no `siteDomain`); `-Staging` deploys anyway, and the site is **never indexable while the brand in `marketing/content/brand.ts` is a placeholder**, whatever the configuration says.
+
+Settings the app reads: `FORM_SECRET` (generated once, kept in `deploy/.marketing/` and as an app secret), `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (without the secret the form **refuses** to send in production rather than run open), `ACS_CONNECTION_STRING` and `MAIL_FROM_ADDRESS` (without them the form tells the visitor to write instead), `DEMO_NOTIFY_ADDRESS`, `SITE_URL` and `SITE_INDEXABLE` (baked into the pages when the image is built), and `CSP_ENFORCE` (`-EnforceCsp`; report-only until a clean week of `csp-violation` log lines, found with `ContainerAppConsoleLogs_CL | where Log_s startswith "csp-violation"`). Two switches exist for the automated browser tests only, `ALLOW_NO_TURNSTILE` and `ALLOW_FILE_MAILER`; a test fails if either appears in anything that deploys.
+
+Cost: the app scales to zero (`minReplicas: 0`; about 0 to 2 USD a month, a visitor may wait a second or two after a quiet spell). Keep one replica warm (about 6 USD a month) if the form must answer instantly. At most two replicas run, because the form's rate limit is per replica.
+
 ## Removing a stack
 
 `.\deploy\deprovision.ps1 -Stack acme` deletes the resource group (its database and backups), the GitHub Environment and the CI credentials, after you type the stack's name. It refuses the canary and never touches the shared registry.
@@ -85,6 +110,6 @@ Only the one-off step above (creating and verifying the sending domain and stori
 ## Not done yet
 
 - A second real stack has not been provisioned. Doing so, with a different currency, timezone and branding, and restoring it from its own backup, is the remaining proof for the definition of done.
-- Stacks use the default `azurecontainerapps.io` address. Custom domains are not automated.
+- Stacks use the default `azurecontainerapps.io` address. Custom domains are not automated for customer stacks (the marketing site's is, in `provision-marketing.ps1`).
 - The database still admits Azure services broadly. A private network is a separate change.
 - The storefront does not yet pass the visitor's address to the API the way the staff app does (`TRUSTED_PROXY_SECRET` is provisioned for the backend and the staff app only), so its per-address limits still see the storefront server's address.

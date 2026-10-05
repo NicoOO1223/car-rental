@@ -8,6 +8,8 @@ import { buttonClass } from "./Button";
 import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
 
+// Links here do not prefetch: Next would fetch the other pages' code from every page, and on a
+// slow phone those bytes compete with the first paint. The pages are tiny and static, so a click is quick anyway.
 export function SiteHeader({ language }: { language: string }) {
   const t = getTranslator(language);
   const home = href(language, "/");
@@ -21,7 +23,7 @@ export function SiteHeader({ language }: { language: string }) {
   return (
     <header className="sticky top-0 z-40 bg-deep text-on-deep">
       <div className="relative mx-auto flex h-16 max-w-300 items-center justify-between gap-4 px-4">
-        <Link href={home} aria-label={t("nav.home", { brand: brand.name })} className="text-on-deep">
+        <Link prefetch={false} href={home} aria-label={t("nav.home", { brand: brand.name })} className="text-on-deep">
           <Logo />
         </Link>
 
@@ -38,7 +40,7 @@ export function SiteHeader({ language }: { language: string }) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href={href(language, "/demo")} className={buttonClass("accent", "px-4")}>
+          <Link prefetch={false} href={href(language, "/demo")} className={buttonClass("accent", "px-4")}>
             {t("nav.cta")}
           </Link>
           <MobileMenu items={items} menuLabel={t("nav.menu")} closeLabel={t("nav.close")} />
@@ -64,12 +66,12 @@ export function SiteFooter({ language }: { language: string }) {
 
         <ul className="space-y-2 text-base">
           <li>
-            <Link href={href(language, "/privacy")} className="hover:text-on-deep">
+            <Link prefetch={false} href={href(language, "/privacy")} className="hover:text-on-deep">
               {t("footer.privacy")}
             </Link>
           </li>
           <li>
-            <Link href={href(language, "/terms")} className="hover:text-on-deep">
+            <Link prefetch={false} href={href(language, "/terms")} className="hover:text-on-deep">
               {t("footer.terms")}
             </Link>
           </li>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist } from "next/font/google";
 
 import { isLanguage } from "@shared/languages";
 
@@ -10,12 +10,15 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { StickyCta } from "@/components/StickyCta";
 import { brand } from "@/content/brand";
 import { getTranslator } from "@/lib/i18n";
-import { enabledLanguages, isIndexable, siteUrl } from "@/lib/site";
+import { JsonLd } from "@/components/JsonLd";
+import { pageMetadata, siteStructuredData } from "@/lib/seo";
+import { enabledLanguages } from "@/lib/site";
 
-const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin", "latin-ext"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-// Headlines only. Latin-ext carries the Italian and Polish accented letters.
-const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin", "latin-ext"] });
+// Latin only while English is the only language: the Latin-extended subset (Italian and Polish
+// accents) doubles the font download for letters nobody sees. Add "latin-ext" with it/pl.
+const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Headlines only.
+const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"] });
 
 export function generateStaticParams() {
   return enabledLanguages().map((lang) => ({ lang }));
@@ -23,17 +26,12 @@ export function generateStaticParams() {
 
 export const dynamicParams = false;
 
+// The default for any page that does not state its own (the home page and the 404).
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   const t = getTranslator(lang);
-  const site = siteUrl();
 
-  return {
-    metadataBase: site ? new URL(site) : undefined,
-    title: t("meta.homeTitle", { brand: brand.name }),
-    description: t("meta.homeDescription"),
-    robots: isIndexable() ? { index: true, follow: true } : { index: false, follow: false },
-  };
+  return pageMetadata({ language: lang, path: "/", title: t("meta.homeTitle", { brand: brand.name }), description: t("meta.homeDescription") });
 }
 
 export default async function LangLayout({
@@ -50,7 +48,7 @@ export default async function LangLayout({
   const t = getTranslator(lang);
 
   return (
-    <html lang={lang} className={`${geist.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}>
+    <html lang={lang} className={`${geist.variable} ${display.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <a
           href="#main"
@@ -64,6 +62,7 @@ export default async function LangLayout({
         </div>
         <SiteFooter language={lang} />
         <StickyCta label={t("nav.cta")} />
+        <JsonLd data={siteStructuredData(lang)} />
       </body>
     </html>
   );

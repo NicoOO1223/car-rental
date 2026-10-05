@@ -5,13 +5,14 @@ import { ThanksContent } from "@/components/ThanksContent";
 import { brand } from "@/content/brand";
 import { getTranslator } from "@/lib/i18n";
 import { href } from "@/lib/links";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   const t = getTranslator(lang);
 
   // Never in search results, whatever the site-wide setting.
-  return { title: t("meta.thanksTitle", { brand: brand.name }), robots: { index: false, follow: false } };
+  return pageMetadata({ language: lang, path: "/demo/thanks", title: t("meta.thanksTitle", { brand: brand.name }), description: t("thanks.subGeneric"), neverIndex: true });
 }
 
 export default async function Thanks({ params }: { params: Promise<{ lang: string }> }) {

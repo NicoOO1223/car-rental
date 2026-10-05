@@ -12,16 +12,13 @@
 // real surname, email, phone number or plate per line) may be present.
 
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-// Playwright is the one the staff app already depends on.
-const require = createRequire(join(root, "..", "frontend", "package.json"));
-const { chromium } = require("@playwright/test");
+import { chromium } from "@playwright/test";
 const sharp = (await import("sharp")).default;
 
 const args = process.argv.slice(2);

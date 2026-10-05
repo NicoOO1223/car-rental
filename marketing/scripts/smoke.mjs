@@ -14,18 +14,14 @@
 // (also by keyboard alone), the bot defences, a failing server, the security
 // headers, that no third-party request is made, and accessibility with axe.
 
-import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, "..");
-const require = createRequire(join(root, "..", "frontend", "package.json"));
-const { chromium } = require("@playwright/test");
-const { AxeBuilder } = await import("@axe-core/playwright");
+import { AxeBuilder } from "@axe-core/playwright";
+import { chromium } from "@playwright/test";
+
+import { freePort, startSite } from "./lib/server.mjs";
 
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
 const PROJECTS = [
@@ -49,55 +45,17 @@ async function step(name, fn) {
 
 // ---------------------------------------------------------------- the server
 
-async function startServer(port, outbox) {
-  const env = {
-    ...process.env,
-    NODE_ENV: "production",
-    PORT: String(port),
+function startServer(port, outbox) {
+  return startSite(port, {
     FORM_SECRET: "smoke-test-secret",
     DEMO_NOTIFY_ADDRESS: "owner@example.com",
     ALLOW_NO_TURNSTILE: "1",
     ALLOW_FILE_MAILER: "1",
     MAIL_OUTBOX_FILE: outbox,
-  };
-  delete env.TURNSTILE_SITE_KEY;
-  delete env.TURNSTILE_SECRET_KEY;
-  delete env.ACS_CONNECTION_STRING;
-
-  const child = spawn(process.execPath, [join(root, "node_modules", "next", "dist", "bin", "next"), "start", "-p", String(port)], {
-    cwd: root,
-    env,
-    stdio: ["ignore", "pipe", "pipe"],
   });
-  let log = "";
-  child.stdout.on("data", (d) => (log += d));
-  child.stderr.on("data", (d) => (log += d));
-
-  for (let i = 0; i < 60; i++) {
-    try {
-      const r = await fetch(`http://localhost:${port}/health`);
-      if (r.ok) return { child, log: () => log };
-    } catch {
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-
-  child.kill();
-  throw new Error(`the server did not start:\n${log}`);
 }
 
 const mailLines = (outbox) => (existsSync(outbox) ? readFileSync(outbox, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
-
-async function freePort() {
-  const { createServer } = await import("node:net");
-
-  return new Promise((resolve) => {
-    const server = createServer().listen(0, () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
-    });
-  });
-}
 
 // ---------------------------------------------------------------- one project
 
@@ -131,6 +89,11 @@ async function run(browser, project) {
       check("home has one h1 with the promise", (await page.locator("h1").count()) === 1 && /Run the counter/.test(await page.locator("h1").innerText()));
       check("no horizontal scroll", (await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0);
       check("every image has alt text and a size", await page.evaluate(() => [...document.images].every((i) => i.alt.length > 3 && i.width > 0 && i.getAttribute("width"))));
+      check("the home page has a canonical link and a social card", (await page.locator('link[rel="canonical"]').count()) === 1 && /summary_large_image/.test((await page.locator('meta[name="twitter:card"]').getAttribute("content")) ?? "") && (await page.locator('meta[property="og:image"]').count()) === 1);
+      const ld = await page.locator('script[type="application/ld+json"]').evaluateAll((nodes) => nodes.map((n) => JSON.parse(n.textContent)));
+      const types = ld.flat().map((item) => item["@type"]).sort().join(",");
+      check("structured data: organisation, site, software and the ten-question FAQ", types === "FAQPage,Organization,SoftwareApplication,WebSite" && ld.flat().find((i) => i["@type"] === "FAQPage").mainEntity.length === 10, types);
+      check("structured data claims no rating and no price while prices are unconfirmed", !/aggregateRating|ratingValue|"review"|"offers"/.test(JSON.stringify(ld)));
       check("home is noindex while the brand is a placeholder", /noindex/.test(await page.locator('meta[name="robots"]').getAttribute("content")));
     });
 
@@ -297,6 +260,13 @@ async function run(browser, project) {
       check("the session endpoint gives a signed token and no site key without Turnstile", /^\d+\.[0-9a-f]{32}$/.test(session.token) && session.siteKey === null);
       const cross = await context.request.post(`${base}/api/demo`, { headers: { "content-type": "application/json", origin: "https://evil.example" }, data: {} });
       check("a post from another origin is refused", cross.status() === 403);
+      check("every page carries a Content-Security-Policy, report-only for now", /default-src 'self'/.test(headers["content-security-policy-report-only"] ?? "") && !headers["content-security-policy"] && /report-uri \/api\/csp-report/.test(headers["content-security-policy-report-only"] ?? ""));
+      check("the policy allows Cloudflare for the bot check and nothing else outside the site", !/stripe|googleapis|\*/.test(headers["content-security-policy-report-only"] ?? ""));
+      const report = await context.request.post(`${base}/api/csp-report`, { headers: { "content-type": "application/csp-report" }, data: JSON.stringify({ "csp-report": { "violated-directive": "script-src", "document-uri": `${base}/?secret=1` } }) });
+      check("the CSP report endpoint accepts a report", report.status() === 204);
+      const og = await context.request.get(`${base}/en/opengraph-image`);
+      check("the share image is a 1200x630 PNG", og.status() === 200 && og.headers()["content-type"] === "image/png" && (await og.body()).readUInt32BE(16) === 1200 && (await og.body()).readUInt32BE(20) === 630);
+      check("the icon is served", (await context.request.get(`${base}/icon.svg`)).status() === 200);
       check("/en redirects to the canonical address", (await context.request.get(`${base}/en/demo`, { maxRedirects: 0 })).status() === 308);
     });
 
@@ -317,7 +287,7 @@ async function run(browser, project) {
 
     await context.close();
   } finally {
-    server.child.kill();
+    server.stop();
     rmSync(dir, { recursive: true, force: true });
   }
 }

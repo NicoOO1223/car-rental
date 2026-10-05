@@ -170,7 +170,9 @@ Deployment notes:
 
 ## Marketing site
 
-A separate app, `marketing/`, sells the product (request-a-demo page, public plans). Design brief approved 2026-10-05; build in progress, not live, brand and prices are placeholders until the owner decides. It claims only shipped features; known gaps it states plainly: no SMS, no scooter category, no custom domain for a stack's storefront, no Italian SDI or Polish KSeF e-invoicing, Italian and Polish text not yet natively reviewed.
+A separate app, `marketing/`, sells the product: a request-a-demo page (form, bot checks, email through Azure Communication Services), public plans by fleet size, real screenshots of a fictional demo business, English only for now. It is **built and deployable but not live**: the brand, prices, contact details and legal pages are placeholders until the owner decides, and the site is never indexable while they are (`npm run check:launch` lists what is missing). Design brief approved 2026-10-05; see `marketing/README.md` and the "marketing site" section of `deploy/PROVISIONING.md`.
+
+It claims only shipped features. Known gaps it states plainly: no SMS, no scooter category, no custom domain for a stack's storefront, no Italian SDI or Polish KSeF e-invoicing, Italian and Polish text not yet natively reviewed.
 
 ## Naming rule
 

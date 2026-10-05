@@ -6,13 +6,14 @@ import { DemoForm, type FormCopy } from "@/components/DemoForm";
 import { brand } from "@/content/brand";
 import { FLEET_SIZES, type ErrorCode, type FieldName } from "@/lib/demoSchema";
 import { getTranslator } from "@/lib/i18n";
+import { pageMetadata } from "@/lib/seo";
 import { contactEmail, href } from "@/lib/links";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
   const t = getTranslator(lang);
 
-  return { title: t("meta.demoTitle", { brand: brand.name }), description: t("meta.demoDescription") };
+  return pageMetadata({ language: lang, path: "/demo", title: t("meta.demoTitle", { brand: brand.name }), description: t("meta.demoDescription") });
 }
 
 const FIELDS: FieldName[] = ["name", "company", "email", "country", "fleet", "message"];

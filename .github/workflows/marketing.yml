@@ -1,0 +1,140 @@
+name: Marketing site
+
+# A workflow of its own, not a job in deploy.yml: a failing marketing check must never
+# hold back a release to the customer stacks, and a product release must not redeploy a
+# site that did not change. It runs when the site, or the shared/ code it imports, changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "marketing/**"
+      - "shared/**"
+      - ".github/workflows/marketing.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "marketing/**"
+      - "shared/**"
+      - ".github/workflows/marketing.yml"
+  workflow_dispatch: {}
+
+# OIDC federated login: no long-lived Azure credential stored in GitHub.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: marketing-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check:messages
+      # Unit tests: the form's whole decision flow, the claims the page may make, the SEO output,
+      # the CSP and the screenshot files.
+      - run: npm test
+      # Build before typecheck: the generated route types that tsc reads exist only after it.
+      - run: npm run build
+      - run: npm run typecheck
+
+      # The browsers for the two scripts below (Playwright's own Chromium; no separate Chrome).
+      - run: npx playwright install --with-deps chromium
+
+      # The built site in a real browser, on a desktop and a phone viewport: navigation, the form's
+      # errors and success (also by keyboard), the bot defences, headers, and axe accessibility.
+      - run: npm run smoke
+
+      # Lighthouse: every category at least 90, on a phone and on a desktop profile.
+      - run: npm run lighthouse -- --json lighthouse-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: marketing/lighthouse-results.json
+          if-no-files-found: ignore
+
+  # Builds the image once and rolls it out. Runs inside the "marketing" GitHub Environment, which
+  # deploy/provision-marketing.ps1 creates with its variables and its Azure login.
+  deploy:
+    needs: checks
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: marketing
+    steps:
+      - uses: actions/checkout@v4
+
+      # Once the site is meant to be found by search engines (SITE_INDEXABLE=true on the
+      # environment), it may not deploy while anything is still a placeholder.
+      - uses: actions/setup-node@v4
+        if: vars.SITE_INDEXABLE == 'true'
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+      - name: Launch gate (brand, contact, legal details, prices, confirmed copy)
+        if: vars.SITE_INDEXABLE == 'true'
+        working-directory: marketing
+        run: |
+          npm ci
+          npm run check:launch
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push the image
+        run: |
+          az acr login --name "${{ vars.ACR_NAME }}"
+          image="${{ vars.ACR_LOGIN_SERVER }}/marketing:${{ github.sha }}"
+          # From the repository root: the site imports the shared/ folder. The address and the
+          # indexing switch are baked into the pages when the image is built.
+          docker build -f marketing/Dockerfile \
+            --build-arg "SITE_URL=${{ vars.SITE_URL }}" \
+            --build-arg "SITE_INDEXABLE=${{ vars.SITE_INDEXABLE }}" \
+            -t "$image" .
+          docker push "$image"
+
+      - name: Install containerapp CLI extension
+        run: az extension add --name containerapp --upgrade --only-show-errors
+
+      # Settings and secrets stay as provision-marketing.ps1 set them; only the image changes.
+      - name: Deploy the image
+        run: |
+          az containerapp update \
+            --name "${{ vars.APP_NAME }}" \
+            --resource-group "${{ vars.RESOURCE_GROUP }}" \
+            --image "${{ vars.ACR_LOGIN_SERVER }}/marketing:${{ github.sha }}" \
+            --output none
+
+      - name: Smoke test the live site
+        run: |
+          fqdn=$(az containerapp show --name "${{ vars.APP_NAME }}" --resource-group "${{ vars.RESOURCE_GROUP }}" --query properties.configuration.ingress.fqdn -o tsv)
+          base="https://$fqdn"
+          # A site scaled to zero needs a few seconds to wake, and a new revision a moment to take over.
+          for attempt in $(seq 1 18); do
+            failed=0
+            for path in /health / /demo /screens/dashboard-800.webp /api/demo/session; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$base$path" || echo 000)
+              if [ "$code" != "200" ]; then echo "$path -> $code"; failed=1; fi
+            done
+            if [ "$failed" = "0" ]; then echo "The site answers: $base"; exit 0; fi
+            sleep 10
+          done
+          echo "The live site did not come up."; exit 1

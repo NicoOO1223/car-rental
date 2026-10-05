@@ -37,3 +37,37 @@ export function storefrontCsp(config: StorefrontRuntimeConfig, isDev: boolean): 
 export function storefrontCspHeader(enforce: boolean): string {
   return enforce ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
 }
+
+/**
+ * The Content-Security-Policy for the marketing site. It is a static page set with
+ * one form, so the policy is tight: its own files, and Cloudflare Turnstile (the
+ * challenge widget, its frame and its calls) on the demo form. No API, no Stripe,
+ * no third-party images or fonts (the fonts are self-hosted at build time).
+ * 'unsafe-inline' for scripts is the price of a static (non-nonce) policy with the
+ * App Router, which inlines its bootstrap scripts; a nonce would make every page
+ * dynamic.
+ *
+ * Violations go to /api/csp-report (the container log). Report-only until a
+ * deployment sets CSP_ENFORCE=true, once its reports have been clean.
+ */
+export function marketingCsp(isDev: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self' https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "report-uri /api/csp-report",
+  ].join("; ");
+}
+
+/** The header that carries the marketing policy: enforcing when the deployment says so, otherwise report-only. */
+export function marketingCspHeader(enforce: boolean): string {
+  return enforce ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
+}
