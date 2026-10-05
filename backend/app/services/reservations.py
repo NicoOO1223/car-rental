@@ -18,12 +18,14 @@ from app.services.availability import (
     projected_location_id,
 )
 from app.services.customers import find_matching_customer
+from app.services.class_assignment import pick_car_for_class
 from app.services.email_outbox import (
     booking_snapshot,
     queue_booking_cancelled,
     queue_booking_changed,
     queue_booking_confirmed,
     queue_online_cancellation,
+    renter_language,
 )
 from app.services.deposits import release_deposit_for_cancellation
 from app.services.handovers import refund_handover_if_paid
@@ -53,6 +55,7 @@ def create_reservation(
     actor: User,
     extras=(),
     language: str | None = None,
+    class_id=None,
 ):
     # ---------------------------------------------------------
     # 1. Validate dates
@@ -65,7 +68,21 @@ def create_reservation(
     # 2. Find car
     # ---------------------------------------------------------
 
-    car = db.get(Car, car_id)
+    # A booking for a class: the best-fitting free car of it, held provisionally.
+    if car_id is None:
+        if class_id is None:
+            raise AppError("reservation.car_or_class_required", "Choose a car or a class.")
+
+        require_bookable_location(db, pickup_location_id, "pickup")
+        car = pick_car_for_class(db, class_id, pickup_location_id, pickup_at, return_at)
+
+        if car is None:
+            raise AppError("reservation.class_has_no_free_car", "No car of this class is free for these dates and places.")
+
+        car_id = car.id
+    else:
+        car = db.get(Car, car_id)
+        class_id = None
 
     if car is None:
         raise NotFoundError("car.not_found", "Car not found.")
@@ -154,6 +171,9 @@ def create_reservation(
     reservation = Reservation(
         customer_id=customer.id,
         car_id=car.id,
+        class_id=car.class_id,
+        # Chosen by a person, or only held for the class they chose.
+        car_confirmed=class_id is None,
         pickup_location_id=pickup_location_id,
         return_location_id=return_location_id,
         pickup_at=pickup_at,
@@ -205,7 +225,28 @@ def quote_reservation(
     if data.return_at <= data.pickup_at:
         raise AppError("reservation.return_before_pickup", "Return time must be after pickup time.")
 
-    car = db.get(Car, data.car_id)
+    if data.car_id is None:
+        # A class: price it from a car that is free, else from any car of it (reported as unavailable).
+        from app.services.class_assignment import _is_free, class_cars
+
+        if data.class_id is None:
+            raise AppError("reservation.car_or_class_required", "Choose a car or a class.")
+
+        members = class_cars(db, data.class_id)
+
+        if not members:
+            raise NotFoundError("class.has_no_cars", "That class has no cars.")
+
+        car = next(
+            (
+                member
+                for member in members
+                if _is_free(db, member, data.pickup_location_id, data.pickup_at, data.return_at)
+            ),
+            members[0],
+        )
+    else:
+        car = db.get(Car, data.car_id)
 
     if car is None:
         raise NotFoundError("car.not_found", "Car not found.")
@@ -438,6 +479,29 @@ def update_reservation_status(
     if new_status == "CONFIRMED":
         lock_car(db, reservation.car_id)
 
+        # A class booking whose car has been taken meanwhile: another car in the class will do.
+        if (
+            reservation.class_id is not None
+            and not reservation.car_confirmed
+            and (
+                has_conflicting_reservation(
+                    db, reservation.car_id, reservation.pickup_at, reservation.return_at, exclude_reservation_id=reservation.id
+                )
+                or has_conflicting_maintenance(db, reservation.car_id, reservation.pickup_at, reservation.return_at)
+            )
+        ):
+            other = pick_car_for_class(
+                db,
+                reservation.class_id,
+                reservation.pickup_location_id,
+                reservation.pickup_at,
+                reservation.return_at,
+                exclude_reservation_id=reservation.id,
+            )
+
+            if other is not None:
+                reservation.car_id = other.id
+
         if has_conflicting_reservation(
             db, reservation.car_id, reservation.pickup_at, reservation.return_at,
             exclude_reservation_id=reservation.id,
@@ -499,6 +563,38 @@ def _payment_fixes_the_price(db: Session, reservation_id) -> bool:
     online = get_prepayment(db, reservation_id)
 
     return online is not None and online.payment_status in ("PENDING", "PROCESSING", "SUCCEEDED")
+
+
+def confirm_car(db: Session, reservation_id, actor: User):
+    """The car of a class booking is settled: it will not be swapped any more."""
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    if reservation.status in ("CANCELLED", "COMPLETED", "EXPIRED"):
+        raise AppError(
+            "reservation.cannot_edit_status",
+            f"Cannot edit a {reservation.status.lower()} reservation.",
+            status=reservation.status,
+        )
+
+    if not reservation.car_confirmed:
+        reservation.car_confirmed = True
+        reservation.updated_by = actor.id
+        audit_log(
+            db,
+            user=actor,
+            action="reservation.car_confirmed",
+            entity_type="reservation",
+            entity_id=reservation.id,
+            metadata={"car_id": str(reservation.car_id)},
+        )
+        db.commit()
+        db.refresh(reservation)
+
+    return reservation
 
 
 def update_reservation(
@@ -620,7 +716,7 @@ def update_reservation(
     # ---------------------------------------------------------
 
     # What the renter was last told, for the "booking changed" email.
-    before = booking_snapshot(reservation) if booking_moved and reservation.status in ("CONFIRMED", "ACTIVE") else None
+    before = booking_snapshot(reservation, renter_language(db, reservation)) if booking_moved and reservation.status in ("CONFIRMED", "ACTIVE") else None
 
     reservation.pickup_at = effective_pickup_at
     reservation.return_at = effective_return_at
@@ -628,6 +724,11 @@ def update_reservation(
     reservation.return_location_id = effective_return_location_id
     reservation.car_id = target_car_id
     reservation.updated_by = actor.id
+
+    # Staff chose this car: it is no longer just held for the class.
+    if is_reassignment:
+        reservation.class_id = target_car.class_id
+        reservation.car_confirmed = True
 
     if data.language is not None:
         reservation.language = data.language

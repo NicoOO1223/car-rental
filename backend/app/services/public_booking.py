@@ -35,6 +35,7 @@ from app.models import Customer, Reservation, ReservationPayment
 from app.services.audit import audit_log
 from app.i18n.documents import format_amount
 from app.services.configuration import get_configuration
+from app.services.class_assignment import pick_car_for_class
 from app.services.email_outbox import (
     queue_booking_confirmed,
     queue_needs_attention,
@@ -194,7 +195,13 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
 
     resolved_extras = resolve_extra_selections(db, data.extras)
 
-    car = _pick_and_lock_car(db, candidates, data, data.pickup_at, data.return_at)
+    if candidates[0].class_id is not None:
+        # A class: the best-fitting free car, held provisionally.
+        car = pick_car_for_class(
+            db, candidates[0].class_id, data.pickup_location_id, data.pickup_at, data.return_at, online_only=True
+        )
+    else:
+        car = _pick_and_lock_car(db, candidates, data, data.pickup_at, data.return_at)
 
     if car is None:
         db.rollback()
@@ -217,6 +224,9 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
 
     reservation = Reservation(
         car_id=car.id,
+        class_id=car.class_id,
+        # The renter chose a class, not this car: staff may swap it until pickup.
+        car_confirmed=car.class_id is None,
         pickup_location_id=data.pickup_location_id,
         return_location_id=data.return_location_id,
         pickup_at=data.pickup_at,
@@ -352,6 +362,21 @@ def on_prepayment_succeeded(db: Session, payment: ReservationPayment, now: datet
             reservation.return_at,
             exclude_reservation_id=reservation.id,
         )
+
+        # The renter was promised a class, not this car: another car in it will do.
+        if not car_is_ours and reservation.class_id is not None and not reservation.car_confirmed:
+            other = pick_car_for_class(
+                db,
+                reservation.class_id,
+                reservation.pickup_location_id,
+                reservation.pickup_at,
+                reservation.return_at,
+                exclude_reservation_id=reservation.id,
+            )
+
+            if other is not None:
+                reservation.car_id = other.id
+                car_is_ours = True
 
     if car_is_ours:
         reservation.status = "CONFIRMED"

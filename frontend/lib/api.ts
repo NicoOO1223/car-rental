@@ -153,6 +153,12 @@ export type Reservation = {
     license_plate: string;
   };
 
+  /** The class the booking was made for, when the renter chose a class and not a car. */
+  class_id: string | null;
+  vehicle_class: ClassSummary | null;
+  /** False while the car is only held for the class: it may still be swapped for another in it. */
+  car_confirmed: boolean;
+
   pickup_location: {
     id: string;
     name: string;
@@ -371,7 +377,9 @@ export async function getExtras(): Promise<Extra[]> {
 }
 
 export async function quoteReservation(data: {
-  car_id: string;
+  /** A car, or a class (any car of it). */
+  car_id?: string;
+  class_id?: string;
   pickup_location_id: string;
   return_location_id: string;
   pickup_at: string;
@@ -510,7 +518,9 @@ export async function createReservation(data: {
     email: string;
     nationality?: string;
   };
-  car_id: string;
+  /** A car, or a class: the system then holds a car of it, which staff may swap until pickup. */
+  car_id?: string;
+  class_id?: string;
   pickup_location_id: string;
   return_location_id: string;
   pickup_at: string;
@@ -526,6 +536,17 @@ export async function createReservation(data: {
     },
     body: JSON.stringify(data),
   });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** Settles the car of a class booking: it stays as it is and is no longer only held for the class. */
+export async function confirmReservationCar(reservationId: string): Promise<Reservation> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/confirm-car`, { method: "POST" });
 
   if (!response.ok) {
     await throwApiError(response, "errors.generic.save");

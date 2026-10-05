@@ -459,7 +459,9 @@
       "no_show_too_early": "A reservation can only be marked as a no-show once its pickup time has passed.",
       "not_found": "Reservation not found.",
       "reservation_already_cancelled": "Reservation is already cancelled.",
-      "return_before_pickup": "Return time must be after pickup time."
+      "return_before_pickup": "Return time must be after pickup time.",
+      "car_or_class_required": "Choose a car or a class.",
+      "class_has_no_free_car": "No car of this class is free for these dates and places."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "The damage charge cannot be negative.",
@@ -576,7 +578,8 @@
       "has_cars": "This class still has cars. Move them to another class first.",
       "already_retired": "This class is already retired.",
       "not_retired": "This class is not retired.",
-      "retired": "That class has been retired."
+      "retired": "That class has been retired.",
+      "has_no_cars": "That class has no cars."
     }
   },
   "c": {
@@ -1983,7 +1986,10 @@
           "waitingForPayment": "Waiting for payment",
           "waitingForPaymentBody": "The renter is paying online. The car is held until the time shown, then the booking expires by itself.",
           "holdExpired": "Payment never came",
-          "holdExpiredBody": "The hold ran out and the car was released. Nothing was charged."
+          "holdExpiredBody": "The hold ran out and the car was released. Nothing was charged.",
+          "bookedClass": "Booked as class: {class}",
+          "carNotFinal": "Held for the class: the car is not final yet",
+          "confirmThisCar": "Confirm this car"
         },
         "refreshing": "Refreshing",
         "refresh": "Refresh",
@@ -1996,7 +2002,8 @@
         "bookedVia": "Booked",
         "anySource": "Anywhere",
         "onlineWebsite": "On the website",
-        "byStaff": "By staff"
+        "byStaff": "By staff",
+        "carNotFinal": "car not final"
       },
       "new": {
         "failedLoadBookingOptions": "Failed to load booking options. Please refresh.",
@@ -2060,7 +2067,10 @@
         "skipExtras": "Skip extras",
         "continue": "Continue",
         "confirming": "Confirming",
-        "confirmReservation": "Confirm reservation"
+        "confirmReservation": "Confirm reservation",
+        "assignLater": "Book the {class} class and choose the car later",
+        "assignLaterHint": "The system holds a car of this class so nothing is double booked. You can swap it for another car of the class until pickup.",
+        "carChosenForYou": "A car of the class, held for you"
       }
     },
     "failedLoadPickupsReturns": "Failed to load pickups & returns for this range.",

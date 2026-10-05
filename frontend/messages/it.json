@@ -459,7 +459,9 @@
       "no_show_too_early": "Una prenotazione può essere segnata come mancata presentazione solo dopo l'orario di ritiro.",
       "not_found": "Prenotazione non trovata.",
       "reservation_already_cancelled": "La prenotazione è già annullata.",
-      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro."
+      "return_before_pickup": "L'orario di riconsegna deve essere dopo quello di ritiro.",
+      "car_or_class_required": "Scegli un'auto o una classe.",
+      "class_has_no_free_car": "Nessuna auto di questa classe è libera per queste date e luoghi."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "L'addebito per danni non può essere negativo.",
@@ -576,7 +578,8 @@
       "has_cars": "Questa classe ha ancora delle auto. Spostale prima in un'altra classe.",
       "already_retired": "Questa classe è già ritirata.",
       "not_retired": "Questa classe non è ritirata.",
-      "retired": "Questa classe è stata ritirata."
+      "retired": "Questa classe è stata ritirata.",
+      "has_no_cars": "Questa classe non ha auto."
     }
   },
   "c": {
@@ -1983,7 +1986,10 @@
           "waitingForPayment": "In attesa di pagamento",
           "waitingForPaymentBody": "Il cliente sta pagando online. L’auto è riservata fino all’ora indicata, poi la prenotazione scade da sola.",
           "holdExpired": "Il pagamento non è arrivato",
-          "holdExpiredBody": "La riserva è scaduta e l’auto è stata rilasciata. Non è stato addebitato nulla."
+          "holdExpiredBody": "La riserva è scaduta e l’auto è stata rilasciata. Non è stato addebitato nulla.",
+          "bookedClass": "Prenotata come classe: {class}",
+          "carNotFinal": "Riservata per la classe: l'auto non è ancora definitiva",
+          "confirmThisCar": "Conferma questa auto"
         },
         "refreshing": "Aggiornamento in corso",
         "refresh": "Aggiorna",
@@ -1996,7 +2002,8 @@
         "bookedVia": "Prenotata",
         "anySource": "Ovunque",
         "onlineWebsite": "Sul sito",
-        "byStaff": "Dallo staff"
+        "byStaff": "Dallo staff",
+        "carNotFinal": "auto non definitiva"
       },
       "new": {
         "failedLoadBookingOptions": "Impossibile caricare le opzioni di prenotazione. Aggiorna la pagina.",
@@ -2060,7 +2067,10 @@
         "skipExtras": "Salta gli extra",
         "continue": "Continua",
         "confirming": "Conferma in corso",
-        "confirmReservation": "Conferma la prenotazione"
+        "confirmReservation": "Conferma la prenotazione",
+        "assignLater": "Prenota la classe {class} e scegli l'auto dopo",
+        "assignLaterHint": "Il sistema riserva un'auto di questa classe così nulla viene prenotato due volte. Puoi cambiarla con un'altra auto della classe fino al ritiro.",
+        "carChosenForYou": "Un'auto della classe, riservata per te"
       }
     },
     "failedLoadPickupsReturns": "Impossibile caricare ritiri e riconsegne per questo periodo.",

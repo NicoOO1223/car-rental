@@ -41,7 +41,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.i18n.documents import document_language, format_amount
-from app.i18n.email_templates import ALERTS, CHANGES, EXPIRES
+from app.i18n.email_templates import ALERTS, CHANGES, EXPIRES, SIMILAR
 from app.languages import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 from app.models import (
     Customer,
@@ -278,6 +278,26 @@ def _reference(reservation: Reservation) -> str:
     return reservation.public_reference or str(reservation.id).split("-")[0].upper()
 
 
+def _class_name(reservation: Reservation, language: str) -> str:
+    names = reservation.vehicle_class.name
+
+    return names.get(language) or names.get(DEFAULT_LANGUAGE) or next(iter(names.values()), "")
+
+
+def vehicle_label(reservation: Reservation, language: str) -> str:
+    """What the renter is told they are renting: for a class booking whose car is not final,
+    "Compact (Fiat Panda or similar)"; otherwise the car, "Fiat Panda"."""
+
+    car = reservation.car
+
+    if reservation.vehicle_class is not None and not reservation.car_confirmed:
+        similar = SIMILAR[document_language(language)]
+
+        return f"{_class_name(reservation, language)} ({car.make} {car.model} {similar})"
+
+    return f"{car.make} {car.model}"
+
+
 def _place(location) -> str:
     """A pickup or return place as the renter reads it: its name, and where it is."""
 
@@ -318,7 +338,7 @@ def queue_booking_confirmed(db: Session, reservation: Reservation) -> EmailMessa
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": f"{car.make} {car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_place": _place(pickup),
                 "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
                 "return_place": _place(reservation.return_location),
@@ -373,7 +393,7 @@ def queue_booking_cancelled(
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": f"{car.make} {car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_time": format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
                 "amount": format_amount(online_amount, currency, language) if has_note else "",
             },
@@ -444,7 +464,7 @@ def _money(value, currency: str, language: str) -> str:
 CHANGE_HOLD = timedelta(minutes=5)
 
 
-def booking_snapshot(reservation: Reservation) -> dict:
+def booking_snapshot(reservation: Reservation, language: str) -> dict:
     """What a renter cares about in a booking, in a form that can be compared and
     stored: the same whatever language the email ends up in."""
 
@@ -452,7 +472,8 @@ def booking_snapshot(reservation: Reservation) -> dict:
     drop = reservation.return_location
 
     return {
-        "vehicle": f"{reservation.car.make} {reservation.car.model}",
+        # Of a class booking, only the class: swapping the car inside it is no news to the renter.
+        "vehicle": _class_name(reservation, language) if reservation.vehicle_class is not None else f"{reservation.car.make} {reservation.car.model}",
         "pickup_time": reservation.pickup_at.astimezone(timezone.utc).isoformat(),
         "pickup_tz": pickup.timezone,
         "return_time": reservation.return_at.astimezone(timezone.utc).isoformat(),
@@ -513,7 +534,7 @@ def queue_booking_changed(db: Session, reservation: Reservation, before: dict) -
             before = pending.context["before"]
 
         language = renter_language(db, reservation)
-        after = booking_snapshot(reservation)
+        after = booking_snapshot(reservation, language)
         changes = describe_changes(before, after, language)
 
         if pending is not None:
@@ -537,7 +558,7 @@ def queue_booking_changed(db: Session, reservation: Reservation, before: dict) -
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": after["vehicle"],
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_place": after["pickup_place"],
                 "pickup_time": _snapshot_text(after, "pickup_time", language),
                 "return_place": after["return_place"],
@@ -577,7 +598,7 @@ def queue_pickup_reminder(db: Session, reservation: Reservation) -> EmailMessage
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_place": _place(pickup),
                 "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
                 "manage_url": manage_url(reservation, language),
@@ -658,7 +679,7 @@ def queue_agreement_copy(db: Session, reservation: Reservation, handover) -> Ema
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "return_place": _place(drop),
                 "return_time": format_local(reservation.return_at, drop.timezone, language),
                 "attached_agreement": _reference(reservation) if attach else "",
@@ -702,7 +723,7 @@ def queue_return_summary(db: Session, reservation: Reservation, check_out) -> Em
             values={
                 "name": customer.first_name,
                 "reference": _reference(reservation),
-                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "returned_at": format_local(check_out.returned_at, reservation.return_location.timezone, language),
                 "late_fee": _money(check_out.late_fee, currency, language),
                 "fuel_fee": _money(check_out.fuel_fee, currency, language),
@@ -863,7 +884,7 @@ def queue_new_online_booking(db: Session, reservation: Reservation, paid) -> Non
                 "reference": _reference(reservation),
                 "name": _full_name(customer),
                 "email": customer.email or "",
-                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_place": _place(pickup),
                 "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
                 "return_time": format_local(reservation.return_at, reservation.return_location.timezone, language),
@@ -896,7 +917,7 @@ def queue_online_cancellation(db: Session, reservation: Reservation, *, online_p
             {
                 "reference": _reference(reservation),
                 "name": _full_name(reservation.customer),
-                "vehicle": f"{reservation.car.make} {reservation.car.model}",
+                "vehicle": vehicle_label(reservation, language),
                 "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
                 "payment_outcome": outcome,
             },

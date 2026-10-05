@@ -32,6 +32,7 @@ from app.services.reservation_search import (
     search_reservations,
 )
 from app.services.reservations import (
+    confirm_car,
     create_reservation,
     cancel_reservation,
     mark_no_show,
@@ -73,6 +74,7 @@ def create_reservation_endpoint(
         db=db,
         customer_data=data.customer,
         car_id=data.car_id,
+        class_id=data.class_id,
         pickup_location_id=data.pickup_location_id,
         return_location_id=data.return_location_id,
         pickup_at=data.pickup_at,
@@ -83,6 +85,20 @@ def create_reservation_endpoint(
     )
 
     return reservation
+
+@router.post(
+    "/{reservation_id}/confirm-car",
+    response_model=ReservationListResponse,
+)
+def confirm_car_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Settles the car of a class booking: it stays as it is and is no longer held only for the class."""
+
+    return confirm_car(db, reservation_id, current_user)
+
 
 @router.post(
     "/quote",

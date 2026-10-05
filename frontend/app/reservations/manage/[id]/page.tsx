@@ -1,5 +1,7 @@
 "use client";
 
+import { classWords } from "@/lib/classDisplay";
+import { confirmReservationCar } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Pencil, Undo2 } from "lucide-react";
 
@@ -416,6 +418,12 @@ export default function ReservationDetailsPage({
                   <p className="mt-1 text-sm text-gray-500">
                     {reservation.car.license_plate}
                   </p>
+
+                  {reservation.vehicle_class && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {t("s.reservations.manage.id.bookedClass", { class: classWords(reservation.vehicle_class.name) })}
+                    </p>
+                  )}
                 </div>
 
                 <div className="rounded-lg bg-gray-50 px-4 py-3">
@@ -424,6 +432,28 @@ export default function ReservationDetailsPage({
                   <p className="mt-1 font-medium">
                     {reservation.car.license_plate}
                   </p>
+
+                  {!reservation.car_confirmed && (
+                    <>
+                      <p className="mt-1 text-xs font-medium text-amber-700">{t("s.reservations.manage.id.carNotFinal")}</p>
+
+                      {canWrite && ["PENDING", "CONFIRMED", "AWAITING_PAYMENT"].includes(reservation.status) && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              setReservation(await confirmReservationCar(reservation.id));
+                            } catch {
+                              /* the card stays as it was; the next action shows any real problem */
+                            }
+                          }}
+                          className="mt-2 text-sm font-medium text-gray-700 underline underline-offset-4 hover:text-black"
+                        >
+                          {t("s.reservations.manage.id.confirmThisCar")}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
 
               </div>

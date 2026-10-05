@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     Index,
     CheckConstraint,
     DateTime,
@@ -76,6 +77,21 @@ class Reservation(Base):
     car: Mapped["Car"] = relationship(
         "Car",
     )
+
+    # The vehicle class this booking was made for (a class booking: the renter chose
+    # a class, not a car). Null for a booking of a car that has no class.
+    class_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("vehicle_classes.id"),
+    )
+
+    vehicle_class: Mapped["VehicleClass | None"] = relationship("VehicleClass", lazy="selectin")
+
+    # False while the car is only provisional: the system holds a real car so nothing
+    # can be double booked, but the renter was promised a class and staff may swap
+    # the car for another in it until pickup. True once a person chose the car, or
+    # at check-in when the car is handed over. Always true for a booking without a class.
+    car_confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
 
     pickup_location: Mapped["Location"] = relationship(
         "Location",

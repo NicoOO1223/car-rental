@@ -459,7 +459,9 @@
       "no_show_too_early": "Rezerwację można oznaczyć jako niestawienie się dopiero po upływie godziny odbioru.",
       "not_found": "Nie znaleziono rezerwacji.",
       "reservation_already_cancelled": "Rezerwacja została już anulowana.",
-      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru."
+      "return_before_pickup": "Godzina zwrotu musi być późniejsza niż godzina odbioru.",
+      "car_or_class_required": "Wybierz samochód lub klasę.",
+      "class_has_no_free_car": "Żaden samochód tej klasy nie jest wolny w tych terminach i miejscach."
     },
     "return_charge": {
       "damage_charge_cannot_negative": "Opłata za szkodę nie może być ujemna.",
@@ -576,7 +578,8 @@
       "has_cars": "W tej klasie są jeszcze samochody. Najpierw przenieś je do innej klasy.",
       "already_retired": "Ta klasa jest już wycofana.",
       "not_retired": "Ta klasa nie jest wycofana.",
-      "retired": "Ta klasa została wycofana."
+      "retired": "Ta klasa została wycofana.",
+      "has_no_cars": "Ta klasa nie ma samochodów."
     }
   },
   "c": {
@@ -1983,7 +1986,10 @@
           "waitingForPayment": "Oczekiwanie na płatność",
           "waitingForPaymentBody": "Klient płaci online. Auto jest zarezerwowane do wskazanej godziny, potem rezerwacja wygasa samoczynnie.",
           "holdExpired": "Płatność nie nadeszła",
-          "holdExpiredBody": "Rezerwacja wygasła, a auto zostało zwolnione. Nic nie pobrano."
+          "holdExpiredBody": "Rezerwacja wygasła, a auto zostało zwolnione. Nic nie pobrano.",
+          "bookedClass": "Zarezerwowano jako klasę: {class}",
+          "carNotFinal": "Zarezerwowany dla klasy: samochód nie jest jeszcze ostateczny",
+          "confirmThisCar": "Potwierdź ten samochód"
         },
         "refreshing": "Odświeżanie",
         "refresh": "Odśwież",
@@ -1996,7 +2002,8 @@
         "bookedVia": "Zarezerwowano",
         "anySource": "Wszędzie",
         "onlineWebsite": "Na stronie",
-        "byStaff": "Przez pracownika"
+        "byStaff": "Przez pracownika",
+        "carNotFinal": "samochód nieostateczny"
       },
       "new": {
         "failedLoadBookingOptions": "Nie udało się wczytać opcji rezerwacji. Odśwież stronę.",
@@ -2060,7 +2067,10 @@
         "skipExtras": "Pomiń dodatki",
         "continue": "Dalej",
         "confirming": "Potwierdzanie",
-        "confirmReservation": "Potwierdź rezerwację"
+        "confirmReservation": "Potwierdź rezerwację",
+        "assignLater": "Zarezerwuj klasę {class} i wybierz samochód później",
+        "assignLaterHint": "System rezerwuje samochód tej klasy, aby nic nie zostało zarezerwowane podwójnie. Możesz go zamienić na inny samochód klasy do czasu odbioru.",
+        "carChosenForYou": "Samochód klasy, zarezerwowany dla Ciebie"
       }
     },
     "failedLoadPickupsReturns": "Nie udało się wczytać wydań i zwrotów dla tego okresu.",

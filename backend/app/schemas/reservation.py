@@ -2,6 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
+from app.schemas.vehicle_class import ClassSummary
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from typing import Literal
@@ -95,7 +96,9 @@ class ReservationExtraResponse(BaseModel):
 class ReservationCreate(BaseModel):
     customer: CustomerCreate
 
-    car_id: UUID
+    # A car, or a class (the system holds a car of it, which staff may swap until pickup).
+    car_id: UUID | None = None
+    class_id: UUID | None = None
 
     pickup_location_id: UUID
     return_location_id: UUID
@@ -110,7 +113,8 @@ class ReservationCreate(BaseModel):
 
 
 class ReservationQuoteRequest(BaseModel):
-    car_id: UUID
+    car_id: UUID | None = None
+    class_id: UUID | None = None
 
     pickup_location_id: UUID
     return_location_id: UUID
@@ -169,6 +173,11 @@ class ReservationResponse(OnlineBookingFields):
     customer_id: UUID
     car_id: UUID
 
+    # The class the booking was made for, and whether the car is final (see Reservation.car_confirmed).
+    class_id: UUID | None = None
+    vehicle_class: ClassSummary | None = None
+    car_confirmed: bool = True
+
     pickup_location_id: UUID
     return_location_id: UUID
 
@@ -198,6 +207,10 @@ class ReservationListResponse(OnlineBookingFields):
 
     customer: CustomerSummary
     car: CarSummary
+
+    class_id: UUID | None = None
+    vehicle_class: ClassSummary | None = None
+    car_confirmed: bool = True
 
     pickup_location: LocationSummary
     return_location: LocationSummary

@@ -36,6 +36,7 @@ import { BookingSummary } from "@/components/booking/BookingSummary";
 import { CustomerStep, EMPTY_CUSTOMER, type CustomerDetails } from "@/components/booking/CustomerStep";
 import { ExtrasPicker } from "@/components/booking/ExtrasPicker";
 import { VehicleCard } from "@/components/booking/VehicleCard";
+import { classWords } from "@/lib/classDisplay";
 import {
   Stepper,
   stepIndex,
@@ -97,6 +98,8 @@ export default function NewReservationPage() {
   const [cars, setCars] = useState<Car[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  // Book the car's class and let the system hold a car of it, instead of this exact car.
+  const [assignLater, setAssignLater] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [transmissionFilter, setTransmissionFilter] = useState("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("price-asc");
@@ -276,7 +279,7 @@ export default function NewReservationPage() {
 
     try {
       const result = await quoteReservation({
-        car_id: selectedCar.id,
+        ...(assignLater && selectedCar.class_id ? { class_id: selectedCar.class_id } : { car_id: selectedCar.id }),
         pickup_location_id: pickupLocationId,
         return_location_id: returnLocationId,
         pickup_at: pickupIso,
@@ -300,6 +303,7 @@ export default function NewReservationPage() {
     }
   }, [
     selectedCar,
+    assignLater,
     pickupIso,
     returnIso,
     pickupLocationId,
@@ -421,7 +425,7 @@ export default function NewReservationPage() {
           email: customer.email,
           nationality: customer.nationality || undefined,
         },
-        car_id: selectedCar.id,
+        ...(assignLater && selectedCar.class_id ? { class_id: selectedCar.class_id } : { car_id: selectedCar.id }),
         pickup_location_id: pickupLocationId,
         return_location_id: returnLocationId,
         pickup_at: pickupIso,
@@ -785,10 +789,30 @@ export default function NewReservationPage() {
                       totalAmount={cardTotal(car)}
                       rentalDays={days}
                       selected={selectedCar?.id === car.id}
-                      onSelect={() => setSelectedCar(car)}
+                      onSelect={() => {
+                        setSelectedCar(car);
+                        setAssignLater(false);
+                      }}
                     />
                   ))}
                 </div>
+              )}
+
+              {selectedCar?.vehicle_class && (
+                <label className="flex cursor-pointer items-start gap-2 rounded-lg bg-surface p-4 text-sm shadow-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-gray-900"
+                    checked={assignLater}
+                    onChange={(event) => setAssignLater(event.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium text-ink">
+                      {t("s.reservations.new.assignLater", { class: classWords(selectedCar.vehicle_class.name) })}
+                    </span>
+                    <span className="block text-ink-secondary">{t("s.reservations.new.assignLaterHint")}</span>
+                  </span>
+                </label>
               )}
 
               <StepNav
@@ -855,10 +879,12 @@ export default function NewReservationPage() {
 
                   <div className="min-w-0">
                     <p className="font-semibold text-ink">
-                      {selectedCar.make} {selectedCar.model}
+                      {assignLater && selectedCar.vehicle_class
+                        ? classWords(selectedCar.vehicle_class.name)
+                        : `${selectedCar.make} ${selectedCar.model}`}
                     </p>
                     <p className="mt-0.5 text-sm text-ink-muted">
-                      {selectedCar.license_plate}
+                      {assignLater ? t("s.reservations.new.carChosenForYou") : selectedCar.license_plate}
                     </p>
                     <p className="mt-2 text-sm text-ink-secondary">
                       {formatDateTime(pickupIso, pickupZone)}

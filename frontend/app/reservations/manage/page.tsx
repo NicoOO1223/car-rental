@@ -1,5 +1,6 @@
 "use client";
 
+import { classWords } from "@/lib/classDisplay";
 import { useEffect, useState } from "react";
 import { CalendarClock, Plus, RefreshCw } from "lucide-react";
 
@@ -166,7 +167,11 @@ export default function ManageReservationsPage() {
       cell: (reservation) => (
         <TwoLine
           primary={`${reservation.car.make} ${reservation.car.model}`}
-          secondary={reservation.car.license_plate}
+          secondary={
+            reservation.vehicle_class
+              ? `${classWords(reservation.vehicle_class.name)} · ${reservation.car.license_plate}${reservation.car_confirmed ? "" : ` · ${t("s.reservations.manage.carNotFinal")}`}`
+              : reservation.car.license_plate
+          }
         />
       ),
       mobileCell: (reservation) =>

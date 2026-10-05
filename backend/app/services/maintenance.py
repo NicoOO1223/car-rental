@@ -167,6 +167,12 @@ def create_task(
     if has_conflicting_maintenance(db, car_id, starts_at, ends_at):
         raise AppError("maintenance.car_already_maintenance_or_cleaning_scheduled", "This car already has maintenance or cleaning scheduled during this period.")
 
+    # Bookings that only hold this car for a class can go to another car of the class.
+    if has_conflicting_reservation(db, car_id, starts_at, ends_at):
+        from app.services.class_assignment import move_provisional_off
+
+        move_provisional_off(db, car, starts_at, ends_at)
+
     if has_conflicting_reservation(db, car_id, starts_at, ends_at):
         raise AppError("maintenance.car_reservation_during_period_cancel_or", "This car has a reservation during this period. "
             "Cancel or move the reservation first.")

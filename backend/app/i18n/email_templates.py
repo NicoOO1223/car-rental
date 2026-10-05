@@ -413,6 +413,9 @@ TEMPLATES.update(
     }
 )
 
+# "or similar" after an example car, when the renter booked a class: SIMILAR[language].
+SIMILAR: dict[str, str] = {"en": "or similar", "it": "o simile", "pl": "lub podobny"}
+
 # How long a link works, as the email says it: EXPIRES[kind][language].
 EXPIRES: dict[str, dict[str, str]] = {
     "verify_email": {"en": "24 hours", "it": "24 ore", "pl": "24 godziny"},

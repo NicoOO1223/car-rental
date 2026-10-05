@@ -623,6 +623,8 @@ def generate_agreement(db: Session, reservation_id, actor: User) -> Handover:
 
     pdf_bytes = render_agreement_pdf(db, reservation, car, handover)
 
+    # Handing the car over settles which car it is.
+    reservation.car_confirmed = True
     handover.agreement_pdf = pdf_bytes
     handover.generated_at = datetime.now(timezone.utc)
     handover.updated_by = actor.id
