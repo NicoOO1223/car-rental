@@ -227,7 +227,10 @@ if (-not $ImageTag) {
     $sha = if ($DryRun) { "<commit>" } else { (git -C $repoRoot rev-parse --short=12 HEAD).Trim() }
     $ImageTag = "provision-$sha"
 }
-$siteUrl = if ($siteDomain) { "https://$siteDomain" } else { "" }
+# Canonical links and the share image's address are baked into the pages, so the address must be known
+# now. Without a custom domain it is the app's default one, which is predictable: <app>.<environment's default domain>.
+$defaultDomain = if ($DryRun) { "<environment default domain>" } else { az containerapp env show --name car-rental-env --resource-group $envStack.resourceGroup --query properties.defaultDomain -o tsv }
+$siteUrl = if ($siteDomain) { "https://$siteDomain" } else { "https://$appName.$defaultDomain" }
 # Canonical links, robots.txt and the noindex tag are baked into the pages when the image is built.
 $indexable = if ($config.indexable) { "true" } else { "" }
 Invoke-Checked { az acr login --name $acrName } "az acr login"

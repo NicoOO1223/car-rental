@@ -1,3 +1,4 @@
+# Node 22: the Azure email SDK the form sends mail with declares 22 as its minimum.
 # Built from the REPOSITORY ROOT (the app imports ../shared):
 #   docker build -f marketing/Dockerfile -t marketing .
 #
@@ -7,12 +8,12 @@
 # regardless while content/brand.ts is a placeholder.
 #   docker build -f marketing/Dockerfile --build-arg SITE_URL=https://example.com --build-arg SITE_INDEXABLE=true .
 
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /repo/marketing
 COPY marketing/package.json marketing/package-lock.json ./
 RUN npm ci
 
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /repo
 ARG SITE_URL=""
 ARG SITE_INDEXABLE=""
@@ -23,7 +24,7 @@ COPY marketing ./marketing
 WORKDIR /repo/marketing
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 # The build root is the repo, so the standalone server sits under marketing/.

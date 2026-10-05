@@ -70,6 +70,11 @@ describe("the site's deployment configuration", () => {
     expect(code("deploy/marketing.bicep")).toMatch(/maxReplicas: 2/);
   });
 
+  it("works out its own address when there is no custom domain, so canonical links are never localhost", () => {
+    expect(read("deploy/provision-marketing.ps1")).toMatch(/properties\.defaultDomain/);
+    expect(read("deploy/provision-marketing.ps1")).toMatch(/"https:\/\/\$appName\.\$defaultDomain"/);
+  });
+
   it("keeps placeholder contact details marked as placeholders until someone fills them in", () => {
     // The script refuses a real deployment while this is true; this keeps that gate honest.
     if (isPlaceholderEmail(config.notifyAddress)) expect(read("deploy/provision-marketing.ps1")).toMatch(/-Staging/);
@@ -89,6 +94,11 @@ describe("the image", () => {
 
   it("is built from the repository root, because the site imports shared/", () => {
     expect(dockerfile).toMatch(/COPY shared \.\/shared/);
+  });
+
+  it("runs on Node 22 or newer, which the Azure email SDK and Lighthouse require", () => {
+    expect(dockerfile.match(/^FROM node:(\d+)/gm)?.every((line) => Number(line.match(/node:(\d+)/)?.[1]) >= 22)).toBe(true);
+    expect(read(".github/workflows/marketing.yml")).not.toMatch(/node-version: "(18|20)"/);
   });
 
   it("runs as a non-root user with a health check", () => {

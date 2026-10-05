@@ -27,6 +27,8 @@ concurrency:
   group: marketing-${{ github.ref }}
   cancel-in-progress: false
 
+# Node 22, not the 20 the other apps use: Lighthouse needs 22.19 or newer, and the Azure email
+# SDK the form sends mail with declares 22 as its minimum.
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -38,7 +40,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: marketing/package-lock.json
 
@@ -83,7 +85,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: vars.SITE_INDEXABLE == 'true'
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: marketing/package-lock.json
       - name: Launch gate (brand, contact, legal details, prices, confirmed copy)
