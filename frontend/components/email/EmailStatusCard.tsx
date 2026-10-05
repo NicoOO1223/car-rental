@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { TextField } from "@/components/ui/Field";
-import { getEmailStatus, sendTestEmail, setEmailPaused, type EmailStatus } from "@/lib/api";
+import { getEmailStatus, sendTestEmail, setEmailPaused, setEmailReplyTo, type EmailStatus } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -18,15 +18,23 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+function languageName(code: string): string {
+  return new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code;
+}
+
 /**
- * Is email working? Whether it is set up at all is decided when the stack is
- * provisioned (the sending domain has to be created and verified in Azure, which
- * the application has no rights to do); everything else is here.
+ * Is email working, and where do replies go? Whether it is set up at all is decided
+ * when the stack is provisioned (the sending domain has to be created and verified in
+ * Azure, which the application has no rights to do); everything else is here.
  */
 export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
   const [status, setStatus] = useState<EmailStatus | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [savingReplyTo, setSavingReplyTo] = useState(false);
+  const [replyToError, setReplyToError] = useState("");
 
   const [testAddress, setTestAddress] = useState("");
   const [testing, setTesting] = useState(false);
@@ -38,7 +46,9 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
 
     getEmailStatus()
       .then((data) => {
-        if (!cancelled) setStatus(data);
+        if (cancelled) return;
+        setStatus(data);
+        setReplyTo(data.reply_to ?? "");
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedLoad"));
@@ -62,6 +72,23 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
       setError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedSave"));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveReplyTo(event: React.FormEvent) {
+    event.preventDefault();
+
+    setSavingReplyTo(true);
+    setReplyToError("");
+
+    try {
+      const updated = await setEmailReplyTo(replyTo?.trim() || null);
+      setStatus(updated);
+      setReplyTo(updated.reply_to ?? "");
+    } catch (err) {
+      setReplyToError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedSave"));
+    } finally {
+      setSavingReplyTo(false);
     }
   }
 
@@ -114,8 +141,9 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
               {status.paused ? t("s.admin.configuration.email.statePaused") : t("s.admin.configuration.email.stateOn")}
             </Row>
             <Row label={t("s.admin.configuration.email.sentFrom")}>{status.from_address}</Row>
-            <Row label={t("s.admin.configuration.email.sentIn")}>
-              {new Intl.DisplayNames([status.language], { type: "language" }).of(status.language)}
+            <Row label={t("s.admin.configuration.email.defaultLanguage")}>{languageName(status.default_language)}</Row>
+            <Row label={t("s.admin.configuration.email.links")}>
+              {status.storefront_url ?? t("s.admin.configuration.email.noLinks")}
             </Row>
             <Row label={t("s.admin.configuration.email.sentLast7")}>{status.sent_last_7_days}</Row>
             <Row label={t("s.admin.configuration.email.waiting")}>
@@ -148,6 +176,27 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
               {status.paused ? t("s.admin.configuration.email.resume") : t("s.admin.configuration.email.pause")}
             </Button>
           </div>
+
+          <form onSubmit={saveReplyTo} className="mt-6 border-t border-border-subtle pt-5">
+            <h3 className="text-sm font-semibold text-ink">{t("s.admin.configuration.email.replyToTitle")}</h3>
+            <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.email.replyToIntro")}</p>
+
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <TextField
+                label={t("s.admin.configuration.email.replyTo")}
+                type="email"
+                className="w-72 max-w-full"
+                placeholder={status.reply_to_default ?? t("s.admin.configuration.email.replyToNone")}
+                value={replyTo ?? ""}
+                error={replyToError || undefined}
+                onChange={(event) => setReplyTo(event.target.value)}
+              />
+
+              <Button type="submit" variant="secondary" loading={savingReplyTo} disabled={(replyTo ?? "") === (status.reply_to ?? "")}>
+                {t("s.admin.configuration.email.save")}
+              </Button>
+            </div>
+          </form>
 
           <form onSubmit={handleTest} className="mt-6 border-t border-border-subtle pt-5">
             <h3 className="text-sm font-semibold text-ink">{t("s.admin.configuration.email.testTitle")}</h3>

@@ -427,6 +427,7 @@ export default function NewReservationPage() {
         pickup_at: pickupIso,
         return_at: returnIso,
         extras: selectedExtras,
+        language: customer.email_language || undefined,
       });
 
       setCreated(reservation);

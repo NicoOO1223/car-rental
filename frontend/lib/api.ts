@@ -516,6 +516,8 @@ export async function createReservation(data: {
   pickup_at: string;
   return_at: string;
   extras?: ExtraSelection[];
+  /** The language emails to the renter are written in; left out = the business default. */
+  language?: string;
 }): Promise<Reservation> {
   const response = await apiFetch("/api/reservations", {
     method: "POST",
@@ -2796,29 +2798,55 @@ export type EmailStatus = {
   set_up: boolean;
   paused: boolean;
   from_address: string | null;
+  /** Where replies go when set here; otherwise the Business email. */
+  reply_to: string | null;
+  reply_to_default: string | null;
+  /** Links in emails (view or manage a booking, privacy) need this; without it they are left out. */
+  storefront_url: string | null;
   worker_running: boolean;
   pending: number;
   failed: number;
   sent_last_7_days: number;
   oldest_pending_at: string | null;
   last_sent_at: string | null;
-  /** The language the emails are sent in (the document language). */
-  language: string;
+  default_language: string;
 };
 
-export type EmailTextLine = {
+export type EmailTypeRow = {
   key: string;
-  is_subject: boolean;
-  /** The {names} this line may use. */
-  placeholders: string[];
-  defaults: Record<string, string>;
-  overrides: Record<string, string>;
+  audience: "renter" | "business" | "account";
+  can_disable: boolean;
+  enabled: boolean;
+  options: Record<string, boolean | number>;
+  option_kinds: Record<string, "bool" | "hours">;
+  customised_languages: string[];
+  last_sent_at: string | null;
 };
 
-export type EmailTexts = {
-  languages: string[];
-  sent_in: string;
-  groups: { id: string; lines: EmailTextLine[] }[];
+export type EmailTemplateView = {
+  subject: string;
+  body: string;
+  default_subject: string;
+  default_body: string;
+  customised: boolean;
+};
+
+export type EmailTypeDetail = Omit<EmailTypeRow, "customised_languages" | "last_sent_at"> & {
+  /** The {names} this email's message may use, besides the global ones, and the parts. */
+  values: string[];
+  global_values: string[];
+  parts: string[];
+  languages: Record<string, EmailTemplateView>;
+};
+
+export type EmailPartRow = {
+  /** "bring_list", or "payment_note.refunded" for a part with variants. */
+  key: string;
+  part: string;
+  variant: string | null;
+  values: string[];
+  used_by: string[];
+  languages: Record<string, { text: string; default: string; customised: boolean }>;
 };
 
 export type EmailMessageItem = {
@@ -2848,33 +2876,55 @@ async function emailCall<T>(path: string, init: RequestInit = {}, fallback = "er
   return response.json();
 }
 
+const send = (method: string, body?: unknown): RequestInit => ({
+  method,
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+
 export const getEmailStatus = () => emailCall<EmailStatus>("/status", {}, "errors.generic.load");
 
-export const setEmailPaused = (paused: boolean) =>
-  emailCall<EmailStatus>("/paused", { method: "PUT", body: JSON.stringify({ paused }) });
+export const setEmailPaused = (paused: boolean) => emailCall<EmailStatus>("/paused", send("PUT", { paused }));
 
-export const getEmailTexts = () => emailCall<EmailTexts>("/texts", {}, "errors.generic.load");
+export const setEmailReplyTo = (replyTo: string | null) =>
+  emailCall<EmailStatus>("/reply-to", send("PUT", { reply_to: replyTo }));
 
-export const saveEmailText = (language: string, key: string, text: string) =>
-  emailCall<EmailTexts>("/texts", { method: "PUT", body: JSON.stringify({ language, key, text }) });
+export const getEmailTypes = () => emailCall<EmailTypeRow[]>("/types", {}, "errors.generic.load");
 
-export const resetEmailText = (language: string, key: string) =>
-  emailCall<EmailTexts>(`/texts/${language}/${key}`, { method: "DELETE" });
+export const getEmailType = (key: string) => emailCall<EmailTypeDetail>(`/types/${key}`, {}, "errors.generic.load");
 
-export const previewEmail = (template: string, language: string, edits: Record<string, string>) =>
-  emailCall<{ subject: string; body: string }>("/preview", {
-    method: "POST",
-    body: JSON.stringify({ template, language, edits }),
-  });
+export const updateEmailType = (key: string, data: { enabled?: boolean; options?: Record<string, boolean | number> }) =>
+  emailCall<EmailTypeDetail>(`/types/${key}`, send("PATCH", data));
 
-export const sendTestEmail = (toAddress: string | null) =>
-  emailCall<{ sent: boolean; error: string | null; to: string }>("/test", {
-    method: "POST",
-    body: JSON.stringify({ to_address: toAddress }),
-  });
+export const saveEmailTemplate = (key: string, language: string, subject: string, body: string) =>
+  emailCall<EmailTypeDetail>(`/types/${key}/templates/${language}`, send("PUT", { subject, body }));
+
+export const resetEmailTemplate = (key: string, language: string) =>
+  emailCall<EmailTypeDetail>(`/types/${key}/templates/${language}`, send("DELETE"));
+
+export const getEmailParts = () => emailCall<EmailPartRow[]>("/parts", {}, "errors.generic.load");
+
+export const saveEmailPart = (key: string, language: string, text: string) =>
+  emailCall<EmailPartRow[]>(`/parts/${key}/${language}`, send("PUT", { text }));
+
+export const resetEmailPart = (key: string, language: string) =>
+  emailCall<EmailPartRow[]>(`/parts/${key}/${language}`, send("DELETE"));
+
+export const previewEmail = (draft: {
+  type: string;
+  language: string;
+  subject?: string;
+  body?: string;
+  parts?: Record<string, string>;
+}) => emailCall<{ subject: string; body: string }>("/preview", send("POST", draft));
+
+export const sendTestEmail = (toAddress: string | null, type?: string, language?: string) =>
+  emailCall<{ sent: boolean; error: string | null; to: string }>(
+    "/test",
+    send("POST", { to_address: toAddress, type: type ?? null, language: language ?? null }),
+  );
 
 export const getEmailMessages = (status?: string) =>
   emailCall<EmailMessageItem[]>(`/messages${status ? `?status=${status}` : ""}`, {}, "errors.generic.load");
 
 export const retryEmailMessage = (id: string) =>
-  emailCall<EmailMessageItem>(`/messages/${id}/retry`, { method: "POST" });
+  emailCall<EmailMessageItem>(`/messages/${id}/retry`, send("POST"));

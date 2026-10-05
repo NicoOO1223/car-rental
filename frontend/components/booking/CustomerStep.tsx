@@ -20,6 +20,8 @@ export type CustomerDetails = {
   phone_number: string;
   email: string;
   nationality: string;
+  /** The language emails to the customer are written in; empty = the business default. */
+  email_language: string;
 };
 
 export const EMPTY_CUSTOMER: CustomerDetails = {
@@ -31,6 +33,7 @@ export const EMPTY_CUSTOMER: CustomerDetails = {
   phone_number: "",
   email: "",
   nationality: "",
+  email_language: "",
 };
 
 /**
@@ -115,6 +118,7 @@ export function CustomerStep({
       phone_number: customer.phone_number ?? "",
       email: customer.email ?? "",
       nationality: listed.nationality ?? "",
+      email_language: value.email_language,
     });
   }
 
@@ -284,6 +288,20 @@ export function CustomerStep({
             {getCountries().map((country) => (
               <option key={country.code} value={country.code}>
                 {country.name}
+              </option>
+            ))}
+          </SelectField>
+
+          <SelectField
+            label={t("c.booking.CustomerStep.emailLanguage")}
+            hint={t("c.booking.CustomerStep.emailLanguageHint")}
+            value={value.email_language}
+            onChange={set("email_language")}
+          >
+            <option value="">{t("c.booking.CustomerStep.emailLanguageDefault")}</option>
+            {["en", "it", "pl"].map((code) => (
+              <option key={code} value={code}>
+                {new Intl.DisplayNames([code], { type: "language" }).of(code)}
               </option>
             ))}
           </SelectField>

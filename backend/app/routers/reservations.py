@@ -78,6 +78,7 @@ def create_reservation_endpoint(
         pickup_at=data.pickup_at,
         return_at=data.return_at,
         extras=data.extras,
+        language=data.language,
         actor=current_user,
     )
 

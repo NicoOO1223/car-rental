@@ -152,6 +152,11 @@ class Reservation(Base):
     # A keyed hash of the booker's address, for limits on live holds.
     client_ip_hash: Mapped[str | None] = mapped_column(String(64))
 
+    # The language emails to the renter are written in: the one they used on the
+    # storefront, or the one staff chose when booking for them. NULL (bookings from
+    # before this existed) = the business default language.
+    language: Mapped[str | None] = mapped_column(String(5))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

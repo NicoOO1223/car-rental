@@ -183,6 +183,8 @@ export type BookingRequest = {
   expected_total: number;
   terms_accepted: boolean;
   privacy_acknowledged: boolean;
+  /** The language the booking emails are written in. */
+  language?: string;
   captcha_token: string;
 };
 

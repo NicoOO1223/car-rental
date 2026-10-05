@@ -46,6 +46,7 @@ def create_reservation(
     return_at,
     actor: User,
     extras=(),
+    language: str | None = None,
 ):
     # ---------------------------------------------------------
     # 1. Validate dates
@@ -152,6 +153,7 @@ def create_reservation(
         pickup_at=pickup_at,
         return_at=return_at,
         status="PENDING",
+        language=language,
         extras=build_reservation_extras(resolved_extras),
         created_by=actor.id,
         updated_by=actor.id,
@@ -609,6 +611,9 @@ def update_reservation(
     reservation.return_location_id = effective_return_location_id
     reservation.car_id = target_car_id
     reservation.updated_by = actor.id
+
+    if data.language is not None:
+        reservation.language = data.language
 
     if data.customer is not None:
         customer = db.get(Customer, reservation.customer_id)

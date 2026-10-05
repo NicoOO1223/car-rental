@@ -111,7 +111,9 @@ export function Field({
   );
 }
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+// ComponentPropsWithRef: React 19 hands `ref` to a function component as a prop, so a
+// caller can reach the element (the email editor puts the cursor in it).
+type InputProps = React.ComponentPropsWithRef<"input"> & {
   invalid?: boolean;
 };
 
@@ -127,7 +129,7 @@ export function Select({ invalid, className = "", ...props }: SelectProps) {
   return <select className={controlClass(invalid, className)} {...props} />;
 }
 
-type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+type TextareaProps = React.ComponentPropsWithRef<"textarea"> & {
   invalid?: boolean;
 };
 

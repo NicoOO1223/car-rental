@@ -214,6 +214,7 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
         return_at=data.return_at,
         status="AWAITING_PAYMENT",
         source="STOREFRONT",
+        language=data.language,
         hold_expires_at=now + timedelta(minutes=configuration.hold_minutes),
         prepayment_percent=configuration.online_share_percent,
         cancellation_deadline_at=cancellation_deadline(configuration, data.pickup_at),

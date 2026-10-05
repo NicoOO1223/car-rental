@@ -105,6 +105,9 @@ class ReservationCreate(BaseModel):
 
     extras: list[ExtraSelectionRequest] = []
 
+    # The language emails to the renter are written in. Left out = the business default.
+    language: Literal["en", "it", "pl"] | None = None
+
 
 class ReservationQuoteRequest(BaseModel):
     car_id: UUID
@@ -161,6 +164,8 @@ class OnlineBookingFields(BaseModel):
 class ReservationResponse(OnlineBookingFields):
     id: UUID
 
+    language: str | None = None
+
     customer_id: UUID
     car_id: UUID
 
@@ -187,6 +192,9 @@ class ReservationResponse(OnlineBookingFields):
 
 class ReservationListResponse(OnlineBookingFields):
     id: UUID
+
+    # The language emails to the renter are written in (null = the business default).
+    language: str | None = None
 
     customer: CustomerSummary
     car: CarSummary
@@ -307,6 +315,8 @@ class ReservationUpdate(BaseModel):
     return_location_id: UUID | None = None
 
     car_id: UUID | None = None
+
+    language: Literal["en", "it", "pl"] | None = None
 
     customer: CustomerUpdate | None = None
 

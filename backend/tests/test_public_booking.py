@@ -651,3 +651,23 @@ def test_new_references_avoid_look_alike_characters():
 
         assert not set(reference) & set("01OIL")
         assert normalize_reference(reference) == reference
+
+
+def test_a_booking_made_on_the_website_keeps_the_language_the_visitor_used(storefront, fake_stripe):
+    for language in ("it", "pl", None):
+        response, _offer, _window_ = _book(email=f"lang-{language}@example.com", ip="203.0.113.77", language=language)
+
+        assert response.status_code == 201, response.text
+
+        reservation = _reservation(response.json()["reference"])
+
+        try:
+            assert reservation.language == language
+        finally:
+            _set_reservation(reservation.public_reference, status="CANCELLED", hold_expires_at=None)
+
+
+def test_a_booking_in_a_language_that_does_not_exist_is_refused(storefront, fake_stripe):
+    response, _offer, _window_ = _book(email="lang-xx@example.com", ip="203.0.113.78", language="xx")
+
+    assert response.status_code == 422

@@ -7,7 +7,7 @@ Azure is replaced by a fake sender; nothing leaves the machine.
 import re
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,10 +15,11 @@ from sqlalchemy import delete, select
 
 from app.database import SessionLocal
 from app.i18n.documents import label
-from app.i18n.emails import TEXT, compose
+from app.i18n.email_templates import PARTS as DEFAULT_PARTS, TEMPLATES
+from app.services.email_render import to_html
 from app.languages import SUPPORTED_LANGUAGES
 from app.main import app
-from app.models import Customer, EmailMessage, Reservation
+from app.models import Customer, EmailMessage, EmailPart, EmailTemplate, EmailTypeSetting, Reservation
 from app.models.email_message import MAX_ATTEMPTS
 from app.services import email_outbox
 from app.services.email_outbox import AzureEmailSender, flush_outbox
@@ -42,6 +43,9 @@ def _clean_outbox():
     db = SessionLocal()
     try:
         db.execute(delete(EmailMessage))
+        db.execute(delete(EmailTypeSetting))
+        db.execute(delete(EmailTemplate))
+        db.execute(delete(EmailPart))
         db.commit()
     finally:
         db.close()
@@ -122,7 +126,7 @@ def test_confirming_a_booking_queues_one_confirmation_with_the_details(email_on)
         assert reservation["car"]["make"] in message.body_text
         assert re.search(r"Booking number: \S+", message.body_text)
         assert "<p>" in message.body_html and "<script" not in message.body_html
-        assert message.invoice_id is None
+        assert message.attachment_kind is None
     finally:
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
@@ -171,7 +175,7 @@ def test_a_cash_payment_queues_a_receipt_with_the_invoice_attached(email_on):
         receipts = [m for m in _messages(reservation["id"]) if m.template == "receipt"]
 
         assert len(receipts) == 1
-        assert receipts[0].invoice_id is not None
+        assert receipts[0].attachment_kind == "invoice" and receipts[0].attachment_id is not None
         assert "attached" in receipts[0].body_text
 
         sender = FakeSender()
@@ -212,10 +216,10 @@ def test_no_email_is_queued_for_a_customer_without_a_usable_address_or_who_was_e
 
 
 def test_an_email_that_cannot_be_written_never_breaks_the_booking(email_on, monkeypatch):
-    def broken(_paragraphs):
+    def broken(*_args, **_kwargs):
         raise RuntimeError("template bug")
 
-    monkeypatch.setattr(email_outbox, "compose", broken)
+    monkeypatch.setattr(email_outbox, "render", broken)
 
     reservation = _booking()
 
@@ -423,37 +427,190 @@ def _placeholders(text: str) -> set[str]:
     return set(re.findall(r"\{(\w+)\}", text))
 
 
-def test_every_language_has_every_line_with_the_same_placeholders():
-    english = TEXT["en"]
+def test_every_language_has_every_message_and_part_with_the_same_placeholders():
+    for type_key, by_language in TEMPLATES.items():
+        assert set(by_language) == set(SUPPORTED_LANGUAGES), type_key
 
-    for language in SUPPORTED_LANGUAGES:
-        assert set(TEXT[language]) == set(english), language
+        subject, body = by_language["en"]
 
-        for key, text in english.items():
-            assert _placeholders(TEXT[language][key]) == _placeholders(text), (language, key)
+        for language in SUPPORTED_LANGUAGES:
+            other_subject, other_body = by_language[language]
+
+            assert _placeholders(other_subject) == _placeholders(subject), (type_key, language)
+            assert _placeholders(other_body) == _placeholders(body), (type_key, language)
+
+    for key, by_language in DEFAULT_PARTS.items():
+        assert set(by_language) == set(SUPPORTED_LANGUAGES), key
+
+        for language in SUPPORTED_LANGUAGES:
+            assert _placeholders(by_language[language]) == _placeholders(by_language["en"]), (key, language)
 
 
-def test_the_text_and_html_versions_say_the_same_and_html_is_escaped():
-    text, html = compose(["Hello <b>Ann</b> & co", "Line one\nLine two"])
+def test_the_html_version_has_paragraphs_links_and_escapes_everything_else():
+    html = to_html("Hello <b>Ann</b> & co\n\nLine one\nLine two\n\nSee https://shop.example.com/en/manage?reference=AB12 now")
 
-    assert text == "Hello <b>Ann</b> & co\n\nLine one\nLine two"
     assert "<b>" not in html and "&lt;b&gt;" in html and "&amp;" in html
     assert "Line one<br>Line two" in html
+    assert '<a href="https://shop.example.com/en/manage?reference=AB12">' in html
 
 
 @pytest.mark.parametrize("language", SUPPORTED_LANGUAGES)
-def test_the_confirmation_is_written_in_the_document_language(email_on, language):
-    original = client.get("/api/configuration").json()["document_language"]
-    client.patch("/api/configuration", json={"document_language": language})
+def test_the_confirmation_is_written_in_the_bookings_language(email_on, language):
+    start = datetime.now(timezone.utc) + timedelta(days=far_future_days())
+    car = ensure_car_available("SA-008-AA")
+    created = client.post(
+        "/api/reservations",
+        json={
+            "customer": {
+                "first_name": "Lang",
+                "last_name": "Test",
+                "date_of_birth": "1990-01-01",
+                "address": "1 Test Street",
+                "postal_code": "00100",
+                "phone_number": "+390000000042",
+                "email": "lang.test@example.com",
+            },
+            "car_id": car["id"],
+            "pickup_location_id": get_location_id("AHO"),
+            "return_location_id": get_location_id("AHO"),
+            "pickup_at": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "return_at": (start + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "language": language,
+        },
+    ).json()
+
+    try:
+        assert created["language"] == language
+        assert client.patch(f"/api/reservations/{created['id']}/status", json={"status": "CONFIRMED"}).status_code == 200
+
+        [message] = _messages(created["id"])
+
+        assert message.language == language
+        assert message.subject.startswith(TEMPLATES["booking_confirmed"][language][0].split("{")[0])
+    finally:
+        client.patch(f"/api/reservations/{created['id']}/cancel")
+
+
+def test_a_booking_without_a_language_uses_the_business_default(email_on):
+    default = client.get("/api/configuration").json()["default_language"]
     reservation = _booking()
 
     try:
         [message] = _messages(reservation["id"])
 
-        assert message.language == language
-        assert message.subject.startswith(TEXT[language]["confirmed.subject"].split("{")[0])
+        assert message.language == default
     finally:
-        client.patch("/api/configuration", json={"document_language": original})
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_a_booking_in_a_language_that_does_not_exist_is_refused():
+    start = datetime.now(timezone.utc) + timedelta(days=far_future_days())
+    response = client.post(
+        "/api/reservations",
+        json={
+            "customer": {
+                "first_name": "Lang",
+                "last_name": "Test",
+                "date_of_birth": "1990-01-01",
+                "address": "1 Test Street",
+                "postal_code": "00100",
+                "phone_number": "+390000000042",
+                "email": "lang.test@example.com",
+            },
+            "car_id": ensure_car_available("SA-008-AA")["id"],
+            "pickup_location_id": get_location_id("AHO"),
+            "return_location_id": get_location_id("AHO"),
+            "pickup_at": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "return_at": (start + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "language": "xx",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_the_confirmation_has_the_address_the_cancellation_deadline_and_a_footer_with_the_business(email_on, monkeypatch):
+    monkeypatch.setenv("STOREFRONT_URL", "https://shop.example.com")
+    reservation = _booking()
+
+    try:
+        [message] = _messages(reservation["id"])
+        business = client.get("/api/configuration").json()
+
+        # The footer is the business identity, whatever anyone wrote in the message.
+        assert "-- " in message.body_text
+        assert (business["legal_name"] or business["business_name"]) in message.body_text.split("-- ")[-1]
+        assert "https://shop.example.com/" in message.body_text.split("-- ")[-1]  # the privacy link
+        assert "<hr>" in message.body_html
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_the_manage_link_is_there_for_a_booking_made_on_the_website_and_the_line_vanishes_otherwise(email_on, monkeypatch):
+    monkeypatch.setenv("STOREFRONT_URL", "https://shop.example.com/")
+    reservation = _booking()  # made by staff: no public reference
+
+    try:
+        [message] = _messages(reservation["id"])
+
+        assert "shop.example.com" not in message.body_text.split("-- ")[0]
+        assert "View or manage your booking" not in message.body_text
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+    # With a reference, the link takes the renter to the lookup with it filled in.
+    db = SessionLocal()
+    try:
+        from app.models import Reservation as ReservationRow
+
+        reservation = _booking()
+        row = db.get(ReservationRow, UUID(reservation["id"]))
+        reference = uuid4().hex[:9].upper()
+        row.public_reference = reference
+        db.query(EmailMessage).delete()
+        db.commit()
+
+        email_outbox.queue_booking_confirmed(db, db.get(ReservationRow, UUID(reservation["id"])))
+        db.commit()
+
+        message = db.scalars(select(EmailMessage)).one()
+        assert f"https://shop.example.com/en/manage?reference={reference}" in message.body_text.replace("/it/", "/en/").replace("/pl/", "/en/")
+    finally:
+        db.rollback()
+        db.get(ReservationRow, UUID(reservation["id"])).public_reference = None
+        db.commit()
+        db.close()
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_the_receipt_does_not_claim_an_attachment_when_attaching_is_switched_off(email_on):
+    assert client.patch("/api/email/types/receipt", json={"options": {"attach_invoice": False}}).status_code == 200
+    reservation = _booking()
+
+    try:
+        client.post(f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment")
+
+        [receipt] = [m for m in _messages(reservation["id"]) if m.template == "receipt"]
+
+        assert receipt.attachment_kind is None
+        assert "attached" not in receipt.body_text.lower() and "allegat" not in receipt.body_text.lower()
+    finally:
+        client.patch("/api/email/types/receipt", json={"options": {"attach_invoice": True}})
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+
+def test_a_switched_off_email_is_not_queued_and_the_others_still_are(email_on):
+    assert client.patch("/api/email/types/booking_confirmed", json={"enabled": False}).status_code == 200
+    reservation = _booking()
+
+    try:
+        assert _messages(reservation["id"]) == []
+
+        client.post(f"/api/reservations/{reservation['id']}/handover/confirm-cash-payment")
+
+        assert [m.template for m in _messages(reservation["id"])] == ["receipt"]
+    finally:
+        client.patch("/api/email/types/booking_confirmed", json={"enabled": True})
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 

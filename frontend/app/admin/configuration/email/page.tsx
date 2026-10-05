@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 import { EmailMessageLog } from "@/components/email/EmailMessageLog";
+import { EmailPartsEditor } from "@/components/email/EmailPartsEditor";
 import { EmailStatusCard } from "@/components/email/EmailStatusCard";
-import { EmailWordingEditor } from "@/components/email/EmailWordingEditor";
+import { EmailTypeList } from "@/components/email/EmailTypeList";
 
-// Email to renters: is it working, what does it say, what was sent. Administrators
-// only; the server refuses everyone else.
+// Email: is it working, which emails exist and what they say, and what was sent.
+// Administrators only; the server refuses everyone else.
 export default function EmailConfigurationPage() {
   // Pausing or resuming changes what the log is about to show.
   const [refreshKey, setRefreshKey] = useState(0);
@@ -15,7 +16,8 @@ export default function EmailConfigurationPage() {
   return (
     <>
       <EmailStatusCard onChanged={() => setRefreshKey((key) => key + 1)} />
-      <EmailWordingEditor />
+      <EmailTypeList />
+      <EmailPartsEditor />
       <EmailMessageLog refreshKey={refreshKey} />
     </>
   );

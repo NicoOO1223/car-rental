@@ -608,9 +608,13 @@ if ($storefrontEnabled) {
 
 # The backend answers the staff app and, when there is one, the storefront.
 $corsOrigins = if ($storefrontUrl) { "$frontendUrl,$storefrontUrl" } else { $frontendUrl }
+# STOREFRONT_URL is what links in emails (view or manage a booking, the privacy page)
+# point to; without a storefront the emails simply have no such links.
+$backendUrlSettings = @("CORS_ORIGINS=$corsOrigins")
+if ($storefrontUrl) { $backendUrlSettings += "STOREFRONT_URL=$storefrontUrl" }
 Invoke-Checked {
-    az containerapp update --name $backendApp --resource-group $rg --set-env-vars "CORS_ORIGINS=$corsOrigins" --output none
-} "point the backend CORS at the frontends"
+    az containerapp update --name $backendApp --resource-group $rg --set-env-vars @backendUrlSettings --output none
+} "point the backend CORS and email links at the frontends"
 
 # --- 5. Stripe webhook ---------------------------------------------------------------
 

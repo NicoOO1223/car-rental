@@ -208,6 +208,8 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
         expected_total: quote.total_amount,
         terms_accepted: true,
         privacy_acknowledged: true,
+        // The booking emails are written in the language the visitor is using.
+        language,
         captcha_token: captchaToken,
       });
 

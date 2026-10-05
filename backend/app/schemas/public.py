@@ -7,6 +7,7 @@ by accident. A test pins the exact keys of every response.
 """
 
 from datetime import date, datetime
+from typing import Literal
 from decimal import Decimal
 from uuid import UUID
 
@@ -181,6 +182,8 @@ class PublicBookingRequest(BaseModel):
     expected_total: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
     terms_accepted: bool
     privacy_acknowledged: bool
+    # The language the visitor is using; the booking emails are written in it.
+    language: Literal["en", "it", "pl"] | None = None
     # Cloudflare Turnstile's token for this attempt.
     captcha_token: str | None = Field(default=None, max_length=4096)
 
