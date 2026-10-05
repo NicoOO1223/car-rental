@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { brand, isTodo, missingLegalFields } from "@/content/brand";
+import { brand, isPlaceholderEmail, isTodo, missingLegalFields } from "@/content/brand";
 import { UNCONFIRMED_COPY } from "@/content/launch";
 import { PRICES_CONFIRMED } from "@/content/plans";
 
@@ -16,7 +16,7 @@ gate("launch gate", () => {
   });
 
   it("has a contact address", () => {
-    expect(isTodo(brand.contactEmail), "brand.contactEmail is TODO").toBe(false);
+    expect(isPlaceholderEmail(brand.contactEmail), "brand.contactEmail is still a placeholder").toBe(false);
   });
 
   it("has the legal entity details", () => {

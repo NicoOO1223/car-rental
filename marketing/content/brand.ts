@@ -13,8 +13,8 @@ export const brand = {
   /** True until the owner has chosen the real name and domain. */
   placeholder: true,
   domain: TODO,
-  /** Where demo requests are answered and shown as the fallback address. */
-  contactEmail: TODO,
+  /** Where demo requests are answered and shown as the fallback address. A placeholder (example.com) until the owner decides. */
+  contactEmail: "hello@example.com",
   legal: {
     entity: TODO,
     address: TODO,
@@ -29,6 +29,11 @@ export type Brand = typeof brand;
 
 export function isTodo(value: string): boolean {
   return value === TODO;
+}
+
+/** True for an address on a reserved example domain: it works as a placeholder, never as a real contact. */
+export function isPlaceholderEmail(value: string): boolean {
+  return isTodo(value) || /@example\.(com|org|net|invalid)$/i.test(value);
 }
 
 /** The legal fields still waiting for the owner. */

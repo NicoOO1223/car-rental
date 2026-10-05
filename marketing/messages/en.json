@@ -224,11 +224,13 @@
   "demo": {
     "title": "Request a demo",
     "sub": "We reply within one working day with a time to show you the system using your kind of fleet.",
-    "pendingTitle": "The request form is coming soon",
-    "pendingBody": "Until it is online, write to us directly.",
-    "emailUs": "Email {email}",
-    "noEmail": "Our contact address will be published here before launch.",
-    "back": "Back to home"
+    "back": "Back to home",
+    "noscript": "The request form needs JavaScript. Please write to us instead.",
+    "sideTitle": "What happens next",
+    "side1": "We read your request.",
+    "side2": "We email you a time.",
+    "side3": "A 30-minute walkthrough with your kind of fleet.",
+    "sideEmail": "Prefer email? Write to {email}."
   },
   "notFound": {
     "title": "This page is not here.",
@@ -258,6 +260,83 @@
       "s4": "Contract",
       "s5": "Liability",
       "s6": "Governing law"
+    }
+  },
+  "form": {
+    "name": "Your name",
+    "company": "Company",
+    "companyHint": "The name renters know",
+    "email": "Work email",
+    "emailHint": "We reply here",
+    "country": "Country",
+    "countryPlaceholder": "Choose a country",
+    "fleet": "Fleet size",
+    "fleetPlaceholder": "Choose a range",
+    "fleetOption": {
+      "1-10": "1 to 10 vehicles",
+      "11-30": "11 to 30 vehicles",
+      "31-60": "31 to 60 vehicles",
+      "60+": "More than 60 vehicles"
+    },
+    "message": "Anything we should know? (optional)",
+    "messageHint": "Locations, vehicle types, current tools",
+    "submit": "Send request",
+    "sending": "Sending…",
+    "notice": "We use your details only to answer this request. See the {link}.",
+    "privacyLink": "Privacy page",
+    "required": "required",
+    "summary": "Please fix the following:",
+    "errors": {
+      "name": {
+        "required": "Enter your name.",
+        "too_long": "Keep your name under 100 characters.",
+        "line_break": "Your name cannot contain a line break."
+      },
+      "company": {
+        "required": "Enter your company name.",
+        "too_long": "Keep the company name under 150 characters.",
+        "line_break": "The company name cannot contain a line break."
+      },
+      "email": {
+        "required": "Enter a valid email address.",
+        "invalid_email": "Enter a valid email address.",
+        "too_long": "That email address is too long.",
+        "line_break": "Enter a valid email address."
+      },
+      "country": {
+        "required": "Choose a country.",
+        "invalid_choice": "Choose a country."
+      },
+      "fleet": {
+        "required": "Choose a range.",
+        "invalid_choice": "Choose a range."
+      },
+      "message": {
+        "too_long": "Keep it under 2000 characters."
+      }
+    },
+    "humanFailed": "We could not confirm you are human. Please try again.",
+    "humanChecking": "Checking that you are human…",
+    "rateLimited": "Too many requests. Try again in a few minutes or email {email}.",
+    "rateLimitedNoEmail": "Too many requests. Please try again in a few minutes.",
+    "serverError": "Something went wrong on our side. Your message was not sent. Please email {email}.",
+    "serverErrorNoEmail": "Something went wrong on our side. Your message was not sent. Please try again later.",
+    "sessionExpired": "This form has expired. Reload the page and try again.",
+    "networkError": "We could not reach the server. Check your connection and try again."
+  },
+  "thanks": {
+    "title": "Request received",
+    "heading": "Thanks, {name}.",
+    "headingGeneric": "Thanks for your request.",
+    "sub": "We have emailed a copy to {email}. We will reply within one working day with a time.",
+    "subGeneric": "We will reply within one working day with a time.",
+    "home": "Back to home",
+    "pricing": "See pricing"
+  },
+  "email": {
+    "reply": {
+      "subject": "We received your demo request",
+      "body": "Hello {name},\n\nThanks for asking about {brand}. We received your request and will reply within one working day with a time for a 30-minute walkthrough.\n\nIf you want to add something, just reply to this email.\n\n{brand}"
     }
   }
 }

@@ -14,15 +14,18 @@
     "demo:up": "powershell -NoProfile -File scripts/demo-stack.ps1 up",
     "demo:reseed": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed",
     "demo:down": "powershell -NoProfile -File scripts/demo-stack.ps1 down",
-    "screens": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed && node scripts/make-demo-assets.mjs && node scripts/capture-screens.mjs"
+    "screens": "powershell -NoProfile -File scripts/demo-stack.ps1 reseed && node scripts/make-demo-assets.mjs && node scripts/capture-screens.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@azure/communication-email": "^1.1.0",
     "next": "^16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "use-intl": "^4.14.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -9,7 +9,7 @@ export function href(language: string, path: string): string {
   return language === DEFAULT_LANGUAGE ? clean || "/" : `/${language}${clean}`;
 }
 
-/** The contact address, or null while it is still a placeholder. */
+/** The contact address, or null while there is none at all (a placeholder address still shows, so the page reads whole). */
 export function contactEmail(): string | null {
   return isTodo(brand.contactEmail) ? null : brand.contactEmail;
 }

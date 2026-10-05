@@ -49,3 +49,14 @@ describe("legal details", () => {
     expect(missingLegalFields()).toEqual(["legal.entity", "legal.address", "legal.vatId", "legal.country"]);
   });
 });
+
+describe("contact address", () => {
+  it("is a placeholder on a reserved example domain until the owner decides", async () => {
+    const { isPlaceholderEmail } = await import("@/content/brand");
+
+    expect(isPlaceholderEmail(brand.contactEmail)).toBe(true);
+    expect(isPlaceholderEmail("hello@example.com")).toBe(true);
+    expect(isPlaceholderEmail("TODO")).toBe(true);
+    expect(isPlaceholderEmail("owner@real-company.eu")).toBe(false);
+  });
+});
