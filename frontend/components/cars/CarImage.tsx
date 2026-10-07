@@ -71,16 +71,16 @@ function CarSilhouette({ category }: { category: string | null }) {
       aria-label={t("c.cars.CarImage.vehicleIllustration")}
       preserveAspectRatio="xMidYMid meet"
     >
-      <path d={BODY_PATHS[style]} className="fill-gray-300" />
+      <path d={BODY_PATHS[style]} className="fill-border-strong" />
 
       {wheels.x.map((cx) => (
         <g key={cx}>
-          <circle cx={cx} cy={70} r={wheels.r} className="fill-gray-400" />
+          <circle cx={cx} cy={70} r={wheels.r} className="fill-ink-muted" />
           <circle
             cx={cx}
             cy={70}
             r={Math.round(wheels.r * 0.45)}
-            className="fill-gray-200"
+            className="fill-border-subtle"
           />
         </g>
       ))}
@@ -92,7 +92,7 @@ function CarSilhouette({ category }: { category: string | null }) {
         width={176}
         height={2}
         rx={1}
-        className="fill-gray-200"
+        className="fill-border-subtle"
       />
     </svg>
   );

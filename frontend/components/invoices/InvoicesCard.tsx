@@ -81,7 +81,7 @@ export function InvoicesCard({
                 <p className="truncate font-medium text-ink">
                   {invoice.number}
                   {invoice.kind === "CREDIT_NOTE" && (
-                    <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("c.invoices.InvoicesCard.creditNote")}</span>
+                    <span className="ml-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-secondary">{t("c.invoices.InvoicesCard.creditNote")}</span>
                   )}
                 </p>
 
@@ -108,7 +108,7 @@ export function InvoicesCard({
       </ul>
 
       {error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+        <p className="mt-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

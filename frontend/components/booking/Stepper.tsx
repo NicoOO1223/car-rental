@@ -50,7 +50,7 @@ export function Stepper({
                 disabled={!isReachable || isCurrent}
                 onClick={() => onStepClick(step.id)}
                 aria-current={isCurrent ? "step" : undefined}
-                className={`flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+                className={`flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                   isReachable && !isCurrent
                     ? "cursor-pointer hover:bg-surface-sunken"
                     : "cursor-default"
@@ -59,9 +59,9 @@ export function Stepper({
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
                     isComplete
-                      ? "bg-gray-900 text-white"
+                      ? "bg-accent text-on-accent"
                       : isCurrent
-                        ? "bg-gray-900 text-white ring-4 ring-gray-900/10"
+                        ? "bg-accent text-on-accent ring-4 ring-accent-ink/10"
                         : "bg-surface-sunken text-ink-muted"
                   }`}
                 >
@@ -89,7 +89,7 @@ export function Stepper({
                 <span
                   aria-hidden="true"
                   className={`h-0.5 min-w-2 flex-1 rounded-full transition ${
-                    index < currentIndex ? "bg-gray-900" : "bg-border-subtle"
+                    index < currentIndex ? "bg-accent" : "bg-border-subtle"
                   }`}
                 />
               )}

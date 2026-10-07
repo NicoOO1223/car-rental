@@ -99,7 +99,7 @@ export default function ClassesConfigurationPage() {
           type="checkbox"
           checked={showRetired}
           onChange={(event) => setShowRetired(event.target.checked)}
-          className="h-4 w-4 accent-gray-900"
+          className="h-4 w-4 accent-accent"
         />
         {t("s.admin.configuration.classes.showRetired")}
       </label>
@@ -113,7 +113,7 @@ export default function ClassesConfigurationPage() {
       )}
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

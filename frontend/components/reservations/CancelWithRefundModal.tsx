@@ -104,14 +104,14 @@ export function CancelWithRefundModal({
         ].map((option) => (
           <label
             key={String(option.value)}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border border-border-strong p-3 text-sm has-[:checked]:border-gray-900"
+            className="flex cursor-pointer items-center gap-3 rounded-lg border border-border-strong p-3 text-sm has-[:checked]:border-accent"
           >
             <input
               type="radio"
               name="refund"
               checked={refund === option.value}
               onChange={() => setRefund(option.value)}
-              className="h-4 w-4 accent-gray-900"
+              className="h-4 w-4 accent-accent"
             />
             <span className="text-ink">{option.label}</span>
           </label>
@@ -119,7 +119,7 @@ export function CancelWithRefundModal({
       </fieldset>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

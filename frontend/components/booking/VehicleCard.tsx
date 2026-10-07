@@ -39,7 +39,7 @@ export function VehicleCard({
     <div
       className={`group flex flex-col overflow-hidden rounded-xl bg-surface shadow-sm transition ${
         selected
-          ? "ring-2 ring-gray-900"
+          ? "ring-2 ring-accent-ink"
           : "ring-1 ring-transparent hover:shadow-md hover:ring-border-strong"
       }`}
     >
@@ -58,7 +58,7 @@ export function VehicleCard({
             A translucent light band rather than a dark one, because it
             keeps dark text legible over both a photo and the pale
             fallback silhouette. */}
-        <div className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-2 border-t border-black/5 bg-white/80 px-3 py-2 backdrop-blur-sm">
+        <div className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-2 border-t border-black/5 bg-surface/80 px-3 py-2 backdrop-blur-sm">
           <h3 className="min-w-0 truncate text-sm font-semibold text-ink">
             {car.make} {car.model}
             <span className="font-normal text-ink-muted">{" "}{t("c.booking.VehicleCard.similar")}</span>
@@ -68,7 +68,7 @@ export function VehicleCard({
         </div>
 
         {selected && (
-          <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-white shadow-sm">
+          <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-on-accent shadow-sm">
             <CheckIcon className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only">{t("c.booking.VehicleCard.selected")}</span>
           </span>
@@ -99,7 +99,7 @@ export function VehicleCard({
         <div className="mt-5 border-t border-border-subtle pt-4">
           <div className="flex items-baseline justify-between gap-2">
             {totalAmount === null ? (
-              <div className="h-7 w-24 animate-pulse rounded-md bg-gray-200" />
+              <div className="h-7 w-24 animate-pulse rounded-md bg-border-subtle" />
             ) : (
               <p className="text-xl font-bold tracking-tight text-ink tabular-nums">
                 {formatCurrency(totalAmount)}
@@ -117,10 +117,10 @@ export function VehicleCard({
             type="button"
             onClick={onSelect}
             aria-pressed={selected}
-            className={`mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
+            className={`mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
               selected
                 ? "bg-surface-sunken text-ink"
-                : "bg-gray-900 text-white hover:bg-gray-800"
+                : "bg-accent text-on-accent hover:bg-accent-hover"
             }`}
           >
             {selected ? t("c.booking.VehicleCard.selected") : t("c.booking.VehicleCard.select")}

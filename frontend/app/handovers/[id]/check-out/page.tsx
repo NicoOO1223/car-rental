@@ -385,11 +385,11 @@ export default function CheckOutPage({ params }: Props) {
         <div className="mx-auto max-w-3xl">
           <button
             onClick={() => navigate("/handovers?tab=check-out")}
-            className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="mb-6 flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkOut.backHandovers")}</button>
 
-          <p className="text-red-600">{loadError || t("s.handovers.id.checkOut.reservationNotFound")}</p>
+          <p className="text-danger">{loadError || t("s.handovers.id.checkOut.reservationNotFound")}</p>
         </div>
       </main>
     );
@@ -437,13 +437,13 @@ export default function CheckOutPage({ params }: Props) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <button
             onClick={() => navigate("/handovers?tab=check-out")}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkOut.backHandovers")}</button>
 
           <button
             onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
-            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
+            className="flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-ink"
           >{t("s.handovers.id.checkOut.viewChangeReservation")}<ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -451,12 +451,12 @@ export default function CheckOutPage({ params }: Props) {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">{t("s.handovers.id.checkOut.vehicleCheckOut")}</h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-ink-secondary">
               {reservation.customer.first_name} {reservation.customer.last_name}{" "}
               · {reservation.car.make} {reservation.car.model} ·{" "}
               {reservation.car.license_plate}
             </p>
-            <p className="mt-1 text-sm text-gray-500">{t("s.handovers.id.checkOut.dueBackAt", { v1: formatDateTime(reservation.return_at, reservation.return_location.timezone), airport_code: reservation.return_location.airport_code })}</p>
+            <p className="mt-1 text-sm text-ink-muted">{t("s.handovers.id.checkOut.dueBackAt", { v1: formatDateTime(reservation.return_at, reservation.return_location.timezone), airport_code: reservation.return_location.airport_code })}</p>
           </div>
 
           <ReservationStatusBadge status={reservation.status} />
@@ -464,21 +464,21 @@ export default function CheckOutPage({ params }: Props) {
 
         {notOut ? (
           <Card>
-            <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.rentalSoItCan", { status: enumLabelLower("reservationStatus", reservation.status) })}</p>
+            <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.rentalSoItCan", { status: enumLabelLower("reservationStatus", reservation.status) })}</p>
           </Card>
         ) : completed ? (
           <Card className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-900 text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent">
               <Check className="h-6 w-6" />
             </div>
 
             <h2 className="text-xl font-semibold">{t("s.handovers.id.checkOut.checkOutComplete")}</h2>
 
-            <p className="mt-2 text-sm text-gray-600">{t("s.handovers.id.checkOut.rentalCompletedVehicleBack")}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{t("s.handovers.id.checkOut.rentalCompletedVehicleBack")}</p>
 
             {result?.car_away_from_home && (
               <div
-                className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-left text-sm text-amber-900"
+                className="mt-4 flex items-start gap-2 rounded-lg border border-warning-line bg-warning-soft p-3 text-left text-sm text-warning"
                 role="alert"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -487,11 +487,11 @@ export default function CheckOutPage({ params }: Props) {
             )}
 
             {result?.maintenance_task_id && (
-              <p className="mt-4 text-sm text-gray-700">{t("s.handovers.id.checkOut.damageWasReportedSo")}</p>
+              <p className="mt-4 text-sm text-ink-secondary">{t("s.handovers.id.checkOut.damageWasReportedSo")}</p>
             )}
 
             {result?.cleaning_task_id && (
-              <p className="mt-4 text-sm text-gray-700">{t("s.handovers.id.checkOut.carSentForCleaning")}</p>
+              <p className="mt-4 text-sm text-ink-secondary">{t("s.handovers.id.checkOut.carSentForCleaning")}</p>
             )}
 
             <div className="mt-6 flex justify-center gap-3">
@@ -511,7 +511,7 @@ export default function CheckOutPage({ params }: Props) {
 
               <form onSubmit={handleSaveCondition} className="mt-5 space-y-4">
                 {pastScheduledReturn && !conditionSaved && (
-                  <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t("s.handovers.id.checkOut.rentalPastItsScheduled")}</p>
+                  <p className="rounded-lg bg-warning-soft p-3 text-sm text-warning">{t("s.handovers.id.checkOut.rentalPastItsScheduled")}</p>
                 )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -657,7 +657,7 @@ export default function CheckOutPage({ params }: Props) {
                 )}
 
                 {conditionError && (
-                  <p className="text-sm text-red-600" role="alert">
+                  <p className="text-sm text-danger" role="alert">
                     {conditionError}
                   </p>
                 )}
@@ -751,7 +751,7 @@ export default function CheckOutPage({ params }: Props) {
                         />
 
                         {waiveError && (
-                          <p className="text-sm text-red-600" role="alert">
+                          <p className="text-sm text-danger" role="alert">
                             {waiveError}
                           </p>
                         )}
@@ -774,7 +774,7 @@ export default function CheckOutPage({ params }: Props) {
                       <div className="space-y-3 rounded-lg border border-border-strong p-4">
                         <p className="text-sm font-medium text-ink">{t("s.handovers.id.checkOut.securityDeposit")}</p>
 
-                        <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.depositHeldChargesTaken", {
+                        <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.depositHeldChargesTaken", {
                           method: checkOut.deposit_method === "CASH" ? "CASH" : "CARD",
                           deposit: money(checkOut.deposit_amount, checkOut.payment_currency),
                           charges: money(checkOut.total_charge, checkOut.payment_currency),
@@ -789,7 +789,7 @@ export default function CheckOutPage({ params }: Props) {
                         <p className="text-xs text-ink-muted">{t("s.handovers.id.checkOut.settlingLocksFiguresAbove")}</p>
 
                         {depositError && (
-                          <p className="text-sm text-red-600" role="alert">
+                          <p className="text-sm text-danger" role="alert">
                             {depositError}
                           </p>
                         )}
@@ -805,7 +805,7 @@ export default function CheckOutPage({ params }: Props) {
                     )}
 
                     {checkOut.deposit_settled_at && checkOut.deposit_held && (
-                      <p className="text-sm text-gray-700">
+                      <p className="text-sm text-ink-secondary">
                         {checkOut.deposit_status === "LAPSED"
                           ? t("s.handovers.id.checkOut.cardHoldHadExpired")
                           : t(
@@ -823,13 +823,13 @@ export default function CheckOutPage({ params }: Props) {
                     )}
 
                     {checkOut.deposit_pending ? null : amountDue <= 0 ? (
-                      <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.noChargesCollect")}</p>
+                      <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.noChargesCollect")}</p>
                     ) : checkOut.payment_status === "SUCCEEDED" ? (
-                      <p className="text-sm text-gray-700">{t("s.handovers.id.checkOut.paymentReceived", { method: t(checkOut.payment_method === "CASH" ? "common.cash" : "common.card"), amount: money(checkOut.payment_amount ?? 0, checkOut.payment_currency) })}</p>
+                      <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.paymentReceived", { method: t(checkOut.payment_method === "CASH" ? "common.cash" : "common.card"), amount: money(checkOut.payment_amount ?? 0, checkOut.payment_currency) })}</p>
                     ) : (
                       <div className="space-y-3">
                         {paymentIntentError && (
-                          <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">{t("s.handovers.id.checkOut.cardPaymentMayBe", { paymentIntentError })}</p>
+                          <p className="rounded-lg bg-surface-sunken p-3 text-sm text-ink-secondary">{t("s.handovers.id.checkOut.cardPaymentMayBe", { paymentIntentError })}</p>
                         )}
 
                         <CheckOutPaymentStep
@@ -852,7 +852,7 @@ export default function CheckOutPage({ params }: Props) {
 
               <div className="mt-5">
                 {signatureDone && checkOut ? (
-                  <p className="text-sm text-gray-700">{checkOut.employee_signed_at
+                  <p className="text-sm text-ink-secondary">{checkOut.employee_signed_at
                       ? t("s.handovers.id.checkOut.receivedByOn", {
                           who: checkOut.employee_signed_by_email ?? t("common.anEmployee"),
                           date: formatDateTime(checkOut.employee_signed_at),
@@ -862,12 +862,12 @@ export default function CheckOutPage({ params }: Props) {
                         })}</p>
                 ) : signatureStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkOut.employeeReceivingVehicleSigns")}</p>
+                    <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkOut.employeeReceivingVehicleSigns")}</p>
 
                     <SignaturePad ref={signaturePadRef} />
 
                     {signatureError && (
-                      <p className="text-sm text-red-600">{signatureError}</p>
+                      <p className="text-sm text-danger">{signatureError}</p>
                     )}
 
                     <div className="flex gap-3">
@@ -894,10 +894,10 @@ export default function CheckOutPage({ params }: Props) {
               <div className="mt-5">
                 {completeStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{t(damageReported ? "s.handovers.id.checkOut.completesRepair" : "s.handovers.id.checkOut.completesAvailable", { airport_code: reservation.return_location.airport_code })}</p>
+                    <p className="text-sm text-ink-secondary">{t(damageReported ? "s.handovers.id.checkOut.completesRepair" : "s.handovers.id.checkOut.completesAvailable", { airport_code: reservation.return_location.airport_code })}</p>
 
                     {completeError && (
-                      <p className="text-sm text-red-600" role="alert">
+                      <p className="text-sm text-danger" role="alert">
                         {completeError}
                       </p>
                     )}

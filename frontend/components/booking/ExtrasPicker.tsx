@@ -84,7 +84,7 @@ export function ExtrasPicker({
             key={extra.id}
             className={`rounded-xl bg-surface p-4 shadow-sm transition ${
               isSelected
-                ? "ring-2 ring-gray-900"
+                ? "ring-2 ring-accent-ink"
                 : "ring-1 ring-transparent hover:ring-border-strong"
             }`}
           >
@@ -92,7 +92,7 @@ export function ExtrasPicker({
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition ${
                   isSelected
-                    ? "bg-gray-900 text-white"
+                    ? "bg-accent text-on-accent"
                     : "bg-surface-sunken text-ink-muted"
                 }`}
               >
@@ -123,7 +123,7 @@ export function ExtrasPicker({
                       type="button"
                       onClick={() => setQuantity(extra.id, quantity - 1)}
                       aria-label={t("c.booking.ExtrasPicker.removeOne", { name: extraName(extra) })}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                     >
                       <Minus className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -140,7 +140,7 @@ export function ExtrasPicker({
                       disabled={quantity >= extra.max_quantity}
                       onClick={() => setQuantity(extra.id, quantity + 1)}
                       aria-label={t("c.booking.ExtrasPicker.addOneMore", { name: extraName(extra) })}
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -150,10 +150,10 @@ export function ExtrasPicker({
                     type="button"
                     onClick={() => setQuantity(extra.id, isSelected ? 0 : 1)}
                     aria-pressed={isSelected}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
                       isSelected
                         ? "bg-surface-sunken text-ink"
-                        : "border border-border-strong bg-white text-ink-secondary hover:bg-surface-sunken hover:text-ink"
+                        : "border border-border-strong bg-surface text-ink-secondary hover:bg-surface-sunken hover:text-ink"
                     }`}
                   >
                     {isSelected ? t("c.booking.ExtrasPicker.added") : t("c.booking.ExtrasPicker.add")}

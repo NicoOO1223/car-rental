@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:messages": "node scripts/check-messages.mjs --strict",
+    "check:colors": "node scripts/check-colors.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },

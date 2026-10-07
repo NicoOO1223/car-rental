@@ -197,7 +197,7 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
         <p className="text-sm text-ink-secondary">{t("c.cars.AddVehicleModal.afterwardsHint")}</p>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}

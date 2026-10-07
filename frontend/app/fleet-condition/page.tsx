@@ -32,27 +32,27 @@ function AlertBadges({ car }: { car: CarCondition }) {
   const badges: { key: string; label: string; tone: string }[] = [];
 
   if (car.oil_change_overdue) {
-    badges.push({ key: "oil", label: t("s.fleetCondition.oilOverdue"), tone: "bg-amber-100 text-amber-800" });
+    badges.push({ key: "oil", label: t("s.fleetCondition.oilOverdue"), tone: "bg-warning-soft text-warning" });
   }
 
   if (car.condition_review_overdue) {
     badges.push({
       key: "condition",
       label: t("s.fleetCondition.conditionReviewOverdue"),
-      tone: "bg-amber-100 text-amber-800",
+      tone: "bg-warning-soft text-warning",
     });
   }
 
   if (car.next_inspection_due) {
     const days = insuranceDaysLeft(car.next_inspection_due);
-    if (days < 0) badges.push({ key: "inspection", label: t("s.cars.id.overdue"), tone: "bg-red-100 text-red-700" });
-    else if (days <= 30) badges.push({ key: "inspection", label: t("s.cars.id.dueSoon"), tone: "bg-amber-100 text-amber-800" });
+    if (days < 0) badges.push({ key: "inspection", label: t("s.cars.id.overdue"), tone: "bg-danger-soft text-danger" });
+    else if (days <= 30) badges.push({ key: "inspection", label: t("s.cars.id.dueSoon"), tone: "bg-warning-soft text-warning" });
   }
 
   if (car.insured_until) {
     const days = insuranceDaysLeft(car.insured_until);
-    if (days < 0) badges.push({ key: "insurance", label: t("s.cars.id.expired"), tone: "bg-red-100 text-red-700" });
-    else if (days <= 30) badges.push({ key: "insurance", label: t("s.cars.id.endsSoon"), tone: "bg-amber-100 text-amber-800" });
+    if (days < 0) badges.push({ key: "insurance", label: t("s.cars.id.expired"), tone: "bg-danger-soft text-danger" });
+    else if (days <= 30) badges.push({ key: "insurance", label: t("s.cars.id.endsSoon"), tone: "bg-warning-soft text-warning" });
   }
 
   if (badges.length === 0) {
@@ -181,7 +181,7 @@ export default function FleetConditionPage() {
       cell: (car) => {
         if (!car.insured_until) return <span className="text-sm text-ink-muted">—</span>;
         const days = insuranceDaysLeft(car.insured_until);
-        const tone = days < 0 ? "text-red-700" : days <= 30 ? "text-amber-800" : "text-ink-muted";
+        const tone = days < 0 ? "text-danger" : days <= 30 ? "text-warning" : "text-ink-muted";
         return <span className={`text-sm font-medium ${tone}`}>{days}</span>;
       },
     },
@@ -206,7 +206,7 @@ export default function FleetConditionPage() {
 
       {error && (
         <div className="mb-6 rounded-xl bg-surface p-6 shadow-sm">
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
         </div>

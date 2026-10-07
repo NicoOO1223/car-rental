@@ -113,7 +113,7 @@ export function UpcomingCard({
         <button
           type="button"
           onClick={() => navigate(viewAllHref)}
-          className="flex shrink-0 items-center gap-1 text-sm font-medium text-ink-secondary transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 rounded-md"
+          className="flex shrink-0 items-center gap-1 text-sm font-medium text-ink-secondary transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 rounded-md"
         >{t("c.dashboard.UpcomingCard.viewAll")}<ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
@@ -132,7 +132,7 @@ export function UpcomingCard({
               key={reservation.id}
               type="button"
               onClick={() => navigate(config.detailHref(reservation.id))}
-              className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-start gap-4 py-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
+              className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-start gap-4 py-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
             >
               {/* Left: the hour, and how long the rental lasts. */}
               <div className="self-center text-center">
@@ -153,7 +153,7 @@ export function UpcomingCard({
                 {direction === "return" &&
                   reservation.status === "ACTIVE" &&
                   new Date(reservation.return_at).getTime() < now && (
-                    <span className="mt-1 inline-block rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{t("c.dashboard.UpcomingCard.overdue")}</span>
+                    <span className="mt-1 inline-block rounded bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger">{t("c.dashboard.UpcomingCard.overdue")}</span>
                   )}
               </div>
 

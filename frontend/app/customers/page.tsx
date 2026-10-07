@@ -114,7 +114,7 @@ export default function CustomersPage() {
             secondary={customer.postal_code}
           />
           {customer.anonymized_at && (
-            <Badge colorClass="bg-gray-100 text-gray-600">{t("s.customers.erased")}</Badge>
+            <Badge colorClass="bg-surface-sunken text-ink-secondary">{t("s.customers.erased")}</Badge>
           )}
         </div>
       ),
@@ -165,7 +165,7 @@ export default function CustomersPage() {
     return (
       <PageShell>
         <Card>
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
 

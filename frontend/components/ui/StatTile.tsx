@@ -33,7 +33,7 @@ export function StatTile({
     <>
       <div className="flex items-start justify-between gap-2">
         <p
-          className={`text-sm ${active ? "text-gray-300" : "text-ink-muted"}`}
+          className={`text-sm ${active ? "text-border-strong" : "text-ink-muted"}`}
         >
           {label}
         </p>
@@ -41,7 +41,7 @@ export function StatTile({
         {icon &&
           createElement(icon, {
             className: `h-4 w-4 shrink-0 ${
-              active ? "text-gray-400" : "text-ink-muted"
+              active ? "text-ink-muted" : "text-ink-muted"
             }`,
             "aria-hidden": true,
           })}
@@ -49,7 +49,7 @@ export function StatTile({
 
       <p
         className={`mt-2 text-3xl font-bold tracking-tight ${
-          active ? "text-white" : "text-ink"
+          active ? "text-on-accent" : "text-ink"
         }`}
       >
         {value}
@@ -58,7 +58,7 @@ export function StatTile({
       {hint && (
         <p
           className={`mt-1 text-xs ${
-            active ? "text-gray-400" : "text-ink-muted"
+            active ? "text-ink-muted" : "text-ink-muted"
           }`}
         >
           {hint}
@@ -80,9 +80,9 @@ export function StatTile({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`${shell} w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
+      className={`${shell} w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
         active
-          ? "bg-gray-900"
+          ? "bg-accent"
           : "bg-surface hover:shadow-md hover:ring-1 hover:ring-border-strong"
       } ${className}`}
     >

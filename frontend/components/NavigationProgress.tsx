@@ -34,9 +34,9 @@ export function NavigationProgressProvider({
           role="progressbar"
           aria-busy="true"
           aria-label={t("c.NavigationProgress.loadingPage")}
-          className="fixed left-0 top-0 z-[100] h-0.5 w-full overflow-hidden bg-gray-200"
+          className="fixed left-0 top-0 z-[100] h-0.5 w-full overflow-hidden bg-border-subtle"
         >
-          <div className="h-full w-1/3 animate-[progress-slide_0.9s_ease-in-out_infinite] bg-gray-900" />
+          <div className="h-full w-1/3 animate-[progress-slide_0.9s_ease-in-out_infinite] bg-accent" />
         </div>
       )}
       {children}

@@ -49,8 +49,8 @@ export function AccentColorField({ value, onChange }: { value: string; onChange:
               aria-pressed={selected}
               onClick={() => onChange(preset.color)}
               style={{ backgroundColor: preset.color, color: onAccent(preset.color) }}
-              className={`flex h-9 w-9 items-center justify-center rounded-full ring-offset-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
-                selected ? "ring-2 ring-gray-900" : "ring-1 ring-border-strong"
+              className={`flex h-9 w-9 items-center justify-center rounded-full ring-offset-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+                selected ? "ring-2 ring-accent-ink" : "ring-1 ring-border-strong"
               }`}
             >
               {selected && <Check className="h-4 w-4" aria-hidden="true" />}
@@ -60,7 +60,7 @@ export function AccentColorField({ value, onChange }: { value: string; onChange:
 
         <label
           htmlFor={`${id}-custom`}
-          className="ml-2 flex cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-white py-1.5 pl-1.5 pr-3 text-sm text-ink-secondary hover:bg-surface-sunken"
+          className="ml-2 flex cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-surface py-1.5 pl-1.5 pr-3 text-sm text-ink-secondary hover:bg-surface-sunken"
         >
           <input
             id={`${id}-custom`}

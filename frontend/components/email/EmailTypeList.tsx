@@ -58,7 +58,7 @@ export function EmailTypeList() {
       <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.email.emailsIntro")}</p>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}
@@ -116,7 +116,7 @@ export function EmailTypeList() {
                           <input
                             type="checkbox"
                             role="switch"
-                            className="h-4 w-4 accent-gray-900"
+                            className="h-4 w-4 accent-accent"
                             checked={row.enabled}
                             disabled={busyKey === row.key}
                             onChange={() => toggle(row)}

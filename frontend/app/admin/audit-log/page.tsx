@@ -150,7 +150,7 @@ export default function AuditLogPage() {
     return (
       <PageShell>
         <Card>
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
         </Card>

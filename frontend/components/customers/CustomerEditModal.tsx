@@ -153,7 +153,7 @@ export function CustomerEditModal({ customer, onClose, onSaved }: Props) {
         </div>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}

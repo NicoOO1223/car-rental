@@ -117,7 +117,7 @@ export default function CustomerDetailsPage({ params }: Props) {
     return (
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-red-600">
+          <p className="text-danger">
             {error || t("s.customers.id.customerNotFound")}
           </p>
         </div>
@@ -133,7 +133,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         <div className="mb-8">
           <button
             onClick={() => navigate("/customers")}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.customers.id.backCustomers")}</button>
 
@@ -143,7 +143,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                 {customer.first_name} {customer.last_name}
               </h1>
 
-              <p className="mt-2 text-gray-500">{t("s.customers.id.customerSince", { v1: formatDate(customer.created_at) })}</p>
+              <p className="mt-2 text-ink-muted">{t("s.customers.id.customerSince", { v1: formatDate(customer.created_at) })}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -179,11 +179,11 @@ export default function CustomerDetailsPage({ params }: Props) {
           </div>
 
           {privacyActionError && (
-            <p className="mt-3 text-sm text-red-600">{privacyActionError}</p>
+            <p className="mt-3 text-sm text-danger">{privacyActionError}</p>
           )}
 
           {customer.anonymized_at && (
-            <div className="mt-4 flex items-start gap-2 rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
+            <div className="mt-4 flex items-start gap-2 rounded-lg bg-surface-sunken p-4 text-sm text-ink-secondary">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t("s.customers.id.customerSPersonalData", { v1: formatDate(customer.anonymized_at) })}</span>
             </div>
@@ -196,36 +196,36 @@ export default function CustomerDetailsPage({ params }: Props) {
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-gray-500">{t("s.customers.id.dateBirth")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.dateBirth")}</p>
               <p className="mt-1 font-medium">
                 {formatDate(customer.date_of_birth)}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.customers.id.postalCode")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.postalCode")}</p>
               <p className="mt-1 font-medium">{customer.postal_code}</p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.customers.id.phone")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.phone")}</p>
               <p className="mt-1 font-medium">
                 {customer.phone_number || "—"}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.customers.id.email")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.email")}</p>
               <p className="mt-1 font-medium">{customer.email || "—"}</p>
             </div>
 
             <div className="sm:col-span-2">
-              <p className="text-sm text-gray-500">{t("s.customers.id.address")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.address")}</p>
               <p className="mt-1 font-medium">{customer.address}</p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.customers.id.customerReference")}</p>
+              <p className="text-sm text-ink-muted">{t("s.customers.id.customerReference")}</p>
               <p className="mt-1 font-mono font-medium">
                 {bookingReference(customer.id)}
               </p>
@@ -238,16 +238,16 @@ export default function CustomerDetailsPage({ params }: Props) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">{t("s.customers.id.reservations")}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t("s.customers.id.fullBookingHistory")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.customers.id.fullBookingHistory")}</p>
             </div>
 
-            <span className="text-sm text-gray-500">{t("common.bookings", { count: reservations.length })}</span>
+            <span className="text-sm text-ink-muted">{t("common.bookings", { count: reservations.length })}</span>
           </div>
 
           {reservations.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
-              <p className="font-medium text-gray-700">{t("s.customers.id.noReservations")}</p>
-              <p className="mt-1 text-sm text-gray-500">{t("s.customers.id.customerHasNoBookings")}</p>
+              <p className="font-medium text-ink-secondary">{t("s.customers.id.noReservations")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.customers.id.customerHasNoBookings")}</p>
             </div>
           ) : (
             <div className="mt-6 space-y-3">
@@ -257,7 +257,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                   onClick={() =>
                     navigate(`/reservations/manage/${reservation.id}`)
                   }
-                  className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50"
+                  className="cursor-pointer rounded-lg border p-4 hover:bg-canvas"
                 >
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -265,7 +265,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                         {reservation.car.make} {reservation.car.model}
                       </p>
 
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-ink-muted">
                         {reservation.car.license_plate}
                         {" · "}
                         {reservation.pickup_location.airport_code}
@@ -281,7 +281,7 @@ export default function CustomerDetailsPage({ params }: Props) {
                         {formatDate(reservation.return_at, reservation.return_location.timezone)}
                       </p>
 
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-ink-muted">
                         {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)}
                         {" → "}
                         {formatDateTime(reservation.return_at, reservation.return_location.timezone)}

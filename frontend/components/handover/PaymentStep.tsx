@@ -95,7 +95,7 @@ export function PaymentForm({
       <PaymentElement />
 
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       )}
 
       <Button type="submit" disabled={!stripe || submitting} fullWidth>
@@ -138,9 +138,9 @@ export function CashPaymentForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">{description}</p>
+      <p className="text-sm text-ink-secondary">{description}</p>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <Button onClick={handleConfirm} disabled={confirming} fullWidth>
         <Banknote className="h-4 w-4" aria-hidden="true" />
@@ -179,14 +179,14 @@ export function PrepaidSettleForm({
 
   return (
     <div className="space-y-4">
-      <p className="flex items-center gap-2 text-sm text-gray-700">
+      <p className="flex items-center gap-2 text-sm text-ink-secondary">
         <CircleCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
         {t("c.handover.PaymentStep.paidInFullOnline", {
           amount: formatCurrency(paidOnline, currency.toUpperCase()),
         })}
       </p>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <Button onClick={handleSettle} loading={settling} fullWidth>
         {t("c.handover.PaymentStep.continueNothingDue")}
@@ -238,7 +238,7 @@ export function PaymentStep({
       )}
 
       {amount !== null && paidOnline > 0 && (
-        <dl className="space-y-2.5 rounded-lg bg-gray-50 p-4 text-sm">
+        <dl className="space-y-2.5 rounded-lg bg-canvas p-4 text-sm">
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ink-secondary">{t("c.handover.PaymentStep.paidOnline")}</dt>
             <dd className="font-medium text-ink tabular-nums">
@@ -267,7 +267,7 @@ export function PaymentStep({
             onClick={() => setMethod(key)}
             className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
               method === key
-                ? "border-gray-900 text-ink"
+                ? "border-accent text-ink"
                 : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
@@ -283,7 +283,7 @@ export function PaymentStep({
             <PaymentForm reservationId={reservationId} onPaid={onPaid} />
           </Elements>
         ) : (
-          <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("c.handover.PaymentStep.stripeNotConfigured")}</div>
+          <div className="rounded-lg bg-surface-sunken p-4 text-sm text-ink-secondary">{t("c.handover.PaymentStep.stripeNotConfigured")}</div>
         )
       ) : (
         <CashPaymentForm reservationId={reservationId} onPaid={onPaid} />

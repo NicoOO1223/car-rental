@@ -28,23 +28,23 @@ export type ReservationStatusVariant = "subtle" | "solid" | "dot";
 type StatusWeight = "neutral" | "active" | "muted";
 
 const WEIGHT_BADGE: Record<StatusWeight, string> = {
-  neutral: "bg-gray-100 text-gray-700",
-  active: "bg-gray-900 text-white",
-  // Raised from text-gray-400 (about 2.8:1 on white, below AA). Muted
+  neutral: "bg-surface-sunken text-ink-secondary",
+  active: "bg-accent text-on-accent",
+  // Raised from text-ink-muted (about 2.8:1 on white, below AA). Muted
   // still reads as de-emphasized against the darker neutral weight.
-  muted: "bg-white text-gray-500 border border-gray-300",
+  muted: "bg-surface text-ink-muted border border-border-strong",
 };
 
 const WEIGHT_SOLID: Record<StatusWeight, string> = {
-  neutral: "bg-gray-500 text-white",
-  active: "bg-gray-900 text-white",
-  muted: "bg-gray-200 text-gray-500",
+  neutral: "bg-ink-muted text-surface",
+  active: "bg-accent text-on-accent",
+  muted: "bg-border-subtle text-ink-muted",
 };
 
 const WEIGHT_DOT: Record<StatusWeight, string> = {
-  neutral: "bg-gray-400",
-  active: "bg-gray-900",
-  muted: "bg-gray-300",
+  neutral: "bg-ink-muted",
+  active: "bg-accent",
+  muted: "bg-border-strong",
 };
 
 const CAR_STATUS_WEIGHT: Record<string, StatusWeight> = {
@@ -63,7 +63,7 @@ export const CAR_STATUS_ICONS: Record<string, LucideIcon> = {
   CLEANING: Sparkles,
 };
 
-const DEFAULT_CAR_STATUS_STYLE = "bg-gray-100 text-gray-700";
+const DEFAULT_CAR_STATUS_STYLE = "bg-surface-sunken text-ink-secondary";
 
 export function getCarStatusStyle(status: string): string {
   const weight = CAR_STATUS_WEIGHT[status];
@@ -115,9 +115,9 @@ export const RESERVATION_STATUS_ICONS: Record<string, LucideIcon> = {
 };
 
 const DEFAULT_RESERVATION_STATUS_STYLE: Record<ReservationStatusVariant, string> = {
-  subtle: "bg-gray-100 text-gray-700",
-  solid: "bg-gray-500 text-white",
-  dot: "bg-gray-400",
+  subtle: "bg-surface-sunken text-ink-secondary",
+  solid: "bg-ink-muted text-surface",
+  dot: "bg-ink-muted",
 };
 
 export function getReservationStatusStyle(

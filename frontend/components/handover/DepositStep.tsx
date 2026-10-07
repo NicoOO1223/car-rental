@@ -61,7 +61,7 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-700">{t("c.handover.DepositStep.deposit")}{" "}<span className="font-semibold">
+      <p className="text-sm text-ink-secondary">{t("c.handover.DepositStep.deposit")}{" "}<span className="font-semibold">
           {formatCurrency(amount, currency?.toUpperCase())}
         </span>{t("c.handover.DepositStep.anyReturnChargesTaken")}</p>
 
@@ -78,7 +78,7 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
             onClick={() => setMethod(key)}
             className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition ${
               method === key
-                ? "border-gray-900 text-ink"
+                ? "border-accent text-ink"
                 : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
@@ -91,7 +91,7 @@ export function DepositStep({ reservationId, amount, currency, onHeld }: Props) 
       {method === "card" ? (
         <div className="space-y-3">
           {error && (
-            <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">{t("c.handover.DepositStep.cardHoldMayBe", { error })}</p>
+            <p className="rounded-lg bg-surface-sunken p-3 text-sm text-ink-secondary">{t("c.handover.DepositStep.cardHoldMayBe", { error })}</p>
           )}
 
           {getStripePromise() && clientSecret ? (

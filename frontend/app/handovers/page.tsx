@@ -211,7 +211,7 @@ export default function HandoversPage() {
       const late = lateLabel(reservation.return_at, now);
 
       return late ? (
-        <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+        <span className="rounded bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger">
           {late}
         </span>
       ) : (
@@ -243,7 +243,7 @@ export default function HandoversPage() {
     return (
       <PageShell width="wide">
         <div className="rounded-xl bg-surface p-8 shadow-sm">
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
 

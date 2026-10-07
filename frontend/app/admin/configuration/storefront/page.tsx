@@ -311,7 +311,7 @@ export default function StorefrontConfigurationPage() {
   if (loadError) {
     return (
       <Card>
-        <p className="text-red-600" role="alert">
+        <p className="text-danger" role="alert">
           {loadError}
         </p>
       </Card>
@@ -382,7 +382,7 @@ export default function StorefrontConfigurationPage() {
         </div>
 
         {heroError && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {heroError}
           </p>
         )}
@@ -500,7 +500,7 @@ export default function StorefrontConfigurationPage() {
           </div>
 
           {aboutImageError && (
-            <p className="mt-2 text-sm text-red-600" role="alert">
+            <p className="mt-2 text-sm text-danger" role="alert">
               {aboutImageError}
             </p>
           )}
@@ -561,7 +561,7 @@ export default function StorefrontConfigurationPage() {
           </div>
 
           {ctaImageError && (
-            <p className="mt-2 text-sm text-red-600" role="alert">
+            <p className="mt-2 text-sm text-danger" role="alert">
               {ctaImageError}
             </p>
           )}
@@ -586,7 +586,7 @@ export default function StorefrontConfigurationPage() {
         </SelectField>
 
         {missingLegal && (
-          <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700">
+          <p className="rounded-lg bg-surface-sunken p-3 text-sm text-ink-secondary">
             {t("s.admin.configuration.storefront.missingTerms")}
           </p>
         )}
@@ -729,7 +729,7 @@ export default function StorefrontConfigurationPage() {
         />
 
         {saveError && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {saveError}
           </p>
         )}

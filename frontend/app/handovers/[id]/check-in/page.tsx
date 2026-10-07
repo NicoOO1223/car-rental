@@ -248,11 +248,11 @@ export default function FinalizeHandoverPage({ params }: Props) {
         <div className="mx-auto max-w-3xl">
           <button
             onClick={() => navigate("/handovers")}
-            className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="mb-6 flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkIn.backHandovers")}</button>
 
-          <p className="text-red-600">
+          <p className="text-danger">
             {loadError || t("s.handovers.id.checkIn.reservationNotFound")}
           </p>
         </div>
@@ -315,13 +315,13 @@ export default function FinalizeHandoverPage({ params }: Props) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <button
             onClick={() => navigate("/handovers")}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.handovers.id.checkIn.backHandovers")}</button>
 
           <button
             onClick={() => navigate(`/reservations/manage/${reservation.id}`)}
-            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black"
+            className="flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-ink"
           >{t("s.handovers.id.checkIn.viewChangeReservation")}<ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -329,12 +329,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">{t("s.handovers.id.checkIn.vehicleCheck")}</h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-ink-secondary">
               {reservation.customer.first_name}{" "}
               {reservation.customer.last_name} · {reservation.car.make}{" "}
               {reservation.car.model} · {reservation.car.license_plate}
             </p>
-            <p className="mt-1 text-sm text-gray-500">{t("s.handovers.id.checkIn.booked", { v1: formatDateTime(reservation.created_at) })}</p>
+            <p className="mt-1 text-sm text-ink-muted">{t("s.handovers.id.checkIn.booked", { v1: formatDateTime(reservation.created_at) })}</p>
           </div>
 
           <ReservationStatusBadge status={reservation.status} />
@@ -346,13 +346,13 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
         {agreementDone ? (
           <Card className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-900 text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent">
               <Check className="h-6 w-6" />
             </div>
 
             <h2 className="text-xl font-semibold">{t("s.handovers.id.checkIn.checkComplete")}</h2>
 
-            <p className="mt-2 text-sm text-gray-600">{t("s.handovers.id.checkIn.rentalAgreementHasBeen")}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{t("s.handovers.id.checkIn.rentalAgreementHasBeen")}</p>
 
             <div className="mt-6 flex justify-center gap-3">
               <button
@@ -362,7 +362,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     `agreement-${reservation.id}.pdf`,
                   )
                 }
-                className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
+                className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2"
               >{t("s.handovers.id.checkIn.downloadAgreement")}</button>
 
               <Button
@@ -381,14 +381,14 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
               <div className="mt-5">
                 {paymentDone && handover.payment_method === "PREPAID" ? (
-                  <p className="flex items-center gap-1.5 text-sm text-gray-700">
+                  <p className="flex items-center gap-1.5 text-sm text-ink-secondary">
                     <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {t("s.handovers.id.checkIn.paidInFullOnline", {
                       amount: `${(summary?.paid_online ?? 0).toFixed(2)} ${summary?.currency.toUpperCase() ?? ""}`,
                     })}
                   </p>
                 ) : paymentDone ? (
-                  <p className="flex items-center gap-1.5 text-sm text-gray-700">
+                  <p className="flex items-center gap-1.5 text-sm text-ink-secondary">
                     {handover.payment_method === "CASH" ? (
                       <Banknote className="h-4 w-4 shrink-0" aria-hidden="true" />
                     ) : (
@@ -408,7 +408,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                   />
                 ) : paymentIntentError ? (
                   <div className="space-y-4">
-                    <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">{t("s.handovers.id.checkIn.cardPaymentUnavailableBut", { paymentIntentError })}</div>
+                    <div className="rounded-lg bg-surface-sunken p-4 text-sm text-ink-secondary">{t("s.handovers.id.checkIn.cardPaymentUnavailableBut", { paymentIntentError })}</div>
                     <CashPaymentForm
                       reservationId={reservation.id}
                       onPaid={handlePaid}
@@ -435,7 +435,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     onPaid={handlePaid}
                   />
                 ) : (
-                  <p className="text-sm text-gray-500">{t("s.handovers.id.checkIn.preparingPayment")}</p>
+                  <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.preparingPayment")}</p>
                 )}
               </div>
             </Card>
@@ -447,7 +447,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
                 <div className="mt-5">
                   {depositDone ? (
-                    <p className="text-sm text-gray-700">{handover.deposit_amount !== null
+                    <p className="text-sm text-ink-secondary">{handover.deposit_amount !== null
                       ? t("s.handovers.id.checkIn.depositHeldAmount", {
                           method: t(handover.deposit_method === "CASH" ? "common.cash" : "common.cardHold"),
                           amount: `${handover.deposit_amount.toFixed(2)} ${handover.deposit_currency?.toUpperCase() ?? ""}`,
@@ -503,17 +503,17 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
               <div className="mt-5">
                 {signatureDone ? (
-                  <p className="text-sm text-gray-700">{t("s.handovers.id.checkIn.signatureCaptured")}</p>
+                  <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkIn.signatureCaptured")}</p>
                 ) : signatureStatus === "active" ? (
                   <div className="space-y-4">
                     {termsError ? (
-                      <p className="text-sm text-red-600" role="alert">{termsError}</p>
+                      <p className="text-sm text-danger" role="alert">{termsError}</p>
                     ) : terms ? (
                       <div>
                         <h3 className="text-sm font-semibold text-ink">{terms.title}</h3>
 
                         {terms.is_placeholder && (
-                          <p className="mt-1 text-sm text-amber-700">
+                          <p className="mt-1 text-sm text-warning">
                             {t("s.handovers.id.checkIn.placeholderTermsWarning")}
                           </p>
                         )}
@@ -533,7 +533,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                             type="checkbox"
                             checked={termsAccepted}
                             onChange={(event) => setTermsAccepted(event.target.checked)}
-                            className="mt-0.5 h-4 w-4 accent-gray-900"
+                            className="mt-0.5 h-4 w-4 accent-accent"
                           />
                           <span>{t("s.handovers.id.checkIn.customerAcceptsTerms")}</span>
                         </label>
@@ -542,12 +542,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
                       <p className="text-sm text-ink-muted">{t("s.handovers.id.checkIn.loadingTerms")}</p>
                     )}
 
-                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.haveCustomerSignBelow")}</p>
+                    <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkIn.haveCustomerSignBelow")}</p>
 
                     <SignaturePad ref={signaturePadRef} />
 
                     {signatureError && (
-                      <p className="text-sm text-red-600">{signatureError}</p>
+                      <p className="text-sm text-danger">{signatureError}</p>
                     )}
 
                     <div className="flex gap-3">
@@ -579,7 +579,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
               <div className="mt-5">
                 {employeeSignatureDone ? (
-                  <p className="text-sm text-gray-700">{handover.employee_signed_at
+                  <p className="text-sm text-ink-secondary">{handover.employee_signed_at
                       ? t("s.handovers.id.checkIn.signedByOn", {
                           who: handover.employee_signed_by_email ?? t("common.anEmployee"),
                           date: formatDateTime(handover.employee_signed_at),
@@ -589,12 +589,12 @@ export default function FinalizeHandoverPage({ params }: Props) {
                         })}</p>
                 ) : employeeSignatureStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.approvingEmployeeSignsBelow")}</p>
+                    <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkIn.approvingEmployeeSignsBelow")}</p>
 
                     <SignaturePad ref={employeeSignaturePadRef} />
 
                     {employeeSignatureError && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm text-danger">
                         {employeeSignatureError}
                       </p>
                     )}
@@ -630,10 +630,10 @@ export default function FinalizeHandoverPage({ params }: Props) {
               <div className="mt-5">
                 {agreementStatus === "active" ? (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{t("s.handovers.id.checkIn.willGenerateRentalAgreement")}</p>
+                    <p className="text-sm text-ink-secondary">{t("s.handovers.id.checkIn.willGenerateRentalAgreement")}</p>
 
                     {generateError && (
-                      <p className="text-sm text-red-600">{generateError}</p>
+                      <p className="text-sm text-danger">{generateError}</p>
                     )}
 
                     <Button onClick={handleGenerateAgreement} disabled={generating} fullWidth>

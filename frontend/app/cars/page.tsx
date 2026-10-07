@@ -319,11 +319,11 @@ export default function FleetPage() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="rounded-xl bg-surface p-8 text-center shadow-sm max-w-md">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
-            <span className="text-red-600 text-xl">!</span>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft mb-4">
+            <span className="text-danger text-xl">!</span>
           </div>
-          <p className="text-gray-900 font-semibold text-lg">{t("s.cars.whoops")}</p>
-          <p className="text-gray-500 mt-2">{error}</p>
+          <p className="text-ink font-semibold text-lg">{t("s.cars.whoops")}</p>
+          <p className="text-ink-muted mt-2">{error}</p>
         </div>
       </main>
     );
@@ -341,7 +341,7 @@ export default function FleetPage() {
         <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.cars.fleetOverview")}</h1>
-            <p className="mt-2 text-gray-500">{t("s.cars.eachVehicleSStatus")}</p>
+            <p className="mt-2 text-ink-muted">{t("s.cars.eachVehicleSStatus")}</p>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-4 sm:w-auto">
@@ -352,9 +352,9 @@ export default function FleetPage() {
                 placeholder={t("s.cars.searchMakeModelPlate")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-border-strong bg-white py-2.5 pl-10 pr-4 text-sm text-ink transition placeholder:text-ink-muted focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="w-full rounded-lg border border-border-strong bg-surface py-2.5 pl-10 pr-4 text-sm text-ink transition placeholder:text-ink-muted focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -362,18 +362,18 @@ export default function FleetPage() {
             </div>
 
             {/* Date Range Selectors */}
-            <div className="flex w-full items-center gap-2 rounded-xl bg-white p-1 shadow-sm ring-1 ring-inset ring-gray-300 sm:w-auto">
+            <div className="flex w-full items-center gap-2 rounded-xl bg-surface p-1 shadow-sm ring-1 ring-inset ring-border-strong sm:w-auto">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-gray-900 sm:flex-none"
+                className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink sm:flex-none"
               />
-              <div className="h-4 w-px bg-gray-300" />
+              <div className="h-4 w-px bg-border-strong" />
               <select
                 value={timelineDaysCount}
                 onChange={(e) => setTimelineDaysCount(Number(e.target.value))}
-                className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-gray-900"
+                className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink"
               >
                 <option value={7}>{t("s.cars.1Week")}</option>
                 <option value={14}>{t("s.cars.2Weeks")}</option>
@@ -387,14 +387,14 @@ export default function FleetPage() {
         {/* Legend */}
         <div className="mb-6 flex flex-wrap items-center gap-6 rounded-xl bg-surface px-6 py-3 text-sm font-medium text-ink-secondary shadow-sm">
           <div className="flex items-center gap-2.5">
-            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("CONFIRMED", "dot")}`} />{t("s.cars.confirmed")}</div>
+            <span className={`h-3 w-3 rounded-full ring-2 ring-border-subtle ${getReservationStatusStyle("CONFIRMED", "dot")}`} />{t("s.cars.confirmed")}</div>
           <div className="flex items-center gap-2.5">
-            <span className={`h-3 w-3 rounded-full ring-2 ring-gray-100 ${getReservationStatusStyle("ACTIVE", "dot")}`} />{t("s.cars.active")}</div>
+            <span className={`h-3 w-3 rounded-full ring-2 ring-border-subtle ${getReservationStatusStyle("ACTIVE", "dot")}`} />{t("s.cars.active")}</div>
           <div className="flex items-center gap-2.5">
-            <span className="h-3 w-3 rounded-full border border-amber-300 bg-amber-100 ring-2 ring-gray-100" />{t("s.cars.maintenanceOrCleaning")}</div>
+            <span className="h-3 w-3 rounded-full border border-warning-line bg-warning-soft ring-2 ring-border-subtle" />{t("s.cars.maintenanceOrCleaning")}</div>
           <div className="flex items-center gap-2.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />{t("s.cars.insured")}</div>
-          <p className="text-xs text-gray-400">{t("s.cars.pendingCompletedCancelledReservations")}</p>
+            <ShieldCheck className="h-3.5 w-3.5 text-ink-muted" aria-hidden="true" />{t("s.cars.insured")}</div>
+          <p className="text-xs text-ink-muted">{t("s.cars.pendingCompletedCancelledReservations")}</p>
         </div>
 
         {/* Fleet Locations */}
@@ -406,16 +406,16 @@ export default function FleetPage() {
               className="overflow-hidden rounded-xl bg-surface shadow-sm scroll-mt-6"
             >
               {/* Airport Header */}
-              <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
+              <div className="border-b border-border-subtle bg-gradient-to-r from-canvas to-surface px-6 py-5">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-900 font-bold tracking-tight">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken text-ink font-bold tracking-tight">
                     {location.airportCode}
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-gray-900">
+                    <h2 className="text-base font-bold text-ink">
                       {location.name}
                     </h2>
-                    <p className="text-sm text-gray-500">{t("common.vehicles", { count: location.cars.length })}</p>
+                    <p className="text-sm text-ink-muted">{t("common.vehicles", { count: location.cars.length })}</p>
                   </div>
                 </div>
               </div>
@@ -424,7 +424,7 @@ export default function FleetPage() {
                   day-by-day grid that only makes sense with room to scroll
                   sideways, so narrow screens get a simpler per-vehicle list
                   instead, driven by the same date-range filter. */}
-              <div className="divide-y divide-gray-100 lg:hidden">
+              <div className="divide-y divide-border-subtle lg:hidden">
                 {location.cars.map((car) => {
                   const reservations = getVisibleReservations(car).sort(
                     (a, b) =>
@@ -441,36 +441,36 @@ export default function FleetPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/cars/${car.id}`)}
-                        className="flex w-full items-start justify-between gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                        className="flex w-full items-start justify-between gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                       >
                         <div>
-                          <p className="flex items-center gap-1.5 font-bold text-gray-900">
+                          <p className="flex items-center gap-1.5 font-bold text-ink">
                             {car.make} {car.model}
                             {isCurrentlyInsured(car) && (
                               <span
                                 title={t("s.cars.insuredUntil", { date: car.insured_until ? formatDate(car.insured_until) : "" })}
                               >
-                                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden="true" />
                               </span>
                             )}
                           </p>
-                          <p className="mt-0.5 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                          <p className="mt-0.5 inline-block rounded-md bg-surface-sunken px-2 py-0.5 text-xs font-medium text-ink-muted">
                             {car.license_plate}
                           </p>
                           {car.is_away_from_home && (
-                            <p className="ml-2 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                            <p className="ml-2 inline-flex items-center gap-1 rounded-md bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">
                               <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
                               {t("s.cars.awayHome", { airport_code: car.current_location.airport_code })}
                             </p>
                           )}
-                          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
+                          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
                             <span>{car.year}</span>
-                            <span className="h-1 w-1 rounded-full bg-gray-300" />
+                            <span className="h-1 w-1 rounded-full bg-border-strong" />
                             <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
                             {car.vehicle_class && (
                               <>
-                                <span className="h-1 w-1 rounded-full bg-gray-300" />
-                                <span className="font-medium text-gray-500">{classWords(car.vehicle_class.name)}</span>
+                                <span className="h-1 w-1 rounded-full bg-border-strong" />
+                                <span className="font-medium text-ink-muted">{classWords(car.vehicle_class.name)}</span>
                               </>
                             )}
                           </p>
@@ -484,7 +484,7 @@ export default function FleetPage() {
 
                       <div className="mt-3 space-y-1.5">
                         {reservations.length === 0 && tasks.length === 0 ? (
-                          <p className="text-xs text-gray-400">{t("s.cars.noBookingsRange")}</p>
+                          <p className="text-xs text-ink-muted">{t("s.cars.noBookingsRange")}</p>
                         ) : (
                           <>
                             {reservations.map((reservation) => (
@@ -493,10 +493,10 @@ export default function FleetPage() {
                                 onClick={() =>
                                   navigate(`/reservations/manage/${reservation.id}`)
                                 }
-                                className="block w-full rounded-lg bg-gray-50 px-3 py-2 text-left transition hover:bg-gray-100"
+                                className="block w-full rounded-lg bg-canvas px-3 py-2 text-left transition hover:bg-surface-sunken"
                               >
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="truncate text-sm font-medium text-gray-900">
+                                  <span className="truncate text-sm font-medium text-ink">
                                     {reservation.customer.first_name}{" "}
                                     {reservation.customer.last_name}
                                   </span>
@@ -507,7 +507,7 @@ export default function FleetPage() {
                                   />
                                 </div>
 
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-ink-muted">
                                   {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
                                   {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
                                 </p>
@@ -518,7 +518,7 @@ export default function FleetPage() {
                               <button
                                 key={task.id}
                                 onClick={() => navigate(`/cars/${car.id}`)}
-                                className="block w-full rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-left text-amber-900 transition hover:bg-amber-200"
+                                className="block w-full rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-left text-warning transition hover:bg-warning-line"
                               >
                                 <span className="truncate text-sm font-medium">
                                   {task.task_type === "CLEANING" ? t("s.cars.id.cleaning") : t("s.cars.id.maintenance")}
@@ -547,9 +547,9 @@ export default function FleetPage() {
                   className="pb-2"
                 >
                   {/* Timeline Dates Header */}
-                  <div className="flex border-b border-gray-100 bg-gray-50/50">
-                    <div className="w-[320px] shrink-0 border-r border-gray-100 px-6 py-4 sticky left-0 bg-gray-50/95 backdrop-blur z-30">
-                      <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{t("s.cars.vehicleDetails")}</p>
+                  <div className="flex border-b border-border-subtle bg-canvas/50">
+                    <div className="w-[320px] shrink-0 border-r border-border-subtle px-6 py-4 sticky left-0 bg-canvas/95 backdrop-blur z-30">
+                      <p className="text-xs font-bold uppercase tracking-widest text-ink-muted">{t("s.cars.vehicleDetails")}</p>
                     </div>
 
                     <div className="flex">
@@ -559,17 +559,17 @@ export default function FleetPage() {
                           <div
                             key={index}
                             style={{ width: DAY_WIDTH }}
-                            className={`shrink-0 border-r border-gray-100 px-2 py-3 flex flex-col items-center justify-center ${
-                              isToday ? "bg-gray-100" : ""
+                            className={`shrink-0 border-r border-border-subtle px-2 py-3 flex flex-col items-center justify-center ${
+                              isToday ? "bg-surface-sunken" : ""
                             }`}
                           >
-                            <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-gray-900' : 'text-gray-400'}`}>
+                            <p className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? 'text-ink' : 'text-ink-muted'}`}>
                               {formatCalendarDate(toDateKey(date), { weekday: "short" })}
                             </p>
-                            <p className={`mt-0.5 text-lg font-bold ${isToday ? 'text-gray-900' : 'text-gray-700'}`}>
+                            <p className={`mt-0.5 text-lg font-bold ${isToday ? 'text-ink' : 'text-ink-secondary'}`}>
                               {date.getDate()}
                             </p>
-                            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+                            <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">
                               {formatCalendarDate(toDateKey(date), { month: "short" })}
                             </p>
                           </div>
@@ -587,32 +587,32 @@ export default function FleetPage() {
                     return (
                       <div
                         key={car.id}
-                        className="group flex border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                        className="group flex border-b border-border-subtle last:border-b-0 hover:bg-canvas/50 transition-colors"
                       >
                         {/* Vehicle Information (Sticky Left) */}
                         <button
                           type="button"
                           onClick={() => navigate(`/cars/${car.id}`)}
-                          className="sticky left-0 z-30 w-[320px] shrink-0 border-r border-gray-100 bg-white px-6 py-5 text-left transition-colors group-hover:bg-gray-50/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
+                          className="sticky left-0 z-30 w-[320px] shrink-0 border-r border-border-subtle bg-surface px-6 py-5 text-left transition-colors group-hover:bg-canvas/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
                         >
                           <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <p className="flex items-center gap-1.5 font-bold text-gray-900 group-hover:underline transition-colors">
+                                <p className="flex items-center gap-1.5 font-bold text-ink group-hover:underline transition-colors">
                                   {car.make} {car.model}
                                   {isCurrentlyInsured(car) && (
                                     <span
                                       title={t("s.cars.insuredUntil", { date: car.insured_until ? formatDate(car.insured_until) : "" })}
                                     >
-                                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden="true" />
                                     </span>
                                   )}
                                 </p>
-                                <p className="mt-0.5 text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-md">
+                                <p className="mt-0.5 text-xs font-medium text-ink-muted bg-surface-sunken inline-block px-2 py-0.5 rounded-md">
                                   {car.license_plate}
                                 </p>
                                 {car.is_away_from_home && (
-                                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-800">
+                                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning">
                                     <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
                                     {t("s.cars.awayHome", { airport_code: car.current_location.airport_code })}
                                   </p>
@@ -631,14 +631,14 @@ export default function FleetPage() {
                                 {enumLabel("carStatus", displayStatus)}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                            <p className="text-xs text-ink-muted flex items-center gap-1.5">
                               <span>{car.year}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-300" />
+                              <span className="w-1 h-1 rounded-full bg-border-strong" />
                               <span>{car.category ? categoryLabel(car.category) : t("s.cars.standard")}</span>
                               {car.vehicle_class && (
                                 <>
-                                  <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                  <span className="font-medium text-gray-500">{classWords(car.vehicle_class.name)}</span>
+                                  <span className="w-1 h-1 rounded-full bg-border-strong" />
+                                  <span className="font-medium text-ink-muted">{classWords(car.vehicle_class.name)}</span>
                                 </>
                               )}
                             </p>
@@ -662,8 +662,8 @@ export default function FleetPage() {
                                 <div
                                   key={index}
                                   style={{ width: DAY_WIDTH }}
-                                  className={`shrink-0 border-r border-gray-100/50 ${
-                                    isToday ? "bg-gray-100/40" : ""
+                                  className={`shrink-0 border-r border-border-subtle/50 ${
+                                    isToday ? "bg-surface-sunken/40" : ""
                                   }`}
                                 />
                               );
@@ -675,7 +675,7 @@ export default function FleetPage() {
                             (d) => d.toDateString() === new Date().toDateString()
                           ) && (
                             <div
-                              className="absolute bottom-0 top-0 z-10 border-l-2 border-dashed border-gray-900 pointer-events-none"
+                              className="absolute bottom-0 top-0 z-10 border-l-2 border-dashed border-accent pointer-events-none"
                               style={{
                                 left:
                                   Math.max(
@@ -684,7 +684,7 @@ export default function FleetPage() {
                                   ) * DAY_WIDTH,
                               }}
                             >
-                               <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-gray-900 ring-4 ring-white" />
+                               <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-accent ring-4 ring-surface" />
                             </div>
                           )}
 
@@ -717,7 +717,7 @@ export default function FleetPage() {
                                       navigate(`/reservations/manage/${reservation.id}`);
                                     }
                                   }}
-                                  className={`flex h-16 cursor-pointer flex-col justify-center overflow-hidden rounded-xl px-3 outline-none transition-all hover:scale-[1.02] focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-gray-900 ${getReservationStyles(
+                                  className={`flex h-16 cursor-pointer flex-col justify-center overflow-hidden rounded-xl px-3 outline-none transition-all hover:scale-[1.02] focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-accent-ink ${getReservationStyles(
                                     reservation.status
                                   )}`}
                                 >
@@ -731,21 +731,21 @@ export default function FleetPage() {
                                 </div>
 
                                 {/* Hover/focus tooltip: customer contact details */}
-                                <div className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-2.5 hidden w-60 -translate-x-1/2 flex-col gap-2 rounded-lg bg-gray-900 px-3.5 py-3 text-xs text-white shadow-lg group-hover/res:flex group-focus-within/res:flex">
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-2.5 hidden w-60 -translate-x-1/2 flex-col gap-2 rounded-lg bg-deep px-3.5 py-3 text-xs text-on-deep shadow-lg group-hover/res:flex group-focus-within/res:flex">
                                   <p className="truncate text-sm font-bold">
                                     {reservation.customer.first_name}{" "}
                                     {reservation.customer.last_name}
                                   </p>
 
                                   <div className="space-y-1.5 border-t border-white/10 pt-2">
-                                    <p className="flex items-center gap-2 text-gray-300">
+                                    <p className="flex items-center gap-2 text-border-strong">
                                       <Phone className="h-3 w-3 shrink-0" />
                                       <span className="truncate">
                                         {reservation.customer.phone_number ||
                                           t("s.cars.noPhoneFile")}
                                       </span>
                                     </p>
-                                    <p className="flex items-center gap-2 text-gray-300">
+                                    <p className="flex items-center gap-2 text-border-strong">
                                       <Mail className="h-3 w-3 shrink-0" />
                                       <span className="truncate">
                                         {reservation.customer.email ||
@@ -754,12 +754,12 @@ export default function FleetPage() {
                                     </p>
                                   </div>
 
-                                  <p className="border-t border-white/10 pt-2 text-gray-400">
+                                  <p className="border-t border-white/10 pt-2 text-ink-muted">
                                     {formatDateTime(reservation.pickup_at, reservation.pickup_location.timezone)} →{" "}
                                     {formatDateTime(reservation.return_at, reservation.return_location.timezone)}
                                   </p>
 
-                                  <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-gray-900" />
+                                  <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-deep" />
                                 </div>
                               </div>
                             );
@@ -780,7 +780,7 @@ export default function FleetPage() {
                                     navigate(`/cars/${car.id}`);
                                   }
                                 }}
-                                className="absolute top-1/2 z-20 flex h-16 -translate-y-1/2 cursor-pointer flex-col justify-center overflow-hidden rounded-xl border border-amber-300 bg-amber-100 px-3 text-amber-900 outline-none transition-all hover:z-30 hover:scale-[1.02] focus-visible:z-30 focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-gray-900"
+                                className="absolute top-1/2 z-20 flex h-16 -translate-y-1/2 cursor-pointer flex-col justify-center overflow-hidden rounded-xl border border-warning-line bg-warning-soft px-3 text-warning outline-none transition-all hover:z-30 hover:scale-[1.02] focus-visible:z-30 focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-accent-ink"
                                 style={{
                                   left: position.left + 4,
                                   width: position.width - 8,
@@ -804,7 +804,7 @@ export default function FleetPage() {
                           {/* Free State Text (Optional) */}
                           {reservations.length === 0 && tasks.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span className="rounded-full bg-gray-50 px-4 py-1.5 text-xs font-medium text-gray-400">{t("s.cars.noBookings")}</span>
+                              <span className="rounded-full bg-canvas px-4 py-1.5 text-xs font-medium text-ink-muted">{t("s.cars.noBookings")}</span>
                             </div>
                           )}
                         </div>
@@ -820,13 +820,13 @@ export default function FleetPage() {
         {/* Empty Search / Fleet State */}
         {carsByLocation.length === 0 && !loading && (
           <div className="mt-8 rounded-xl bg-surface p-10 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 mb-4">
-              <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-canvas mb-4">
+              <svg className="h-8 w-8 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <p className="text-xl font-bold text-gray-900">{t("s.cars.noVehiclesFound")}</p>
-            <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+            <p className="text-xl font-bold text-ink">{t("s.cars.noVehiclesFound")}</p>
+            <p className="mt-2 text-sm text-ink-muted max-w-sm mx-auto">
               {searchQuery
                 ? t("s.cars.noVehiclesMatchedSearch", { searchQuery })
                 : t("s.cars.thereCurrentlyNoVehicles")}

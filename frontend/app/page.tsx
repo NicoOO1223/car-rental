@@ -205,7 +205,7 @@ export default function DashboardPage() {
     return (
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
-          <p className="text-red-600">
+          <p className="text-danger">
             {error || t("s.failedLoadDashboard")}
           </p>
         </div>
@@ -237,19 +237,19 @@ export default function DashboardPage() {
 
         {/* Opened from the "Need relocation" tile; sits on top of the overview. */}
         {showRelocation && dashboard.cars_away_from_home.length > 0 && (
-          <Card className="mb-8 border border-amber-300">
+          <Card className="mb-8 border border-warning-line">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">{t("s.vehiclesNeedRelocation")}</h2>
 
-                <p className="mt-1 text-sm text-gray-500">{t("s.theseCarsEndedOne")}</p>
+                <p className="mt-1 text-sm text-ink-muted">{t("s.theseCarsEndedOne")}</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setShowRelocation(false)}
                 aria-label={t("s.close")}
-                className="rounded-md p-1 text-gray-500 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                className="rounded-md p-1 text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -261,42 +261,42 @@ export default function DashboardPage() {
                   key={car.id}
                   type="button"
                   onClick={() => navigate(`/cars/${car.id}`)}
-                  className="flex w-full flex-col gap-2 py-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900 md:flex-row md:items-center md:justify-between"
+                  className="flex w-full flex-col gap-2 py-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink md:flex-row md:items-center md:justify-between"
                 >
                   <span className="min-w-0">
                     <span className="block font-medium">
                       {car.make} {car.model}
-                      <span className="ml-2 text-sm font-normal text-gray-500">
+                      <span className="ml-2 text-sm font-normal text-ink-muted">
                         {car.year}
                         {car.category ? ` · ${categoryLabel(car.category)}` : ""}
                       </span>
                     </span>
 
-                    <span className="mt-0.5 block text-sm text-gray-500">
+                    <span className="mt-0.5 block text-sm text-ink-muted">
                       {car.license_plate}
                     </span>
                   </span>
 
-                  <span className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                  <span className="flex flex-wrap items-center gap-3 text-sm text-ink-secondary">
                     <span>{t("s.at")}{" "}<strong>{car.current_airport_code}</strong>{" "}
-                      <span className="text-gray-500">
+                      <span className="text-ink-muted">
                         ({car.current_airport_name})
                       </span>
                     </span>
 
-                    <span className="text-gray-400" aria-hidden="true">
+                    <span className="text-ink-muted" aria-hidden="true">
                       →
                     </span>
 
                     <span>{t("s.home")}{" "}<strong>{car.home_airport_code}</strong>{" "}
-                      <span className="text-gray-500">
+                      <span className="text-ink-muted">
                         ({car.home_airport_name})
                       </span>
                     </span>
 
                     <CarStatusBadge status={car.status} />
 
-                    <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                    <ChevronRight className="h-4 w-4 text-ink-muted" aria-hidden="true" />
                   </span>
                 </button>
               ))}
@@ -310,19 +310,19 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => navigate("/maintenance")}
-              className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+              className="flex items-center justify-between gap-4 rounded-xl bg-surface p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
               <div>
-                <p className="text-sm text-gray-500">{t("s.dashboard.inMaintenance")}</p>
+                <p className="text-sm text-ink-muted">{t("s.dashboard.inMaintenance")}</p>
 
                 <p className="mt-2 text-3xl font-bold">
                   {dashboard.fleet.maintenance}
                 </p>
 
-                <p className="mt-2 text-sm text-gray-500">{t("s.vehiclesOutServiceRight")}</p>
+                <p className="mt-2 text-sm text-ink-muted">{t("s.vehiclesOutServiceRight")}</p>
               </div>
 
-              <Wrench className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+              <Wrench className="h-6 w-6 shrink-0 text-ink-muted" aria-hidden="true" />
             </button>
 
             <button
@@ -330,23 +330,23 @@ export default function DashboardPage() {
               onClick={() => setShowRelocation((open) => !open)}
               disabled={dashboard.cars_away_from_home.length === 0}
               aria-expanded={showRelocation}
-              className="flex items-center justify-between gap-4 rounded-xl bg-white p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 disabled:cursor-default disabled:hover:shadow-sm"
+              className="flex items-center justify-between gap-4 rounded-xl bg-surface p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-default disabled:hover:shadow-sm"
             >
               <div>
-                <p className="text-sm text-gray-500">{t("s.needRelocation")}</p>
+                <p className="text-sm text-ink-muted">{t("s.needRelocation")}</p>
 
                 <p className="mt-2 text-3xl font-bold">
                   {dashboard.cars_away_from_home.length}
                 </p>
 
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-ink-muted">
                   {dashboard.cars_away_from_home.length === 0
                     ? t("s.everyVehicleAtIts")
                     : t("s.vehiclesAwayFromTheir")}
                 </p>
               </div>
 
-              <MapPinned className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+              <MapPinned className="h-6 w-6 shrink-0 text-ink-muted" aria-hidden="true" />
             </button>
           </div>
         </section>
@@ -373,7 +373,7 @@ export default function DashboardPage() {
               }}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 !upcomingStartDate && !upcomingEndDate
-                  ? "bg-gray-900 text-white"
+                  ? "bg-accent text-on-accent"
                   : "bg-surface-sunken text-ink-secondary hover:text-ink"
               }`}
             >{t("s.allUpcoming")}</button>
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                 title={date === todayDateString() ? t("s.today", { label }) : label}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   upcomingStartDate === date && upcomingEndDate === date
-                    ? "bg-gray-900 text-white"
+                    ? "bg-accent text-on-accent"
                     : date === todayDateString()
                       ? "bg-surface-sunken text-ink ring-1 ring-inset ring-border-strong"
                       : "bg-surface-sunken text-ink-secondary hover:text-ink"
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                   setUpcomingEndDate(value);
                 }
               }}
-              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+              className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm text-ink transition focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
             />
 
             <span className="text-ink-muted" aria-hidden="true">
@@ -432,14 +432,14 @@ export default function DashboardPage() {
                   setUpcomingStartDate(value);
                 }
               }}
-              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+              className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm text-ink transition focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
             />
 
             <select
               aria-label={t("s.filterPickupsReturnsBy")}
               value={upcomingLocationId}
               onChange={(event) => setUpcomingLocationId(event.target.value)}
-              className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+              className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm text-ink transition focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
             >
               <option value="">{t("s.allAirports")}</option>
 
@@ -451,7 +451,7 @@ export default function DashboardPage() {
             </select>
 
             {upcomingError && (
-              <p className="text-sm text-red-600" role="alert">
+              <p className="text-sm text-danger" role="alert">
                 {upcomingError}
               </p>
             )}
@@ -483,7 +483,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">{t("s.fleetStatus")}</h2>
-                <p className="mt-1 text-sm text-gray-500">{t("s.vehicleStatusAsSelected", { date: formatCalendarDate(fleetStatusDate) })}</p>
+                <p className="mt-1 text-sm text-ink-muted">{t("s.vehicleStatusAsSelected", { date: formatCalendarDate(fleetStatusDate) })}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                   aria-label={t("s.filterFleetStatusBy")}
                   value={airportFilter}
                   onChange={(event) => setAirportFilter(event.target.value)}
-                  className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-ink transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  className="rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-ink transition focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
                 >
                   <option value="">{t("s.allAirports")}</option>
 
@@ -506,9 +506,9 @@ export default function DashboardPage() {
 
             <div className="mt-6">
               {fleetStatusLoading ? (
-                <p className="text-sm text-gray-500">{t("s.loadingFleetStatus")}</p>
+                <p className="text-sm text-ink-muted">{t("s.loadingFleetStatus")}</p>
               ) : fleetStatusError ? (
-                <p className="text-sm text-red-600">{fleetStatusError}</p>
+                <p className="text-sm text-danger">{fleetStatusError}</p>
               ) : (
                 <PieChart data={pieData} />
               )}
@@ -519,7 +519,7 @@ export default function DashboardPage() {
           <Card>
             <h2 className="text-lg font-semibold">{t("s.fleetByLocation")}</h2>
 
-            <p className="mt-1 text-sm text-gray-500">{t("s.currentVehicleDistribution")}</p>
+            <p className="mt-1 text-sm text-ink-muted">{t("s.currentVehicleDistribution")}</p>
 
             <div className="mt-6 space-y-5">
 
@@ -530,7 +530,7 @@ export default function DashboardPage() {
                     onClick={() =>
                       navigate(`/cars#${location.airport_code}`)
                     }
-                    className="block w-full rounded-lg text-left transition hover:bg-gray-50"
+                    className="block w-full rounded-lg text-left transition hover:bg-canvas"
                   >
 
                     <div className="flex items-center justify-between">
@@ -540,7 +540,7 @@ export default function DashboardPage() {
                           {location.airport_code}
                         </p>
 
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-ink-muted">
                           {location.name}
                         </p>
                       </div>
@@ -553,14 +553,14 @@ export default function DashboardPage() {
 
                     <div className="mt-3 flex gap-2 text-xs">
 
-                      <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">{t("s.available", { available: location.available })}</span>
+                      <span className="rounded bg-surface-sunken px-2 py-1 text-ink-secondary">{t("s.available", { available: location.available })}</span>
 
                       {location.reserved > 0 && (
-                        <span className="rounded bg-gray-100 px-2 py-1 text-gray-700">{t("s.reserved", { reserved: location.reserved })}</span>
+                        <span className="rounded bg-surface-sunken px-2 py-1 text-ink-secondary">{t("s.reserved", { reserved: location.reserved })}</span>
                       )}
 
                       {location.rented > 0 && (
-                        <span className="rounded bg-gray-900 px-2 py-1 text-white">{t("s.rented", { rented: location.rented })}</span>
+                        <span className="rounded bg-accent px-2 py-1 text-on-accent">{t("s.rented", { rented: location.rented })}</span>
                       )}
 
                     </div>

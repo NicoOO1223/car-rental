@@ -17,8 +17,8 @@ export function StepHeader({
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
           status === "done" || status === "active"
-            ? "bg-gray-900 text-white"
-            : "bg-gray-100 text-ink-muted"
+            ? "bg-accent text-on-accent"
+            : "bg-surface-sunken text-ink-muted"
         }`}
       >
         {status === "done" ? <Check className="h-4 w-4" /> : index}

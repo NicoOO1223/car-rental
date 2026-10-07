@@ -156,7 +156,7 @@ export default function BusinessConfigurationPage() {
   if (loadError) {
     return (
       <Card>
-        <p className="text-red-600" role="alert">
+        <p className="text-danger" role="alert">
           {loadError}
         </p>
       </Card>
@@ -222,7 +222,7 @@ export default function BusinessConfigurationPage() {
         </div>
 
         {logoError && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {logoError}
           </p>
         )}
@@ -419,7 +419,7 @@ export default function BusinessConfigurationPage() {
           </Field>
 
           {saveError && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {saveError}
             </p>
           )}

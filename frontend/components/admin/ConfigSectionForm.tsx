@@ -94,7 +94,7 @@ export function ConfigSectionForm({
   if (loadError) {
     return (
       <Card>
-        <p className="text-red-600" role="alert">
+        <p className="text-danger" role="alert">
           {loadError}
         </p>
       </Card>
@@ -141,7 +141,7 @@ export function ConfigSectionForm({
         ))}
 
         {saveError && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {saveError}
           </p>
         )}

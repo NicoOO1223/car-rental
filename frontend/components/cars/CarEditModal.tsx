@@ -301,7 +301,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
               )}
 
               {photoError && (
-                <p className="w-full text-sm text-red-600" role="alert">
+                <p className="w-full text-sm text-danger" role="alert">
                   {photoError}
                 </p>
               )}
@@ -310,7 +310,7 @@ export function CarEditModal({ car, locations, onClose, onSaved }: Props) {
         </div>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}

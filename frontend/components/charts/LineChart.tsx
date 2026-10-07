@@ -208,7 +208,7 @@ export function LineChart({ data, formatValue, className = "" }: Props) {
 
       {hovered && hoverIndex !== null && (
         <div
-          className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white shadow-lg"
+          className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-lg bg-deep px-3 py-1.5 text-xs text-on-deep shadow-lg"
           style={{
             left: `${(xFor(hoverIndex) / WIDTH) * 100}%`,
           }}

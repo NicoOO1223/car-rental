@@ -23,7 +23,7 @@ export function BrandMark({ className = "h-9 w-9" }: { className?: string }) {
 
   return (
     <span
-      className={`${className} flex shrink-0 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white`}
+      className={`${className} flex shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-on-accent`}
       aria-hidden="true"
     >
       {brandInitials(name)}

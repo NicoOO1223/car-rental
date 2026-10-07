@@ -90,7 +90,7 @@ export function BookingSummary({
       {car && (
         <div className="mt-4 border-t border-border-subtle pt-4">
           {quoteError ? (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {quoteError}
             </p>
           ) : quoting && !quote ? (

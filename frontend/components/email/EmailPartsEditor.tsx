@@ -81,7 +81,7 @@ export function EmailPartsEditor({
         <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.email.reusableTitle")}</h2>
 
         {loadError ? (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-danger" role="alert">
             {loadError}
           </p>
         ) : (
@@ -141,7 +141,7 @@ export function EmailPartsEditor({
               {value === "" && <p className="mt-1 text-xs text-ink-muted">{t("s.admin.configuration.email.emptyMeansLeftOut")}</p>}
 
               {errors[key] && (
-                <p className="mt-1.5 text-xs text-red-600" role="alert">
+                <p className="mt-1.5 text-xs text-danger" role="alert">
                   {errors[key]}
                 </p>
               )}

@@ -90,7 +90,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="touch-none rounded-lg border border-gray-300 bg-white"
+        className="touch-none rounded-lg border border-border-strong bg-surface"
         style={{ width: "100%", maxWidth: width, height }}
       />
     );

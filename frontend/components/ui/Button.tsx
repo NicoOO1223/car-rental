@@ -15,11 +15,11 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-accent text-on-accent hover:bg-accent-hover",
   secondary:
-    "border border-border-strong bg-white text-ink-secondary hover:bg-surface-sunken hover:text-ink",
+    "border border-border-strong bg-surface text-ink-secondary hover:bg-surface-sunken hover:text-ink",
   // Destructive actions stay monochrome too — weight (a bold border,
   // filling solid on hover) carries the "serious" cue instead of a hue.
   danger:
-    "border-2 border-gray-900 bg-white text-gray-900 hover:bg-gray-900 hover:text-white",
+    "border border-danger/40 bg-surface text-danger hover:bg-danger-soft",
   ghost: "text-ink-secondary hover:bg-surface-sunken hover:text-ink",
 };
 

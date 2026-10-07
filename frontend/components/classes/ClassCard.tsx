@@ -176,7 +176,7 @@ export function ClassCard({
             {!row.offered_online && (
               <Badge colorClass="bg-surface-sunken text-ink-secondary">{t("s.admin.configuration.classes.notOnline")}</Badge>
             )}
-            {row.is_retired && <Badge colorClass="bg-amber-100 text-amber-800">{t("s.admin.configuration.classes.retired")}</Badge>}
+            {row.is_retired && <Badge colorClass="bg-warning-soft text-warning">{t("s.admin.configuration.classes.retired")}</Badge>}
           </p>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -246,7 +246,7 @@ export function ClassCard({
       </div>
 
       {error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+        <p className="mt-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}
@@ -291,7 +291,7 @@ export function ClassCard({
                       <label className="flex cursor-pointer items-center gap-2 py-2">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-gray-900"
+                          className="h-4 w-4 accent-accent"
                           checked={picked.has(car.id)}
                           onChange={(event) => {
                             const next = new Set(picked);

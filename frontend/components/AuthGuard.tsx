@@ -24,7 +24,7 @@ function ReadOnlyBanner() {
   if (!user || can(user.role, "bookings.write")) return null;
 
   return (
-    <p role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+    <p role="status" className="border-b border-warning-line bg-warning-soft px-4 py-2 text-sm text-warning">
       {t("c.AuthGuard.readOnlyBanner")}
     </p>
   );
@@ -46,7 +46,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             six links and a button before every page's first control. */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[110] focus:rounded-lg focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[110] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-on-accent"
         >{t("c.AuthGuard.skipContent")}</a>
 
         <Sidebar />

@@ -175,7 +175,7 @@ export default function VehicleRatesConfigurationPage() {
                     </p>
 
                     {car.is_retired && (
-                      <p className="text-sm font-medium text-amber-700">{t("s.admin.configuration.vehicles.retired")}</p>
+                      <p className="text-sm font-medium text-warning">{t("s.admin.configuration.vehicles.retired")}</p>
                     )}
 
                     <p className="text-sm text-ink-muted">{t("s.admin.configuration.vehicles.homeCurrentlyDay", { category: categoryLabel(car.category) ?? t("enums.carCategory.STANDARD"), airport_code: car.home_location.airport_code, price: formatCurrency(car.price_per_day) })}</p>
@@ -190,7 +190,7 @@ export default function VehicleRatesConfigurationPage() {
                       value={car.class_id ?? ""}
                       disabled={car.is_retired || busyId === car.id}
                       onChange={(event) => void changeClass(car, event.target.value)}
-                      className="max-w-40 rounded-lg border border-border-strong bg-white px-2 py-1.5 text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      className="max-w-40 rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-ink focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
                     >
                       <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
                       {classes.map((option) => (
@@ -215,7 +215,7 @@ export default function VehicleRatesConfigurationPage() {
                           setSavedId(null);
                           setDrafts({ ...drafts, [car.id]: event.target.value });
                         }}
-                        className="w-28 rounded-lg border border-border-strong bg-white px-3 py-1.5 text-right text-sm text-ink focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                        className="w-28 rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-right text-sm text-ink focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
                       />
 
                       <span className="text-sm text-ink-muted">
@@ -271,13 +271,13 @@ export default function VehicleRatesConfigurationPage() {
           type="checkbox"
           checked={showRetired}
           onChange={(event) => setShowRetired(event.target.checked)}
-          className="h-4 w-4 accent-gray-900"
+          className="h-4 w-4 accent-accent"
         />
         {t("s.admin.configuration.vehicles.showRetired")}
       </label>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}
@@ -331,7 +331,7 @@ export default function VehicleRatesConfigurationPage() {
           <p className="text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.retireExplanation")}</p>
 
           {retireError && (
-            <p className="mt-3 text-sm text-red-600" role="alert">
+            <p className="mt-3 text-sm text-danger" role="alert">
               {retireError}
             </p>
           )}

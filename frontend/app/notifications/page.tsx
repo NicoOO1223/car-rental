@@ -85,10 +85,10 @@ export default function NotificationsPage() {
             const urgent = item.severity === "critical";
             const info = item.severity === "info";
             const tone = urgent
-              ? "bg-red-100 text-red-700"
+              ? "bg-danger-soft text-danger"
               : info
-                ? "bg-gray-100 text-gray-700"
-                : "bg-amber-100 text-amber-800";
+                ? "bg-surface-sunken text-ink-secondary"
+                : "bg-warning-soft text-warning";
 
             return (
               <li key={`${item.kind}-${item.reservation_id ?? item.car.id}`}>

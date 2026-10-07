@@ -181,7 +181,7 @@ function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label={t("nav.closeMenu")}
-            className="-mr-2 -mt-1 rounded-lg p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+            className="-mr-2 -mt-1 rounded-lg p-2 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -198,9 +198,9 @@ function SidebarContent({
           onClick={onNavigate}
           title={collapsed ? t("nav.newReservation") : undefined}
           aria-current={isNewBooking ? "page" : undefined}
-          className={`flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
+          className={`flex items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
             collapsed ? "px-2" : "px-3"
-          } ${isNewBooking ? "ring-2 ring-gray-900 ring-offset-2" : ""}`}
+          } ${isNewBooking ? "ring-2 ring-accent-ink ring-offset-2" : ""}`}
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
           {!collapsed && t("nav.newReservation")}
@@ -234,7 +234,7 @@ function SidebarContent({
                     onClick={onNavigate}
                     title={collapsed ? t(`nav.${item.key}`) : undefined}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+                    className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                       collapsed ? "justify-center px-2" : "px-3"
                     } ${
                       active
@@ -247,7 +247,7 @@ function SidebarContent({
                     {active && (
                       <span
                         aria-hidden="true"
-                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-gray-900"
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent"
                       />
                     )}
 
@@ -263,8 +263,8 @@ function SidebarContent({
 
                     {item.key === "notifications" && notificationCount > 0 && (
                       <span
-                        className={`rounded-full px-1.5 py-0.5 text-xs font-semibold text-white ${
-                          urgentCount > 0 ? "bg-red-600" : "bg-amber-600"
+                        className={`rounded-full px-1.5 py-0.5 text-xs font-semibold text-surface ${
+                          urgentCount > 0 ? "bg-danger" : "bg-warning-strong"
                         } ${collapsed ? "absolute right-1 top-1 px-1 py-0 text-[10px]" : "ml-auto"}`}
                         aria-label={t("notifications.count", { count: notificationCount })}
                       >
@@ -301,7 +301,7 @@ function SidebarContent({
               void logout();
             }}
             title={collapsed ? t("nav.signOut") : undefined}
-            className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+            className={`flex items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
               collapsed ? "mx-auto justify-center px-2" : "px-0"
             }`}
           >
@@ -315,7 +315,7 @@ function SidebarContent({
               type="button"
               onClick={onToggleCollapse}
               aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
-              className={`rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+              className={`rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                 collapsed ? "mx-auto" : ""
               }`}
             >
@@ -435,7 +435,7 @@ export default function Sidebar() {
           onClick={() => setMobileOpen(true)}
           aria-label={t("nav.openMenu")}
           aria-expanded={mobileOpen}
-          className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+          className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>

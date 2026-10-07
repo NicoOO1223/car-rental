@@ -108,14 +108,14 @@ export function IdentityDetailsForm({
 
   if (details.legacy_stripe_verified && !editing) {
     return (
-      <p className="text-sm text-gray-700">{t("c.identity.IdentityDetailsForm.identityVerifiedThroughStripe")}</p>
+      <p className="text-sm text-ink-secondary">{t("c.identity.IdentityDetailsForm.identityVerifiedThroughStripe")}</p>
     );
   }
 
   if (complete && !editing) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-gray-700">{t(
+        <p className="text-sm text-ink-secondary">{t(
           details.identity_checked_by_email
             ? details.identity_checked_at
               ? "c.identity.IdentityDetailsForm.recordedByOn"
@@ -137,7 +137,7 @@ export function IdentityDetailsForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {details.problem && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="rounded-lg bg-warning-soft p-3 text-sm text-warning">
           {details.problem}
         </p>
       )}
@@ -240,7 +240,7 @@ export function IdentityDetailsForm({
         />{t("c.identity.IdentityDetailsForm.iHaveCheckedCustomer")}</label>
 
       {error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {error}
         </p>
       )}

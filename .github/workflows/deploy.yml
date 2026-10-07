@@ -92,6 +92,7 @@ jobs:
       # Every language has the same messages with the same placeholders, and
       # every server error code has a message.
       - run: npm run check:messages
+      - run: npm run check:colors
       # Unit tests for the frontend helpers that carry logic (time zones,
       # translation, error wording, runtime settings).
       - run: npm test

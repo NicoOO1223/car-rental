@@ -115,7 +115,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
     return (
       <Card>
         {loadError ? (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {loadError}
           </p>
         ) : (
@@ -250,7 +250,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
               <input
                 type="checkbox"
                 role="switch"
-                className="h-4 w-4 accent-gray-900"
+                className="h-4 w-4 accent-accent"
                 checked={detail.enabled}
                 disabled={busy === "toggle"}
                 onChange={toggleEnabled}
@@ -273,7 +273,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
             <label key={name} className="mt-4 flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="h-4 w-4 accent-gray-900"
+                className="h-4 w-4 accent-accent"
                 checked={detail.options[name] === true}
                 disabled={busy === "toggle"}
                 onChange={(event) => void setOption(name, event.target.checked)}
@@ -305,7 +305,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
                 aria-selected={selected}
                 onClick={() => setLanguage(code)}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                  selected ? "bg-gray-900 text-white" : "bg-surface-sunken text-ink-secondary hover:text-ink"
+                  selected ? "bg-accent text-on-accent" : "bg-surface-sunken text-ink-secondary hover:text-ink"
                 }`}
               >
                 {languageName(code)}
@@ -361,7 +361,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
                 type="button"
                 title={enumLabel("emailValue", name)}
                 onClick={() => insert(name)}
-                className="rounded-md border border-border-strong bg-white px-2 py-1 font-mono text-xs text-ink-secondary hover:bg-surface-sunken hover:text-ink"
+                className="rounded-md border border-border-strong bg-surface px-2 py-1 font-mono text-xs text-ink-secondary hover:bg-surface-sunken hover:text-ink"
               >
                 {`{${name}}`}
               </button>
@@ -381,7 +381,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
                   type="button"
                   title={enumLabel("emailPart", name)}
                   onClick={() => insert(name, true)}
-                  className="rounded-md border border-dashed border-border-strong bg-white px-2 py-1 font-mono text-xs text-ink-secondary hover:bg-surface-sunken hover:text-ink"
+                  className="rounded-md border border-dashed border-border-strong bg-surface px-2 py-1 font-mono text-xs text-ink-secondary hover:bg-surface-sunken hover:text-ink"
                 >
                   {`{${name}}`}
                 </button>
@@ -391,7 +391,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
         )}
 
         {error && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-danger" role="alert">
             {error}
           </p>
         )}
@@ -454,7 +454,7 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
         )}
 
         {testResult && !testResult.sent && (
-          <div className="mt-3 text-sm text-red-600" role="alert">
+          <div className="mt-3 text-sm text-danger" role="alert">
             <p>{t("s.admin.configuration.email.testFailed", { to: testResult.to })}</p>
             <p className="mt-1 break-words font-mono text-xs">{testResult.error}</p>
           </div>

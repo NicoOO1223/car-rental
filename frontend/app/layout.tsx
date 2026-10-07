@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BrandProvider } from "@/components/BrandProvider";
@@ -10,9 +10,10 @@ import { accentVariables } from "@/lib/accent";
 import { t } from "@/lib/i18n";
 import { runtimeConfigScript, serverRuntimeConfig } from "@/lib/runtimeConfig";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// The same family as the storefront. Latin-ext carries the Polish and Italian accented letters.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin", "latin-ext"],
 });
 
 const geistMono = Geist_Mono({
@@ -72,14 +73,14 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`}
       style={accentVariables(accent) as React.CSSProperties}
     >
       <head>
         {/* Hands this stack's runtime values to the browser before any script runs. */}
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript(serverRuntimeConfig()) }} />
       </head>
-      <body className="min-h-full bg-gray-50">
+      <body className="min-h-full bg-canvas">
         <NavigationProgressProvider>
           <BrandProvider>
             <LanguageProvider>

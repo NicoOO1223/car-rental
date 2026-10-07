@@ -34,11 +34,11 @@ export function SubNav({
   const vertical = orientation === "vertical";
 
   const itemClass = (active: boolean) =>
-    `rounded-full px-4 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+    `rounded-full px-4 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
       vertical ? "lg:w-full lg:rounded-lg lg:px-3 lg:py-2 lg:text-left" : ""
     } ${
       active
-        ? "bg-gray-900 text-white"
+        ? "bg-accent text-on-accent"
         : "bg-surface-sunken text-ink-secondary hover:text-ink"
     }`;
 

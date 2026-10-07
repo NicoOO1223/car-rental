@@ -117,7 +117,7 @@ export default function UsersPage() {
         <Badge
           colorClass={
             user.role === "admin"
-              ? "bg-gray-900 text-white"
+              ? "bg-accent text-on-accent"
               : "bg-surface-sunken text-ink-secondary"
           }
         >
@@ -135,8 +135,8 @@ export default function UsersPage() {
         <Badge
           colorClass={
             user.is_active
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-accent-soft text-accent-ink"
+              : "bg-danger-soft text-danger"
           }
         >
           {user.is_active ? t("s.admin.users.active") : t("s.admin.users.inactive")}
@@ -216,7 +216,7 @@ export default function UsersPage() {
 
       {error && (
         <div className="mb-6 rounded-xl bg-surface p-6 shadow-sm">
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
         </div>

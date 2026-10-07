@@ -79,7 +79,7 @@ export default function LocationsConfigurationPage() {
         </div>
 
         {error && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-danger" role="alert">
             {error}
           </p>
         )}
@@ -107,12 +107,12 @@ export default function LocationsConfigurationPage() {
               >
                 <div className="min-w-0">
                   <p className="font-medium text-ink">
-                    <span className="mr-2 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700">
+                    <span className="mr-2 rounded bg-surface-sunken px-1.5 py-0.5 font-mono text-xs text-ink-secondary">
                       {location.airport_code}
                     </span>
                     {location.name}
                     {!location.is_active && (
-                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("s.admin.configuration.locations.retired")}</span>
+                      <span className="ml-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-secondary">{t("s.admin.configuration.locations.retired")}</span>
                     )}
                   </p>
 

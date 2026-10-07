@@ -336,7 +336,7 @@ export default function CarDetailsPage({ params }: Props) {
     return (
       <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-red-600">
+          <p className="text-danger">
             {error || t("s.cars.id.vehicleNotFound")}
           </p>
         </div>
@@ -355,7 +355,7 @@ export default function CarDetailsPage({ params }: Props) {
             onClick={() =>
               navigate("/cars")
             }
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+            className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
           >
             <ArrowLeft className="h-4 w-4" />{t("s.cars.id.backFleet")}</button>
 
@@ -366,7 +366,7 @@ export default function CarDetailsPage({ params }: Props) {
                 {car.make} {car.model}
               </h1>
 
-              <p className="mt-2 text-gray-500">
+              <p className="mt-2 text-ink-muted">
                 {car.license_plate}
               </p>
             </div>
@@ -383,7 +383,7 @@ export default function CarDetailsPage({ params }: Props) {
 
         {car.is_away_from_home && (
           <div
-            className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 sm:flex-row sm:items-center sm:justify-between"
+            className="mb-6 flex flex-col gap-3 rounded-xl border border-warning-line bg-warning-soft p-4 text-warning sm:flex-row sm:items-center sm:justify-between"
             role="alert"
           >
             <div>
@@ -392,7 +392,7 @@ export default function CarDetailsPage({ params }: Props) {
               <p className="mt-1 text-sm">{t("s.cars.id.carAtButBelongs", { airport_code: car.current_location.airport_code, airport_code2: car.home_location.airport_code })}</p>
 
               {relocateError && (
-                <p className="mt-2 text-sm text-red-700">{relocateError}</p>
+                <p className="mt-2 text-sm text-danger">{relocateError}</p>
               )}
             </div>
 
@@ -416,7 +416,7 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.licensePlate")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.licensePlate")}</p>
 
               <p className="mt-1 font-medium">
                 {car.license_plate}
@@ -424,7 +424,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.year")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.year")}</p>
 
               <p className="mt-1 font-medium">
                 {car.year}
@@ -432,15 +432,15 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.class")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.class")}</p>
 
               <p className="mt-1 font-medium">{car.vehicle_class ? classWords(car.vehicle_class.name) : t("s.cars.id.noClass")}</p>
 
-              {car.vehicle_class && <p className="text-xs text-gray-400">{t("s.cars.id.pricedByClass")}</p>}
+              {car.vehicle_class && <p className="text-xs text-ink-muted">{t("s.cars.id.pricedByClass")}</p>}
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.category")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.category")}</p>
 
               <p className="mt-1 font-medium">
                 {car.category ? categoryLabel(car.category) : "—"}
@@ -448,7 +448,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.priceDay")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.priceDay")}</p>
 
               <p className="mt-1 font-medium">
                 {formatCurrency(car.price_per_day)}
@@ -456,7 +456,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.transmission")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.transmission")}</p>
 
               <p className="mt-1 font-medium">
                 {car.transmission ? enumLabel("transmission", car.transmission) : "—"}
@@ -464,7 +464,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.fuel")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.fuel")}</p>
 
               <p className="mt-1 font-medium">
                 {car.fuel_type ? enumLabel("fuel", car.fuel_type) : "—"}
@@ -472,7 +472,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.seats")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.seats")}</p>
 
               <p className="mt-1 font-medium">
                 {car.seats ?? "—"}
@@ -480,25 +480,25 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.currentLocation")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.currentLocation")}</p>
 
               <p className="mt-1 font-medium">
                 {car.current_location.airport_code}
               </p>
 
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-muted">
                 {car.current_location.name}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.homeAirport")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.homeAirport")}</p>
 
               <p className="mt-1 font-medium">
                 {car.home_location.airport_code}
               </p>
 
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-muted">
                 {car.home_location.name}
               </p>
             </div>
@@ -519,7 +519,7 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.mileage")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.mileage")}</p>
 
               <p className="mt-1 font-medium">
                 {car.mileage != null ? t("common.km", { value: formatNumber(car.mileage) }) : "—"}
@@ -527,7 +527,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.tireCondition")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.tireCondition")}</p>
 
               <p className="mt-1 font-medium">
                 {car.tire_condition ? enumLabel("tireCondition", car.tire_condition) : "—"}
@@ -535,7 +535,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.lastOilChange")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.lastOilChange")}</p>
 
               <p className="mt-1 font-medium">
                 {car.last_oil_change_at ? formatDate(car.last_oil_change_at) : "—"}
@@ -543,7 +543,7 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.lastInspection")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.lastInspection")}</p>
 
               <p className="mt-1 font-medium">
                 {car.last_inspection_at ? formatDate(car.last_inspection_at) : "—"}
@@ -551,21 +551,21 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.nextInspectionDue")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.nextInspectionDue")}</p>
 
               <p className="mt-1 font-medium">
                 {car.next_inspection_due ? formatDate(car.next_inspection_due) : "—"}
                 {inspectionStatus(car.next_inspection_due) === "overdue" && (
-                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">{t("s.cars.id.overdue")}</span>
+                  <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">{t("s.cars.id.overdue")}</span>
                 )}
                 {inspectionStatus(car.next_inspection_due) === "soon" && (
-                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.id.dueSoon")}</span>
+                  <span className="ml-2 rounded bg-warning-soft px-1.5 py-0.5 text-xs font-medium text-warning">{t("s.cars.id.dueSoon")}</span>
                 )}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.insuredSince")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.insuredSince")}</p>
 
               <p className="mt-1 font-medium">
                 {car.insured_from ? formatDate(car.insured_from) : "—"}
@@ -573,21 +573,21 @@ export default function CarDetailsPage({ params }: Props) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.insuredUntil")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.insuredUntil")}</p>
 
               <p className="mt-1 font-medium">
                 {car.insured_until ? formatDate(car.insured_until) : "—"}
                 {inspectionStatus(car.insured_until) === "overdue" && (
-                  <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">{t("s.cars.id.expired")}</span>
+                  <span className="ml-2 rounded bg-danger-soft px-1.5 py-0.5 text-xs font-medium text-danger">{t("s.cars.id.expired")}</span>
                 )}
                 {inspectionStatus(car.insured_until) === "soon" && (
-                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">{t("s.cars.id.endsSoon")}</span>
+                  <span className="ml-2 rounded bg-warning-soft px-1.5 py-0.5 text-xs font-medium text-warning">{t("s.cars.id.endsSoon")}</span>
                 )}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-500">{t("s.cars.id.insuranceCost")}</p>
+              <p className="text-sm text-ink-muted">{t("s.cars.id.insuranceCost")}</p>
 
               <p className="mt-1 font-medium">
                 {car.insurance_cost != null ? formatCurrency(car.insurance_cost) : "—"}
@@ -605,7 +605,7 @@ export default function CarDetailsPage({ params }: Props) {
             <div>
               <h2 className="text-xl font-semibold">{t("s.cars.id.maintenanceHistory")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.maintenanceCleaningTasksLogged")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.cars.id.maintenanceCleaningTasksLogged")}</p>
             </div>
 
             <Button variant="secondary" onClick={() => setLoggingTask(true)} disabled={!canWrite}>
@@ -615,9 +615,9 @@ export default function CarDetailsPage({ params }: Props) {
 
           {maintenanceTasks.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
-              <p className="font-medium text-gray-700">{t("s.cars.id.noMaintenanceHistory")}</p>
+              <p className="font-medium text-ink-secondary">{t("s.cars.id.noMaintenanceHistory")}</p>
 
-              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.nothingHasBeenLogged")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.cars.id.nothingHasBeenLogged")}</p>
             </div>
           ) : (
             <div className="mt-6 space-y-3">
@@ -639,7 +639,7 @@ export default function CarDetailsPage({ params }: Props) {
                         {task.notes || t("s.cars.id.noNotes")}
                       </p>
 
-                      <p className="mt-0.5 text-xs text-gray-500">{task.ends_at
+                      <p className="mt-0.5 text-xs text-ink-muted">{task.ends_at
                           ? t("s.cars.id.outServiceRange", {
                               from: formatDateTime(task.starts_at ?? task.opened_at),
                               to: formatDateTime(task.ends_at),
@@ -654,7 +654,7 @@ export default function CarDetailsPage({ params }: Props) {
                   </div>
 
                   <div className="flex items-center gap-3 self-start sm:self-auto">
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium text-ink-muted">
                       {enumLabel("taskStatus", task.status)}
                     </span>
 
@@ -662,12 +662,12 @@ export default function CarDetailsPage({ params }: Props) {
                       <>
                         <button
                           onClick={() => handleCompleteTask(task)}
-                          className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                          className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                         >{t("s.cars.id.markComplete")}</button>
 
                         <button
                           onClick={() => handleCancelTask(task.id)}
-                          className="rounded-lg border border-border-strong bg-white px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                          className="rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
                         >{t("s.cars.id.cancel")}</button>
                       </>
                     )}
@@ -686,7 +686,7 @@ export default function CarDetailsPage({ params }: Props) {
             <div>
               <h2 className="text-xl font-semibold">{t("s.cars.id.availabilitySchedule")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.next", { label: timelineRange.label })}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.cars.id.next", { label: timelineRange.label })}</p>
             </div>
 
             <div className="flex items-center gap-1 rounded-lg bg-surface-sunken p-1 text-sm">
@@ -698,7 +698,7 @@ export default function CarDetailsPage({ params }: Props) {
                   aria-pressed={range.days === timelineRangeDays}
                   className={`rounded-md px-3 py-1 font-medium transition ${
                     range.days === timelineRangeDays
-                      ? "bg-white text-ink shadow-sm"
+                      ? "bg-surface text-ink shadow-sm"
                       : "text-ink-secondary hover:text-ink"
                   }`}
                 >
@@ -725,7 +725,7 @@ export default function CarDetailsPage({ params }: Props) {
                 />{t("s.cars.id.completed")}</div>
 
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-amber-400" />{t("s.cars.id.outService2")}</div>
+                <div className="h-3 w-3 rounded-full bg-warning-strong" />{t("s.cars.id.outService2")}</div>
 
             </div>
 
@@ -820,7 +820,7 @@ export default function CarDetailsPage({ params }: Props) {
                         style={{
                           width: DAY_WIDTH,
                         }}
-                        className="shrink-0 border-r border-gray-100"
+                        className="shrink-0 border-r border-border-subtle"
                       />
                     )
                   )}
@@ -829,7 +829,7 @@ export default function CarDetailsPage({ params }: Props) {
 
                 {/* Today marker */}
                 <div
-                  className="absolute bottom-0 top-0 border-l-2 border-dashed border-gray-900"
+                  className="absolute bottom-0 top-0 border-l-2 border-dashed border-accent"
                   style={{
                     left: 0,
                   }}
@@ -908,7 +908,7 @@ export default function CarDetailsPage({ params }: Props) {
                   return (
                     <div
                       key={task.id}
-                      className="absolute flex items-center overflow-hidden rounded-lg border border-amber-300 bg-amber-100 px-3 text-amber-900 shadow-sm"
+                      className="absolute flex items-center overflow-hidden rounded-lg border border-warning-line bg-warning-soft px-3 text-warning shadow-sm"
                       style={{
                         left: position.left,
                         width: position.width,
@@ -940,7 +940,7 @@ export default function CarDetailsPage({ params }: Props) {
                 {timelineRowCount ===
                   0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700">{t("s.cars.id.vehicleAvailableNoReservations")}</div>
+                    <div className="rounded-lg bg-surface-sunken px-6 py-3 text-sm font-medium text-ink-secondary">{t("s.cars.id.vehicleAvailableNoReservations")}</div>
                   </div>
                 )}
 
@@ -962,19 +962,19 @@ export default function CarDetailsPage({ params }: Props) {
             <div>
               <h2 className="text-xl font-semibold">{t("s.cars.id.reservations")}</h2>
 
-              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.detailedBookingInformation")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.cars.id.detailedBookingInformation")}</p>
             </div>
 
-            <span className="text-sm text-gray-500">{t("common.bookings", { count: reservations.length })}</span>
+            <span className="text-sm text-ink-muted">{t("common.bookings", { count: reservations.length })}</span>
 
           </div>
 
           {reservations.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed p-8 text-center">
 
-              <p className="font-medium text-gray-700">{t("s.cars.id.noReservations")}</p>
+              <p className="font-medium text-ink-secondary">{t("s.cars.id.noReservations")}</p>
 
-              <p className="mt-1 text-sm text-gray-500">{t("s.cars.id.vehicleHasNoBookings")}</p>
+              <p className="mt-1 text-sm text-ink-muted">{t("s.cars.id.vehicleHasNoBookings")}</p>
 
             </div>
           ) : (
@@ -988,7 +988,7 @@ export default function CarDetailsPage({ params }: Props) {
                     onClick={() =>
                       navigate(`/reservations/manage/${reservation.id}`)
                     }
-                    className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50"
+                    className="cursor-pointer rounded-lg border p-4 hover:bg-canvas"
                   >
 
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1005,7 +1005,7 @@ export default function CarDetailsPage({ params }: Props) {
                           }
                         </p>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                           {
                             reservation
                               .pickup_location
@@ -1032,7 +1032,7 @@ export default function CarDetailsPage({ params }: Props) {
                           )}
                         </p>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-ink-muted">
                           {formatDateTime(
                             reservation.pickup_at, reservation.pickup_location.timezone
                           )}

@@ -254,7 +254,7 @@ export default function ManageReservationsPage() {
     return (
       <PageShell>
         <div className="rounded-xl bg-surface p-8 shadow-sm">
-          <p className="text-red-600" role="alert">
+          <p className="text-danger" role="alert">
             {error}
           </p>
 

@@ -322,7 +322,7 @@ export function DataTable<Row>({
                         <button
                           type="button"
                           onClick={() => toggleSort(column)}
-                          className={`inline-flex items-center gap-1.5 rounded font-semibold transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+                          className={`inline-flex items-center gap-1.5 rounded font-semibold transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                             isSorted ? "text-ink" : "text-ink-secondary"
                           }`}
                         >
@@ -330,7 +330,7 @@ export function DataTable<Row>({
 
                           {!isSorted && (
                             <ChevronsUpDown
-                              className="h-3.5 w-3.5 text-gray-300"
+                              className="h-3.5 w-3.5 text-border-strong"
                               aria-hidden="true"
                             />
                           )}
@@ -396,7 +396,7 @@ export function DataTable<Row>({
                         role={onRowClick ? "button" : undefined}
                         className={`border-b border-border-subtle last:border-b-0 ${
                           onRowClick
-                            ? "cursor-pointer hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
+                            ? "cursor-pointer hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
                             : ""
                         }`}
                       >
@@ -514,7 +514,7 @@ function MobileCard<Row>({
       <button
         type="button"
         onClick={() => onRowClick(row)}
-        className="block w-full p-4 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900"
+        className="block w-full p-4 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
       >
         {body}
       </button>
@@ -527,7 +527,7 @@ function MobileCard<Row>({
         <button
           type="button"
           onClick={() => onRowClick(row)}
-          className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+          className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
           {body}
         </button>

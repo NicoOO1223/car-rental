@@ -149,7 +149,7 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
         <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.email.statusTitle")}</h2>
 
         {error ? (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-danger" role="alert">
             {error}
           </p>
         ) : (
@@ -190,7 +190,7 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
               )}
             </Row>
             <Row label={t("s.admin.configuration.email.gaveUp")}>
-              <span className={status.failed > 0 ? "text-red-600" : ""}>{status.failed}</span>
+              <span className={status.failed > 0 ? "text-danger" : ""}>{status.failed}</span>
             </Row>
             <Row label={t("s.admin.configuration.email.lastSent")}>
               {status.last_sent_at ? formatDateTime(status.last_sent_at) : "—"}
@@ -251,7 +251,7 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
             />
 
             {alertsError && (
-              <p className="mt-1 text-sm text-red-600" role="alert">
+              <p className="mt-1 text-sm text-danger" role="alert">
                 {alertsError}
               </p>
             )}
@@ -297,14 +297,14 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
             )}
 
             {testResult && !testResult.sent && (
-              <div className="mt-3 text-sm text-red-600" role="alert">
+              <div className="mt-3 text-sm text-danger" role="alert">
                 <p>{t("s.admin.configuration.email.testFailed", { to: testResult.to })}</p>
                 <p className="mt-1 break-words font-mono text-xs">{testResult.error}</p>
               </div>
             )}
 
             {testError && (
-              <p className="mt-3 text-sm text-red-600" role="alert">
+              <p className="mt-3 text-sm text-danger" role="alert">
                 {testError}
               </p>
             )}
@@ -313,7 +313,7 @@ export function EmailStatusCard({ onChanged }: { onChanged?: () => void }) {
       )}
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

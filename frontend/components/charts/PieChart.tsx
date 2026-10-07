@@ -144,7 +144,7 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
           )}
         </svg>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-ink-secondary">
           {hovered
             ? t("c.charts.PieChart.vehicle", { label: hovered.label, value: hovered.value, hoveredPercentage: hoveredPercentage ?? 0 })
             : t("c.charts.PieChart.vehicleTotal", { total })}
@@ -161,18 +161,18 @@ export function PieChart({ data, size = 220, className = "" }: Props) {
               onMouseEnter={() => setHoveredKey(d.key)}
               onMouseLeave={() => setHoveredKey(null)}
               className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm transition ${
-                hoveredKey === d.key ? "bg-gray-50" : ""
+                hoveredKey === d.key ? "bg-canvas" : ""
               }`}
             >
               <span
                 className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: d.color }}
               />
-              <span className="min-w-[90px] flex-1 text-gray-700">
+              <span className="min-w-[90px] flex-1 text-ink-secondary">
                 {d.label}
               </span>
-              <span className="font-medium text-gray-900">{d.value}</span>
-              <span className="w-10 text-right text-xs text-gray-400">
+              <span className="font-medium text-ink">{d.value}</span>
+              <span className="w-10 text-right text-xs text-ink-muted">
                 {percentage}%
               </span>
             </div>

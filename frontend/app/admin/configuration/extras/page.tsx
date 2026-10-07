@@ -97,7 +97,7 @@ export default function ExtrasConfigurationPage() {
         </div>
 
         {error && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-danger" role="alert">
             {error}
           </p>
         )}
@@ -117,7 +117,7 @@ export default function ExtrasConfigurationPage() {
                   <p className="font-medium text-ink">
                     {extraName(extra)}
                     {!extra.is_active && (
-                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">{t("s.admin.configuration.extras.retired")}</span>
+                      <span className="ml-2 rounded bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-secondary">{t("s.admin.configuration.extras.retired")}</span>
                     )}
                   </p>
 

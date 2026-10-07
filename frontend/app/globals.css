@@ -13,7 +13,7 @@
 */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
 
   /* Semantic surfaces and ink. The page sits on canvas, panels sit on
      surface, and text steps down primary -> secondary -> muted. */
@@ -24,7 +24,7 @@
   --border: #e5e7eb;
   --border-strong: #d1d5db;
 
-  --ink: #111827;
+  --ink: #0a0a0a;
   --ink-secondary: #4b5563;
   /* Raised from the old gray-400 (#9ca3af, about 2.8:1 on white) so that
      small supporting text clears WCAG AA. */
@@ -42,6 +42,23 @@
   --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--on-accent));
   --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--surface));
   --accent-line: color-mix(in srgb, var(--accent) 30%, var(--surface));
+
+  /* The only other colours. Amber: something is waiting on staff. Red:
+     something is wrong. They never change with the brand colour, so a
+     business that picks a red or an orange accent cannot make a warning
+     look like a button. */
+  --warning: #92400e;
+  --warning-soft: #fef3c7;
+  --warning-line: #fcd34d;
+  --warning-strong: #d97706;
+
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+
+  /* A dark surface (a tooltip, a dark notice). Not an action, so it does
+     not follow the brand colour. */
+  --deep: #0a0a0a;
+  --on-deep: #ffffff;
 }
 
 @theme inline {
@@ -66,17 +83,28 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-line: var(--accent-line);
 
-  --font-sans: var(--font-geist-sans);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+  --color-warning-strong: var(--warning-strong);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --color-deep: var(--deep);
+  --color-on-deep: var(--on-deep);
+
+  --font-sans: var(--font-jakarta);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--canvas);
   color: var(--foreground);
-  /* Geist, loaded in app/layout.tsx. This used to read
+  /* Plus Jakarta Sans, loaded in app/layout.tsx. This used to read
      `Arial, Helvetica, sans-serif`, which silently overrode the webfont
      on every page that did not opt back in with `font-sans`. */
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Top progress bar shown during client-side navigation — see

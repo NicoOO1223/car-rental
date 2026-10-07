@@ -51,7 +51,7 @@ export function LanguagePicker({
         onChange={(event) => handleChange(event.target.value)}
         aria-label={t("language.choose")}
         aria-invalid={error || undefined}
-        className={`rounded-md border border-border-strong bg-surface py-1 pl-2 pr-6 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 ${
+        className={`rounded-md border border-border-strong bg-surface py-1 pl-2 pr-6 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
           compact ? "w-16" : "min-w-0 flex-1"
         }`}
       >

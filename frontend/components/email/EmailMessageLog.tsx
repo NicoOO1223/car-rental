@@ -12,8 +12,8 @@ import { enumLabel, t } from "@/lib/i18n";
 
 const STATUS_STYLE: Record<string, string> = {
   SENT: "bg-surface-sunken text-ink-secondary",
-  PENDING: "bg-amber-50 text-amber-800",
-  FAILED: "bg-gray-900 text-white",
+  PENDING: "bg-warning-soft text-warning",
+  FAILED: "bg-danger-soft text-danger",
 };
 
 /** The most recent emails the system has sent or tried to, and a way to send a failed one again. */
@@ -86,7 +86,7 @@ export function EmailMessageLog({ refreshKey = 0 }: { refreshKey?: number }) {
       </div>
 
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm text-danger" role="alert">
           {error}
         </p>
       )}
@@ -118,7 +118,7 @@ export function EmailMessageLog({ refreshKey = 0 }: { refreshKey?: number }) {
               </p>
 
               {message.last_error && message.status !== "SENT" && (
-                <p className="mt-1 break-words font-mono text-xs text-red-600">{message.last_error}</p>
+                <p className="mt-1 break-words font-mono text-xs text-danger">{message.last_error}</p>
               )}
 
               {message.status === "FAILED" && (

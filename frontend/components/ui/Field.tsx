@@ -15,21 +15,21 @@ import { useId, type ReactNode } from "react";
  *   readers announced unlabelled inputs. `Field` generates an id and wires
  *   it up, so that cannot be forgotten.
  * - There was no focus style at all on modal inputs, and page filters used
- *   `outline-none focus:border-black`, which removed the browser outline
+ *   `outline-none focus:border-accent-ink`, which removed the browser outline
  *   and replaced it with a 1px border change that is easy to miss.
  * - There was no error state, so every form rendered its validation
  *   message as a detached paragraph with no link to the offending field.
  */
 
 const CONTROL_BASE =
-  "w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink " +
+  "w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink " +
   "transition placeholder:text-ink-muted " +
   "focus:outline-none focus-visible:outline-none " +
-  "focus:ring-2 focus:ring-gray-900 focus:ring-offset-0 focus:border-gray-900 " +
+  "focus:ring-2 focus:ring-accent-ink focus:ring-offset-0 focus:border-accent-ink " +
   "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-muted";
 
 const CONTROL_NEUTRAL = "border-border-strong";
-const CONTROL_INVALID = "border-red-500 focus:ring-red-600 focus:border-red-600";
+const CONTROL_INVALID = "border-danger focus:ring-danger focus:border-danger";
 
 export function controlClass(invalid = false, className = "") {
   return [
@@ -103,7 +103,7 @@ export function Field({
       </div>
 
       {error && (
-        <p id={errorId} className="mt-1.5 text-xs text-red-600">
+        <p id={errorId} className="mt-1.5 text-xs text-danger">
           {error}
         </p>
       )}

@@ -64,11 +64,11 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
       </p>
 
       {yourReservationIsSuggested && (
-        <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white">
+        <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-warning-soft px-3 py-2 text-sm font-medium text-warning">
           <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
           {t("c.reservations.OverlappingReservationsCard.yourReservationSuggested")}
           {overlaps.suggested_reasons.length > 0 && (
-            <span className="font-normal text-gray-300">
+            <span className="font-normal text-border-strong">
               {" — "}
               {overlaps.suggested_reasons.map((reason) => t(REASON_LABELS[reason] ?? reason)).join(" · ")}
             </span>
@@ -85,14 +85,14 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
               <button
                 type="button"
                 onClick={() => navigate(`/reservations/manage/${item.id}`)}
-                className="w-full rounded-lg border border-border-strong p-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+                className="w-full rounded-lg border border-border-strong p-3 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate font-medium text-ink">
                       {item.customer_name}
                       {suggested && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">
                           <Sparkles className="h-3 w-3" aria-hidden="true" />
                           {t("c.reservations.OverlappingReservationsCard.suggested")}
                         </span>

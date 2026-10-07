@@ -137,7 +137,7 @@ export function CustomerStep({
           {selected ? (
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent">
                   <UserRound className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">

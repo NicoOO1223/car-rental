@@ -108,7 +108,7 @@ export function EditUserModal({ user, isSelf, onClose, onSaved }: Props) {
               >
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-border-strong text-gray-900 focus:ring-2 focus:ring-gray-900"
+                  className="h-4 w-4 rounded border-border-strong text-ink focus:ring-2 focus:ring-accent-ink"
                   checked={!hiddenNavItems.has(item.href)}
                   onChange={(event) =>
                     toggleNavItem(item.href, event.target.checked)
@@ -121,7 +121,7 @@ export function EditUserModal({ user, isSelf, onClose, onSaved }: Props) {
         </fieldset>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}

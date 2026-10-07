@@ -216,7 +216,7 @@ export function DateRangeCalendar({
           onClick={() => shiftMonths(-1)}
           disabled={!canGoBack}
           aria-label={t("c.booking.DateRangeCalendar.previousMonth")}
-          className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+          className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -229,7 +229,7 @@ export function DateRangeCalendar({
           type="button"
           onClick={() => shiftMonths(1)}
           aria-label={t("c.booking.DateRangeCalendar.nextMonth")}
-          className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+          className="rounded-lg p-1.5 text-ink-secondary transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -297,11 +297,11 @@ export function DateRangeCalendar({
                   month: "long",
                   year: "numeric",
                 })}
-                className={`relative ${dayPrices ? "h-12" : "h-11"} text-sm transition focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900 ${
-                  isPast ? "cursor-not-allowed text-gray-300" : "cursor-pointer"
+                className={`relative ${dayPrices ? "h-12" : "h-11"} text-sm transition focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink ${
+                  isPast ? "cursor-not-allowed text-border-strong" : "cursor-pointer"
                 } ${
                   isEnd
-                    ? `${endRadius} bg-gray-900 font-semibold text-white`
+                    ? `${endRadius} bg-accent font-semibold text-on-accent`
                     : inRange
                       ? "bg-surface-sunken text-ink"
                       : !isPast
@@ -316,7 +316,7 @@ export function DateRangeCalendar({
                     {!isPast && dayPrices[key] !== undefined && (
                       <span
                         className={`text-[10px] font-normal ${
-                          isEnd ? "text-white/70" : "text-ink-muted"
+                          isEnd ? "text-on-accent/70" : "text-ink-muted"
                         }`}
                       >
                         {formatCurrencyCompact(dayPrices[key])}
@@ -330,7 +330,7 @@ export function DateRangeCalendar({
                 {isToday && !isEnd && (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-1 mx-auto h-1 w-1 rounded-full bg-gray-900"
+                    className="absolute inset-x-0 bottom-1 mx-auto h-1 w-1 rounded-full bg-accent"
                   />
                 )}
               </button>

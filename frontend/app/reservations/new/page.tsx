@@ -457,7 +457,7 @@ export default function NewReservationPage() {
     return (
       <PageShell width="narrow">
         <div className="rounded-xl bg-surface p-8 text-center shadow-sm">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-on-accent">
             <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
           </div>
 
@@ -467,7 +467,7 @@ export default function NewReservationPage() {
 
           {overlapWarning && (
             <p
-              className="mx-auto mt-4 max-w-sm rounded-lg bg-amber-50 p-4 text-left text-sm text-amber-900"
+              className="mx-auto mt-4 max-w-sm rounded-lg bg-warning-soft p-4 text-left text-sm text-warning"
               role="status"
             >
               {t("s.reservations.new.overlapsOtherRequests", { count: overlapWarning.items.length })}
@@ -546,7 +546,7 @@ export default function NewReservationPage() {
 
               {locationsLoaded && locations.length === 0 && (
                 <p
-                  className="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900"
+                  className="mt-5 rounded-lg bg-warning-soft p-4 text-sm text-warning"
                   role="status"
                 >{t("s.reservations.new.thereNoLocationsYet")}</p>
               )}
@@ -645,7 +645,7 @@ export default function NewReservationPage() {
               </div>
 
               {searchError && (
-                <p className="mt-4 text-sm text-red-600" role="alert">
+                <p className="mt-4 text-sm text-danger" role="alert">
                   {searchError}
                 </p>
               )}
@@ -802,7 +802,7 @@ export default function NewReservationPage() {
                 <label className="flex cursor-pointer items-start gap-2 rounded-lg bg-surface p-4 text-sm shadow-sm">
                   <input
                     type="checkbox"
-                    className="mt-0.5 h-4 w-4 accent-gray-900"
+                    className="mt-0.5 h-4 w-4 accent-accent"
                     checked={assignLater}
                     onChange={(event) => setAssignLater(event.target.checked)}
                   />
@@ -925,7 +925,7 @@ export default function NewReservationPage() {
               </div>
 
               {submitError && (
-                <p className="text-sm text-red-600" role="alert">
+                <p className="text-sm text-danger" role="alert">
                   {submitError}
                 </p>
               )}
