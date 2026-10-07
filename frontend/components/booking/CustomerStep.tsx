@@ -133,7 +133,7 @@ export function CustomerStep({
   return (
     <div className="space-y-6">
       {!loadFailed && (
-        <div className="rounded-xl bg-surface p-5 shadow-sm">
+        <div className="rounded-2xl border border-border-subtle bg-surface p-5">
           {selected ? (
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
@@ -204,7 +204,7 @@ export function CustomerStep({
         </div>
       )}
 
-      <div className="rounded-xl bg-surface p-5 shadow-sm">
+      <div className="rounded-2xl border border-border-subtle bg-surface p-5">
         <h2 className="text-lg font-semibold text-ink">
           {selected ? t("c.booking.CustomerStep.confirmDetails") : t("c.booking.CustomerStep.customerDetails")}
         </h2>

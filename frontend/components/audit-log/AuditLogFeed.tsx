@@ -47,7 +47,7 @@ export function AuditLogFeed({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-surface shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface">
       <div className="divide-y divide-border-subtle">
         {loading
           ? Array.from({ length: LOADING_ROW_COUNT }).map((_, index) => (

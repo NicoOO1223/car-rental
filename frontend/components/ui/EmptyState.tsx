@@ -20,7 +20,7 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`rounded-xl border border-dashed border-border-strong bg-surface p-10 text-center ${className}`}
+      className={`rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center ${className}`}
     >
       {icon && (
         <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken text-ink-muted">

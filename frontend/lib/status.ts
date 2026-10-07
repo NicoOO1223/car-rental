@@ -2,11 +2,17 @@
 // Previously every page invented its own color mapping for the same
 // statuses — this file replaces all of those local helpers.
 //
-// The app is deliberately monochrome: status identity comes from an icon
-// + label, never from hue. Every status maps to one of three grayscale
-// "weights" — neutral (quiescent/informational), active (happening right
-// now — operationally the one state worth visually emphasizing), and
-// muted (terminal/negative — de-emphasized on purpose, e.g. cancelled).
+// Colour is used sparingly, and a status is never told apart by colour
+// alone: every pill carries its label. Each status maps to one "weight":
+//
+//   neutral  nothing to do (confirmed, available)
+//   active   happening now; the one weight that uses the brand colour
+//   muted    over or called off (completed, cancelled), de-emphasized
+//   warning  waiting on staff
+//   danger   something is wrong
+//
+// Warning and danger are fixed colours (see app/globals.css); they do not
+// follow the brand colour, so a business's accent can never look like one.
 
 import {
   CheckCheck,
@@ -25,26 +31,33 @@ import {
 
 export type ReservationStatusVariant = "subtle" | "solid" | "dot";
 
-type StatusWeight = "neutral" | "active" | "muted";
+type StatusWeight = "neutral" | "active" | "muted" | "warning" | "danger";
 
 const WEIGHT_BADGE: Record<StatusWeight, string> = {
-  neutral: "bg-surface-sunken text-ink-secondary",
+  neutral: "bg-surface-sunken text-ink",
   active: "bg-accent text-on-accent",
-  // Raised from text-ink-muted (about 2.8:1 on white, below AA). Muted
-  // still reads as de-emphasized against the darker neutral weight.
-  muted: "bg-surface text-ink-muted border border-border-strong",
+  // Finished or called off: an outline, so it recedes next to the others.
+  muted: "bg-surface text-ink-muted ring-1 ring-inset ring-border-strong",
+  // Waiting on staff.
+  warning: "bg-warning-soft text-warning",
+  // Something is wrong.
+  danger: "bg-danger-soft text-danger",
 };
 
 const WEIGHT_SOLID: Record<StatusWeight, string> = {
   neutral: "bg-ink-muted text-surface",
   active: "bg-accent text-on-accent",
   muted: "bg-border-subtle text-ink-muted",
+  warning: "bg-warning-strong text-surface",
+  danger: "bg-danger text-surface",
 };
 
 const WEIGHT_DOT: Record<StatusWeight, string> = {
   neutral: "bg-ink-muted",
   active: "bg-accent",
   muted: "bg-border-strong",
+  warning: "bg-warning-strong",
+  danger: "bg-danger",
 };
 
 const CAR_STATUS_WEIGHT: Record<string, StatusWeight> = {
@@ -95,7 +108,8 @@ export function getCarStatusHex(status: string): string {
 }
 
 const RESERVATION_STATUS_WEIGHT: Record<string, StatusWeight> = {
-  PENDING: "neutral",
+  // A request nobody has answered yet is the one status waiting on staff.
+  PENDING: "warning",
   AWAITING_PAYMENT: "neutral",
   CONFIRMED: "neutral",
   ACTIVE: "active",

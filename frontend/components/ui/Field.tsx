@@ -22,10 +22,10 @@ import { useId, type ReactNode } from "react";
  */
 
 const CONTROL_BASE =
-  "w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink " +
+  "h-10 w-full rounded-lg border bg-surface px-3.5 text-sm text-ink " +
   "transition placeholder:text-ink-muted " +
   "focus:outline-none focus-visible:outline-none " +
-  "focus:ring-2 focus:ring-accent-ink focus:ring-offset-0 focus:border-accent-ink " +
+  "focus:ring-2 focus:ring-accent-ink/25 focus:ring-offset-0 focus:border-accent-ink " +
   "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-muted";
 
 const CONTROL_NEUTRAL = "border-border-strong";

@@ -258,7 +258,7 @@ export function DataTable<Row>({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl bg-surface shadow-sm ${className}`}
+      className={`overflow-hidden rounded-2xl border border-border-subtle bg-surface ${className}`}
     >
       {showCards && (
         <div

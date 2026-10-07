@@ -15,7 +15,7 @@ export function SkeletonStatTiles({
   return (
     <div className={className}>
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="rounded-xl bg-surface p-5 shadow-sm">
+        <div key={index} className="rounded-2xl border border-border-subtle bg-surface p-5">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="mt-3 h-8 w-16" />
         </div>
@@ -32,7 +32,7 @@ export function SkeletonDetailPage() {
       <Skeleton className="mb-4 h-4 w-32" />
       <Skeleton className="mb-8 h-9 w-72" />
 
-      <div className="rounded-xl bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-border-subtle bg-surface p-6">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index}>
@@ -50,7 +50,7 @@ export function SkeletonDetailPage() {
 // rows used across Reservations/Customers/Fleet/Maintenance.
 export function SkeletonRows({ count = 5 }: { count?: number }) {
   return (
-    <div className="divide-y overflow-hidden rounded-xl bg-surface shadow-sm">
+    <div className="divide-y overflow-hidden rounded-2xl border border-border-subtle bg-surface">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="flex items-center justify-between gap-4 p-4">
           <div className="min-w-0 flex-1 space-y-2">

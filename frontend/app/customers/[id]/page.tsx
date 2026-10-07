@@ -191,7 +191,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         </div>
 
         {/* Customer information */}
-        <section className="rounded-xl bg-surface p-6 shadow-sm">
+        <section className="rounded-2xl border border-border-subtle bg-surface p-6">
           <h2 className="text-xl font-semibold">{t("s.customers.id.customerInformation")}</h2>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -234,7 +234,7 @@ export default function CustomerDetailsPage({ params }: Props) {
         </section>
 
         {/* Reservation history */}
-        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border-subtle bg-surface p-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">{t("s.customers.id.reservations")}</h2>

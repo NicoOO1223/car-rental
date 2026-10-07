@@ -409,7 +409,7 @@ export default function CarDetailsPage({ params }: Props) {
         )}
 
         {/* Vehicle information */}
-        <section className="rounded-xl bg-surface p-6 shadow-sm">
+        <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
           <h2 className="text-xl font-semibold">{t("s.cars.id.vehicleInformation")}</h2>
 
@@ -507,7 +507,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Vehicle condition */}
-        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border-subtle bg-surface p-6">
 
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">{t("s.cars.id.vehicleCondition")}</h2>
@@ -598,7 +598,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Maintenance history */}
-        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border-subtle bg-surface p-6">
 
           <div className="flex items-center justify-between">
 
@@ -679,7 +679,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Availability timeline */}
-        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border-subtle bg-surface p-6">
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
@@ -955,7 +955,7 @@ export default function CarDetailsPage({ params }: Props) {
         </section>
 
         {/* Reservation details */}
-        <section className="mt-6 rounded-xl bg-surface p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border-subtle bg-surface p-6">
 
           <div className="flex items-center justify-between">
 

@@ -37,7 +37,7 @@ export function VehicleCard({
 
   return (
     <div
-      className={`group flex flex-col overflow-hidden rounded-xl bg-surface shadow-sm transition ${
+      className={`group flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface transition ${
         selected
           ? "ring-2 ring-accent-ink"
           : "ring-1 ring-transparent hover:shadow-md hover:ring-border-strong"

@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 /*
-  This app is deliberately light-only and deliberately monochrome. Status
-  identity comes from an icon plus a label rather than from hue (see
-  lib/status.ts); red is reserved for errors and appears nowhere else.
+  This app is light-only. Its colours are a set of greys, one brand colour
+  (the accent, which each business can set) and two fixed status tints,
+  warning and danger. Components use the tokens below and never a raw
+  palette class; scripts/check-colors.mjs enforces that.
 
   There is no prefers-color-scheme block here on purpose. One used to
   exist and flipped the body background to near-black behind a UI whose
-  every surface is a hardcoded light gray or white, so the app rendered
-  broken on a dark-OS machine. Reinstating dark mode means theming every
-  surface, not re-adding these two variables.
+  every surface is a light grey or white, so the app rendered broken on a
+  dark-OS machine. Reinstating dark mode means giving every token a dark
+  value, not re-adding two variables.
 */
 :root {
   --background: #ffffff;

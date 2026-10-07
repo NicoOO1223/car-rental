@@ -38,7 +38,7 @@ export function BookingSummary({
   return (
     <aside
       aria-label={t("c.booking.BookingSummary.bookingSummary")}
-      className="rounded-xl bg-surface p-5 shadow-sm lg:sticky lg:top-6"
+      className="rounded-2xl border border-border-subtle bg-surface p-5 lg:sticky lg:top-6"
     >
       <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("c.booking.BookingSummary.booking")}</h2>
 

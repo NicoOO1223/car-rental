@@ -82,7 +82,7 @@ export function ExtrasPicker({
         return (
           <li
             key={extra.id}
-            className={`rounded-xl bg-surface p-4 shadow-sm transition ${
+            className={`rounded-2xl border border-border-subtle bg-surface p-4 transition ${
               isSelected
                 ? "ring-2 ring-accent-ink"
                 : "ring-1 ring-transparent hover:ring-border-strong"

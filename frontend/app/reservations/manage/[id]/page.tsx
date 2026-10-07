@@ -357,7 +357,7 @@ export default function ReservationDetailsPage({
           <div className="space-y-6 lg:col-span-2">
 
             {/* Customer */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.customer")}</h2>
@@ -393,7 +393,7 @@ export default function ReservationDetailsPage({
             </section>
 
             {/* Vehicle */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.vehicle")}</h2>
@@ -462,7 +462,7 @@ export default function ReservationDetailsPage({
             {/* Extras — only rendered when the booking has any, so a
                 plain booking does not gain an empty panel. */}
             {reservation.extras.length > 0 && (
-              <section className="rounded-xl bg-surface p-6 shadow-sm">
+              <section className="rounded-2xl border border-border-subtle bg-surface p-6">
                 <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.extras")}</h2>
 
                 <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.bookedAddOnsAt")}</p>
@@ -498,7 +498,7 @@ export default function ReservationDetailsPage({
             )}
 
             {/* Rental timeline */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.rentalTimeline")}</h2>
 
@@ -587,7 +587,7 @@ export default function ReservationDetailsPage({
           <div className="space-y-6">
 
             {/* Reservation summary */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.reservationSummary")}</h2>
 
@@ -663,7 +663,7 @@ export default function ReservationDetailsPage({
             </section>
 
             {/* Locations */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.locations")}</h2>
 
@@ -715,7 +715,7 @@ export default function ReservationDetailsPage({
             )}
 
             {/* Actions */}
-            <section className="rounded-xl bg-surface p-6 shadow-sm">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
 
               <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.actions")}</h2>
 

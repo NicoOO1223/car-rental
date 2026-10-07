@@ -16,7 +16,7 @@ export function Toolbar({
 }) {
   return (
     <div
-      className={`mb-6 rounded-xl bg-surface p-5 shadow-sm ${className}`}
+      className={`mb-4 rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5 ${className}`}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
 

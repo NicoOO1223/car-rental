@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-8">
-      <div className="w-full max-w-sm rounded-xl bg-surface p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-8">
         <BrandMark className="mb-6 h-12 w-12" />
 
         <h1 className="min-h-8 text-2xl font-bold tracking-tight text-ink">

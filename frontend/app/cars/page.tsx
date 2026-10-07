@@ -362,7 +362,7 @@ export default function FleetPage() {
             </div>
 
             {/* Date Range Selectors */}
-            <div className="flex w-full items-center gap-2 rounded-xl bg-surface p-1 shadow-sm ring-1 ring-inset ring-border-strong sm:w-auto">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-border-subtle bg-surface p-1 ring-1 ring-inset ring-border-strong sm:w-auto">
               <input
                 type="date"
                 value={startDate}
@@ -403,7 +403,7 @@ export default function FleetPage() {
             <section
               key={location.airportCode}
               id={location.airportCode}
-              className="overflow-hidden rounded-xl bg-surface shadow-sm scroll-mt-6"
+              className="overflow-hidden rounded-2xl border border-border-subtle bg-surface scroll-mt-6"
             >
               {/* Airport Header */}
               <div className="border-b border-border-subtle bg-gradient-to-r from-canvas to-surface px-6 py-5">

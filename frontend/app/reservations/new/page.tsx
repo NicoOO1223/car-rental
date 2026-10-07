@@ -541,7 +541,7 @@ export default function NewReservationPage() {
       >
         <div className="min-w-0">
           {step === "search" && (
-            <div className="rounded-xl bg-surface p-6 shadow-sm">
+            <div className="rounded-2xl border border-border-subtle bg-surface p-6">
               <h2 className="text-lg font-semibold text-ink">{t("s.reservations.new.whereWhen")}</h2>
 
               {locationsLoaded && locations.length === 0 && (
@@ -742,7 +742,7 @@ export default function NewReservationPage() {
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={index}
-                      className="overflow-hidden rounded-xl bg-surface shadow-sm"
+                      className="overflow-hidden rounded-2xl border border-border-subtle bg-surface"
                     >
                       <Skeleton className="aspect-[16/9] w-full rounded-none" />
                       <div className="p-5">
@@ -866,7 +866,7 @@ export default function NewReservationPage() {
 
           {step === "review" && selectedCar && (
             <div className="space-y-5">
-              <div className="rounded-xl bg-surface p-6 shadow-sm">
+              <div className="rounded-2xl border border-border-subtle bg-surface p-6">
                 <h2 className="text-lg font-semibold text-ink">{t("s.reservations.new.review")}</h2>
 
                 <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -907,7 +907,7 @@ export default function NewReservationPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-surface p-6 shadow-sm">
+              <div className="rounded-2xl border border-border-subtle bg-surface p-6">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted">{t("s.reservations.new.price")}</h3>
 
                 {quote ? (

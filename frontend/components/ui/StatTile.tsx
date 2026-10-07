@@ -33,7 +33,7 @@ export function StatTile({
     <>
       <div className="flex items-start justify-between gap-2">
         <p
-          className={`text-sm ${active ? "text-border-strong" : "text-ink-muted"}`}
+          className={`text-sm ${active ? "text-accent-ink" : "text-ink-muted"}`}
         >
           {label}
         </p>
@@ -48,8 +48,8 @@ export function StatTile({
       </div>
 
       <p
-        className={`mt-2 text-3xl font-bold tracking-tight ${
-          active ? "text-on-accent" : "text-ink"
+        className={`mt-2 text-2xl font-bold tabular-nums tracking-tight sm:text-3xl ${
+          active ? "text-accent-ink" : "text-ink"
         }`}
       >
         {value}
@@ -67,11 +67,11 @@ export function StatTile({
     </>
   );
 
-  const shell = "rounded-xl p-5 shadow-sm transition";
+  const shell = "rounded-2xl border p-5 transition";
 
   if (!onClick) {
     return (
-      <div className={`${shell} bg-surface ${className}`}>{body}</div>
+      <div className={`${shell} border-border-subtle bg-surface ${className}`}>{body}</div>
     );
   }
 
@@ -82,8 +82,8 @@ export function StatTile({
       aria-pressed={active}
       className={`${shell} w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
         active
-          ? "bg-accent"
-          : "bg-surface hover:shadow-md hover:ring-1 hover:ring-border-strong"
+          ? "border-accent-ink bg-accent-soft"
+          : "border-border-subtle bg-surface hover:border-border-strong"
       } ${className}`}
     >
       {body}

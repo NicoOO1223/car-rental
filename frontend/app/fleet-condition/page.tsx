@@ -205,7 +205,7 @@ export default function FleetConditionPage() {
       />
 
       {error && (
-        <div className="mb-6 rounded-xl bg-surface p-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-border-subtle bg-surface p-6">
           <p className="text-danger" role="alert">
             {error}
           </p>

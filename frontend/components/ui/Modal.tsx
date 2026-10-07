@@ -125,7 +125,7 @@ export function Modal({
         aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`max-h-[90vh] w-full ${SIZE_CLASSES[size]} overflow-y-auto rounded-xl bg-surface p-6 shadow-lg focus:outline-none`}
+        className={`max-h-[90vh] w-full ${SIZE_CLASSES[size]} overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl focus:outline-none`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">

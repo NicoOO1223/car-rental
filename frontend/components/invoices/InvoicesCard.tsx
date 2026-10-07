@@ -62,7 +62,7 @@ export function InvoicesCard({
   if (invoices.length === 0) return null;
 
   return (
-    <section className="rounded-xl bg-surface p-6 shadow-sm">
+    <section className="rounded-2xl border border-border-subtle bg-surface p-6">
       <h2 className="text-lg font-semibold">{t("c.invoices.InvoicesCard.invoices")}</h2>
 
       <ul className="mt-4 divide-y divide-border-subtle">

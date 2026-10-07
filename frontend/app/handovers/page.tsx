@@ -242,7 +242,7 @@ export default function HandoversPage() {
   if (error) {
     return (
       <PageShell width="wide">
-        <div className="rounded-xl bg-surface p-8 shadow-sm">
+        <div className="rounded-2xl border border-border-subtle bg-surface p-8">
           <p className="text-danger" role="alert">
             {error}
           </p>
