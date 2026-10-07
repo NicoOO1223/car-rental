@@ -24,6 +24,13 @@ export default function SystemConfigurationPage() {
           hint: t("s.admin.configuration.system.reminderWindowHint"),
         },
         {
+          key: "confirm_within_hours",
+          label: t("s.admin.configuration.system.confirmWithinHours"),
+          kind: "integer",
+          min: 0,
+          hint: t("s.admin.configuration.system.confirmWithinHoursHint"),
+        },
+        {
           key: "oil_change_interval_km",
           label: t("s.admin.configuration.system.oilChangeIntervalKm"),
           kind: "integer",

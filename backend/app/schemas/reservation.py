@@ -244,6 +244,7 @@ class ReservationSummary(BaseModel):
     active: int
     upcoming: int
     overdue_returns: int
+    pending: int
 
 
 class CarReservationResponse(BaseModel):

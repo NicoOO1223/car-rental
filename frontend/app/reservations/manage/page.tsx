@@ -6,6 +6,7 @@ import { CalendarClock, Plus, RefreshCw } from "lucide-react";
 
 import {
   getLocations,
+  getPublicConfiguration,
   getReservations,
   getReservationSummary,
   type Location,
@@ -20,7 +21,15 @@ import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { Pagination } from "@/components/ui/Pagination";
 import { Toolbar } from "@/components/ui/Toolbar";
-import { bookingReference, formatDate, formatTime } from "@/lib/format";
+import {
+  bookingReference,
+  formatAge,
+  formatDateTime,
+  formatDayTime,
+  formatDuration,
+  hoursSince,
+  rentalDays,
+} from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
@@ -50,6 +59,10 @@ export default function ManageReservationsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  // Hours a request may wait for an answer (Configuration > System); 0 turns the flag off.
+  const [confirmWithin, setConfirmWithin] = useState(0);
+  // "Now" for ages and deadlines, taken when the list was last loaded.
+  const [now, setNow] = useState(() => Date.now());
   // Bumped by "Refresh" and "Try again" to re-run the loader effect.
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -61,6 +74,10 @@ export default function ManageReservationsPage() {
   useEffect(() => {
     getLocations({ includeInactive: true })
       .then(setLocations)
+      .catch(() => {});
+
+    getPublicConfiguration()
+      .then((configuration) => setConfirmWithin(configuration.confirm_within_hours))
       .catch(() => {});
   }, []);
 
@@ -88,6 +105,7 @@ export default function ManageReservationsPage() {
 
         if (cancelled) return;
         setReservations(list.items);
+        setNow(Date.now());
         setTotal(list.total);
         setSummary(counts);
       } catch {
@@ -139,6 +157,50 @@ export default function ManageReservationsPage() {
     filters.location === "ALL" &&
     filters.source === "ALL";
 
+  // Requests waiting for an answer, the one that has waited longest first.
+  function showAwaitingConfirmation() {
+    updateFilters({ q: "", status: "PENDING", location: "ALL", source: "ALL", window: "ALL", sort: "created_asc" });
+  }
+
+  const awaitingConfirmationActive =
+    filters.status === "PENDING" &&
+    filters.window === "ALL" &&
+    filters.q === "" &&
+    filters.location === "ALL" &&
+    filters.source === "ALL";
+
+  // A request waiting for an answer: how close it is to the time the business
+  // gives itself (Configuration > System), once that is worth pointing out.
+  function confirmNote(reservation: Reservation): { text: string; late: boolean } | null {
+    if (reservation.status !== "PENDING" || confirmWithin <= 0) return null;
+
+    const left = confirmWithin - hoursSince(reservation.created_at, now);
+
+    if (left <= 0) {
+      return { text: t("s.reservations.manage.confirmOverdue", { hours: Math.max(1, Math.floor(-left)) }), late: true };
+    }
+
+    // Flagged for the last quarter of the time, or the last six hours.
+    if (left <= Math.max(6, confirmWithin / 4)) {
+      return { text: t("s.reservations.manage.confirmWithin", { hours: Math.max(1, Math.ceil(left)) }), late: false };
+    }
+
+    return null;
+  }
+
+  const rentalLine = (reservation: Reservation) =>
+    `${formatDayTime(reservation.pickup_at, reservation.pickup_location.timezone, now)} → ${formatDayTime(
+      reservation.return_at,
+      reservation.return_location.timezone,
+      now,
+    )}`;
+
+  const routeLine = (reservation: Reservation) =>
+    `${reservation.pickup_location.airport_code} → ${reservation.return_location.airport_code} · ${formatDuration(
+      rentalDays(reservation.pickup_at, reservation.return_at, reservation.pickup_location.timezone),
+    )}`;
+
+  // One fact per column, a second line only where it helps scanning.
   const columns: Column<Reservation>[] = [
     {
       id: "customer",
@@ -148,12 +210,10 @@ export default function ManageReservationsPage() {
         <TwoLine
           primary={`${reservation.customer.first_name} ${reservation.customer.last_name}`}
           secondary={
-            <span className="font-mono text-xs">
-              {reservation.public_reference ?? bookingReference(reservation.id)}
-              {reservation.source === "STOREFRONT" && (
-                <span className="ml-1.5 font-sans text-ink-muted">· {t("s.reservations.manage.online")}</span>
-              )}
-            </span>
+            <>
+              <span className="font-mono">{reservation.public_reference ?? bookingReference(reservation.id)}</span>
+              {reservation.source === "STOREFRONT" && <> · {t("s.reservations.manage.online")}</>}
+            </>
           }
         />
       ),
@@ -169,7 +229,7 @@ export default function ManageReservationsPage() {
           primary={`${reservation.car.make} ${reservation.car.model}`}
           secondary={
             reservation.vehicle_class
-              ? `${classWords(reservation.vehicle_class.name)} · ${reservation.car.license_plate}${reservation.car_confirmed ? "" : ` · ${t("s.reservations.manage.carNotFinal")}`}`
+              ? `${classWords(reservation.vehicle_class.name)} · ${reservation.car.license_plate}${reservation.car_confirmed ? "" : ` · ${t("s.reservations.manage.carNotFinalShort")}`}`
               : reservation.car.license_plate
           }
         />
@@ -178,67 +238,41 @@ export default function ManageReservationsPage() {
         `${reservation.car.make} ${reservation.car.model} · ${reservation.car.license_plate}`,
     },
     {
-      id: "pickup",
-      header: t("s.reservations.manage.pickup"),
-      mobileLabel: t("s.reservations.manage.pickup"),
-      cell: (reservation) => (
-        <TwoLine
-          primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
-          secondary={formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
-        />
-      ),
-      mobileCell: (reservation) => (
-        <>
-          <div>{formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}</div>
-          <div className="font-normal text-ink-muted">
-            {formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
-          </div>
-        </>
-      ),
-    },
-    {
-      id: "return",
-      header: t("s.reservations.manage.return"),
-      mobileLabel: t("s.reservations.manage.return"),
-      cell: (reservation) => (
-        <TwoLine
-          primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
-          secondary={formatTime(reservation.return_at, reservation.return_location.timezone)}
-        />
-      ),
-      mobileCell: (reservation) => (
-        <>
-          <div>{formatDate(reservation.return_at, reservation.return_location.timezone)}</div>
-          <div className="font-normal text-ink-muted">
-            {formatTime(reservation.return_at, reservation.return_location.timezone)}
-          </div>
-        </>
-      ),
+      id: "rental",
+      header: t("s.reservations.manage.rental"),
+      mobileLabel: "",
+      cellClassName: "whitespace-nowrap tabular-nums",
+      cell: (reservation) => <TwoLine primary={rentalLine(reservation)} secondary={routeLine(reservation)} />,
+      mobileCell: (reservation) => <span className="tabular-nums">{rentalLine(reservation)}</span>,
     },
     {
       id: "booked",
       header: t("s.reservations.manage.booked"),
-      mobile: "hidden",
-      cell: (reservation) => (
-        <TwoLine
-          primary={formatDate(reservation.created_at)}
-          secondary={formatTime(reservation.created_at)}
-        />
-      ),
-    },
-    {
-      id: "route",
-      header: t("s.reservations.manage.route"),
-      mobile: "hidden",
-      cell: (reservation) => (
-        <span className="text-sm font-medium text-ink">
-          {reservation.pickup_location.airport_code}
-          <span className="mx-2 text-ink-muted" aria-hidden="true">
-            →
+      mobileLabel: "",
+      hideable: true,
+      cellClassName: "whitespace-nowrap tabular-nums",
+      cell: (reservation) => {
+        const note = confirmNote(reservation);
+
+        return (
+          <TwoLine
+            primary={<span title={formatDateTime(reservation.created_at)}>{formatAge(reservation.created_at, now)}</span>}
+            secondary={
+              note ? <span className={`font-semibold ${note.late ? "text-danger" : "text-warning"}`}>{note.text}</span> : undefined
+            }
+          />
+        );
+      },
+      mobileCell: (reservation) => {
+        const note = confirmNote(reservation);
+
+        return (
+          <span className="font-normal text-ink-muted">
+            {routeLine(reservation)} · {t("s.reservations.manage.bookedAge", { age: formatAge(reservation.created_at, now) })}
+            {note && <span className={`ml-1.5 font-semibold ${note.late ? "text-danger" : "text-warning"}`}>{note.text}</span>}
           </span>
-          {reservation.return_location.airport_code}
-        </span>
-      ),
+        );
+      },
     },
     {
       id: "status",
@@ -289,12 +323,18 @@ export default function ManageReservationsPage() {
         }
       />
 
-      <StatTileGrid columns={4} className="mb-8">
+      <StatTileGrid columns={5} className="mb-4">
         <StatTile
           label={t("s.reservations.manage.allReservations")}
           value={summary?.total ?? "–"}
           onClick={() => applyQuickFilter("ALL")}
           active={quickFilterActive("ALL")}
+        />
+        <StatTile
+          label={t("s.reservations.manage.awaitingConfirmation")}
+          value={summary?.pending ?? "–"}
+          onClick={showAwaitingConfirmation}
+          active={awaitingConfirmationActive}
         />
         <StatTile
           label={t("s.reservations.manage.todaySActivity")}
@@ -423,6 +463,7 @@ export default function ManageReservationsPage() {
               <option value="pickup_desc">{t("s.reservations.manage.pickupLatestFirst")}</option>
               <option value="return_asc">{t("s.reservations.manage.returnSoonestFirst")}</option>
               <option value="created_desc">{t("s.reservations.manage.recentlyBooked")}</option>
+              <option value="created_asc">{t("s.reservations.manage.bookedOldestFirst")}</option>
             </Select>
           )}
         </Field>
@@ -432,6 +473,7 @@ export default function ManageReservationsPage() {
         rows={reservations}
         columns={columns}
         rowKey={(reservation) => reservation.id}
+        tableId="reservations"
         loading={loading}
         onRowClick={(reservation) =>
           navigate(`/reservations/manage/${reservation.id}`)

@@ -13,7 +13,7 @@ import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { SubNav } from "@/components/ui/SubNav";
-import { formatDate, formatTime } from "@/lib/format";
+import { formatAge, formatDateTime, formatDayTime } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { t } from "@/lib/i18n";
@@ -116,7 +116,12 @@ export default function HandoversPage() {
     id: "customer",
     header: t("s.handovers.customer"),
     mobile: "primary",
-    cell: (reservation) =>
+    cell: (reservation) => (
+      <span className="font-semibold text-ink">
+        {reservation.customer.first_name} {reservation.customer.last_name}
+      </span>
+    ),
+    mobileCell: (reservation) =>
       `${reservation.customer.first_name} ${reservation.customer.last_name}`,
     sortable: true,
     sortAccessor: (reservation) =>
@@ -140,34 +145,60 @@ export default function HandoversPage() {
       `${reservation.car.make} ${reservation.car.model}`,
   };
 
+  // Each tab leads with the moment staff act on: the pickup when handing a car
+  // over, the due time when taking one back. The other end of the rental is a
+  // column people can switch on from the table's View menu.
   const pickupColumn: Column<Reservation> = {
     id: "pickup",
     header: t("s.handovers.pickup"),
     mobileLabel: t("s.handovers.pickup"),
+    hideable: tab !== "check-in",
+    defaultHidden: tab !== "check-in",
+    cellClassName: "whitespace-nowrap tabular-nums",
     cell: (reservation) => (
       <TwoLine
-        primary={formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}
-        secondary={formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}
+        primary={formatDayTime(reservation.pickup_at, reservation.pickup_location.timezone, now)}
+        secondary={reservation.pickup_location.airport_code}
       />
     ),
     mobileCell: (reservation) =>
-      `${formatDate(reservation.pickup_at, reservation.pickup_location.timezone)}, ${formatTime(reservation.pickup_at, reservation.pickup_location.timezone)}`,
+      `${formatDayTime(reservation.pickup_at, reservation.pickup_location.timezone, now)} · ${reservation.pickup_location.airport_code}`,
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.pickup_at),
   };
 
   const returnColumn: Column<Reservation> = {
     id: "return",
-    header: t("s.handovers.return"),
+    header: tab === "check-in" ? t("s.handovers.return") : t("s.handovers.returnDue"),
     mobileLabel: t("s.handovers.return"),
-    cell: (reservation) => (
-      <TwoLine
-        primary={formatDate(reservation.return_at, reservation.return_location.timezone)}
-        secondary={formatTime(reservation.return_at, reservation.return_location.timezone)}
-      />
-    ),
-    mobileCell: (reservation) =>
-      `${formatDate(reservation.return_at, reservation.return_location.timezone)}, ${formatTime(reservation.return_at, reservation.return_location.timezone)}`,
+    hideable: tab === "check-in",
+    cellClassName: "whitespace-nowrap tabular-nums",
+    cell: (reservation) => {
+      const late = tab === "check-out" ? lateLabel(reservation.return_at, now) : null;
+
+      return (
+        <TwoLine
+          primary={formatDayTime(reservation.return_at, reservation.return_location.timezone, now)}
+          secondary={
+            late ? (
+              <span className="font-semibold text-danger">{late}</span>
+            ) : (
+              reservation.return_location.airport_code
+            )
+          }
+        />
+      );
+    },
+    mobileCell: (reservation) => {
+      const late = tab === "check-out" ? lateLabel(reservation.return_at, now) : null;
+
+      return (
+        <>
+          {formatDayTime(reservation.return_at, reservation.return_location.timezone, now)} · {reservation.return_location.airport_code}
+          {late && <span className="ml-1.5 font-semibold text-danger">{late}</span>}
+        </>
+      );
+    },
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.return_at),
   };
@@ -175,59 +206,19 @@ export default function HandoversPage() {
   const bookedColumn: Column<Reservation> = {
     id: "booked",
     header: t("s.handovers.booked"),
-    mobileLabel: t("s.handovers.booked"),
-    cell: (reservation) => (
-      <TwoLine
-        primary={formatDate(reservation.created_at)}
-        secondary={formatTime(reservation.created_at)}
-      />
-    ),
-    mobileCell: (reservation) =>
-      `${formatDate(reservation.created_at)}, ${formatTime(reservation.created_at)}`,
+    mobile: "hidden",
+    hideable: true,
+    defaultHidden: true,
+    cellClassName: "whitespace-nowrap tabular-nums",
+    cell: (reservation) => <span title={formatDateTime(reservation.created_at)}>{formatAge(reservation.created_at, now)}</span>,
     sortable: true,
     sortAccessor: (reservation) => new Date(reservation.created_at),
   };
 
-  const routeColumn: Column<Reservation> = {
-    id: "route",
-    header: t("s.handovers.route"),
-    mobileLabel: t("s.handovers.route"),
-    cell: (reservation) => (
-      <span className="text-sm font-medium text-ink">
-        {reservation.pickup_location.airport_code}
-        <span className="mx-2 text-ink-muted" aria-hidden="true">
-          →
-        </span>
-        {reservation.return_location.airport_code}
-      </span>
-    ),
-  };
-
-  const lateColumn: Column<Reservation> = {
-    id: "late",
-    header: t("s.handovers.status"),
-    mobileLabel: t("s.handovers.status"),
-    cell: (reservation) => {
-      const late = lateLabel(reservation.return_at, now);
-
-      return late ? (
-        <span className="rounded bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger">
-          {late}
-        </span>
-      ) : (
-        <span className="text-sm text-ink-muted">{t("s.handovers.time")}</span>
-      );
-    },
-    mobileCell: (reservation) =>
-      lateLabel(reservation.return_at, now) ?? t("s.handovers.time"),
-    sortable: true,
-    sortAccessor: (reservation) => new Date(reservation.return_at),
-  };
-
   const columns: Column<Reservation>[] =
     tab === "check-in"
-      ? [customerColumn, vehicleColumn, pickupColumn, returnColumn, bookedColumn, routeColumn]
-      : [customerColumn, vehicleColumn, returnColumn, lateColumn, pickupColumn, routeColumn];
+      ? [customerColumn, vehicleColumn, pickupColumn, returnColumn, bookedColumn]
+      : [customerColumn, vehicleColumn, returnColumn, pickupColumn, bookedColumn];
 
   const rows = tab === "check-in" ? awaitingCheckIn : awaitingCheckOut;
 
@@ -307,6 +298,7 @@ export default function HandoversPage() {
 
       <DataTable
         key={tab}
+        tableId={`handovers-${tab}`}
         rows={rows}
         columns={columns}
         rowKey={(reservation) => reservation.id}

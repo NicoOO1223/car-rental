@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
+  Check,
   ChevronDown,
   ChevronUp,
   ChevronsUpDown,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -72,6 +74,13 @@ export type Column<Row> = {
    */
   mobileOnly?: boolean;
 
+  /**
+   * Lets people hide this column from the table's View menu (needs `tableId`).
+   * `defaultHidden` starts it hidden: a detail some people want and most do not.
+   */
+  hideable?: boolean;
+  defaultHidden?: boolean;
+
   sortable?: boolean;
   /** Value the default comparator sorts on. Ignored when `comparator` is set. */
   sortAccessor?: (row: Row) => SortValue;
@@ -129,7 +138,63 @@ export type DataTableProps<Row> = {
 
   empty?: DataTableEmpty;
   className?: string;
+
+  /**
+   * A stable name for this table. With it the table gets a View menu (row
+   * height, and which hideable columns show) and remembers the choice in
+   * this browser.
+   */
+  tableId?: string;
 };
+
+type Density = "comfortable" | "compact";
+
+const DENSITY_KEY = "table-density";
+const PREFERENCE_EVENT = "table-preference";
+
+function readPreference(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A choice kept in this browser. localStorage does not exist on the server
+ * and can be blocked in the browser, so the value is null until it is known
+ * and the caller falls back to its default.
+ */
+function useStoredPreference(key: string | null): [string | null, (value: string) => void] {
+  const value = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("storage", notify);
+      window.addEventListener(PREFERENCE_EVENT, notify);
+
+      return () => {
+        window.removeEventListener("storage", notify);
+        window.removeEventListener(PREFERENCE_EVENT, notify);
+      };
+    },
+    () => (key ? readPreference(key) : null),
+    () => null,
+  );
+
+  function set(next: string) {
+    if (!key) return;
+
+    try {
+      window.localStorage.setItem(key, next);
+    } catch {
+      // Not remembered, but still applied for this visit by the event below.
+    }
+
+    // A write does not fire a storage event in the tab that made it.
+    window.dispatchEvent(new Event(PREFERENCE_EVENT));
+  }
+
+  return [value, set];
+}
 
 /** The very common bold-line-over-gray-line cell. */
 export function TwoLine({
@@ -141,9 +206,9 @@ export function TwoLine({
 }) {
   return (
     <>
-      <div className="font-medium text-ink">{primary}</div>
+      <div className="font-semibold text-ink">{primary}</div>
       {secondary !== undefined && secondary !== null && (
-        <div className="mt-1 text-sm text-ink-muted">{secondary}</div>
+        <div className="mt-0.5 text-xs text-ink-muted">{secondary}</div>
       )}
     </>
   );
@@ -188,10 +253,37 @@ export function DataTable<Row>({
   defaultSort,
   empty,
   className = "",
+  tableId,
 }: DataTableProps<Row>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort ?? null,
   );
+
+  const [storedDensity, setStoredDensity] = useStoredPreference(tableId ? DENSITY_KEY : null);
+  const density: Density = storedDensity === "compact" ? "compact" : "comfortable";
+
+  // Which hideable columns are hidden: the remembered list, else each column's own default.
+  const [storedHidden, setStoredHidden] = useStoredPreference(tableId ? `table:${tableId}:hidden` : null);
+  const hiddenIds = useMemo(() => {
+    const hideable = columns.filter((column) => column.hideable);
+
+    if (storedHidden === null) {
+      return new Set(hideable.filter((column) => column.defaultHidden).map((column) => column.id));
+    }
+
+    const remembered = new Set(storedHidden.split(",").filter(Boolean));
+
+    return new Set(hideable.filter((column) => remembered.has(column.id)).map((column) => column.id));
+  }, [columns, storedHidden]);
+
+  function toggleColumn(id: string) {
+    const next = new Set(hiddenIds);
+
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+
+    setStoredHidden([...next].join(","));
+  }
 
   const isControlled = sort !== undefined;
   const activeSort = isControlled ? sort : internalSort;
@@ -247,7 +339,18 @@ export function DataTable<Row>({
   const showCards = layout !== "table";
   const showTable = layout !== "cards";
 
-  const tableColumns = columns.filter((column) => !column.mobileOnly);
+  const tableColumns = columns.filter((column) => !column.mobileOnly && !hiddenIds.has(column.id));
+  const cellPadding = density === "compact" ? "px-4 py-2" : "px-4 py-3.5";
+
+  const viewMenu = tableId ? (
+    <ViewMenu
+      density={density}
+      onDensityChange={setStoredDensity}
+      columns={columns.filter((column) => column.hideable && !column.mobileOnly)}
+      hiddenIds={hiddenIds}
+      onToggleColumn={toggleColumn}
+    />
+  ) : null;
 
   if (!loading && sortedRows.length === 0 && empty) {
     return <EmptyState {...empty} className={className} />;
@@ -295,8 +398,8 @@ export function DataTable<Row>({
             layout === "responsive" ? "hidden lg:block" : ""
           }`}
         >
-          <table className="w-full text-left">
-            <thead className="border-b border-border-subtle bg-surface-sunken">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border-subtle">
               <tr>
                 {tableColumns.map((column) => {
                   const isSorted = activeSort?.columnId === column.id;
@@ -314,7 +417,7 @@ export function DataTable<Row>({
                               : "descending"
                             : "none"
                       }
-                      className={`px-6 py-3.5 text-sm font-semibold text-ink ${
+                      className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-muted first:pl-5 last:pr-5 ${
                         column.align === "right" ? "text-right" : ""
                       } ${column.width ?? ""} ${column.headerClassName ?? ""}`}
                     >
@@ -322,8 +425,8 @@ export function DataTable<Row>({
                         <button
                           type="button"
                           onClick={() => toggleSort(column)}
-                          className={`inline-flex items-center gap-1.5 rounded font-semibold transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
-                            isSorted ? "text-ink" : "text-ink-secondary"
+                          className={`inline-flex items-center gap-1 rounded font-semibold uppercase tracking-wide transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+                            isSorted ? "text-ink" : "text-ink-muted"
                           }`}
                         >
                           {column.header}
@@ -351,10 +454,19 @@ export function DataTable<Row>({
                   );
                 })}
 
-                {rowActions && rowActions.length > 0 && (
-                  <th scope="col" className="px-6 py-3.5 text-right text-sm font-semibold text-ink">
-                    {rowActionsHeader ?? <span className="sr-only">{t("ui.actions")}</span>}
+                {rowActions && rowActions.length > 0 ? (
+                  <th scope="col" className="px-4 py-1.5 pr-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {rowActionsHeader ?? <span className="sr-only">{t("ui.actions")}</span>}
+                      {viewMenu}
+                    </span>
                   </th>
+                ) : (
+                  viewMenu && (
+                    <th scope="col" className="w-12 py-1.5 pr-3 text-right">
+                      {viewMenu}
+                    </th>
+                  )
                 )}
               </tr>
             </thead>
@@ -364,14 +476,16 @@ export function DataTable<Row>({
                 ? Array.from({ length: loadingRowCount }).map((_, index) => (
                     <tr key={index} className="border-b border-border-subtle last:border-b-0">
                       {tableColumns.map((column) => (
-                        <td key={column.id} className="px-6 py-5">
+                        <td key={column.id} className={`${cellPadding} first:pl-5 last:pr-5`}>
                           <Skeleton className="h-4 w-24" />
                         </td>
                       ))}
-                      {rowActions && rowActions.length > 0 && (
-                        <td className="px-6 py-5">
+                      {rowActions && rowActions.length > 0 ? (
+                        <td className={`${cellPadding} pr-5`}>
                           <Skeleton className="ml-auto h-4 w-16" />
                         </td>
+                      ) : (
+                        viewMenu && <td />
                       )}
                     </tr>
                   ))
@@ -403,7 +517,7 @@ export function DataTable<Row>({
                         {tableColumns.map((column) => (
                           <td
                             key={column.id}
-                            className={`px-6 py-5 align-top ${
+                            className={`${cellPadding} align-middle first:pl-5 last:pr-5 ${
                               column.align === "right" ? "text-right" : ""
                             } ${column.cellClassName ?? ""}`}
                           >
@@ -411,8 +525,8 @@ export function DataTable<Row>({
                           </td>
                         ))}
 
-                        {rowActions && rowActions.length > 0 && (
-                          <td className="px-6 py-5 text-right align-top">
+                        {rowActions && rowActions.length > 0 ? (
+                          <td className={`${cellPadding} pr-5 text-right align-middle`}>
                             <div className="flex justify-end gap-2">
                               {actions.map((action) => (
                                 <Button
@@ -424,13 +538,15 @@ export function DataTable<Row>({
                                     event.stopPropagation();
                                     action.onClick(row);
                                   }}
-                                  className="px-3 py-1.5 text-xs"
+                                  size="sm"
                                 >
                                   {action.label}
                                 </Button>
                               ))}
                             </div>
                           </td>
+                        ) : (
+                          viewMenu && <td />
                         )}
                       </tr>
                     );
@@ -469,7 +585,7 @@ function MobileCard<Row>({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {primary.map((column) => (
-            <div key={column.id} className="truncate font-medium text-ink">
+            <div key={column.id} className="truncate text-sm font-semibold text-ink">
               {render(column)}
             </div>
           ))}
@@ -494,17 +610,18 @@ function MobileCard<Row>({
       </div>
 
       {meta.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-          {meta.map((column) => (
-            <div key={column.id}>
-              <p className="text-ink-muted">
-                {column.mobileLabel ??
-                  (typeof column.header === "string" ? column.header : "")}
-              </p>
-              <div className="mt-0.5 font-medium text-ink">{render(column)}</div>
-            </div>
-          ))}
-        </div>
+        <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          {meta.map((column) => {
+            const label = column.mobileLabel ?? (typeof column.header === "string" ? column.header : "");
+
+            return (
+              <div key={column.id} className={`flex min-w-0 items-baseline gap-1.5 ${label ? "" : "basis-full"}`}>
+                {label && <dt className="shrink-0 text-ink-muted">{label}</dt>}
+                <dd className="min-w-0 font-medium text-ink">{render(column)}</dd>
+              </div>
+            );
+          })}
+        </dl>
       )}
     </>
   );
@@ -543,11 +660,119 @@ function MobileCard<Row>({
               variant={action.variant ?? "secondary"}
               disabled={action.disabled?.(row)}
               onClick={() => action.onClick(row)}
-              className="px-3 py-1.5 text-xs"
+              size="sm"
             >
               {action.label}
             </Button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The table's own settings, behind one small button in the header row: how
+ * tall the rows are, and which optional columns show.
+ */
+function ViewMenu<Row>({
+  density,
+  onDensityChange,
+  columns,
+  hiddenIds,
+  onToggleColumn,
+}: {
+  density: Density;
+  onDensityChange: (density: Density) => void;
+  columns: Column<Row>[];
+  hiddenIds: Set<string>;
+  onToggleColumn: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointer(event: MouseEvent) {
+      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
+    }
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const option = (active: boolean) =>
+    `flex-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+      active ? "bg-surface text-ink shadow-sm" : "text-ink-secondary hover:text-ink"
+    }`;
+
+  return (
+    <div ref={root} className="relative inline-block text-left normal-case tracking-normal">
+      <button
+        type="button"
+        aria-label={t("ui.table.view")}
+        title={t("ui.table.view")}
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+        className="rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+      >
+        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 z-30 mt-1 w-56 rounded-xl border border-border-subtle bg-surface p-3 text-sm font-normal text-ink shadow-lg"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <p className="text-xs font-semibold text-ink-muted">{t("ui.table.rowHeight")}</p>
+          <div className="mt-1.5 flex gap-1 rounded-lg bg-surface-sunken p-1" role="group" aria-label={t("ui.table.rowHeight")}>
+            <button type="button" aria-pressed={density === "comfortable"} onClick={() => onDensityChange("comfortable")} className={option(density === "comfortable")}>
+              {t("ui.table.comfortable")}
+            </button>
+            <button type="button" aria-pressed={density === "compact"} onClick={() => onDensityChange("compact")} className={option(density === "compact")}>
+              {t("ui.table.compact")}
+            </button>
+          </div>
+
+          {columns.length > 0 && (
+            <>
+              <p className="mt-3 text-xs font-semibold text-ink-muted">{t("ui.table.columns")}</p>
+              <ul className="mt-1">
+                {columns.map((column) => {
+                  const shown = !hiddenIds.has(column.id);
+
+                  return (
+                    <li key={column.id}>
+                      <button
+                        type="button"
+                        role="menuitemcheckbox"
+                        aria-checked={shown}
+                        onClick={() => onToggleColumn(column.id)}
+                        className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                      >
+                        <span>{column.header}</span>
+                        {shown && <Check className="h-4 w-4 text-accent-ink" aria-hidden="true" />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>

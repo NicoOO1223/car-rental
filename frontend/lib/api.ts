@@ -622,6 +622,8 @@ export type ReservationSummary = {
   active: number;
   upcoming: number;
   overdue_returns: number;
+  /** Requests nobody has answered yet. */
+  pending: number;
 };
 
 export async function getReservationSummary(
@@ -2711,6 +2713,7 @@ export type Configuration = {
   security_deposit_amount: number;
   default_currency: string;
   access_token_expire_days: number;
+  confirm_within_hours: number;
   reminder_days: number;
   /** Distance since the last oil change at which a car is flagged overdue. */
   oil_change_interval_km: number;
@@ -2778,6 +2781,8 @@ export async function getPublicConfiguration(): Promise<{
   locale: string;
   vat_rate: number;
   prices_include_vat: boolean;
+  /** Hours a booking request may wait for an answer; 0 means no flag. */
+  confirm_within_hours: number;
 }> {
   const response = await apiFetch("/api/configuration/public");
 

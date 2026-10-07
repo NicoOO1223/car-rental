@@ -35,6 +35,7 @@ class ConfigurationResponse(BaseModel):
     default_currency: str
     access_token_expire_days: int
     reminder_days: int
+    confirm_within_hours: int
     oil_change_interval_km: int
     business_name: str
     legal_name: str
@@ -92,6 +93,7 @@ class ConfigurationUpdate(BaseModel):
     default_currency: str | None = None
     access_token_expire_days: int | None = None
     reminder_days: int | None = None
+    confirm_within_hours: int | None = None
     oil_change_interval_km: int | None = None
     business_name: str | None = Field(default=None, max_length=100)
     legal_name: str | None = Field(default=None, max_length=150)
@@ -296,6 +298,16 @@ class ConfigurationUpdate(BaseModel):
             )
         return v
 
+    @field_validator("confirm_within_hours")
+    @classmethod
+    def confirm_within_hours_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not 0 <= v <= 168:
+            raise PydanticCustomError(
+                "validation.confirm_within_hours_range",
+                "The time to confirm a request must be between 0 and 168 hours.",
+            )
+        return v
+
     @field_validator("oil_change_interval_km")
     @classmethod
     def oil_change_interval_must_be_positive(cls, v: int | None) -> int | None:
@@ -333,6 +345,8 @@ class PublicConfigurationResponse(BaseModel):
     timezone: str
     locale: str
     accent_color: str
+    # How long a booking request may wait for an answer; 0 means no flag.
+    confirm_within_hours: int
     # What a price is: whether it already contains VAT, and how much.
     vat_rate: float
     prices_include_vat: bool

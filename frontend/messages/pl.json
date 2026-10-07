@@ -46,7 +46,15 @@
       "previous": "Poprzednia",
       "next": "Następna",
       "page": "Strona {page} z {pages}"
-    }
+    },
+    "table": {
+      "view": "Widok tabeli",
+      "rowHeight": "Wysokość wierszy",
+      "comfortable": "Wygodna",
+      "compact": "Zwarta",
+      "columns": "Kolumny"
+    },
+    "filters": "Filtry"
   },
   "duration": {
     "days": "{count, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}}",
@@ -537,7 +545,8 @@
       "uuid_parsing": "To nie jest prawidłowy identyfikator.",
       "value_error": "Ta wartość jest nieprawidłowa.",
       "vat_rate_range": "Stawka VAT musi mieścić się między 0 a 100 procent.",
-      "accent_color_invalid": "Kolor marki musi być kolorem szesnastkowym, na przykład #1f4fd8."
+      "accent_color_invalid": "Kolor marki musi być kolorem szesnastkowym, na przykład #1f4fd8.",
+      "confirm_within_hours_range": "Czas na potwierdzenie prośby musi wynosić od 0 do 168 godzin."
     },
     "account": {
       "email_taken": "Konto z tym adresem e-mail już istnieje.",
@@ -1312,7 +1321,9 @@
           "reminderWindowDays": "Wyprzedzenie przypomnień (dni)",
           "reminderWindowHint": "Na ile dni z wyprzedzeniem przeglądy techniczne i ubezpieczenia są oznaczane jako wkrótce wygasające.",
           "oilChangeIntervalKm": "Interwał wymiany oleju (km)",
-          "oilChangeIntervalKmHint": "Przebieg od ostatniej zarejestrowanej wymiany oleju, po którym pojazd jest oznaczany jako zaległy."
+          "oilChangeIntervalKmHint": "Przebieg od ostatniej zarejestrowanej wymiany oleju, po którym pojazd jest oznaczany jako zaległy.",
+          "confirmWithinHours": "Czas na potwierdzenie prośby (godziny)",
+          "confirmWithinHoursHint": "Ile czasu dajecie sobie na odpowiedź na prośbę o rezerwację. Lista rezerwacji oznacza prośbę, która zbliża się do tego limitu lub go przekroczyła. 0 wyłącza oznaczanie."
         },
         "vehicles": {
           "failedLoadVehicles": "Nie udało się wczytać pojazdów.",
@@ -1890,7 +1901,8 @@
       "lateByHM": "Opóźnienie: {hours} godz. {rest} min",
       "lateByM": "Opóźnienie: {rest} min",
       "refreshing": "Odświeżanie",
-      "refresh": "Odśwież"
+      "refresh": "Odśwież",
+      "returnDue": "Termin zwrotu"
     },
     "layout": {
       "rentalManagement": "Zarządzanie wynajmem",
@@ -1960,7 +1972,7 @@
         "pickupSoonestFirst": "Wydanie, najbliższe najpierw",
         "pickupLatestFirst": "Wydanie, najdalsze najpierw",
         "returnSoonestFirst": "Zwrot, najbliższy najpierw",
-        "recentlyBooked": "Ostatnio zarezerwowane",
+        "recentlyBooked": "Zarezerwowane, od najnowszych",
         "noReservationsMatch": "Brak pasujących rezerwacji",
         "noReservationsYet": "Brak rezerwacji",
         "tryChangingSearchFilters": "Spróbuj zmienić wyszukiwanie lub filtry.",
@@ -2059,7 +2071,14 @@
         "anySource": "Wszędzie",
         "onlineWebsite": "Na stronie",
         "byStaff": "Przez pracownika",
-        "carNotFinal": "samochód nieostateczny"
+        "carNotFinal": "samochód nieostateczny",
+        "rental": "Wynajem",
+        "awaitingConfirmation": "Czeka na potwierdzenie",
+        "bookedOldestFirst": "Zarezerwowane, od najstarszych",
+        "confirmWithin": "potwierdź w ciągu {hours} h",
+        "confirmOverdue": "po terminie o {hours} h",
+        "carNotFinalShort": "auto nieostateczne",
+        "bookedAge": "zarezerwowano {age}"
       },
       "new": {
         "failedLoadBookingOptions": "Nie udało się wczytać opcji rezerwacji. Odśwież stronę.",

@@ -351,3 +351,18 @@ def test_the_brand_colour_is_black_until_set_then_saved_and_public(original_conf
 def test_only_a_six_digit_hex_colour_is_accepted(original_configuration):
     for bad in ("blue", "#fff", "1f4fd8", "#1f4fd8;color:red", "url(javascript:1)"):
         assert client.patch("/api/configuration", json={"accent_color": bad}).status_code == 422, bad
+
+
+def test_time_to_confirm_a_request_is_configurable_and_bounded(original_configuration):
+    assert original_configuration["confirm_within_hours"] >= 0
+
+    saved = client.patch("/api/configuration", json={"confirm_within_hours": 12})
+
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["confirm_within_hours"] == 12
+    # Every staff member's screens read it, not only an administrator's.
+    assert client.get("/api/configuration/public").json()["confirm_within_hours"] == 12
+
+    assert client.patch("/api/configuration", json={"confirm_within_hours": 0}).status_code == 200
+    for bad in (-1, 169):
+        assert client.patch("/api/configuration", json={"confirm_within_hours": bad}).status_code == 422

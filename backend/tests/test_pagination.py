@@ -114,6 +114,13 @@ def test_reservation_status_filter_and_sort_order():
         ).json()
         desc = [row["pickup_at"] for row in latest_first["items"]]
         assert desc == sorted(desc, reverse=True)
+
+        # By when the booking was made, both ways: staff answering requests
+        # in order work from the oldest, and want the newest first elsewhere.
+        for order, reverse in (("created_asc", False), ("created_desc", True)):
+            rows = client.get("/api/reservations", params={"sort": order, "limit": 100}).json()["items"]
+            made = [row["created_at"] for row in rows]
+            assert made == sorted(made, reverse=reverse), order
     finally:
         _cancel(reservation)
 
@@ -206,6 +213,7 @@ def test_reservation_summary_counts():
             "active",
             "upcoming",
             "overdue_returns",
+            "pending",
         }
         assert summary["total"] >= 1
         assert summary["upcoming"] >= 1

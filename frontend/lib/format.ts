@@ -85,6 +85,46 @@ export function formatDateTime(value: string | Date, timeZone?: string): string 
   return `${formatDate(value, timeZone)}, ${formatTime(value, timeZone)}`;
 }
 
+/**
+ * A day and a time on one line, for table cells: "Oct 12, 10:00 AM". The year
+ * is left out when it is this year, where it would only be noise.
+ */
+export function formatDayTime(value: string | Date, timeZone?: string, now: number = Date.now()): string {
+  const date = new Date(value);
+  const zone = usableZone(timeZone);
+  const yearOf = (moment: Date) => moment.toLocaleDateString("en", { year: "numeric", timeZone: zone });
+  const sameYear = yearOf(date) === yearOf(new Date(now));
+
+  const day = date.toLocaleDateString(businessLocale, {
+    day: "numeric",
+    month: "short",
+    year: sameYear ? undefined : "numeric",
+    timeZone: zone,
+  });
+
+  return `${day}, ${formatTime(date, timeZone)}`;
+}
+
+/** Whole hours from a moment until `now` (negative for a moment still to come). */
+export function hoursSince(value: string | Date, now: number = Date.now()): number {
+  return (now - new Date(value).getTime()) / 3_600_000;
+}
+
+/**
+ * When something happened, the way a person scanning a list wants it: how
+ * long ago while it is recent ("6 hr. ago"), the date once it is older than
+ * two days.
+ */
+export function formatAge(value: string | Date, now: number = Date.now()): string {
+  const hours = hoursSince(value, now);
+
+  if (hours < 0 || hours >= 48) return formatDayTime(value, undefined, now).split(",")[0];
+
+  const relative = new Intl.RelativeTimeFormat(businessLocale, { numeric: "always", style: "short" });
+
+  return hours < 1 ? relative.format(-Math.max(1, Math.round(hours * 60)), "minute") : relative.format(-Math.round(hours), "hour");
+}
+
 /** Short form for dense contexts like timeline axes. */
 export function formatDateShort(value: string | Date, timeZone?: string): string {
   return new Date(value).toLocaleDateString(businessLocale, {

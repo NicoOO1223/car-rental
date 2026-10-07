@@ -46,7 +46,15 @@
       "previous": "Precedente",
       "next": "Successiva",
       "page": "Pagina {page} di {pages}"
-    }
+    },
+    "table": {
+      "view": "Vista tabella",
+      "rowHeight": "Altezza delle righe",
+      "comfortable": "Comoda",
+      "compact": "Compatta",
+      "columns": "Colonne"
+    },
+    "filters": "Filtri"
   },
   "duration": {
     "days": "{count, plural, one {# giorno} other {# giorni}}",
@@ -537,7 +545,8 @@
       "uuid_parsing": "Questo non è un identificatore valido.",
       "value_error": "Questo valore non è valido.",
       "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento.",
-      "accent_color_invalid": "Il colore del marchio deve essere un colore esadecimale, ad esempio #1f4fd8."
+      "accent_color_invalid": "Il colore del marchio deve essere un colore esadecimale, ad esempio #1f4fd8.",
+      "confirm_within_hours_range": "Il tempo per confermare una richiesta deve essere compreso tra 0 e 168 ore."
     },
     "account": {
       "email_taken": "Esiste già un account con questa email.",
@@ -1312,7 +1321,9 @@
           "reminderWindowDays": "Anticipo dei promemoria (giorni)",
           "reminderWindowHint": "Quanti giorni prima le revisioni tecniche e le assicurazioni vengono segnalate in scadenza.",
           "oilChangeIntervalKm": "Intervallo cambio olio (km)",
-          "oilChangeIntervalKmHint": "Distanza dall'ultimo cambio olio registrato dopo la quale un veicolo è segnalato in ritardo."
+          "oilChangeIntervalKmHint": "Distanza dall'ultimo cambio olio registrato dopo la quale un veicolo è segnalato in ritardo.",
+          "confirmWithinHours": "Tempo per confermare una richiesta (ore)",
+          "confirmWithinHoursHint": "Quanto tempo vi date per rispondere a una richiesta di prenotazione. L'elenco delle prenotazioni segnala una richiesta vicina o oltre questo limite. 0 disattiva la segnalazione."
         },
         "vehicles": {
           "failedLoadVehicles": "Impossibile caricare i veicoli.",
@@ -1890,7 +1901,8 @@
       "lateByHM": "In ritardo di {hours} h {rest} min",
       "lateByM": "In ritardo di {rest} min",
       "refreshing": "Aggiornamento in corso",
-      "refresh": "Aggiorna"
+      "refresh": "Aggiorna",
+      "returnDue": "Rientro previsto"
     },
     "layout": {
       "rentalManagement": "Gestione noleggi",
@@ -1960,7 +1972,7 @@
         "pickupSoonestFirst": "Ritiro, dal più vicino",
         "pickupLatestFirst": "Ritiro, dal più lontano",
         "returnSoonestFirst": "Riconsegna, dalla più vicina",
-        "recentlyBooked": "Prenotate di recente",
+        "recentlyBooked": "Prenotate, dalla più recente",
         "noReservationsMatch": "Nessuna prenotazione corrisponde",
         "noReservationsYet": "Ancora nessuna prenotazione",
         "tryChangingSearchFilters": "Prova a cambiare la ricerca o i filtri.",
@@ -2059,7 +2071,14 @@
         "anySource": "Ovunque",
         "onlineWebsite": "Sul sito",
         "byStaff": "Dallo staff",
-        "carNotFinal": "auto non definitiva"
+        "carNotFinal": "auto non definitiva",
+        "rental": "Noleggio",
+        "awaitingConfirmation": "In attesa di conferma",
+        "bookedOldestFirst": "Prenotate, dalla più vecchia",
+        "confirmWithin": "confermare entro {hours} h",
+        "confirmOverdue": "in ritardo di {hours} h",
+        "carNotFinalShort": "auto non definitiva",
+        "bookedAge": "prenotata {age}"
       },
       "new": {
         "failedLoadBookingOptions": "Impossibile caricare le opzioni di prenotazione. Aggiorna la pagina.",

@@ -56,6 +56,11 @@ class Configuration(Base):
     # inspection or an insurance period is about to end.
     reminder_days: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
 
+    # How long the business gives itself to answer a booking request, in
+    # hours. The reservation list flags a request that is close to or past
+    # it. 0 turns the flag off.
+    confirm_within_hours: Mapped[int] = mapped_column(nullable=False, default=24, server_default="24")
+
     # Distance since the last oil change at which the fleet condition page
     # and notifications flag a car as overdue (km, matching the unit the
     # odometer/mileage fields are already shown in).

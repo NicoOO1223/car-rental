@@ -46,7 +46,15 @@
       "previous": "Previous",
       "next": "Next",
       "page": "Page {page} of {pages}"
-    }
+    },
+    "table": {
+      "view": "Table view",
+      "rowHeight": "Row height",
+      "comfortable": "Comfortable",
+      "compact": "Compact",
+      "columns": "Columns"
+    },
+    "filters": "Filters"
   },
   "duration": {
     "days": "{count, plural, one {# day} other {# days}}",
@@ -537,7 +545,8 @@
       "uuid_parsing": "That is not a valid identifier.",
       "value_error": "This value is not valid.",
       "vat_rate_range": "The VAT rate must be between 0 and 100 percent.",
-      "accent_color_invalid": "The brand colour must be a hex colour such as #1f4fd8."
+      "accent_color_invalid": "The brand colour must be a hex colour such as #1f4fd8.",
+      "confirm_within_hours_range": "The time to confirm a request must be between 0 and 168 hours."
     },
     "account": {
       "email_taken": "An account with this email already exists.",
@@ -1312,7 +1321,9 @@
           "reminderWindowDays": "Reminder window (days)",
           "reminderWindowHint": "How many days ahead technical inspections and insurance are flagged as due soon.",
           "oilChangeIntervalKm": "Oil change interval (km)",
-          "oilChangeIntervalKmHint": "Distance since the last recorded oil change at which a vehicle is flagged overdue."
+          "oilChangeIntervalKmHint": "Distance since the last recorded oil change at which a vehicle is flagged overdue.",
+          "confirmWithinHours": "Time to confirm a request (hours)",
+          "confirmWithinHoursHint": "How long you give yourselves to answer a booking request. The reservation list flags a request that is close to or past it. 0 turns the flag off."
         },
         "vehicles": {
           "failedLoadVehicles": "Failed to load vehicles.",
@@ -1890,7 +1901,8 @@
       "lateByHM": "Late by {hours}h {rest}m",
       "lateByM": "Late by {rest}m",
       "refreshing": "Refreshing",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "returnDue": "Due back"
     },
     "layout": {
       "rentalManagement": "Rental management",
@@ -1960,7 +1972,7 @@
         "pickupSoonestFirst": "Pickup, soonest first",
         "pickupLatestFirst": "Pickup, latest first",
         "returnSoonestFirst": "Return, soonest first",
-        "recentlyBooked": "Recently booked",
+        "recentlyBooked": "Booked, newest first",
         "noReservationsMatch": "No reservations match",
         "noReservationsYet": "No reservations yet",
         "tryChangingSearchFilters": "Try changing your search or filters.",
@@ -2059,7 +2071,14 @@
         "anySource": "Anywhere",
         "onlineWebsite": "On the website",
         "byStaff": "By staff",
-        "carNotFinal": "car not final"
+        "carNotFinal": "car not final",
+        "rental": "Rental",
+        "awaitingConfirmation": "Awaiting confirmation",
+        "bookedOldestFirst": "Booked, oldest first",
+        "confirmWithin": "confirm within {hours} h",
+        "confirmOverdue": "overdue by {hours} h",
+        "carNotFinalShort": "car not final",
+        "bookedAge": "booked {age}"
       },
       "new": {
         "failedLoadBookingOptions": "Failed to load booking options. Please refresh.",

@@ -67,7 +67,7 @@ export function StatTile({
     </>
   );
 
-  const shell = "rounded-2xl border p-5 transition";
+  const shell = "rounded-2xl border p-4 transition sm:p-5";
 
   if (!onClick) {
     return (
@@ -110,6 +110,6 @@ export function StatTileGrid({
   }[columns];
 
   return (
-    <div className={`grid gap-4 ${columnClass} ${className}`}>{children}</div>
+    <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${columnClass} ${className}`}>{children}</div>
   );
 }

@@ -23,6 +23,7 @@ SORTS = {
     "return_asc": (Reservation.return_at.asc(), Reservation.id.asc()),
     "return_desc": (Reservation.return_at.desc(), Reservation.id.asc()),
     "created_desc": (Reservation.created_at.desc(), Reservation.id.asc()),
+    "created_asc": (Reservation.created_at.asc(), Reservation.id.asc()),
 }
 
 
@@ -227,6 +228,8 @@ def reservation_summary(
                 Reservation.status == "ACTIVE",
                 Reservation.return_at < now,
             ).label("overdue_returns"),
+            # Requests nobody has answered yet.
+            count_where(Reservation.status == "PENDING").label("pending"),
         )
     ).one()
 
