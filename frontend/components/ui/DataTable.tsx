@@ -508,11 +508,11 @@ export function DataTable<Row>({
                         }
                         tabIndex={onRowClick ? 0 : undefined}
                         role={onRowClick ? "button" : undefined}
-                        className={`group ${
+                        className={
                           onRowClick
-                            ? "cursor-pointer focus:outline-none focus-visible:[&>td]:border-accent-ink focus-visible:[&>td]:bg-accent-soft"
-                            : ""
-                        }`}
+                            ? "group cursor-pointer focus:outline-none focus-visible:[&>td]:border-accent-ink focus-visible:[&>td]:bg-accent-soft"
+                            : "group"
+                        }
                       >
                         {tableColumns.map((column) => (
                           <td
