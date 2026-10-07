@@ -149,6 +149,12 @@ export type DataTableProps<Row> = {
 
 type Density = "comfortable" | "compact";
 
+// Each row is its own card: the cells share a top and bottom border, and the
+// first and last close it with a rounded end. Under the pointer the whole
+// row takes the brand colour's tint.
+const ROW_CELL =
+  "border-y border-border-subtle bg-surface transition-colors first:rounded-l-xl first:border-l last:rounded-r-xl last:border-r group-hover:border-accent-line group-hover:bg-accent-soft";
+
 const DENSITY_KEY = "table-density";
 const PREFERENCE_EVENT = "table-preference";
 
@@ -360,18 +366,12 @@ export function DataTable<Row>({
     (rowActions ?? []).filter((action) => !action.hidden?.(row));
 
   return (
-    <div
-      className={`overflow-hidden rounded-2xl border border-border-subtle bg-surface ${className}`}
-    >
+    <div className={className}>
       {showCards && (
-        <div
-          className={`divide-y divide-border-subtle ${
-            layout === "responsive" ? "lg:hidden" : ""
-          }`}
-        >
+        <div className={`space-y-2 ${layout === "responsive" ? "lg:hidden" : ""}`}>
           {loading
             ? Array.from({ length: loadingRowCount }).map((_, index) => (
-                <div key={index} className="p-4">
+                <div key={index} className="rounded-xl border border-border-subtle bg-surface p-4">
                   <Skeleton className="h-4 w-40" />
                   <Skeleton className="mt-2 h-3 w-28" />
                   <div className="mt-3 grid grid-cols-2 gap-3">
@@ -398,8 +398,8 @@ export function DataTable<Row>({
             layout === "responsive" ? "hidden lg:block" : ""
           }`}
         >
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border-subtle">
+          <table className="w-full border-separate border-spacing-x-0 border-spacing-y-2 text-left text-sm">
+            <thead>
               <tr>
                 {tableColumns.map((column) => {
                   const isSorted = activeSort?.columnId === column.id;
@@ -417,7 +417,7 @@ export function DataTable<Row>({
                               : "descending"
                             : "none"
                       }
-                      className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-muted first:pl-5 last:pr-5 ${
+                      className={`px-4 pb-0.5 pt-1 text-xs font-semibold uppercase tracking-wide text-ink-muted first:pl-5 last:pr-5 ${
                         column.align === "right" ? "text-right" : ""
                       } ${column.width ?? ""} ${column.headerClassName ?? ""}`}
                     >
@@ -455,7 +455,7 @@ export function DataTable<Row>({
                 })}
 
                 {rowActions && rowActions.length > 0 ? (
-                  <th scope="col" className="px-4 py-1.5 pr-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  <th scope="col" className="px-4 pb-0.5 pt-1 pr-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     <span className="inline-flex items-center justify-end gap-2">
                       {rowActionsHeader ?? <span className="sr-only">{t("ui.actions")}</span>}
                       {viewMenu}
@@ -463,7 +463,7 @@ export function DataTable<Row>({
                   </th>
                 ) : (
                   viewMenu && (
-                    <th scope="col" className="w-12 py-1.5 pr-3 text-right">
+                    <th scope="col" className="w-12 pb-0.5 pt-1 pr-3 text-right">
                       {viewMenu}
                     </th>
                   )
@@ -474,18 +474,18 @@ export function DataTable<Row>({
             <tbody>
               {loading
                 ? Array.from({ length: loadingRowCount }).map((_, index) => (
-                    <tr key={index} className="border-b border-border-subtle last:border-b-0">
+                    <tr key={index}>
                       {tableColumns.map((column) => (
-                        <td key={column.id} className={`${cellPadding} first:pl-5 last:pr-5`}>
+                        <td key={column.id} className={`${cellPadding} ${ROW_CELL} first:pl-5 last:pr-5`}>
                           <Skeleton className="h-4 w-24" />
                         </td>
                       ))}
                       {rowActions && rowActions.length > 0 ? (
-                        <td className={`${cellPadding} pr-5`}>
+                        <td className={`${cellPadding} ${ROW_CELL} pr-5`}>
                           <Skeleton className="ml-auto h-4 w-16" />
                         </td>
                       ) : (
-                        viewMenu && <td />
+                        viewMenu && <td className={ROW_CELL} />
                       )}
                     </tr>
                   ))
@@ -508,16 +508,16 @@ export function DataTable<Row>({
                         }
                         tabIndex={onRowClick ? 0 : undefined}
                         role={onRowClick ? "button" : undefined}
-                        className={`border-b border-border-subtle last:border-b-0 ${
+                        className={`group ${
                           onRowClick
-                            ? "cursor-pointer hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
+                            ? "cursor-pointer focus:outline-none focus-visible:[&>td]:border-accent-ink focus-visible:[&>td]:bg-accent-soft"
                             : ""
                         }`}
                       >
                         {tableColumns.map((column) => (
                           <td
                             key={column.id}
-                            className={`${cellPadding} align-middle first:pl-5 last:pr-5 ${
+                            className={`${cellPadding} ${ROW_CELL} align-middle first:pl-5 last:pr-5 ${
                               column.align === "right" ? "text-right" : ""
                             } ${column.cellClassName ?? ""}`}
                           >
@@ -526,7 +526,7 @@ export function DataTable<Row>({
                         ))}
 
                         {rowActions && rowActions.length > 0 ? (
-                          <td className={`${cellPadding} pr-5 text-right align-middle`}>
+                          <td className={`${cellPadding} ${ROW_CELL} pr-5 text-right align-middle`}>
                             <div className="flex justify-end gap-2">
                               {actions.map((action) => (
                                 <Button
@@ -546,7 +546,7 @@ export function DataTable<Row>({
                             </div>
                           </td>
                         ) : (
-                          viewMenu && <td />
+                          viewMenu && <td className={ROW_CELL} />
                         )}
                       </tr>
                     );
@@ -631,7 +631,7 @@ function MobileCard<Row>({
       <button
         type="button"
         onClick={() => onRowClick(row)}
-        className="block w-full p-4 text-left transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink"
+        className="block w-full rounded-xl border border-border-subtle bg-surface p-4 text-left transition hover:border-accent-line hover:bg-accent-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
       >
         {body}
       </button>
@@ -639,7 +639,7 @@ function MobileCard<Row>({
   }
 
   return (
-    <div className="p-4">
+    <div className="rounded-xl border border-border-subtle bg-surface p-4 transition hover:border-accent-line hover:bg-accent-soft">
       {onRowClick ? (
         <button
           type="button"
@@ -688,26 +688,36 @@ function ViewMenu<Row>({
   hiddenIds: Set<string>;
   onToggleColumn: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // Where the panel goes, measured from the button when it opens. Fixed to the
+  // window: the table scrolls sideways in its own box, which would clip it.
+  const [place, setPlace] = useState<{ top: number; right: number } | null>(null);
+  const open = place !== null;
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
+    const close = () => setPlace(null);
+
     function onPointer(event: MouseEvent) {
-      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
+      if (root.current && !root.current.contains(event.target as Node)) close();
     }
 
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") close();
     }
 
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
+    // The button moves when the page does; closing is simpler than following it.
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
 
     return () => {
       document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
     };
   }, [open]);
 
@@ -726,16 +736,24 @@ function ViewMenu<Row>({
         aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();
-          setOpen((value) => !value);
+
+          if (open) {
+            setPlace(null);
+            return;
+          }
+
+          const box = event.currentTarget.getBoundingClientRect();
+          setPlace({ top: box.bottom + 4, right: window.innerWidth - box.right });
         }}
         className="rounded-lg p-1.5 text-ink-muted transition hover:bg-surface-sunken hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
       >
         <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
       </button>
 
-      {open && (
+      {place && (
         <div
-          className="absolute right-0 z-30 mt-1 w-56 rounded-xl border border-border-subtle bg-surface p-3 text-sm font-normal text-ink shadow-lg"
+          style={{ top: place.top, right: place.right }}
+          className="fixed z-50 w-56 rounded-xl border border-border-subtle bg-surface p-3 text-sm font-normal text-ink shadow-lg"
           onClick={(event) => event.stopPropagation()}
         >
           <p className="text-xs font-semibold text-ink-muted">{t("ui.table.rowHeight")}</p>

@@ -312,6 +312,7 @@ export default function HandoversPage() {
           {
             label: tab === "check-in" ? t("s.handovers.startCheck") : t("s.handovers.startCheckOut"),
             onClick: openHandover,
+            variant: "primary",
           },
         ]}
         empty={{
