@@ -24,6 +24,14 @@ SORTS = {
     "return_desc": (Reservation.return_at.desc(), Reservation.id.asc()),
     "created_desc": (Reservation.created_at.desc(), Reservation.id.asc()),
     "created_asc": (Reservation.created_at.asc(), Reservation.id.asc()),
+    # By what the other columns show. The list query always joins the customer
+    # and the car, so these need nothing extra.
+    "customer_asc": (Customer.last_name.asc(), Customer.first_name.asc(), Reservation.id.asc()),
+    "customer_desc": (Customer.last_name.desc(), Customer.first_name.desc(), Reservation.id.asc()),
+    "vehicle_asc": (Car.make.asc(), Car.model.asc(), Reservation.id.asc()),
+    "vehicle_desc": (Car.make.desc(), Car.model.desc(), Reservation.id.asc()),
+    "status_asc": (Reservation.status.asc(), Reservation.pickup_at.asc(), Reservation.id.asc()),
+    "status_desc": (Reservation.status.desc(), Reservation.pickup_at.asc(), Reservation.id.asc()),
 }
 
 

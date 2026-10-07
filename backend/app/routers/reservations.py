@@ -179,7 +179,8 @@ def get_reservations(
         default=None
     ),
     sort: Literal[
-        "pickup_asc", "pickup_desc", "return_asc", "return_desc", "created_desc", "created_asc"
+        "pickup_asc", "pickup_desc", "return_asc", "return_desc", "created_desc", "created_asc",
+        "customer_asc", "customer_desc", "vehicle_asc", "vehicle_desc", "status_asc", "status_desc",
     ] = Query(default="pickup_asc"),
     # The caller's own "today", as instants. The browser knows its
     # timezone; the server would otherwise assume UTC.

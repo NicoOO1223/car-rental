@@ -1247,6 +1247,8 @@ export type MaintenanceTaskPage = {
 export async function getMaintenanceTasks(params?: {
   status?: string;
   task_type?: string;
+  /** "<column>_<asc|desc>", e.g. "opened_desc" (the default). */
+  sort?: string;
   limit?: number;
   offset?: number;
 }): Promise<MaintenanceTaskPage> {
@@ -1254,6 +1256,7 @@ export async function getMaintenanceTasks(params?: {
 
   if (params?.status) query.set("status", params.status);
   if (params?.task_type) query.set("task_type", params.task_type);
+  if (params?.sort) query.set("sort", params.sort);
   if (params?.limit != null) query.set("limit", String(params.limit));
   if (params?.offset != null) query.set("offset", String(params.offset));
 

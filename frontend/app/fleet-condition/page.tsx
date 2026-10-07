@@ -110,10 +110,15 @@ export default function FleetConditionPage() {
       mobile: "primary",
       cell: (car) => <TwoLine primary={`${car.make} ${car.model}`} secondary={car.license_plate} />,
       mobileCell: (car) => `${car.make} ${car.model}`,
+      sortable: true,
+      sortAccessor: (car) => `${car.make} ${car.model} ${car.license_plate}`,
     },
     {
       id: "mileage",
       header: t("s.fleetCondition.mileage"),
+      sortable: true,
+      sortAccessor: (car) => car.mileage,
+      defaultSortDirection: "desc",
       cell: (car) => (
         <span className="text-sm text-ink-muted">
           {car.mileage != null ? t("common.km", { value: car.mileage }) : "—"}
@@ -123,6 +128,8 @@ export default function FleetConditionPage() {
     {
       id: "tireCondition",
       header: t("s.fleetCondition.tireCondition"),
+      sortable: true,
+      sortAccessor: (car) => car.tire_condition,
       cell: (car) => (
         <span className="text-sm text-ink-muted">
           {car.tire_condition ? enumLabel("tireCondition", car.tire_condition) : "—"}
@@ -132,6 +139,8 @@ export default function FleetConditionPage() {
     {
       id: "oilChange",
       header: t("s.fleetCondition.lastOilChange"),
+      sortable: true,
+      sortAccessor: (car) => car.last_oil_change_at,
       cell: (car) => (
         <div className="text-sm text-ink-muted">
           <div>{car.last_oil_change_at ? formatDate(car.last_oil_change_at) : "—"}</div>
@@ -144,6 +153,8 @@ export default function FleetConditionPage() {
     {
       id: "inspection",
       header: t("s.fleetCondition.nextInspection"),
+      sortable: true,
+      sortAccessor: (car) => car.next_inspection_due,
       cell: (car) => (
         <span className="text-sm text-ink-muted">
           {car.next_inspection_due ? formatDate(car.next_inspection_due) : "—"}
@@ -165,10 +176,14 @@ export default function FleetConditionPage() {
       mobile: "primary",
       cell: (car) => <TwoLine primary={`${car.make} ${car.model}`} secondary={car.license_plate} />,
       mobileCell: (car) => `${car.make} ${car.model}`,
+      sortable: true,
+      sortAccessor: (car) => `${car.make} ${car.model} ${car.license_plate}`,
     },
     {
       id: "insuredUntil",
       header: t("s.fleetCondition.insuredUntil"),
+      sortable: true,
+      sortAccessor: (car) => car.insured_until,
       cell: (car) => (
         <span className="text-sm text-ink-muted">
           {car.insured_until ? formatDate(car.insured_until) : "—"}
@@ -178,6 +193,8 @@ export default function FleetConditionPage() {
     {
       id: "daysRemaining",
       header: t("s.fleetCondition.daysRemaining"),
+      sortable: true,
+      sortAccessor: (car) => (car.insured_until ? insuranceDaysLeft(car.insured_until) : null),
       cell: (car) => {
         if (!car.insured_until) return <span className="text-sm text-ink-muted">—</span>;
         const days = insuranceDaysLeft(car.insured_until);
@@ -188,6 +205,9 @@ export default function FleetConditionPage() {
     {
       id: "cost",
       header: t("s.fleetCondition.cost"),
+      sortable: true,
+      sortAccessor: (car) => (car.insurance_cost != null ? Number(car.insurance_cost) : null),
+      defaultSortDirection: "desc",
       mobile: "trailing",
       cell: (car) => (
         <span className="text-sm text-ink-muted">

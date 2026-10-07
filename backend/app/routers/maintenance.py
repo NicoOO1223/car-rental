@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
@@ -31,12 +32,16 @@ router = APIRouter(
 def list_tasks_endpoint(
     status: str | None = Query(default=None),
     task_type: str | None = Query(default=None),
+    sort: Literal[
+        "opened_desc", "opened_asc", "vehicle_asc", "vehicle_desc", "type_asc", "type_desc",
+        "window_asc", "window_desc", "cost_asc", "cost_desc", "status_asc", "status_desc",
+    ] = Query(default="opened_desc"),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     items, total = list_tasks(
-        db, status=status, task_type=task_type, limit=limit, offset=offset
+        db, status=status, task_type=task_type, sort=sort, limit=limit, offset=offset
     )
 
     return {

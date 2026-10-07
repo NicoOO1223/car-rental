@@ -35,11 +35,32 @@ def list_tasks(
     db: Session,
     status: str | None = None,
     task_type: str | None = None,
+    sort: str = "opened_desc",
     limit: int = 25,
     offset: int = 0,
 ) -> tuple[list[MaintenanceTask], int]:
-    """One page of tasks, newest first, and how many match in all. The history
-    only ever grows, so it is paged on the server."""
+    """One page of tasks (newest first unless asked otherwise) and how many
+    match in all. The history only ever grows, so it is paged on the server."""
+
+    # When a task takes the car out of service: its start, or when it was opened.
+    window = func.coalesce(MaintenanceTask.starts_at, MaintenanceTask.opened_at)
+    newest = (MaintenanceTask.opened_at.desc(), MaintenanceTask.id)
+
+    orderings = {
+        "opened_desc": newest,
+        "opened_asc": (MaintenanceTask.opened_at.asc(), MaintenanceTask.id),
+        "vehicle_asc": (Car.make.asc(), Car.model.asc(), Car.license_plate.asc(), *newest),
+        "vehicle_desc": (Car.make.desc(), Car.model.desc(), Car.license_plate.desc(), *newest),
+        "type_asc": (MaintenanceTask.task_type.asc(), *newest),
+        "type_desc": (MaintenanceTask.task_type.desc(), *newest),
+        "window_asc": (window.asc(), MaintenanceTask.id),
+        "window_desc": (window.desc(), MaintenanceTask.id),
+        # A task with no cost recorded sorts last either way.
+        "cost_asc": (MaintenanceTask.cost.asc().nulls_last(), *newest),
+        "cost_desc": (MaintenanceTask.cost.desc().nulls_last(), *newest),
+        "status_asc": (MaintenanceTask.status.asc(), *newest),
+        "status_desc": (MaintenanceTask.status.desc(), *newest),
+    }
 
     conditions = []
 
@@ -53,9 +74,10 @@ def list_tasks(
 
     rows = db.scalars(
         select(MaintenanceTask)
+        .join(Car, Car.id == MaintenanceTask.car_id)
         .options(joinedload(MaintenanceTask.car))
         .where(*conditions)
-        .order_by(MaintenanceTask.opened_at.desc(), MaintenanceTask.id)
+        .order_by(*orderings.get(sort, newest))
         .limit(limit)
         .offset(offset)
     ).all()

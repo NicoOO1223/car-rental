@@ -47,7 +47,11 @@ router = APIRouter(
 def get_customers(
     q: str | None = Query(default=None, max_length=100),
     segment: Literal["NEW_THIS_WEEK", "REPEAT"] | None = Query(default=None),
-    sort: Literal["recent", "name"] = Query(default="recent"),
+    sort: Literal[
+        "recent", "name",
+        "name_asc", "name_desc", "reservations_asc", "reservations_desc",
+        "last_booking_asc", "last_booking_desc", "created_asc", "created_desc",
+    ] = Query(default="recent"),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),

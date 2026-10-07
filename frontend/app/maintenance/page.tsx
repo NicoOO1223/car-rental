@@ -26,12 +26,17 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { can } from "@/lib/permissions";
+import { parseSort, sortParam } from "@/lib/serverSort";
 import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   status: "OPEN",
+  sort: "opened_desc",
   page: "1",
 };
+
+// What each column sorts by on the server.
+const SORT_KEYS = { vehicle: "vehicle", type: "type", window: "window", cost: "cost", opened: "opened", status: "status" };
 
 const PAGE_SIZE = 25;
 
@@ -71,6 +76,7 @@ export default function MaintenancePage() {
       try {
         const data = await getMaintenanceTasks({
           status: statusFilter === "ALL" ? undefined : statusFilter,
+          sort: filters.sort,
           limit: PAGE_SIZE,
           offset: (page - 1) * PAGE_SIZE,
         });
@@ -92,7 +98,7 @@ export default function MaintenancePage() {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, page]);
+  }, [statusFilter, filters.sort, page]);
 
   // Used by the Refresh button and by post-action refetches only.
   const refreshTasks = useCallback(async () => {
@@ -102,6 +108,7 @@ export default function MaintenancePage() {
     try {
       const data = await getMaintenanceTasks({
         status: statusFilter === "ALL" ? undefined : statusFilter,
+        sort: filters.sort,
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
       });
@@ -114,7 +121,7 @@ export default function MaintenancePage() {
     } finally {
       setRefreshing(false);
     }
-  }, [statusFilter, page]);
+  }, [statusFilter, filters.sort, page]);
 
   useEffect(() => {
     getCars()
@@ -130,6 +137,7 @@ export default function MaintenancePage() {
     {
       id: "vehicle",
       header: t("s.maintenance.vehicle"),
+      sortable: true,
       mobile: "primary",
       cell: (task) => (
         <TwoLine
@@ -151,6 +159,7 @@ export default function MaintenancePage() {
     {
       id: "type",
       header: t("s.maintenance.type"),
+      sortable: true,
       mobile: "trailing",
       cell: (task) => (
         <div className="flex flex-col items-start gap-1">
@@ -174,6 +183,8 @@ export default function MaintenancePage() {
     {
       id: "window",
       header: t("s.maintenance.outService"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobileLabel: t("s.maintenance.outService"),
       cell: (task) => (
         <div className="text-sm text-ink-muted">
@@ -191,6 +202,8 @@ export default function MaintenancePage() {
     {
       id: "cost",
       header: t("s.maintenance.cost"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobileLabel: t("s.maintenance.cost"),
       cell: (task) => (
         <span className="text-sm text-ink-muted">
@@ -201,6 +214,8 @@ export default function MaintenancePage() {
     {
       id: "opened",
       header: t("s.maintenance.opened"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobileLabel: t("s.maintenance.opened"),
       cell: (task) => (
         <div className="text-sm text-ink-muted">
@@ -215,6 +230,7 @@ export default function MaintenancePage() {
     {
       id: "status",
       header: t("s.maintenance.status"),
+      sortable: true,
       mobileLabel: t("s.maintenance.status"),
       cell: (task) => <TaskStatusBadge status={task.status} />,
     },
@@ -284,6 +300,10 @@ export default function MaintenancePage() {
         rows={tasks}
         columns={columns}
         rowKey={(task) => task.id}
+        tableId="maintenance"
+        serverSorted
+        sort={parseSort(filters.sort, SORT_KEYS)}
+        onSortChange={(next) => setFilters({ sort: sortParam(next, SORT_KEYS, FILTER_DEFAULTS.sort), page: "1" })}
         loading={loading}
         rowActions={[
           {

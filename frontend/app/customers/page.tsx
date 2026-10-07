@@ -22,16 +22,20 @@ import { formatDate } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
+import { parseSort, sortOptions, sortParam } from "@/lib/serverSort";
 import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   q: "",
   segment: "ALL",
-  sort: "recent",
+  sort: "last_booking_desc",
   page: "1",
 };
 
 const PAGE_SIZE = 25;
+
+// What each column sorts by on the server.
+const SORT_KEYS = { name: "name", reservations: "reservations", last_booking: "last_booking", created: "created" };
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -106,6 +110,7 @@ export default function CustomersPage() {
     {
       id: "name",
       header: t("s.customers.customer"),
+      sortable: true,
       mobile: "primary",
       cell: (customer) => (
         <div className="flex items-center gap-2">
@@ -124,6 +129,8 @@ export default function CustomersPage() {
     {
       id: "reservations",
       header: t("s.customers.reservations"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobile: "trailing",
       cell: (customer) => (
         <span className="font-medium tabular-nums">
@@ -139,19 +146,19 @@ export default function CustomersPage() {
     {
       id: "last_booking",
       header: t("s.customers.lastBooking"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobileLabel: t("s.customers.lastBooking"),
       cell: (customer) =>
         customer.last_reservation_at
           ? formatDate(customer.last_reservation_at)
           : "—",
-      sortAccessor: (customer) =>
-        customer.last_reservation_at
-          ? new Date(customer.last_reservation_at)
-          : null,
     },
     {
       id: "created",
       header: t("s.customers.customerSince"),
+      sortable: true,
+      defaultSortDirection: "desc",
       mobileLabel: t("s.customers.customerSince"),
       cell: (customer) => (
         <span className="text-sm text-ink-muted">
@@ -258,8 +265,11 @@ export default function CustomersPage() {
               value={filters.sort}
               onChange={(event) => updateFilters({ sort: event.target.value })}
             >
-              <option value="recent">{t("s.customers.mostRecentBooking")}</option>
-              <option value="name">{t("s.customers.nameZ")}</option>
+              {sortOptions(columns, SORT_KEYS).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           )}
         </Field>
@@ -269,6 +279,10 @@ export default function CustomersPage() {
         rows={customers}
         columns={columns}
         rowKey={(customer) => customer.id}
+        tableId="customers"
+        serverSorted
+        sort={parseSort(filters.sort, SORT_KEYS)}
+        onSortChange={(next) => updateFilters({ sort: sortParam(next, SORT_KEYS, FILTER_DEFAULTS.sort) })}
         loading={loading}
         onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
         empty={{

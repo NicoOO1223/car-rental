@@ -30,6 +30,7 @@ import {
   hoursSince,
   rentalDays,
 } from "@/lib/format";
+import { parseSort, sortOptions, sortParam } from "@/lib/serverSort";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
@@ -46,6 +47,10 @@ const FILTER_DEFAULTS = {
 };
 
 const PAGE_SIZE = 25;
+
+// What each column sorts by on the server: the Rental column by its pickup,
+// Booked by when the booking was made.
+const SORT_KEYS = { customer: "customer", vehicle: "vehicle", rental: "pickup", booked: "created", status: "status" };
 
 export default function ManageReservationsPage() {
   const navigate = useNavigate();
@@ -205,6 +210,7 @@ export default function ManageReservationsPage() {
     {
       id: "customer",
       header: t("s.reservations.manage.customer"),
+      sortable: true,
       mobile: "primary",
       cell: (reservation) => (
         <TwoLine
@@ -223,6 +229,7 @@ export default function ManageReservationsPage() {
     {
       id: "vehicle",
       header: t("s.reservations.manage.vehicle"),
+      sortable: true,
       mobile: "secondary",
       cell: (reservation) => (
         <TwoLine
@@ -240,6 +247,7 @@ export default function ManageReservationsPage() {
     {
       id: "rental",
       header: t("s.reservations.manage.rental"),
+      sortable: true,
       mobileLabel: "",
       cellClassName: "whitespace-nowrap tabular-nums",
       cell: (reservation) => <TwoLine primary={rentalLine(reservation)} secondary={routeLine(reservation)} />,
@@ -248,6 +256,9 @@ export default function ManageReservationsPage() {
     {
       id: "booked",
       header: t("s.reservations.manage.booked"),
+      sortable: true,
+      // Newest first is the usual first question about when something was booked.
+      defaultSortDirection: "desc",
       mobileLabel: "",
       hideable: true,
       cellClassName: "whitespace-nowrap tabular-nums",
@@ -277,6 +288,7 @@ export default function ManageReservationsPage() {
     {
       id: "status",
       header: t("s.reservations.manage.status"),
+      sortable: true,
       mobile: "trailing",
       cell: (reservation) => (
         <ReservationStatusBadge status={reservation.status} />
@@ -459,11 +471,11 @@ export default function ManageReservationsPage() {
               value={filters.sort}
               onChange={(event) => updateFilters({ sort: event.target.value })}
             >
-              <option value="pickup_asc">{t("s.reservations.manage.pickupSoonestFirst")}</option>
-              <option value="pickup_desc">{t("s.reservations.manage.pickupLatestFirst")}</option>
-              <option value="return_asc">{t("s.reservations.manage.returnSoonestFirst")}</option>
-              <option value="created_desc">{t("s.reservations.manage.recentlyBooked")}</option>
-              <option value="created_asc">{t("s.reservations.manage.bookedOldestFirst")}</option>
+              {sortOptions(columns, SORT_KEYS).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           )}
         </Field>
@@ -474,6 +486,9 @@ export default function ManageReservationsPage() {
         columns={columns}
         rowKey={(reservation) => reservation.id}
         tableId="reservations"
+        serverSorted
+        sort={parseSort(filters.sort, SORT_KEYS)}
+        onSortChange={(next) => updateFilters({ sort: sortParam(next, SORT_KEYS, FILTER_DEFAULTS.sort) })}
         loading={loading}
         onRowClick={(reservation) =>
           navigate(`/reservations/manage/${reservation.id}`)

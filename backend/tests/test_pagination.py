@@ -311,3 +311,70 @@ def test_customer_summary_matches_the_list():
         "/api/customers", params={"segment": "NEW_THIS_WEEK"}
     ).json()["total"]
     assert summary["total_reservations"] >= 0
+
+
+# --- sorting by any column -------------------------------------------------------------------
+
+
+def test_reservations_sort_by_every_column_both_ways():
+    reservation = _make_reservation()
+
+    try:
+        for column in ("pickup", "return", "created", "customer", "vehicle", "status"):
+            for direction in ("asc", "desc"):
+                response = client.get("/api/reservations", params={"sort": f"{column}_{direction}", "limit": 50})
+
+                assert response.status_code == 200, f"{column}_{direction}: {response.text}"
+
+        # Status is plain text, so the database and Python agree on its order.
+        statuses = [row["status"] for row in client.get("/api/reservations", params={"sort": "status_asc", "limit": 100}).json()["items"]]
+        assert statuses == sorted(statuses)
+
+        assert client.get("/api/reservations", params={"sort": "nonsense_asc"}).status_code == 422
+    finally:
+        _cancel(reservation)
+
+
+def test_customers_sort_by_every_column_both_ways():
+    for column in ("name", "reservations", "last_booking", "created"):
+        for direction in ("asc", "desc"):
+            response = client.get("/api/customers", params={"sort": f"{column}_{direction}", "limit": 50})
+
+            assert response.status_code == 200, f"{column}_{direction}: {response.text}"
+
+    most = [row["reservation_count"] for row in client.get("/api/customers", params={"sort": "reservations_desc", "limit": 100}).json()["items"]]
+    assert most == sorted(most, reverse=True)
+
+    since = [row["created_at"] for row in client.get("/api/customers", params={"sort": "created_asc", "limit": 100}).json()["items"]]
+    assert since == sorted(since)
+
+    # Someone who never booked comes after everyone who did, whichever way the dates run.
+    for order in ("last_booking_asc", "last_booking_desc"):
+        dates = [row["last_reservation_at"] for row in client.get("/api/customers", params={"sort": order, "limit": 100}).json()["items"]]
+        seen_none = False
+        for value in dates:
+            if value is None:
+                seen_none = True
+            else:
+                assert not seen_none, order
+
+    # The two older names still work.
+    assert client.get("/api/customers", params={"sort": "recent"}).status_code == 200
+    assert client.get("/api/customers", params={"sort": "name"}).status_code == 200
+
+
+def test_maintenance_tasks_sort_by_every_column_both_ways():
+    for column in ("opened", "vehicle", "type", "window", "cost", "status"):
+        for direction in ("asc", "desc"):
+            response = client.get("/api/maintenance/tasks", params={"sort": f"{column}_{direction}", "limit": 50})
+
+            assert response.status_code == 200, f"{column}_{direction}: {response.text}"
+
+    opened = [row["opened_at"] for row in client.get("/api/maintenance/tasks", params={"sort": "opened_asc", "limit": 100}).json()["items"]]
+    assert opened == sorted(opened)
+
+    # Newest first stays the default.
+    default = [row["opened_at"] for row in client.get("/api/maintenance/tasks", params={"limit": 100}).json()["items"]]
+    assert default == sorted(default, reverse=True)
+
+    assert client.get("/api/maintenance/tasks", params={"sort": "nonsense"}).status_code == 422

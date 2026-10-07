@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { t } from "@/lib/i18n";
+import { compareValues, type SortDirection, type SortValue } from "@/lib/sortValues";
 
 /**
  * One table, driven by column definitions, rendering both the desktop
@@ -31,7 +32,7 @@ import { t } from "@/lib/i18n";
  * the page. Sorting does live here, because it is a property of the table.
  */
 
-export type SortDirection = "asc" | "desc";
+export type { SortDirection, SortValue } from "@/lib/sortValues";
 
 export type SortState = {
   columnId: string;
@@ -54,7 +55,6 @@ export type MobileRole =
   | "meta"
   | "hidden";
 
-export type SortValue = string | number | Date | null | undefined;
 
 export type Column<Row> = {
   /** Stable id, also the token used in the sort URL parameter. */
@@ -135,6 +135,12 @@ export type DataTableProps<Row> = {
   sort?: SortState | null;
   onSortChange?: (next: SortState | null) => void;
   defaultSort?: SortState;
+  /**
+   * The rows arrive already in the order `sort` names (a list the server
+   * pages, see lib/serverSort.ts). Headers still show and change the sort,
+   * but the table does not reorder the page of rows it was given.
+   */
+  serverSorted?: boolean;
 
   empty?: DataTableEmpty;
   className?: string;
@@ -220,30 +226,6 @@ export function TwoLine({
   );
 }
 
-function defaultCompare(a: SortValue, b: SortValue): number {
-  // Nulls sort last regardless of direction, so an empty cell never
-  // occupies the top of the table.
-  const aEmpty = a === null || a === undefined || a === "";
-  const bEmpty = b === null || b === undefined || b === "";
-
-  if (aEmpty && bEmpty) return 0;
-  if (aEmpty) return 1;
-  if (bEmpty) return -1;
-
-  if (a instanceof Date && b instanceof Date) {
-    return a.getTime() - b.getTime();
-  }
-
-  if (typeof a === "number" && typeof b === "number") {
-    return a - b;
-  }
-
-  return String(a).localeCompare(String(b), undefined, {
-    sensitivity: "base",
-    numeric: true,
-  });
-}
-
 export function DataTable<Row>({
   rows,
   columns,
@@ -257,6 +239,7 @@ export function DataTable<Row>({
   sort,
   onSortChange,
   defaultSort,
+  serverSorted = false,
   empty,
   className = "",
   tableId,
@@ -321,26 +304,28 @@ export function DataTable<Row>({
   }
 
   const sortedRows = useMemo(() => {
-    if (!activeSort) return rows;
+    if (!activeSort || serverSorted) return rows;
 
     const column = columns.find((item) => item.id === activeSort.columnId);
     if (!column) return rows;
 
-    const compare =
-      column.comparator ??
-      ((a: Row, b: Row) =>
-        defaultCompare(
-          column.sortAccessor?.(a) ?? null,
-          column.sortAccessor?.(b) ?? null,
-        ));
-
     // Sort a copy. Array.prototype.sort is stable, so ties keep the
     // incoming order.
     const copy = [...rows];
-    copy.sort(compare);
 
-    return activeSort.direction === "desc" ? copy.reverse() : copy;
-  }, [rows, columns, activeSort]);
+    // A column's own comparator is written ascending, so it is reversed.
+    if (column.comparator) {
+      copy.sort(column.comparator);
+
+      return activeSort.direction === "desc" ? copy.reverse() : copy;
+    }
+
+    // Otherwise the direction goes into the comparison, which keeps empty
+    // cells at the bottom both ways (reversing would lift them to the top).
+    const value = (row: Row) => column.sortAccessor?.(row) ?? null;
+
+    return copy.sort((a, b) => compareValues(value(a), value(b), activeSort.direction));
+  }, [rows, columns, activeSort, serverSorted]);
 
   const showCards = layout !== "table";
   const showTable = layout !== "cards";
