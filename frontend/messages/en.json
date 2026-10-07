@@ -536,7 +536,8 @@
       "url_parsing": "Enter a valid web address.",
       "uuid_parsing": "That is not a valid identifier.",
       "value_error": "This value is not valid.",
-      "vat_rate_range": "The VAT rate must be between 0 and 100 percent."
+      "vat_rate_range": "The VAT rate must be between 0 and 100 percent.",
+      "accent_color_invalid": "The brand colour must be a hex colour such as #1f4fd8."
     },
     "account": {
       "email_taken": "An account with this email already exists.",
@@ -1210,7 +1211,20 @@
           "replaceLogo": "Replace logo",
           "uploadLogo": "Upload logo",
           "saving": "Saving",
-          "saveChanges": "Save changes"
+          "saveChanges": "Save changes",
+          "accentLabel": "Brand colour",
+          "accentHint": "Used for the main buttons and highlights here and on your booking site. Black keeps both plain.",
+          "accentCustom": "Custom colour",
+          "accentPreviewButton": "Example button",
+          "accentPreviewLink": "Example link",
+          "accentPreviewTag": "Selected",
+          "accentTextAdjusted": "This colour is light, so text on it turns dark and it is darkened where it is used as text.",
+          "accentPresetBlack": "Black",
+          "accentPresetBlue": "Blue",
+          "accentPresetGreen": "Green",
+          "accentPresetOrange": "Orange",
+          "accentPresetRed": "Red",
+          "accentPresetPurple": "Purple"
         },
         "deposit": {
           "securityDeposit": "Security deposit",

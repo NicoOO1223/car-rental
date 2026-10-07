@@ -16,6 +16,7 @@ import {
   brandingLandingHeroUrl,  brandingLogoUrl,
   getBranding,
 } from "@/lib/api";
+import { applyAccent } from "@/lib/accent";
 
 type Brand = {
   /** Empty until the first response arrives. */
@@ -79,6 +80,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     getBranding()
       .then((result) => {
         if (cancelled) return;
+
+        // Already painted by the server; this catches a change made just now.
+        applyAccent(result.accent_color);
 
         setBranding({
           name: result.business_name,

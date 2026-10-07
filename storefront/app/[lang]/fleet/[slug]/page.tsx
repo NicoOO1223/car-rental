@@ -88,7 +88,7 @@ export default async function ClassPage({ params }: { params: Promise<{ lang: st
 
           <Link
             href={`/${lang}#top`}
-            className="mt-8 inline-block rounded-xl bg-gray-900 px-6 py-3.5 text-sm font-semibold text-white hover:bg-gray-800"
+            className="mt-8 inline-block rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-on-accent hover:bg-accent-hover"
           >
             {t("fleet.bookNow")}
           </Link>

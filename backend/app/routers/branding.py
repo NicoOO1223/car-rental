@@ -33,6 +33,8 @@ class BrandingResponse(BaseModel):
     has_landing_cta_image: bool
     landing_cta_image_version: int | None
     locale: str
+    # The business's brand colour, so the sign-in page is already in it.
+    accent_color: str
     # The interface language for anyone who has not chosen their own; the
     # sign-in page needs it before there is a signed-in person to ask.
     default_language: str
@@ -61,6 +63,7 @@ def get_branding(db: Session = Depends(get_db)):
         has_landing_cta_image=cta_image is not None,
         landing_cta_image_version=_version(cta_image) if cta_image is not None else None,
         locale=configuration.locale,
+        accent_color=configuration.accent_color,
         default_language=configuration.default_language,
     )
 

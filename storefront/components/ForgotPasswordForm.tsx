@@ -11,7 +11,7 @@ import { errorMessage } from "@/lib/errors";
 const input =
   "mt-1.5 w-full rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900";
 const button =
-  "w-full rounded-xl bg-gray-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50";
+  "w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-semibold text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50";
 
 /** Asks for a reset link. The answer never says whether the address has an account. */
 export function ForgotPasswordForm({ language }: { language: string }) {

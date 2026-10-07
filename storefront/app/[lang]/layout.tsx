@@ -10,6 +10,7 @@ import "../globals.css";
 
 import { Providers } from "@/components/Providers";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { accentVariables } from "@/lib/accent";
 import { getMessages, getTranslator } from "@/lib/i18n";
 import { getAccount } from "@/lib/accountServer";
 import { getLocations, getPublicConfig } from "@/lib/publicApi";
@@ -57,7 +58,12 @@ export default async function LangLayout({
   const [config, locations, account] = await Promise.all([getPublicConfig(), getLocations(), getAccount()]);
 
   return (
-    <html lang={lang} className={`${jakarta.variable} h-full antialiased`}>
+    <html
+      lang={lang}
+      className={`${jakarta.variable} h-full antialiased`}
+      // The business's brand colour, set before anything is drawn.
+      style={accentVariables(config?.accent_color) as React.CSSProperties}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript(runtimeConfig()) }} />
       </head>

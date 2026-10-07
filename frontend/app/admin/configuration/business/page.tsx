@@ -13,6 +13,7 @@ import {
 
 import { t, LANGUAGES } from "@/lib/i18n";
 import { LOCALES, timezoneOptions } from "@/lib/localization";
+import { AccentColorField } from "@/components/admin/AccentColorField";
 import { BrandMark } from "@/components/BrandMark";
 import { useBrand } from "@/components/BrandProvider";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +29,7 @@ const PROFILE_FIELDS = [
   "vat_id",
   "timezone",
   "locale",
+  "accent_color",
   "default_language",
   "document_language",
   "agreement_terms",
@@ -240,6 +242,14 @@ export default function BusinessConfigurationPage() {
             hint={t("s.admin.configuration.business.shownSignPageSidebar2")}
             value={profile.business_name}
             onChange={set("business_name")}
+          />
+
+          <AccentColorField
+            value={profile.accent_color}
+            onChange={(accent_color) => {
+              setProfile({ ...profile, accent_color });
+              setSaved(false);
+            }}
           />
 
           <TextField

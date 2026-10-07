@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BrandProvider } from "@/components/BrandProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { NavigationProgressProvider } from "@/components/NavigationProgress";
+import { accentVariables } from "@/lib/accent";
 import { t } from "@/lib/i18n";
 import { runtimeConfigScript, serverRuntimeConfig } from "@/lib/runtimeConfig";
 
@@ -53,10 +54,26 @@ export default async function RootLayout({
   // environment, and must never be frozen into a page built beforehand.
   await connection();
 
+  // The business's brand colour, set on the page before anything is drawn.
+  // Without the API (or with a bad value) the default near-black stays.
+  let accent: string | null = null;
+
+  try {
+    const response = await fetch(`${serverRuntimeConfig().apiUrl}/api/branding`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (response.ok) accent = (await response.json()).accent_color ?? null;
+  } catch {
+    // Keep the default.
+  }
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={accentVariables(accent) as React.CSSProperties}
     >
       <head>
         {/* Hands this stack's runtime values to the browser before any script runs. */}

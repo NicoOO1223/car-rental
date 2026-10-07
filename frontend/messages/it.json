@@ -536,7 +536,8 @@
       "url_parsing": "Inserisci un indirizzo web valido.",
       "uuid_parsing": "Questo non è un identificatore valido.",
       "value_error": "Questo valore non è valido.",
-      "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento."
+      "vat_rate_range": "L'aliquota IVA deve essere compresa tra 0 e 100 per cento.",
+      "accent_color_invalid": "Il colore del marchio deve essere un colore esadecimale, ad esempio #1f4fd8."
     },
     "account": {
       "email_taken": "Esiste già un account con questa email.",
@@ -1210,7 +1211,20 @@
           "replaceLogo": "Sostituisci il logo",
           "uploadLogo": "Carica il logo",
           "saving": "Salvataggio in corso",
-          "saveChanges": "Salva le modifiche"
+          "saveChanges": "Salva le modifiche",
+          "accentLabel": "Colore del marchio",
+          "accentHint": "Usato per i pulsanti principali e gli elementi in evidenza qui e sul sito di prenotazione. Il nero li lascia neutri.",
+          "accentCustom": "Colore personalizzato",
+          "accentPreviewButton": "Pulsante di esempio",
+          "accentPreviewLink": "Link di esempio",
+          "accentPreviewTag": "Selezionato",
+          "accentTextAdjusted": "Questo colore è chiaro: il testo sopra diventa scuro e il colore viene scurito dove è usato come testo.",
+          "accentPresetBlack": "Nero",
+          "accentPresetBlue": "Blu",
+          "accentPresetGreen": "Verde",
+          "accentPresetOrange": "Arancione",
+          "accentPresetRed": "Rosso",
+          "accentPresetPurple": "Viola"
         },
         "deposit": {
           "securityDeposit": "Cauzione",

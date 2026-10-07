@@ -2722,6 +2722,8 @@ export type Configuration = {
   vat_id: string;
   timezone: string;
   locale: string;
+  /** The brand colour, "#rrggbb". */
+  accent_color: string;
   agreement_terms: string;
   vat_rate: number;
   prices_include_vat: boolean;
@@ -2797,6 +2799,8 @@ export type Branding = {
   has_landing_cta_image: boolean;
   landing_cta_image_version: number | null;
   locale: string;
+  /** The brand colour, "#rrggbb". */
+  accent_color: string;
   /** Interface language for someone who has not chosen their own. */
   default_language: string;
 };

@@ -14,7 +14,7 @@ import { manageToken } from "@/lib/session";
 import { vehicleName } from "@/lib/vehicleText";
 
 const primary =
-  "rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50";
+  "rounded-lg bg-accent px-5 py-3 text-sm font-medium text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50";
 const secondary =
   "rounded-lg border border-border-strong bg-surface px-5 py-3 text-sm font-medium text-ink-secondary hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900";
 

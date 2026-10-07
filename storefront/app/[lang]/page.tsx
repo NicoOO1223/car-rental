@@ -103,7 +103,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
             return (
               <div key={index}>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-white">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-on-accent">
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </span>
                   {feature.title && <h3 className="text-base font-semibold text-ink-secondary">{feature.title}</h3>}
@@ -144,7 +144,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
             <Link
               href={`/${lang}/fleet`}
-              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 sm:hidden"
+              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-on-accent hover:bg-accent-hover sm:hidden"
             >
               {t("home.fleetCta")}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />

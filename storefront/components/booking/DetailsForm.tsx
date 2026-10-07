@@ -161,7 +161,7 @@ export function DetailsForm({
       <button
         type="submit"
         disabled={submitting || !terms || !privacy || !humanChecked}
-        className="mt-3 w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50"
+        className="mt-3 w-full rounded-lg bg-accent px-4 py-3 text-sm font-medium text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50"
       >
         {submitting ? t("submitting") : t("submit")}
       </button>

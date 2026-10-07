@@ -4,6 +4,8 @@
 export type PublicConfig = {
   storefront_enabled: boolean;
   business_name: string;
+  /** The business's brand colour, "#rrggbb". */
+  accent_color: string;
   has_logo: boolean;
   logo_version: number | null;
   locale: string;

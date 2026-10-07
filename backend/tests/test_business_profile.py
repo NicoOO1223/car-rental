@@ -168,7 +168,7 @@ def test_branding_needs_no_login(original_configuration):
         "has_hero_image", "hero_image_version",
         "has_landing_about_image", "landing_about_image_version",
         "has_landing_cta_image", "landing_cta_image_version",
-        "locale", "default_language",
+        "locale", "default_language", "accent_color",
     }
     assert body["has_logo"] is False
     assert body["logo_version"] is None
@@ -335,3 +335,19 @@ def test_agreement_pdf_renders_with_a_logo_and_custom_terms(original_configurati
     assert with_logo.startswith(b"%PDF")
     assert without_logo.startswith(b"%PDF")
     assert len(with_logo) > len(without_logo)
+
+
+def test_the_brand_colour_is_black_until_set_then_saved_and_public(original_configuration):
+    assert client.get("/api/branding").json()["accent_color"] == original_configuration["accent_color"]
+
+    saved = client.patch("/api/configuration", json={"accent_color": " #1F4FD8 "})
+
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["accent_color"] == "#1f4fd8"
+    assert client.get("/api/branding").json()["accent_color"] == "#1f4fd8"
+    assert client.get("/api/public/config").json()["accent_color"] == "#1f4fd8"
+
+
+def test_only_a_six_digit_hex_colour_is_accepted(original_configuration):
+    for bad in ("blue", "#fff", "1f4fd8", "#1f4fd8;color:red", "url(javascript:1)"):
+        assert client.patch("/api/configuration", json={"accent_color": bad}).status_code == 422, bad

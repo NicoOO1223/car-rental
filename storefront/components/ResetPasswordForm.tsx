@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/errors";
 const input =
   "mt-1.5 w-full rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900";
 const button =
-  "w-full rounded-xl bg-gray-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50";
+  "w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-semibold text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50";
 
 /** Choosing a new password with the link from the email (its token is in the address fragment). */
 export function ResetPasswordForm({ language }: { language: string }) {
@@ -50,7 +50,7 @@ export function ResetPasswordForm({ language }: { language: string }) {
       <div className="rounded-2xl border border-border-subtle bg-surface p-6 shadow-sm sm:p-8" role="status">
         <h1 className="text-2xl font-bold tracking-tight">{t("resetDoneTitle")}</h1>
         <p className="mt-3 text-ink-secondary">{t("resetDoneBody")}</p>
-        <Link href={`/${language}/login`} className="mt-6 inline-block rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800">
+        <Link href={`/${language}/login`} className="mt-6 inline-block rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-on-accent hover:bg-accent-hover">
           {t("toLogin")}
         </Link>
       </div>

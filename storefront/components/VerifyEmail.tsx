@@ -50,7 +50,7 @@ export function VerifyEmail({ language }: { language: string }) {
       {state !== "working" && (
         <Link
           href={`/${language}/${state === "done" ? "account" : "login"}`}
-          className="mt-6 inline-block rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+          className="mt-6 inline-block rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-on-accent hover:bg-accent-hover"
         >
           {state === "done" ? t("toAccount") : t("toLogin")}
         </Link>

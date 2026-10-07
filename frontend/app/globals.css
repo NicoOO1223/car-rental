@@ -30,8 +30,18 @@
      small supporting text clears WCAG AA. */
   --ink-muted: #6b7280;
 
-  --accent: #111827;
-  --accent-hover: #1f2937;
+  /* The brand colour. These three are overwritten on <html> with the
+     business's own choice (see lib/accent.ts and app/layout.tsx); the rest
+     are derived from them here, so one colour drives everything. */
+  --accent: #0a0a0a;
+  --on-accent: #ffffff;
+  --accent-ink: #0a0a0a;
+
+  /* Hover moves a little toward the text colour: lighter for a dark accent,
+     darker for a pale one. */
+  --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--on-accent));
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  --accent-line: color-mix(in srgb, var(--accent) 30%, var(--surface));
 }
 
 @theme inline {
@@ -51,6 +61,10 @@
 
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

@@ -85,7 +85,7 @@ def test_config_exposes_only_what_a_renter_needs():
     body = client.get("/api/public/config").json()
 
     assert set(body) == {
-        "storefront_enabled", "business_name", "has_logo", "logo_version", "locale", "default_language",
+        "storefront_enabled", "business_name", "accent_color", "has_logo", "logo_version", "locale", "default_language",
         "languages", "currency", "prices_include_vat", "vat_rate", "online_share_percent",
         "free_cancellation_hours", "hold_minutes", "min_booking_lead_hours", "legal_version", "terms_url",
         "privacy_url", "has_terms_text", "has_privacy_text",

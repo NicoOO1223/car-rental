@@ -90,7 +90,7 @@ export function ClaimForm() {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50"
+        className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50"
       >
         {busy ? t("claiming") : t("claimSubmit")}
       </button>

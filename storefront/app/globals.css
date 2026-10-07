@@ -17,6 +17,15 @@
   --deep-raised: #171717;
   --on-deep: #f9fafb;
   --on-deep-muted: #a3a3a3;
+
+  /* The brand colour. These three are overwritten on <html> with the
+     business's own choice (see lib/accent.ts and app/[lang]/layout.tsx);
+     the rest are derived from them here. */
+  --accent: #0a0a0a;
+  --on-accent: #ffffff;
+  --accent-ink: #0a0a0a;
+  --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--on-accent));
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--surface));
 }
 
 @theme inline {
@@ -35,6 +44,11 @@
   --color-deep-raised: var(--deep-raised);
   --color-on-deep: var(--on-deep);
   --color-on-deep-muted: var(--on-deep-muted);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
   --font-sans: var(--font-jakarta);
 }
 
@@ -56,13 +70,15 @@ body {
 
 /* The calendar in the booking bar, in the site's own black and white. */
 .rdp-root {
-  --rdp-accent-color: #0a0a0a;
+  --rdp-accent-color: var(--accent);
   --rdp-accent-background-color: #f3f4f6;
   --rdp-day-height: 40px;
   --rdp-day-width: 40px;
   --rdp-day_button-height: 38px;
   --rdp-day_button-width: 38px;
   --rdp-months-gap: 1.5rem;
-  --rdp-today-color: #0a0a0a;
+  --rdp-today-color: var(--accent-ink);
+  --rdp-range_start-color: var(--on-accent);
+  --rdp-range_end-color: var(--on-accent);
   font-size: 0.875rem;
 }

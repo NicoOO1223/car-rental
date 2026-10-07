@@ -24,6 +24,7 @@ class PublicConfigResponse(BaseModel):
     storefront_enabled: bool
 
     business_name: str
+    accent_color: str
     has_logo: bool
     logo_version: int | None
     locale: str

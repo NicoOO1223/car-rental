@@ -299,7 +299,7 @@ export function SearchForm({
             <button
               type="submit"
               disabled={!firstPlace}
-              className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-12 py-3 text-base font-semibold text-white lg:self-center hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50 lg:mt-0 lg:ml-1"
+              className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-accent px-12 py-3 text-base font-semibold text-on-accent lg:self-center hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50 lg:mt-0 lg:ml-1"
             >
               <Search className="h-4 w-4" aria-hidden="true" />
               {t("submit")}

@@ -26,7 +26,7 @@ type Step = "vehicle" | "extras" | "details" | "payment";
 const STEPS: Step[] = ["vehicle", "extras", "details", "payment"];
 
 const primary =
-  "rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50";
+  "rounded-lg bg-accent px-5 py-3 text-sm font-medium text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50";
 const secondary =
   "rounded-lg border border-border-strong bg-surface px-5 py-3 text-sm font-medium text-ink-secondary hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900";
 
@@ -50,7 +50,7 @@ function Stepper({ step, language }: { step: Step; language: string }) {
           <li key={name} aria-current={current ? "step" : undefined} className={current ? "font-semibold text-ink" : done ? "text-ink-secondary" : "text-ink-muted"}>
             <span
               className={`mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                current ? "bg-gray-900 text-white" : done ? "bg-gray-300 text-ink" : "bg-surface-sunken"
+                current ? "bg-accent text-on-accent" : done ? "bg-gray-300 text-ink" : "bg-surface-sunken"
               }`}
             >
               {index + 1}

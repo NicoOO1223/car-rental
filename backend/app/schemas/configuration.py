@@ -1,3 +1,4 @@
+import re
 from zoneinfo import available_timezones
 
 from app.languages import SUPPORTED_LANGUAGES
@@ -43,6 +44,7 @@ class ConfigurationResponse(BaseModel):
     vat_id: str
     timezone: str
     locale: str
+    accent_color: str
     agreement_terms: str
     vat_rate: float
     prices_include_vat: bool
@@ -99,6 +101,7 @@ class ConfigurationUpdate(BaseModel):
     vat_id: str | None = Field(default=None, max_length=50)
     timezone: str | None = None
     locale: str | None = None
+    accent_color: str | None = None
     agreement_terms: str | None = Field(default=None, max_length=10000)
     vat_rate: float | None = None
     prices_include_vat: bool | None = None
@@ -226,6 +229,16 @@ class ConfigurationUpdate(BaseModel):
             raise PydanticCustomError("validation.business_name_empty", "The business name cannot be empty.")
         return v
 
+    @field_validator("accent_color")
+    @classmethod
+    def accent_is_a_hex_colour(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if not re.fullmatch(r"#[0-9a-f]{6}", v):
+            raise PydanticCustomError("validation.accent_color_invalid", "The brand colour must be a hex colour such as #1f4fd8.")
+        return v
+
     @field_validator("timezone")
     @classmethod
     def timezone_must_be_known(cls, v: str | None) -> str | None:
@@ -319,6 +332,7 @@ class PublicConfigurationResponse(BaseModel):
     business_name: str
     timezone: str
     locale: str
+    accent_color: str
     # What a price is: whether it already contains VAT, and how much.
     vat_rate: float
     prices_include_vat: bool

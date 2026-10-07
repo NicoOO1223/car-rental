@@ -72,7 +72,7 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
         <p className="mt-3 text-ink-secondary">{t("checkEmailBody", { email: email.trim() })}</p>
         <Link
           href={`/${language}/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
-          className="mt-6 inline-block rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+          className="mt-6 inline-block rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-on-accent hover:bg-accent-hover"
         >
           {t("loginTitle")}
         </Link>
@@ -167,7 +167,7 @@ export function AuthForm({ mode, language, next }: { mode: "login" | "register";
       <button
         type="submit"
         disabled={busy || !humanChecked}
-        className="mt-6 w-full rounded-xl bg-gray-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:opacity-50"
+        className="mt-6 w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-semibold text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50"
       >
         {busy ? (registering ? t("registering") : t("loggingIn")) : registering ? t("registerSubmit") : t("loginSubmit")}
       </button>

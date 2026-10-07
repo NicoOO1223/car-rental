@@ -95,6 +95,7 @@ def public_config(db: Session = Depends(get_db)):
     return PublicConfigResponse(
         storefront_enabled=configuration.storefront_enabled,
         business_name=configuration.business_name,
+        accent_color=configuration.accent_color,
         has_logo=logo is not None,
         logo_version=int(logo.updated_at.timestamp()) if logo is not None else None,
         locale=configuration.locale,

@@ -14,7 +14,7 @@ const ATTEMPTS = 20;
 const WAIT_MS = 3000;
 
 const primary =
-  "rounded-lg bg-gray-900 px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2";
+  "rounded-lg bg-accent px-5 py-3 text-sm font-medium text-on-accent hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2";
 
 /**
  * Where the payment form sends the renter afterwards. It asks the server what

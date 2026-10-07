@@ -175,7 +175,7 @@ export function HeaderBar({
                   <Link href={`/${language}/login`} className="rounded-lg border border-border-strong px-3 py-2.5 text-center text-sm font-medium">
                     {t("login")}
                   </Link>
-                  <Link href={`/${language}/register`} className="rounded-lg bg-gray-900 px-3 py-2.5 text-center text-sm font-medium text-white">
+                  <Link href={`/${language}/register`} className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-on-accent">
                     {t("register")}
                   </Link>
                 </div>

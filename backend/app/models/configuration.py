@@ -101,6 +101,11 @@ class Configuration(Base):
     # translate the interface.
     locale: Mapped[str] = mapped_column(String(10), nullable=False)
 
+    # The business's brand colour ("#rrggbb"), used for the main actions and
+    # highlights in the staff app and on the storefront. Near-black by default,
+    # which leaves both looking monochrome until a business picks its own.
+    accent_color: Mapped[str] = mapped_column(String(7), nullable=False, default="#0a0a0a", server_default="#0a0a0a")
+
     # The language the interface starts in for someone who has not chosen
     # their own, and the language printed documents (agreement, invoices) are
     # written in. Separate on purpose: staff can use the app in any language
