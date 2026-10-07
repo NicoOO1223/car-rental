@@ -32,6 +32,11 @@ param(
     # app already has; without the secret a production site refuses to send the form.
     [string]$TurnstileSiteKey = "",
     [string]$TurnstileSecretKey = "",
+    # Remove the bot-check keys again (for example after testing with Cloudflare's always-pass keys).
+    [switch]$ClearTurnstile,
+    # Who is told about a demo request. Kept in the app's own settings, so it need not be written into
+    # marketing.json (which is in the repository) and survives later runs that do not repeat it.
+    [string]$NotifyAddress = "",
     # Reuse this image tag instead of building the current commit.
     [string]$ImageTag = "",
     # Switch the Content-Security-Policy from report-only to enforcing (after a clean week of reports).
@@ -69,11 +74,23 @@ $region = [string]$config.region
 $appName = [string]$config.appName
 $minReplicas = [int]$config.minReplicas
 $siteDomain = ([string]$config.siteDomain).Trim().ToLowerInvariant()
-$notifyAddress = [string]$config.notifyAddress
 $envName = "marketing"
 
+# Settings a run does not repeat keep the value the app already has: the template replaces the whole list.
+$appExists = $false
+if (-not $DryRun) { az containerapp show --name $appName --resource-group $rg --output none 2>$null; $appExists = ($LASTEXITCODE -eq 0) }
+function Get-ExistingEnv([string]$Name) {
+    if (-not $appExists -or $DryRun) { return "" }
+    $value = az containerapp show --name $appName --resource-group $rg --query "properties.template.containers[0].env[?name=='$Name'].value" -o tsv 2>$null
+    return "$value".Trim()
+}
+
+$isPlaceholderAddress = { param([string]$a) (-not $a) -or $a -eq "TODO" -or $a -match "@example\.(com|org|net|invalid)$" }
+$existingNotify = Get-ExistingEnv "DEMO_NOTIFY_ADDRESS"
+$notifyAddress = if ($NotifyAddress) { $NotifyAddress } elseif ($existingNotify -and -not (& $isPlaceholderAddress $existingNotify)) { $existingNotify } else { [string]$config.notifyAddress }
+
 $placeholders = @()
-if ($notifyAddress -match "@example\.(com|org|net|invalid)$" -or $notifyAddress -eq "TODO") { $placeholders += "notifyAddress ($notifyAddress)" }
+if (& $isPlaceholderAddress $notifyAddress) { $placeholders += "notifyAddress ($notifyAddress)" }
 if (-not $siteDomain) { $placeholders += "siteDomain (the site would be served at the default azurecontainerapps.io address)" }
 
 if ($placeholders -and -not $Staging -and -not $DryRun) {
@@ -120,9 +137,6 @@ if (-not $DryRun -and -not $environmentId) { throw "The Container Apps environme
 # --- 2. phase 1: the pull identity ------------------------------------------------------------------
 
 Write-Step "Pull identity (phase 1)"
-$appExists = $false
-if (-not $DryRun) { az containerapp show --name $appName --resource-group $rg --output none 2>$null; $appExists = ($LASTEXITCODE -eq 0) }
-
 $baseParams = @(
     "location=$region", "appName=$appName", "containerAppsEnvironmentId=$environmentId",
     "registryName=$acrName", "registryResourceGroup=$($shared.resourceGroup)", "notifyAddress=$notifyAddress", "minReplicas=$minReplicas"
@@ -144,7 +158,39 @@ $mailDomain = ([string]$config.mail.domain).Trim().ToLowerInvariant()
 $mailFrom = ""
 $acsConnection = ""
 
-if ($mailDomain) {
+$azureManaged = [bool]$config.mail.azureManaged
+
+if ($azureManaged -and -not $mailDomain) {
+    # For testing without a domain: Azure's own <random>.azurecomm.net, no DNS records and nothing to verify.
+    # Mail from it may land in a spam folder. Set "domain" in marketing.json for real mail from your own address.
+    Write-Step "Email (Azure-managed test domain)"
+    $mailDisplay = if ($config.mail.fromName) { [string]$config.mail.fromName } else { "Demo requests" }
+    $emailServiceName = "$appName-email"
+    $commServiceName = "$appName-comm"
+    $emailApi = "2023-04-01"
+
+    function Deploy-ManagedEmail([bool]$Link) {
+        $linkValue = if ($Link) { "true" } else { "false" }
+        az deployment group create --resource-group $rg --template-file "$PSScriptRoot\email.bicep" `
+            --parameters emailServiceName=$emailServiceName communicationServiceName=$commServiceName `
+            azureManaged=true domainName=azure-managed senderUsername=donotreply "senderDisplayName=$mailDisplay" linkDomain=$linkValue --output none
+    }
+
+    Invoke-Checked { Deploy-ManagedEmail $false } "create the email service and its Azure-managed domain"
+    Invoke-Checked { Deploy-ManagedEmail $true } "link the domain to the sending service"
+
+    if ($DryRun) {
+        Write-Host "[dry-run] read the managed sender domain and the connection string" -ForegroundColor DarkGray
+    } else {
+        $subscriptionId = az account show --query id -o tsv
+        $senderDomain = az rest --method get --uri "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/emailServices/$emailServiceName/domains/AzureManagedDomain?api-version=$emailApi" --query properties.mailFromSenderDomain -o tsv
+        if (-not $senderDomain) { throw "FAILED: read the Azure-managed sender domain" }
+        $mailFrom = "donotreply@$senderDomain"
+        $acsConnection = az rest --method post --uri "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/communicationServices/$commServiceName/listKeys?api-version=$emailApi" --query primaryConnectionString -o tsv
+        if (-not $acsConnection) { throw "FAILED: read the email service's connection string" }
+        Write-Host "Email is on: mail is sent from $mailFrom (an Azure-managed test domain; it may land in spam)."
+    }
+} elseif ($mailDomain) {
     Write-Step "Email"
     $mailUser = if ($config.mail.fromUsername) { [string]$config.mail.fromUsername } else { "hello" }
     $mailFrom = "$mailUser@$mailDomain"
@@ -248,10 +294,9 @@ function Get-ExistingSecret([string]$Name) {
     $value = az containerapp secret show --name $appName --resource-group $rg --secret-name $Name --query value -o tsv 2>$null
     return "$value".Trim()
 }
-$turnstileSecret = if ($TurnstileSecretKey) { $TurnstileSecretKey } else { Get-ExistingSecret "turnstile-secret-key" }
+$turnstileSecret = if ($ClearTurnstile) { "" } elseif ($TurnstileSecretKey) { $TurnstileSecretKey } else { Get-ExistingSecret "turnstile-secret-key" }
 $acsConnectionToUse = if ($acsConnection) { $acsConnection } else { Get-ExistingSecret "acs-connection-string" }
-$mailFromToUse = $mailFrom
-if (-not $mailFromToUse -and $acsConnectionToUse -and $mailDomain) { $mailFromToUse = "$([string]$config.mail.fromUsername)@$mailDomain" }
+$mailFromToUse = if ($mailFrom) { $mailFrom } else { Get-ExistingEnv "MAIL_FROM_ADDRESS" }
 
 if (-not $turnstileSecret -and -not $Staging -and -not $DryRun) {
     Write-Host "No Turnstile secret key: the form will refuse to send in production until one is given (-TurnstileSecretKey)." -ForegroundColor Yellow
@@ -262,7 +307,7 @@ $appParams = $baseParams + @(
     "cspEnforce=$(if ($EnforceCsp) { 'true' } else { 'false' })",
     "formSecret=$formSecret", "mailFromAddress=$mailFromToUse"
 )
-$siteKey = if ($TurnstileSiteKey) { $TurnstileSiteKey } else { "" }
+$siteKey = if ($ClearTurnstile) { "" } elseif ($TurnstileSiteKey) { $TurnstileSiteKey } else { Get-ExistingEnv "TURNSTILE_SITE_KEY" }
 if ($siteKey) { $appParams += "turnstileSiteKey=$siteKey" }
 if ($turnstileSecret) { $appParams += "turnstileSecretKey=$turnstileSecret" }
 if ($acsConnectionToUse) { $appParams += "acsConnectionString=$acsConnectionToUse" }

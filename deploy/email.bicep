@@ -31,6 +31,12 @@ param linkDomain bool = false
 @description('Where the data is kept. Europe keeps it in the EU.')
 param dataLocation string = 'Europe'
 
+@description('Use an Azure-managed domain (<random>.azurecomm.net) instead of your own domain: no DNS records and nothing to verify, mail comes from donotreply@ that domain. For testing: such mail may land in a spam folder. domainName and senderUsername are then ignored.')
+param azureManaged bool = false
+
+// Azure fixes the name of its own managed domain.
+var managedDomainName = 'AzureManagedDomain'
+
 resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
   name: emailServiceName
   location: 'global'
@@ -41,14 +47,15 @@ resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
 
 resource domain 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
   parent: emailService
-  name: domainName
+  name: azureManaged ? managedDomainName : domainName
   location: 'global'
   properties: {
-    domainManagement: 'CustomerManaged'
+    domainManagement: azureManaged ? 'AzureManaged' : 'CustomerManaged'
   }
 }
 
-resource sender 'Microsoft.Communication/emailServices/domains/senderUsernames@2023-04-01' = {
+// An Azure-managed domain comes with its own donotreply sender.
+resource sender 'Microsoft.Communication/emailServices/domains/senderUsernames@2023-04-01' = if (!azureManaged) {
   parent: domain
   name: senderUsername
   properties: {
@@ -69,4 +76,4 @@ resource communication 'Microsoft.Communication/communicationServices@2023-04-01
 }
 
 output domainId string = domain.id
-output fromAddress string = '${senderUsername}@${domainName}'
+output fromAddress string = azureManaged ? 'donotreply@${domain.properties.mailFromSenderDomain}' : '${senderUsername}@${domainName}'

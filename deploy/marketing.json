@@ -7,5 +7,5 @@
   "notifyAddress": "hello@example.com",
   "siteDomain": "",
   "indexable": false,
-  "mail": { "domain": "", "fromUsername": "hello", "fromName": "" }
+  "mail": { "domain": "", "azureManaged": true, "fromUsername": "hello", "fromName": "Demo requests" }
 }

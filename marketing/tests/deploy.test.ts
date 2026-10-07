@@ -80,6 +80,22 @@ describe("the site's deployment configuration", () => {
     if (isPlaceholderEmail(config.notifyAddress)) expect(read("deploy/provision-marketing.ps1")).toMatch(/-Staging/);
   });
 
+  it("can send mail without a domain, through an Azure-managed one, and that option is off unless asked for", () => {
+    // Customer stacks use email.bicep too: the managed-domain option must default to off.
+    expect(read("deploy/email.bicep")).toMatch(/param azureManaged bool = false/);
+    expect(config.mail.azureManaged).toBe(true);
+    expect(read("deploy/provision-marketing.ps1")).toMatch(/azureManaged=true/);
+  });
+
+  it("keeps the notified address and the bot-check keys across runs that do not repeat them", () => {
+    const script = read("deploy/provision-marketing.ps1");
+
+    expect(script).toMatch(/Get-ExistingEnv "DEMO_NOTIFY_ADDRESS"/);
+    expect(script).toMatch(/Get-ExistingEnv "TURNSTILE_SITE_KEY"/);
+    expect(script).toMatch(/Get-ExistingSecret "turnstile-secret-key"/);
+    expect(script).toMatch(/\[switch\]\$ClearTurnstile/);
+  });
+
   it("does not make the site indexable on its own: the brand placeholder gate stays in charge", () => {
     expect(config.indexable).toBe(false);
   });
