@@ -1453,7 +1453,7 @@
           "valuesTitle": "Valori",
           "valuesHelp": "Clicca un valore per inserirlo dove si trova il cursore. Viene sostituito dal dato reale quando l'email parte. Una riga con un valore vuoto viene omessa.",
           "partsTitle": "Parti riutilizzabili",
-          "partsHelp": "Frasi facoltative che compaiono solo quando servono (si possono riscrivere in Parti riutilizzabili nella pagina Email).",
+          "partsHelp": "Parti facoltative che compaiono solo quando servono (e si possono riscrivere qui sotto, in Parti riutilizzabili).",
           "preview": "Anteprima",
           "resetToDefault": "Torna al testo predefinito",
           "discard": "Annulla le modifiche",

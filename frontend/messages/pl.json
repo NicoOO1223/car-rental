@@ -1453,7 +1453,7 @@
           "valuesTitle": "Wartości",
           "valuesHelp": "Kliknij wartość, aby wstawić ją w miejscu kursora. Przy wysyłce zostanie zastąpiona prawdziwą. Wiersz z pustą wartością jest pomijany.",
           "partsTitle": "Części wielokrotnego użytku",
-          "partsHelp": "Opcjonalne fragmenty, które pojawiają się tylko wtedy, gdy są potrzebne (można je zmienić w Częściach wielokrotnego użytku na stronie Poczta).",
+          "partsHelp": "Opcjonalne fragmenty, które pojawiają się tylko wtedy, gdy są potrzebne (można je zmienić poniżej, w sekcji Części wielokrotnego użytku).",
           "preview": "Podgląd",
           "resetToDefault": "Przywróć treść wbudowaną",
           "discard": "Odrzuć zmiany",

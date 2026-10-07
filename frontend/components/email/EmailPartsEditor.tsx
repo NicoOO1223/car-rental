@@ -4,13 +4,9 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Select, Textarea } from "@/components/ui/Field";
-import { getEmailParts, getEmailStatus, resetEmailPart, saveEmailPart, type EmailPartRow } from "@/lib/api";
+import { Textarea } from "@/components/ui/Field";
+import { getEmailParts, resetEmailPart, saveEmailPart, type EmailPartRow } from "@/lib/api";
 import { enumLabel, t } from "@/lib/i18n";
-
-function languageName(code: string): string {
-  return new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code;
-}
 
 /**
  * The optional bits of the emails (what was paid online, the cancellation policy, what to
@@ -18,9 +14,16 @@ function languageName(code: string): string {
  * into messages as {name}. A part that has nothing to say, or that is left empty here, takes
  * its line out of the email.
  */
-export function EmailPartsEditor() {
-  const [parts, setParts] = useState<EmailPartRow[] | null>(null);
-  const [language, setLanguage] = useState("en");
+export function EmailPartsEditor({
+  partNames,
+  language,
+}: {
+  /** Only these parts are shown: the ones the email being edited uses. */
+  partNames: string[];
+  /** The language the page is already editing in, so the page does not ask again. */
+  language: string;
+}) {
+  const [allParts, setParts] = useState<EmailPartRow[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -29,11 +32,9 @@ export function EmailPartsEditor() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getEmailParts(), getEmailStatus()])
-      .then(([rows, status]) => {
-        if (cancelled) return;
-        setParts(rows);
-        setLanguage(status.default_language);
+    getEmailParts()
+      .then((rows) => {
+        if (!cancelled) setParts(rows);
       })
       .catch((err) => {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : t("s.admin.configuration.email.failedLoad"));
@@ -72,6 +73,8 @@ export function EmailPartsEditor() {
     }
   }
 
+  const parts = allParts?.filter((row) => partNames.includes(row.part)) ?? null;
+
   if (!parts) {
     return (
       <Card>
@@ -88,26 +91,10 @@ export function EmailPartsEditor() {
     );
   }
 
-  const languages = Object.keys(parts[0].languages);
-
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.email.reusableTitle")}</h2>
+      <h3 className="text-sm font-semibold text-ink">{t("s.admin.configuration.email.reusableTitle")}</h3>
       <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.email.reusableIntro")}</p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label htmlFor="parts-language" className="text-sm font-medium text-ink">
-          {t("s.admin.configuration.email.editingLanguage")}
-        </label>
-
-        <Select id="parts-language" className="w-48" value={language} onChange={(event) => setLanguage(event.target.value)}>
-          {languages.map((code) => (
-            <option key={code} value={code}>
-              {languageName(code)}
-            </option>
-          ))}
-        </Select>
-      </div>
 
       <ul className="mt-4 divide-y divide-border-subtle">
         {parts.map((row) => {

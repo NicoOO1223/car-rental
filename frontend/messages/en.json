@@ -1453,7 +1453,7 @@
           "valuesTitle": "Values",
           "valuesHelp": "Click a value to put it where the cursor is. It is replaced by the real thing when the email is sent. A line with a value that has nothing in it is left out.",
           "partsTitle": "Reusable parts",
-          "partsHelp": "Optional bits that only appear when they apply (and can be reworded under Reusable parts on the Email page).",
+          "partsHelp": "Optional bits that only appear when they apply (and can be reworded below, under Reusable parts).",
           "preview": "Preview",
           "resetToDefault": "Back to the built-in wording",
           "discard": "Discard changes",

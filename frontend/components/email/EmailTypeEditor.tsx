@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { EmailPartsEditor } from "@/components/email/EmailPartsEditor";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Field";
 import {
@@ -417,6 +418,8 @@ export function EmailTypeEditor({ typeKey }: { typeKey: string }) {
           )}
         </div>
       </Card>
+
+      {detail.parts.length > 0 && <EmailPartsEditor partNames={detail.parts} language={language} />}
 
       <Card>
         <h3 className="text-sm font-semibold text-ink">{t("s.admin.configuration.email.testThisTitle")}</h3>

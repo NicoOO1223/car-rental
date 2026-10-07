@@ -380,7 +380,41 @@ foreach ($secret in $optionalSecrets) {
 # manifest's "email" block). Email stays off on a stack until its domain is
 # verified, so this is safe to run before the DNS records are in place.
 $emailEnabled = [bool]($manifest.email -and $manifest.email.domain)
-if ($emailEnabled) {
+# "azureManaged": true (and no "domain") sends from Azure's own <random>.azurecomm.net:
+# no DNS records and nothing to verify, for testing. Such mail may land in a spam folder.
+$emailManaged = [bool]($manifest.email -and $manifest.email.azureManaged -and -not $manifest.email.domain)
+if ($emailManaged) {
+    Write-Step "Email (Azure-managed test domain)"
+    $emailServiceName = "car-rental-$Stack-email"
+    $commServiceName = "car-rental-$Stack-comm"
+    $emailDisplayName = if ($manifest.email.fromName) { [string]$manifest.email.fromName } else { [string]$manifest.business.name }
+    $emailApi = "2023-04-01"
+
+    function Deploy-ManagedEmail([bool]$Link) {
+        $linkValue = if ($Link) { "true" } else { "false" }
+        az deployment group create --resource-group $rg --template-file "$PSScriptRoot\email.bicep" `
+            --parameters emailServiceName=$emailServiceName communicationServiceName=$commServiceName `
+            azureManaged=true domainName=azure-managed senderUsername=donotreply "senderDisplayName=$emailDisplayName" linkDomain=$linkValue --output none
+    }
+
+    Invoke-Checked { Deploy-ManagedEmail $false } "create the email service and its Azure-managed domain"
+    Invoke-Checked { Deploy-ManagedEmail $true } "link the domain to the sending service"
+
+    if ($DryRun) {
+        Write-Host "[dry-run] read the managed sender domain and the connection string, store them on the backend" -ForegroundColor DarkGray
+    } else {
+        $subscriptionId = az account show --query id -o tsv
+        $senderDomain = az rest --method get --uri "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/emailServices/$emailServiceName/domains/AzureManagedDomain?api-version=$emailApi" --query properties.mailFromSenderDomain -o tsv
+        if (-not $senderDomain) { throw "FAILED: read the Azure-managed sender domain" }
+        $emailFrom = "donotreply@$senderDomain"
+        $emailConnection = az rest --method post --uri "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$rg/providers/Microsoft.Communication/communicationServices/$commServiceName/listKeys?api-version=$emailApi" --query primaryConnectionString -o tsv
+        if (-not $emailConnection) { throw "FAILED: read the email service's connection string" }
+
+        $secretArgs += "email-connection-string=$emailConnection"
+        $optionalEnv += @("EMAIL_CONNECTION_STRING=secretref:email-connection-string", "EMAIL_FROM_ADDRESS=$emailFrom")
+        Write-Host "Email is on: mail is sent from $emailFrom (an Azure-managed test domain; it may land in spam)."
+    }
+} elseif ($emailEnabled) {
     Write-Step "Email"
     $emailDomain = ([string]$manifest.email.domain).ToLowerInvariant()
     $emailUser = if ($manifest.email.fromUsername) { [string]$manifest.email.fromUsername } else { "bookings" }

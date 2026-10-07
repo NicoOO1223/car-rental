@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { EmailMessageLog } from "@/components/email/EmailMessageLog";
-import { EmailPartsEditor } from "@/components/email/EmailPartsEditor";
 import { EmailStatusCard } from "@/components/email/EmailStatusCard";
 import { EmailTypeList } from "@/components/email/EmailTypeList";
 
@@ -17,7 +16,6 @@ export default function EmailConfigurationPage() {
     <>
       <EmailStatusCard onChanged={() => setRefreshKey((key) => key + 1)} />
       <EmailTypeList />
-      <EmailPartsEditor />
       <EmailMessageLog refreshKey={refreshKey} />
     </>
   );

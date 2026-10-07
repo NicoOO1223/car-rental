@@ -6,5 +6,6 @@
   "backendMinReplicas": 0,
   "legacySecrets": true,
   "alertEmail": "nicosw.biz@gmail.com",
+  "email": { "azureManaged": true, "fromName": "Car Rental" },
   "storefront": { "enabled": true, "minReplicas": 0 }
 }
