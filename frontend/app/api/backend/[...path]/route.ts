@@ -47,7 +47,14 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
 
   const token = request.cookies.get(sessionCookieName())?.value;
 
-  if (!token) {
+  // The sign-in page shows the business's name, logo and colour before there
+  // is anyone signed in to ask on behalf of. The API serves that to everyone
+  // (it is what any shopfront displays); nothing else gets through without a
+  // session, and nothing but reading it.
+  const readOnly = request.method === "GET" || request.method === "HEAD";
+  const open = readOnly && segments[1] === "branding";
+
+  if (!token && !open) {
     return failure(401, "http.401", "You are not signed in.");
   }
 
@@ -58,7 +65,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     if (value) headers.set(name, value);
   }
 
-  headers.set("Authorization", `Bearer ${token}`);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
   const target = `${apiBase()}/${segments.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;

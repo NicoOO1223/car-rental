@@ -38,16 +38,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-8">
-      <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-8">
-        <BrandMark className="mb-6 h-12 w-12" />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-canvas p-4 sm:p-8">
+      <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-8 shadow-sm">
+        <div className="flex items-center gap-3">
+          <BrandMark className="h-11 w-11" />
 
-        <h1 className="min-h-8 text-2xl font-bold tracking-tight text-ink">
-          {brandName}
-        </h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          {t("auth.subtitle")}
-        </p>
+          <div className="min-w-0">
+            <h1 className="min-h-7 truncate text-xl font-bold tracking-tight text-ink">{brandName}</h1>
+            <p className="text-sm text-ink-muted">{t("auth.subtitle")}</p>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <TextField
@@ -79,8 +79,9 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <LanguagePicker className="mt-6" />
       </div>
+
+      <LanguagePicker className="mt-5" />
     </main>
   );
 }

@@ -276,6 +276,29 @@ describe("forwarding a call to the API", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("lets the sign-in page read the business's branding without a session, and nothing else", async () => {
+    fetchMock.mockResolvedValue(Response.json({ business_name: "Island Cars" }));
+
+    const branding = await forwardGet(request("/api/backend/api/branding"), context("api", "branding"));
+
+    expect(branding.status).toBe(200);
+    expect(fetchMock.mock.calls[0][0]).toBe("http://api.test/api/branding");
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get("authorization")).toBeNull();
+
+    fetchMock.mockClear();
+
+    // Not a route that merely starts the same way, and not a change to branding.
+    const lookalike = await forwardGet(request("/api/backend/api/brandings"), context("api", "brandings"));
+    const change = await forwardPost(
+      request("/api/backend/api/branding", { method: "POST", headers: SAME_SITE, body: "{}" }),
+      context("api", "branding"),
+    );
+
+    expect(lookalike.status).toBe(401);
+    expect(change.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("drops the cookie once the API says the session is over", async () => {
     fetchMock.mockResolvedValue(Response.json({ code: "http.401" }, { status: 401 }));
 

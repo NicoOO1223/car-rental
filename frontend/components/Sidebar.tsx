@@ -198,7 +198,7 @@ function SidebarContent({
           onClick={onNavigate}
           title={collapsed ? t("nav.newReservation") : undefined}
           aria-current={isNewBooking ? "page" : undefined}
-          className={`flex items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
+          className={`flex h-10 items-center justify-center gap-2 rounded-xl bg-accent text-sm font-semibold text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 ${
             collapsed ? "px-2" : "px-3"
           } ${isNewBooking ? "ring-2 ring-accent-ink ring-offset-2" : ""}`}
         >
@@ -209,9 +209,9 @@ function SidebarContent({
         )}
 
         {sections.map((section, sectionIndex) => (
-          <div key={section.labelKey ?? sectionIndex} className="mt-6">
+          <div key={section.labelKey ?? sectionIndex} className="mt-5">
             {section.labelKey && !collapsed && (
-              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
                 {t(`nav.${section.labelKey}`)}
               </p>
             )}
@@ -223,7 +223,7 @@ function SidebarContent({
               />
             )}
 
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = isItemActive(pathname, item.href);
 
@@ -234,26 +234,26 @@ function SidebarContent({
                     onClick={onNavigate}
                     title={collapsed ? t(`nav.${item.key}`) : undefined}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+                    className={`relative flex items-center gap-3 rounded-lg py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                       collapsed ? "justify-center px-2" : "px-3"
                     } ${
                       active
-                        ? "bg-surface-sunken text-ink"
-                        : "text-ink-secondary hover:bg-surface-sunken hover:text-ink"
+                        ? "bg-accent-soft font-semibold text-accent-ink"
+                        : "font-medium text-ink-secondary hover:bg-surface-sunken hover:text-ink"
                     }`}
                   >
-                    {/* An accent bar as well as the tint, so the current
-                        page is obvious rather than a faint gray wash. */}
+                    {/* A bar as well as the tint: with the default black
+                        accent the tint alone is only a light grey. */}
                     {active && (
                       <span
                         aria-hidden="true"
-                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent"
+                        className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-accent"
                       />
                     )}
 
                     <item.icon
                       className={`h-4 w-4 shrink-0 ${
-                        active ? "text-ink" : "text-ink-muted"
+                        active ? "text-accent-ink" : "text-ink-muted"
                       }`}
                       aria-hidden="true"
                     />
@@ -285,12 +285,18 @@ function SidebarContent({
         }`}
       >
         {!collapsed && accountEmail && (
-          <p className="truncate text-xs text-ink-muted" title={accountEmail}>
-            {accountEmail}
-          </p>
+          <div className="flex items-center gap-2.5" title={accountEmail}>
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-sunken text-xs font-semibold uppercase text-ink-secondary"
+              aria-hidden="true"
+            >
+              {accountEmail.slice(0, 1)}
+            </span>
+            <p className="min-w-0 truncate text-xs font-medium text-ink-secondary">{accountEmail}</p>
+          </div>
         )}
 
-        <LanguagePicker compact={collapsed} className="mt-2" />
+        <LanguagePicker compact={collapsed} className="mt-3" />
 
         <div className="mt-2 flex items-center justify-between gap-2">
           <button
@@ -337,6 +343,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { name: brandName } = useBrand();
   const { user } = useCurrentUser();
+  const { count: notificationCount, urgent: urgentCount } = useNotifications();
 
   // Per-employee display preference, configured from /admin/users — not
   // a security boundary. Every route behind a hidden item stays reachable
@@ -429,16 +436,38 @@ export default function Sidebar() {
           </h1>
         </div>
 
-        <button
-          ref={menuButtonRef}
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label={t("nav.openMenu")}
-          aria-expanded={mobileOpen}
-          className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-        >
-          <Menu className="h-5 w-5" aria-hidden="true" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {!hiddenNavItems.has("/notifications") && (
+            <Link
+              href="/notifications"
+              aria-label={t("notifications.count", { count: notificationCount })}
+              className="relative rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            >
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              {notificationCount > 0 && (
+                <span
+                  className={`absolute right-0.5 top-0.5 min-w-4 rounded-full px-1 text-center text-[10px] font-semibold leading-4 text-surface ${
+                    urgentCount > 0 ? "bg-danger" : "bg-warning-strong"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {notificationCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label={t("nav.openMenu")}
+            aria-expanded={mobileOpen}
+            className="rounded-lg p-2 text-ink-secondary transition hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
