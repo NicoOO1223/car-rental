@@ -14,10 +14,13 @@ import {
 } from "@/lib/api";
 import { getCarStatusStyle, getReservationStatusStyle } from "@/lib/status";
 import { CarStatusBadge, ReservationStatusBadge } from "@/components/ui/Badge";
+import { FleetVehicles } from "@/components/cars/FleetVehicles";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
+import { SubNav } from "@/components/ui/SubNav";
 import { toDateKey } from "@/components/booking/DateRangeCalendar";
 import { formatCalendarDate, formatDate, formatDateTime as formatMoment, formatTime, todayInZone } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
+import { useUrlFilters } from "@/lib/useUrlFilters";
 import { t, enumLabel } from "@/lib/i18n";
 import { categoryLabel } from "@/lib/carDisplay";
 import { classWords } from "@/lib/classDisplay";
@@ -40,8 +43,14 @@ function isCurrentlyInsured(car: Car): boolean {
 
 const DAY_WIDTH = 100; // Slightly wider for better readability
 
+// Which view, and the All vehicles view's own choices. Kept in the address,
+// so a link or a reload opens the page the way it was left.
+const VIEW_DEFAULTS = { view: "vehicles", layout: "grid", location: "ALL", status: "ALL" };
+
 export default function FleetPage() {
   const navigate = useNavigate();
+  const { filters, setFilters } = useUrlFilters(VIEW_DEFAULTS);
+  const view = filters.view === "schedule" ? "schedule" : "vehicles";
   const [cars, setCars] = useState<CarWithReservations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -338,10 +347,12 @@ export default function FleetPage() {
     <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1800px]">
         {/* Header & Controls */}
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.cars.fleetOverview")}</h1>
-            <p className="mt-2 text-ink-muted">{t("s.cars.eachVehicleSStatus")}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.cars.fleetOverview")}</h1>
+            <p className="mt-1.5 text-sm text-ink-secondary sm:text-base">
+              {view === "schedule" ? t("s.cars.eachVehicleSStatus") : t("s.cars.allVehiclesIntro")}
+            </p>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-4 sm:w-auto">
@@ -361,29 +372,65 @@ export default function FleetPage() {
               </span>
             </div>
 
-            {/* Date Range Selectors */}
-            <div className="flex w-full items-center gap-2 rounded-2xl border border-border-subtle bg-surface p-1 ring-1 ring-inset ring-border-strong sm:w-auto">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink sm:flex-none"
-              />
-              <div className="h-4 w-px bg-border-strong" />
-              <select
-                value={timelineDaysCount}
-                onChange={(e) => setTimelineDaysCount(Number(e.target.value))}
-                className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink"
-              >
-                <option value={7}>{t("s.cars.1Week")}</option>
-                <option value={14}>{t("s.cars.2Weeks")}</option>
-                <option value={30}>{t("s.cars.1Month")}</option>
-                <option value={60}>{t("s.cars.2Months")}</option>
-              </select>
-            </div>
+            {view === "schedule" && (
+              <>
+              {/* Date Range Selectors */}
+              <div className="flex w-full items-center gap-2 rounded-2xl border border-border-subtle bg-surface p-1 ring-1 ring-inset ring-border-strong sm:w-auto">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink sm:flex-none"
+                />
+                <div className="h-4 w-px bg-border-strong" />
+                <select
+                  value={timelineDaysCount}
+                  onChange={(e) => setTimelineDaysCount(Number(e.target.value))}
+                  className="cursor-pointer rounded-lg border-0 bg-transparent px-3 py-1.5 text-sm text-ink-secondary outline-none focus:ring-2 focus:ring-accent-ink"
+                >
+                  <option value={7}>{t("s.cars.1Week")}</option>
+                  <option value={14}>{t("s.cars.2Weeks")}</option>
+                  <option value={30}>{t("s.cars.1Month")}</option>
+                  <option value={60}>{t("s.cars.2Months")}</option>
+                </select>
+              </div>
+              </>
+            )}
           </div>
         </div>
 
+        <SubNav
+          className="mb-5"
+          label={t("s.cars.fleetOverview")}
+          activeId={view}
+          onSelect={(id) => setFilters({ view: id })}
+          items={[
+            { id: "vehicles", label: t("s.cars.viewVehicles"), count: cars.length },
+            { id: "schedule", label: t("s.cars.viewSchedule") },
+          ]}
+        />
+
+        {view === "vehicles" && (
+          <FleetVehicles
+            cars={cars.filter((car) => {
+              const query = searchQuery.toLowerCase();
+
+              return (
+                car.make.toLowerCase().includes(query) ||
+                car.model.toLowerCase().includes(query) ||
+                car.license_plate.toLowerCase().includes(query)
+              );
+            })}
+            statusOf={(car) => statusByDate[car.id] ?? car.status}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onOpen={(car) => navigate(`/cars/${car.id}`)}
+            searching={searchQuery !== ""}
+          />
+        )}
+
+        {view === "schedule" && (
+          <>
         {/* Legend */}
         <div className="mb-6 flex flex-wrap items-center gap-6 rounded-xl bg-surface px-6 py-3 text-sm font-medium text-ink-secondary shadow-sm">
           <div className="flex items-center gap-2.5">
@@ -832,6 +879,8 @@ export default function FleetPage() {
                 : t("s.cars.thereCurrentlyNoVehicles")}
             </p>
           </div>
+        )}
+          </>
         )}
       </div>
     </main>

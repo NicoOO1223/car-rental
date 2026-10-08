@@ -528,7 +528,7 @@ export default function DashboardPage() {
                   <button
                     key={location.airport_code}
                     onClick={() =>
-                      navigate(`/cars#${location.airport_code}`)
+                      navigate(`/cars?location=${encodeURIComponent(location.airport_code)}`)
                     }
                     className="block w-full rounded-lg text-left transition hover:bg-canvas"
                   >
