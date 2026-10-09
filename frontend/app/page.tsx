@@ -230,7 +230,7 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.overview")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.overview")}</h1>
 
           <p className="mt-2 text-ink-secondary">{t("s.fleetReservationsAtGlance")}</p>
         </div>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => navigate("/maintenance")}
-              className="flex items-center justify-between gap-4 rounded-xl bg-surface p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-border-subtle bg-surface p-6 text-left transition hover:border-accent-line hover:bg-accent-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
               <div>
                 <p className="text-sm text-ink-muted">{t("s.dashboard.inMaintenance")}</p>
@@ -330,7 +330,7 @@ export default function DashboardPage() {
               onClick={() => setShowRelocation((open) => !open)}
               disabled={dashboard.cars_away_from_home.length === 0}
               aria-expanded={showRelocation}
-              className="flex items-center justify-between gap-4 rounded-xl bg-surface p-6 text-left shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-default disabled:hover:shadow-sm"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-border-subtle bg-surface p-6 text-left transition hover:border-accent-line hover:bg-accent-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-default disabled:hover:shadow-sm"
             >
               <div>
                 <p className="text-sm text-ink-muted">{t("s.needRelocation")}</p>

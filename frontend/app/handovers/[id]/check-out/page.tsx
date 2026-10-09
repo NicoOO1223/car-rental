@@ -450,7 +450,7 @@ export default function CheckOutPage({ params }: Props) {
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{t("s.handovers.id.checkOut.vehicleCheckOut")}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.handovers.id.checkOut.vehicleCheckOut")}</h1>
             <p className="mt-2 text-ink-secondary">
               {reservation.customer.first_name} {reservation.customer.last_name}{" "}
               · {reservation.car.make} {reservation.car.model} ·{" "}

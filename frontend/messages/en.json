@@ -665,7 +665,12 @@
         "noAuditLogEntries": "No audit log entries",
         "tryChangingFilters": "Try changing your filters.",
         "entriesAppearHereAs": "Entries appear here as staff take audited actions.",
-        "systemDeletedUser": "System / deleted user"
+        "systemDeletedUser": "System / deleted user",
+        "when": "When",
+        "who": "Who",
+        "action": "Action",
+        "subject": "On",
+        "details": "Details"
       }
     },
     "AuthGuard": {

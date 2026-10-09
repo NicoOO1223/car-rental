@@ -665,7 +665,12 @@
         "noAuditLogEntries": "Nessuna voce nel registro attività",
         "tryChangingFilters": "Prova a cambiare i filtri.",
         "entriesAppearHereAs": "Le voci compaiono qui quando il personale esegue azioni registrate.",
-        "systemDeletedUser": "Sistema / utente eliminato"
+        "systemDeletedUser": "Sistema / utente eliminato",
+        "when": "Quando",
+        "who": "Chi",
+        "action": "Azione",
+        "subject": "Su",
+        "details": "Dettagli"
       }
     },
     "AuthGuard": {

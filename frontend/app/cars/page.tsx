@@ -327,7 +327,7 @@ export default function FleetPage() {
   if (error) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-canvas p-4 sm:p-6 lg:p-8">
-        <div className="rounded-xl bg-surface p-8 text-center shadow-sm max-w-md">
+        <div className="max-w-md rounded-2xl border border-border-subtle bg-surface p-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft mb-4">
             <span className="text-danger text-xl">!</span>
           </div>
@@ -432,7 +432,7 @@ export default function FleetPage() {
         {view === "schedule" && (
           <>
         {/* Legend */}
-        <div className="mb-6 flex flex-wrap items-center gap-6 rounded-xl bg-surface px-6 py-3 text-sm font-medium text-ink-secondary shadow-sm">
+        <div className="mb-6 flex flex-wrap items-center gap-6 rounded-2xl border border-border-subtle bg-surface px-5 py-3 text-sm font-medium text-ink-secondary">
           <div className="flex items-center gap-2.5">
             <span className={`h-3 w-3 rounded-full ring-2 ring-border-subtle ${getReservationStatusStyle("CONFIRMED", "dot")}`} />{t("s.cars.confirmed")}</div>
           <div className="flex items-center gap-2.5">
@@ -866,7 +866,7 @@ export default function FleetPage() {
 
         {/* Empty Search / Fleet State */}
         {carsByLocation.length === 0 && !loading && (
-          <div className="mt-8 rounded-xl bg-surface p-10 text-center shadow-sm">
+          <div className="mt-8 rounded-2xl border border-border-subtle bg-surface p-10 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-canvas mb-4">
               <svg className="h-8 w-8 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

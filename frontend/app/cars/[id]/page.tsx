@@ -362,7 +362,7 @@ export default function CarDetailsPage({ params }: Props) {
           <div className="mt-4 flex items-center justify-between">
 
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
                 {car.make} {car.model}
               </h1>
 

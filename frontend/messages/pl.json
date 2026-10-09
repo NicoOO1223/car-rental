@@ -665,7 +665,12 @@
         "noAuditLogEntries": "Brak wpisów w dzienniku zdarzeń",
         "tryChangingFilters": "Spróbuj zmienić filtry.",
         "entriesAppearHereAs": "Wpisy pojawią się tutaj, gdy pracownicy wykonają rejestrowane czynności.",
-        "systemDeletedUser": "System / usunięty użytkownik"
+        "systemDeletedUser": "System / usunięty użytkownik",
+        "when": "Kiedy",
+        "who": "Kto",
+        "action": "Działanie",
+        "subject": "Dotyczy",
+        "details": "Szczegóły"
       }
     },
     "AuthGuard": {

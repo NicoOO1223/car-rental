@@ -311,7 +311,7 @@ export default function ReservationDetailsPage({
 
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold">{t("s.reservations.manage.id.reservation")}</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.reservations.manage.id.reservation")}</h1>
 
                 <ReservationStatusBadge status={reservation.status} />
 
@@ -829,10 +829,10 @@ export default function ReservationDetailsPage({
               {reservation.status === "ACTIVE" && (
                 <div className="mt-5">
 
-                  <div className="rounded-lg bg-deep p-4">
-                    <p className="font-medium text-on-deep">{t("s.reservations.manage.id.rentalCurrentlyActive")}</p>
+                  <div className="rounded-lg bg-accent-soft p-4">
+                    <p className="font-semibold text-accent-ink">{t("s.reservations.manage.id.rentalCurrentlyActive")}</p>
 
-                    <p className="mt-1 text-sm text-border-strong">{t("s.reservations.manage.id.vehicleCurrentlyWithCustomer")}</p>
+                    <p className="mt-1 text-sm text-ink-secondary">{t("s.reservations.manage.id.vehicleCurrentlyWithCustomer")}</p>
                   </div>
 
                   <button

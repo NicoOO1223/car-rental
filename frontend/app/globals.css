@@ -99,6 +99,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* A bare `border` (or `divide-*`) with no colour class is a hairline. The
+   framework's own default is the text colour, which drew heavy black boxes
+   wherever a component forgot to name one. */
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--border);
+  }
+}
+
 body {
   background: var(--canvas);
   color: var(--foreground);

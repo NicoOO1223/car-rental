@@ -456,7 +456,7 @@ export default function NewReservationPage() {
   if (created) {
     return (
       <PageShell width="narrow">
-        <div className="rounded-xl bg-surface p-8 text-center shadow-sm">
+        <div className="rounded-2xl border border-border-subtle bg-surface p-8 text-center">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-on-accent">
             <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
           </div>
@@ -525,7 +525,7 @@ export default function NewReservationPage() {
   return (
     <PageShell width="wide">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-ink">{t("s.reservations.new.newReservation")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.reservations.new.newReservation")}</h1>
         <p className="mt-2 text-ink-secondary">{t("s.reservations.new.findVehicleAddAny")}</p>
       </div>
 
@@ -799,7 +799,7 @@ export default function NewReservationPage() {
               )}
 
               {selectedCar?.vehicle_class && (
-                <label className="flex cursor-pointer items-start gap-2 rounded-lg bg-surface p-4 text-sm shadow-sm">
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border-subtle bg-surface p-4 text-sm">
                   <input
                     type="checkbox"
                     className="mt-0.5 h-4 w-4 accent-accent"
