@@ -39,7 +39,7 @@ jobs:
       SECRET_KEY: ci-placeholder-secret-key-not-for-production
       CORS_ORIGINS: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -70,7 +70,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -105,7 +105,7 @@ jobs:
       run:
         working-directory: storefront
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -153,7 +153,7 @@ jobs:
       STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
       STRIPE_PUBLISHABLE_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -230,7 +230,7 @@ jobs:
       others: ${{ steps.stacks.outputs.others }}
       registry: ${{ steps.stacks.outputs.registry }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: stacks
         run: |
@@ -246,7 +246,7 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: azure/login@v2
         with:
@@ -279,7 +279,7 @@ jobs:
       matrix:
         stack: ${{ fromJson(needs.plan.outputs.canary) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/deploy-stack
         with:
@@ -310,7 +310,7 @@ jobs:
       matrix:
         stack: ${{ fromJson(needs.plan.outputs.others) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/deploy-stack
         with:

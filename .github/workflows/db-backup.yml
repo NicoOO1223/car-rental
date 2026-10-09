@@ -18,7 +18,7 @@ jobs:
     outputs:
       stacks: ${{ steps.stacks.outputs.stacks }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: stacks
         run: echo "stacks=$(jq -s -c '[.[].slug]' deploy/stacks/*.json)" >> "$GITHUB_OUTPUT"
@@ -32,7 +32,7 @@ jobs:
       matrix:
         stack: ${{ fromJson(needs.plan.outputs.stacks) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: azure/login@v2
         with:
@@ -110,7 +110,7 @@ jobs:
       SECRET_KEY: drill-placeholder-secret-key-not-for-production
       CORS_ORIGINS: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: azure/login@v2
         with:
