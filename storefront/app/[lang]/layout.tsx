@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 import { LANGUAGES, isLanguage } from "@shared/languages";
 import { runtimeConfigScript } from "@shared/runtimeConfig";
@@ -17,7 +17,10 @@ import { getLocations, getPublicConfig } from "@/lib/publicApi";
 import { runtimeConfig } from "@/lib/runtime";
 
 // Latin-ext carries the Polish and Italian accented letters.
+// Headlines are set in Jakarta, which looks best large; everything else in Inter,
+// which stays sharp at small sizes (the same face the staff app uses).
 const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin", "latin-ext"] });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin", "latin-ext"] });
 
 export function generateStaticParams() {
   return LANGUAGES.map((lang) => ({ lang }));
@@ -60,7 +63,7 @@ export default async function LangLayout({
   return (
     <html
       lang={lang}
-      className={`${jakarta.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${inter.variable} h-full antialiased`}
       // The business's brand colour, set before anything is drawn.
       style={accentVariables(config?.accent_color) as React.CSSProperties}
     >

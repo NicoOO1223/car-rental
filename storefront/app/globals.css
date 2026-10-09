@@ -49,7 +49,8 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
-  --font-sans: var(--font-jakarta);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-jakarta);
 }
 
 html {
@@ -62,10 +63,18 @@ html {
   }
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: normal;
+}
+
 body {
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv05";
 }
 
 /* The calendar in the booking bar, in the site's own black and white. */
