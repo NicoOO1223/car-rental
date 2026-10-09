@@ -47,12 +47,19 @@ def test_a_manifests_email_settings_are_usable_when_present(path):
     if email is None:
         return
 
-    # A real domain (it goes in DNS and in Azure resource names), and a plain
-    # sending name: letters, digits, dots and dashes, as the part before the @.
-    assert re.fullmatch(r"([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}", email["domain"]), email["domain"]
-    assert re.fullmatch(r"[a-z0-9]([a-z0-9._-]*[a-z0-9])?", email.get("fromUsername", "bookings")), email
+    assert set(email) <= {"domain", "azureManaged", "fromUsername", "fromName"}, set(email)
 
-    assert set(email) <= {"domain", "fromUsername", "fromName"}, set(email)
+    # Mail is sent from the business's own domain, or (for testing, with no DNS
+    # to set up) from one Azure provides. A block that names neither sends nothing.
+    managed = email.get("azureManaged", False)
+    assert isinstance(managed, bool), managed
+    assert email.get("domain") or managed, "an email block needs a domain or azureManaged: true"
+
+    if email.get("domain"):
+        # A real domain (it goes in DNS and in Azure resource names), and a plain
+        # sending name: letters, digits, dots and dashes, as the part before the @.
+        assert re.fullmatch(r"([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}", email["domain"]), email["domain"]
+        assert re.fullmatch(r"[a-z0-9]([a-z0-9._-]*[a-z0-9])?", email.get("fromUsername", "bookings")), email
 
 
 def test_exactly_one_stack_is_the_canary():
