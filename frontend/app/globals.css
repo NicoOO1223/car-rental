@@ -95,7 +95,7 @@
   --color-deep: var(--deep);
   --color-on-deep: var(--on-deep);
 
-  --font-sans: var(--font-jakarta);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -114,10 +114,13 @@
 body {
   background: var(--canvas);
   color: var(--foreground);
-  /* Plus Jakarta Sans, loaded in app/layout.tsx. This used to read
+  /* Inter, loaded in app/layout.tsx. This used to read
      `Arial, Helvetica, sans-serif`, which silently overrode the webfont
      on every page that did not opt back in with `font-sans`. */
-  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Inter's lowercase l with a tail, so l, I and 1 read apart in references
+     and plates. Columns of figures use `tabular-nums` where they need it. */
+  font-feature-settings: "cv05";
 }
 
 /* Top progress bar shown during client-side navigation — see

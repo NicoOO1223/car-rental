@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BrandProvider } from "@/components/BrandProvider";
@@ -10,9 +10,10 @@ import { accentVariables } from "@/lib/accent";
 import { t } from "@/lib/i18n";
 import { runtimeConfigScript, serverRuntimeConfig } from "@/lib/runtimeConfig";
 
-// The same family as the storefront. Latin-ext carries the Polish and Italian accented letters.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+// Made for dense interfaces: sharp at small sizes, with figures that line up in
+// a column. Latin-ext carries the Polish and Italian accented letters.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin", "latin-ext"],
 });
 
@@ -73,7 +74,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
       style={accentVariables(accent) as React.CSSProperties}
     >
       <head>
