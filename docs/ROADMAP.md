@@ -29,7 +29,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L8 | Data export and erasure | Shipped |
 | L9 | Email and SMS | Email built: 13 emails (8 to renters, 3 to the business, 2 storefront-account), editable per language in Configuration, Email; includes the pickup reminder. SMS and overdue-return reminders not built |
 | L10 | Finance reporting | Partial: admin revenue page only, scope not audited |
-| L11 | Visual redesign | Deferred |
+| L11 | Visual redesign | Built on the `redesign` branch, not merged: brand colour per business, design tokens, new tables, app shell, fleet "All vehicles" view |
 | L12 | Production hardening | Shipped and live on `demo` |
 | L13 | Business profile and localization | Shipped and live on `demo` |
 | L13c | Fleet cost, insurance and notifications | Shipped and live on `demo` |
@@ -161,12 +161,24 @@ Deployment notes:
 
 **L16 Legal pack.** Not code, and can start now. Terms of service, privacy policy, data-processing agreement, real rental agreement copy and storefront terms.
 
+**L11 Visual redesign.** Built on the `redesign` branch; not merged or deployed yet.
+- **Brand colour.** Each business sets one accent colour in Configuration, Business (near-black by default, so nothing changes until they pick one). It colours the main actions and highlights in the staff app and on the storefront. `lib/accent.ts` (one copy per app) works out the text colour that goes on it and a version dark enough to use as text, so a pale choice stays readable.
+- **Design tokens.** Every colour in the staff app goes through a token in `app/globals.css`; `npm run check:colors` (in CI) fails on a raw palette class. Besides the greys and the accent there are two fixed tints that never follow the brand colour: warning (waiting on staff) and danger (something wrong). The staff app uses Plus Jakarta Sans, as the storefront does.
+- **Tables.** One row design, each row its own card with a hover highlight. A View menu per table sets row height and optional columns. Every list sorts from its column headers; the lists the server pages (reservations, customers, maintenance) sort on the server, with the order kept in the address.
+- **Reservations.** Five columns instead of seven. Booked time is shown as an age and sorts both ways. Configuration, System has "time to confirm a request" (24 hours by default, 0 for off); a pending request close to or past it is flagged, and a tile counts the requests awaiting confirmation.
+- **Fleet.** The fleet page opens on an "All vehicles" view (cards or a table, filtered by location and status); the schedule is one click away.
+- **Shell and pages.** New sidebar, phone top bar with a notifications bell, sign-in page, and one heading scale and card style across the pages. On phones, filters collapse behind a button.
+
+Not done, on purpose:
+- **Dark mode.** The app stays light-only.
+- **A sticky table header.** It conflicts with the sideways scrolling that keeps a wide table from being cut off.
+- **Italian and Polish wording** added with this layer is a draft, like the rest of those catalogs.
+
 ## Deferred
 
 - SMS and the rest of L9. Staff invites and password resets stay admin-driven, overdue-return reminders do not exist, and the personal Settings layer stays blocked. Renter and business email exists (13 emails, pickup reminder included); it needs the provider to be provisioned and a verified domain per stack.
 - True multi-tenancy, which becomes relevant after several customers exist.
 - In-product billing for the SaaS itself. Invoice the first customers manually.
-- The broader visual redesign (L11).
 
 ## Marketing site
 
