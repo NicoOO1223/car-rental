@@ -156,6 +156,11 @@ describe("the workflow", () => {
     expect(workflow).toMatch(/vars\.SITE_INDEXABLE == 'true'/);
   });
 
+  it("gives every job and the browser download a time limit, so a stuck step fails in minutes", () => {
+    expect(workflow.match(/timeout-minutes:/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(workflow).toMatch(/playwright install[^\n]*\n\s+timeout-minutes: \d+/);
+  });
+
   it("deploys through the marketing environment, not a customer stack's", () => {
     expect(workflow).toMatch(/environment: marketing/);
     expect(workflow).not.toMatch(/environment: stack-/);

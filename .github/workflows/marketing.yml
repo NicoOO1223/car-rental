@@ -32,6 +32,9 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    # A stuck step must fail in minutes, not sit for GitHub's six-hour limit (the first run hung
+    # on the browser download, and so did another job in the same run).
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: marketing
@@ -56,6 +59,7 @@ jobs:
 
       # The browsers for the two scripts below (Playwright's own Chromium; no separate Chrome).
       - run: npx playwright install --with-deps chromium
+        timeout-minutes: 8
 
       # The built site in a real browser, on a desktop and a phone viewport: navigation, the form's
       # errors and success (also by keyboard), the bot defences, headers, and axe accessibility.
@@ -76,6 +80,7 @@ jobs:
     needs: checks
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: marketing
     steps:
       - uses: actions/checkout@v4
