@@ -30,7 +30,7 @@ function window(offsetDays: number, lengthDays = 3): { pickup: string; drop: str
 
 async function signIn(page: Page) {
   await page.goto(`${STAFF_URL}/login`);
-  await page.getByLabel("Email").fill(EMAIL);
+  await page.getByRole("textbox", { name: "Email" }).fill(EMAIL);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
@@ -78,7 +78,7 @@ async function bookOnline(page: Page, offsetDays: number): Promise<string> {
   await page.getByLabel("Last name").fill(`Renter${stamp}`);
   await page.getByLabel("Date of birth").fill("1990-04-02");
   await page.getByLabel("Phone number").fill("+390789000111");
-  await page.getByLabel("Email").fill(`ada.${stamp}@example.com`);
+  await page.getByRole("textbox", { name: "Email" }).fill(`ada.${stamp}@example.com`);
   await page.getByLabel("Address").fill("1 Test Street");
   await page.getByLabel("Postal code").fill("07026");
   await page.getByLabel(/I accept the/).check();

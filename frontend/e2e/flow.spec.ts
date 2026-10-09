@@ -46,7 +46,7 @@ async function sign(page: Page) {
 
 async function signIn(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(EMAIL);
+  await page.getByRole("textbox", { name: "Email" }).fill(EMAIL);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
@@ -89,7 +89,7 @@ test("a booking goes from search to a completed rental", async ({ page }) => {
   await page.getByLabel("Address").fill("1 Test Street");
   await page.getByLabel("Postal code").fill("07026");
   await page.getByLabel("Phone number").fill("+390789000000");
-  await page.getByLabel("Email").fill(`ada.${stamp}@example.com`);
+  await page.getByRole("textbox", { name: "Email" }).fill(`ada.${stamp}@example.com`);
   await page.getByRole("button", { name: "Continue" }).click();
 
   // --- review and confirm ----------------------------------------------------------
@@ -134,6 +134,8 @@ test("a booking goes from search to a completed rental", async ({ page }) => {
   await expect(page.getByText(/Identity and driving licence recorded/)).toBeVisible();
 
   // --- signatures -------------------------------------------------------------------------
+  // The customer accepts the terms before signing; the signature cannot be saved without it.
+  await page.getByLabel(/The customer has read and accepts these terms/).check();
   await sign(page);
   await page.getByRole("button", { name: "Save Signature" }).click();
   await expect(page.getByText("Signature captured.")).toBeVisible();
