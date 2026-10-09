@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -87,7 +87,7 @@ jobs:
 
       # Once the site is meant to be found by search engines (SITE_INDEXABLE=true on the
       # environment), it may not deploy while anything is still a placeholder.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: vars.SITE_INDEXABLE == 'true'
         with:
           node-version: "22"
