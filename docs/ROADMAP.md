@@ -29,7 +29,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L8 | Data export and erasure | Shipped |
 | L9 | Email and SMS | Email built: 13 emails (8 to renters, 3 to the business, 2 storefront-account), editable per language in Configuration, Email; includes the pickup reminder. SMS and overdue-return reminders not built |
 | L10 | Finance reporting | Partial: admin revenue page only, scope not audited |
-| L11 | Visual redesign | Built on the `redesign` branch, not merged: brand colour per business, design tokens, new tables, app shell, fleet "All vehicles" view |
+| L11 | Visual redesign | Shipped and live on `demo`: brand colour per business, design tokens, new tables, app shell, fleet "All vehicles" view. Detail pages restyled but not rethought, by choice |
 | L12 | Production hardening | Shipped and live on `demo` |
 | L13 | Business profile and localization | Shipped and live on `demo` |
 | L13c | Fleet cost, insurance and notifications | Shipped and live on `demo` |
@@ -161,7 +161,7 @@ Deployment notes:
 
 **L16 Legal pack.** Not code, and can start now. Terms of service, privacy policy, data-processing agreement, real rental agreement copy and storefront terms.
 
-**L11 Visual redesign.** Built on the `redesign` branch; not merged or deployed yet.
+**L11 Visual redesign.** Shipped and live on `demo`, through the normal push-triggered pipeline. It added two migrations (the brand colour and the time to confirm a request), both with defaults that change nothing until set.
 - **Brand colour.** Each business sets one accent colour in Configuration, Business (near-black by default, so nothing changes until they pick one). It colours the main actions and highlights in the staff app and on the storefront. `lib/accent.ts` (one copy per app) works out the text colour that goes on it and a version dark enough to use as text, so a pale choice stays readable.
 - **Design tokens.** Every colour in the staff app goes through a token in `app/globals.css`; `npm run check:colors` (in CI) fails on a raw palette class. Besides the greys and the accent there are two fixed tints that never follow the brand colour: warning (waiting on staff) and danger (something wrong). The staff app uses Plus Jakarta Sans, as the storefront does.
 - **Tables.** One row design, each row its own card with a hover highlight. A View menu per table sets row height and optional columns. Every list sorts from its column headers; the lists the server pages (reservations, customers, maintenance) sort on the server, with the order kept in the address.
@@ -171,8 +171,10 @@ Deployment notes:
 
 Not done, on purpose:
 - **Dark mode.** The app stays light-only.
+- **A layout rethink of the detail pages** (reservation, car, customer, check-in, check-out). They were restyled with the shared tokens, cards and headings, but their structure is unchanged; some information still repeats between sections and on a phone the approve and reject buttons sit at the bottom of a long page. Dropped on purpose, not forgotten.
 - **A sticky table header.** It conflicts with the sideways scrolling that keeps a wide table from being cut off.
 - **Italian and Polish wording** added with this layer is a draft, like the rest of those catalogs.
+- **Small gaps.** The email log is not sortable, and the maintenance list has no "Sort by" list for phones.
 
 ## Deferred
 
