@@ -65,7 +65,7 @@ def _requirement(method: str, path: str) -> str | None:
     if path.startswith("/api/audit-logs") or path == "/api/dashboard/revenue":
         return "reports"
 
-    if re.fullmatch(r"/api/reservations/\{[^/]+\}/check-out/(waive|settle-deposit)", path):
+    if re.fullmatch(r"/api/reservations/\{[^/]+\}/(check-out/(waive|settle-deposit)|final-total)", path):
         return "money"
 
     if re.fullmatch(r"/api/customers/\{[^/]+\}/identity-details", path):

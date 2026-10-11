@@ -46,6 +46,16 @@ def refund_prepayment(db: Session, payment: ReservationPayment, actor: User | No
     if payment.payment_status != "SUCCEEDED":
         return
 
+    # An advance handed over by hand (cash, transfer) has no card to credit: the
+    # refund is recorded, and the money goes back by the same hand.
+    if payment.payment_method in ("CASH", "TRANSFER"):
+        payment.refund_amount = payment.payment_amount
+        payment.refunded_at = datetime.now(timezone.utc)
+        payment.payment_status = "REFUNDED"
+        issue_credit_note_for_payment(db, payment, actor)
+
+        return
+
     try:
         refund = stripe.Refund.create(
             payment_intent=payment.stripe_payment_intent_id,

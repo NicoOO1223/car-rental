@@ -29,7 +29,7 @@ export function PriceBreakdownList({
     Partial<
       Pick<
         PriceBreakdown,
-        "vat_rate" | "vat_amount" | "net_amount" | "prices_include_vat"
+        "vat_rate" | "vat_amount" | "net_amount" | "prices_include_vat" | "adjustment_amount"
       >
     > & { rental_days?: number; currency?: string };
   totalLabel?: string;
@@ -96,6 +96,15 @@ export function PriceBreakdownList({
             </dd>
           </div>
         ))}
+
+        {breakdown.adjustment_amount ? (
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-secondary">{t("c.pricing.PriceBreakdownList.adjustment")}</dt>
+            <dd className="shrink-0 font-medium text-ink tabular-nums">
+              {money(breakdown.adjustment_amount)}
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
       {addsVat && (

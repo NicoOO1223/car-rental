@@ -9,6 +9,7 @@ from app.models import Car, Location, Reservation, User
 from app.schemas.car import CarPriceUpdate, CarUpdate
 from app.services.audit import audit_log
 from app.services.availability import blocking_reservation_clause
+from app.services.configuration import get_configuration
 
 
 VALID_TIRE_CONDITIONS = {
@@ -171,13 +172,22 @@ def update_car_price(
     if car is None:
         raise NotFoundError("car.not_found", "Car not found.")
 
-    if car.class_id is not None:
-        raise AppError(
-            "car.price_set_by_class",
-            "This car is priced by its class. Change the class price, or move the car out of the class.",
-        )
+    left_class = None
 
-    if data.price_per_day != car.price_per_day:
+    if car.class_id is not None:
+        if get_configuration(db).use_vehicle_classes:
+            raise AppError(
+                "car.price_set_by_class",
+                "This car is priced by its class. Change the class price, or move the car out of the class.",
+            )
+
+        # Classes are off, so a car is priced on its own. A car with its own
+        # price has no class (that is what a class is: one shared price), so it
+        # leaves the one it was in.
+        left_class = car.class_id
+        car.class_id = None
+
+    if data.price_per_day != car.price_per_day or left_class is not None:
         audit_log(
             db,
             user=actor,
@@ -188,6 +198,7 @@ def update_car_price(
                 "license_plate": car.license_plate,
                 "old": str(car.price_per_day),
                 "new": str(data.price_per_day),
+                **({"left_class_id": str(left_class)} if left_class is not None else {}),
             },
         )
 

@@ -115,12 +115,14 @@ export type PublicExtra = {
 export type BookingCreated = {
   reference: string;
   status: string;
-  hold_expires_at: string;
   currency: string;
   total_amount: number;
   online_amount: number;
   due_at_pickup: number;
-  client_secret: string;
+  /** Null for a request staff have yet to approve: nothing is paid or held. */
+  client_secret: string | null;
+  hold_expires_at: string | null;
+  requires_payment: boolean;
   manage_token: string;
 };
 
@@ -149,6 +151,11 @@ export type Booking = {
   cancellation_deadline_at: string | null;
   can_cancel: boolean;
   cancel_refunds_online: boolean;
+  /** An approved booking waiting for its advance: how much, and whether it can be paid now. */
+  advance_amount: number | null;
+  payment_open: boolean;
+  /** False for a booking staff made: the renter accepts the terms when paying. */
+  terms_accepted: boolean;
 };
 
 export type BookingRequest = {
@@ -199,6 +206,12 @@ export const api = {
 
   lookup: (body: { reference: string; email: string; captcha_token: string }) =>
     call<{ manage_token: string; booking: Booking }>("/bookings/lookup", post(body)),
+
+  startPayment: (reference: string, token: string, body: { terms_accepted: boolean; privacy_acknowledged: boolean }) =>
+    call<{ client_secret: string; amount: number; currency: string }>(
+      `/bookings/${encodeURIComponent(reference)}/payment`,
+      { ...post(body), token },
+    ),
 
   booking: (reference: string, token: string) => call<Booking>(`/bookings/${encodeURIComponent(reference)}`, { token }),
 

@@ -37,7 +37,13 @@ public_router = APIRouter(
 
 @public_router.get("", response_model=PublicConfigurationResponse)
 def get_public_configuration_endpoint(db: Session = Depends(get_db)):
-    return get_configuration(db)
+    from app.services.advance_payments import online_advance_available
+
+    configuration = get_configuration(db)
+    response = PublicConfigurationResponse.model_validate(configuration)
+    response.online_advance_available = online_advance_available(configuration)
+
+    return response
 
 
 @router.get("", response_model=ConfigurationResponse)

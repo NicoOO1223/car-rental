@@ -46,6 +46,19 @@ def _clean():
 def email_on(monkeypatch):
     monkeypatch.setenv("EMAIL_CONNECTION_STRING", "endpoint=https://example.communication.azure.com/;accesskey=fake")
     monkeypatch.setenv("EMAIL_FROM_ADDRESS", "bookings@example.com")
+    _without_request_received()
+
+
+def _without_request_received():
+    """The request-received email has its own tests; the ones using this fixture are
+    about the other emails and count what a booking queues."""
+
+    db = SessionLocal()
+    try:
+        db.merge(EmailTypeSetting(type="request_received", enabled=False, options={}))
+        db.commit()
+    finally:
+        db.close()
 
 
 def _booking():

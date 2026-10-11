@@ -2,12 +2,14 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Body, Depends, Query
-from pydantic import BaseModel
+from decimal import Decimal
+
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.errors import NotFoundError
 from app.database import get_db
-from app.dependencies import require_authenticated_user
+from app.dependencies import require_authenticated_user, require_permission
 from app.errors import AppError
 from app.permissions import MONEY_APPROVE, has_permission
 from app.schemas.pricing import PriceBreakdownFields
@@ -26,6 +28,13 @@ from app.schemas.reservation import (
     ReservationUpdate,
 )
 from app.services.availability import list_overlapping_reservations
+from app.services.advance_payments import (
+    approve_reservation,
+    extend_payment_window,
+    record_advance_received,
+    resend_payment_request,
+)
+from app.services.price_adjustments import set_final_total, set_price_adjustment
 from app.services.reservation_ranking import is_repeat_customer, rank_overlap_candidates
 from app.services.reservation_search import (
     reservation_summary,
@@ -51,6 +60,36 @@ class CancelRequest(BaseModel):
     # Whether to give back the share the renter paid online: None follows the
     # admin's policy (refund up to the cancellation deadline, keep after it).
     refund_prepayment: bool | None = None
+
+
+class PriceAdjustmentRequest(BaseModel):
+    # Signed, on the same basis as the price lines (a discount is negative).
+    # 0 removes the adjustment.
+    amount: Decimal = Field(max_digits=10, decimal_places=2)
+    # Required of counter staff; a manager or admin may leave it out.
+    reason: str = Field(default="", max_length=300)
+
+
+class ApproveRequest(BaseModel):
+    # "request": ask the renter for the advance, when one is due. "none": confirm without one.
+    advance: Literal["request", "none"] = "request"
+
+
+class AdvanceReceivedRequest(BaseModel):
+    method: Literal["CASH", "TRANSFER"]
+
+
+class ExtendPaymentRequest(BaseModel):
+    hours: int = Field(ge=1, le=168)
+
+
+class PaymentLinkResponse(BaseModel):
+    url: str
+
+
+class FinalTotalRequest(BaseModel):
+    total: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
+    reason: str = Field(default="", max_length=300)
 
 
 router = APIRouter(
@@ -171,7 +210,8 @@ def no_show_endpoint(
 )
 def get_reservations(
     q: str | None = Query(default=None, max_length=100),
-    status: Literal["PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED", "EXPIRED"]
+    # "OPEN" is every reservation still being worked (not completed, cancelled or lapsed).
+    status: Literal["OPEN", "PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED", "EXPIRED"]
     | None = Query(default=None),
     location: str | None = Query(default=None, max_length=10),
     source: Literal["STAFF", "STOREFRONT"] | None = Query(default=None),
@@ -179,7 +219,7 @@ def get_reservations(
         default=None
     ),
     sort: Literal[
-        "pickup_asc", "pickup_desc", "return_asc", "return_desc", "created_desc", "created_asc",
+        "pickup_asc", "pickup_desc", "return_asc", "return_desc", "created_desc", "created_asc", "pending_first",
         "customer_asc", "customer_desc", "vehicle_asc", "vehicle_desc", "status_asc", "status_desc",
     ] = Query(default="pickup_asc"),
     # The caller's own "today", as instants. The browser knows its
@@ -330,6 +370,14 @@ def update_reservation_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated_user),
 ):
+    # Keeping the agreed price after a vehicle change is a price decision.
+    if data.price_policy == "keep" and not has_permission(current_user.role, MONEY_APPROVE):
+        raise AppError(
+            "reservation.price_needs_manager",
+            "A manager has to set the final price or keep the agreed price.",
+            status_code=403,
+        )
+
     reservation = update_reservation(
         db=db,
         reservation_id=reservation_id,
@@ -338,3 +386,129 @@ def update_reservation_endpoint(
     )
 
     return reservation
+
+
+@router.put(
+    "/{reservation_id}/price-adjustment",
+    response_model=ReservationListResponse,
+)
+def price_adjustment_endpoint(
+    reservation_id: UUID,
+    data: PriceAdjustmentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Adds a discount or surcharge. Counter staff give a reason; a manager or admin need not.
+    Before any payment only."""
+
+    if not has_permission(current_user.role, MONEY_APPROVE) and len(data.reason.strip()) < 3:
+        raise AppError(
+            "reservation.price_reason_required",
+            "Give a reason for the price change.",
+            status_code=400,
+        )
+
+    return set_price_adjustment(db, reservation_id, data.amount, data.reason, current_user)
+
+
+@router.put(
+    "/{reservation_id}/final-total",
+    response_model=ReservationListResponse,
+    dependencies=[Depends(require_permission(MONEY_APPROVE))],
+)
+def final_total_endpoint(
+    reservation_id: UUID,
+    data: FinalTotalRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Sets the total directly (a manager's decision); the difference becomes the adjustment line."""
+
+    return set_final_total(db, reservation_id, data.total, data.reason, current_user)
+
+
+@router.post(
+    "/{reservation_id}/approve",
+    response_model=ReservationListResponse,
+)
+def approve_reservation_endpoint(
+    reservation_id: UUID,
+    data: ApproveRequest = Body(default_factory=ApproveRequest),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Approves a request: asks the renter for the advance (holding the car until
+    they pay it), or confirms it straight away when none is due or `advance` is "none"."""
+
+    return approve_reservation(db, reservation_id, current_user, data.advance)
+
+
+@router.post(
+    "/{reservation_id}/advance-received",
+    response_model=ReservationListResponse,
+)
+def advance_received_endpoint(
+    reservation_id: UUID,
+    data: AdvanceReceivedRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Records that the advance was handed over by hand; confirms the booking."""
+
+    return record_advance_received(db, reservation_id, data.method, current_user)
+
+
+@router.post(
+    "/{reservation_id}/payment-request/resend",
+    response_model=ReservationListResponse,
+)
+def resend_payment_request_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    return resend_payment_request(db, reservation_id, current_user)
+
+
+@router.post(
+    "/{reservation_id}/payment-request/extend",
+    response_model=ReservationListResponse,
+)
+def extend_payment_request_endpoint(
+    reservation_id: UUID,
+    data: ExtendPaymentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated_user),
+):
+    """Gives the renter more time; also brings back a lapsed booking whose car is still free."""
+
+    return extend_payment_window(db, reservation_id, data.hours, current_user)
+
+
+@router.get(
+    "/{reservation_id}/payment-link",
+    response_model=PaymentLinkResponse,
+)
+def payment_link_endpoint(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """The link the renter was sent, for a booking waiting for its advance: so staff
+    can read it out or paste it into a message when the email did not arrive."""
+
+    from app.services.email_outbox import pay_url, renter_language
+
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None:
+        raise NotFoundError("reservation.not_found", "Reservation not found.")
+
+    if reservation.status != "AWAITING_PAYMENT":
+        raise AppError(
+            "reservation.cannot_change_status",
+            f"Cannot change reservation status from {reservation.status} to AWAITING_PAYMENT.",
+            from_status=reservation.status,
+            to_status="AWAITING_PAYMENT",
+        )
+
+    return PaymentLinkResponse(url=pay_url(reservation, renter_language(db, reservation)))

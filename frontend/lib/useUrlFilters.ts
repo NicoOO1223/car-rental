@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
@@ -18,11 +18,57 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
  * from the query string, so the common case stays a clean URL; and updates
  * use replace rather than push, so nudging a dropdown does not bury the
  * previous page under a pile of history entries.
+ *
+ * With `persist`, the filters also survive leaving the page: they are kept for
+ * the browser session, and a visit that arrives with no filters in its link
+ * (the sidebar, the back button from a record) gets them back. A link that
+ * carries its own filters wins over what was kept.
  */
-export function useUrlFilters<T extends Record<string, string>>(defaults: T) {
+export function useUrlFilters<T extends Record<string, string>>(
+  defaults: T,
+  { persist = false }: { persist?: boolean } = {},
+) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const storageKey = persist ? `url-filters:${pathname}` : null;
+  const restored = useRef(false);
+  const restoring = useRef(false);
+
+  useEffect(() => {
+    if (!storageKey || restored.current) return;
+    restored.current = true;
+
+    if (searchParams.toString() !== "") return;
+
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+
+      if (saved) {
+        restoring.current = true;
+        router.replace(`${pathname}?${saved}`, { scroll: false });
+      }
+    } catch {
+      // Storage can be unavailable; the page then simply opens on its defaults.
+    }
+  }, [storageKey, pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+
+    const query = searchParams.toString();
+
+    // Until the restored filters arrive in the URL, the empty one must not overwrite them.
+    if (restoring.current && query === "") return;
+    restoring.current = false;
+
+    try {
+      sessionStorage.setItem(storageKey, query);
+    } catch {
+      // Not remembered this time; nothing else depends on it.
+    }
+  }, [storageKey, searchParams]);
 
   const filters = useMemo(() => {
     const result = { ...defaults };

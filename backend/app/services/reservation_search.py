@@ -9,13 +9,17 @@ what the page did client-side, so the same filters give the same rows.
 
 from datetime import datetime, time, timedelta, timezone
 
-from sqlalchemy import String, cast, func, or_, select
+from sqlalchemy import String, case, cast, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Car, Customer, Location, Reservation
 from app.services.timezones import business_zone, day_bounds as zoned_day_bounds, local_today
 
 WINDOWS = {"TODAY", "ACTIVE", "UPCOMING", "NEXT_7_DAYS"}
+
+# The reservations still being worked: a stand-in "status" for the list's
+# default view, which leaves out what is finished, cancelled or lapsed.
+OPEN_STATUSES = ("PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE")
 
 SORTS = {
     "pickup_asc": (Reservation.pickup_at.asc(), Reservation.id.asc()),
@@ -24,6 +28,13 @@ SORTS = {
     "return_desc": (Reservation.return_at.desc(), Reservation.id.asc()),
     "created_desc": (Reservation.created_at.desc(), Reservation.id.asc()),
     "created_asc": (Reservation.created_at.asc(), Reservation.id.asc()),
+    # Requests nobody has answered come first, the longest-waiting at the top;
+    # everything else follows in the order it is going to happen.
+    "pending_first": (
+        case((Reservation.status == "PENDING", Reservation.created_at), else_=None).asc().nulls_last(),
+        Reservation.pickup_at.asc(),
+        Reservation.id.asc(),
+    ),
     # By what the other columns show. The list query always joins the customer
     # and the car, so these need nothing extra.
     "customer_asc": (Customer.last_name.asc(), Customer.first_name.asc(), Reservation.id.asc()),
@@ -88,7 +99,9 @@ def _conditions(
             )
         )
 
-    if status:
+    if status == "OPEN":
+        conditions.append(Reservation.status.in_(OPEN_STATUSES))
+    elif status:
         conditions.append(Reservation.status == status)
 
     if source:
@@ -238,6 +251,11 @@ def reservation_summary(
             ).label("overdue_returns"),
             # Requests nobody has answered yet.
             count_where(Reservation.status == "PENDING").label("pending"),
+            # Approved, with an advance still to come.
+            count_where(
+                Reservation.status == "AWAITING_PAYMENT",
+                Reservation.advance_amount.is_not(None),
+            ).label("awaiting_payment"),
         )
     ).one()
 

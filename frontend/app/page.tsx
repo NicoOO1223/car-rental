@@ -461,7 +461,7 @@ export default function DashboardPage() {
             <UpcomingCard
               direction="pickup"
               reservations={dashboard.upcoming_pickups}
-              viewAllHref="/reservations/manage?window=UPCOMING"
+              viewAllHref="/reservations/manage?status=ALL&window=UPCOMING&sort=pickup_asc"
             />
           </div>
 
@@ -469,7 +469,7 @@ export default function DashboardPage() {
             <UpcomingCard
               direction="return"
               reservations={dashboard.upcoming_returns}
-              viewAllHref="/reservations/manage?window=ACTIVE"
+              viewAllHref="/reservations/manage?status=ALL&window=ACTIVE&sort=pickup_asc"
             />
           </div>
         </div>

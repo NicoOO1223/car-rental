@@ -25,6 +25,15 @@ export const manageToken = {
   set: (reference: string, token: string) => write(`manage-token:${reference}`, token),
 };
 
+/** The link in a payment-request email: lets this tab see one booking and pay its advance. */
+export const payToken = {
+  get: (reference: string) => read(`pay-token:${reference}`),
+  set: (reference: string, token: string) => write(`pay-token:${reference}`, token),
+};
+
+/** Whichever token this tab holds for a booking: the full one, else a payment link's. */
+export const anyToken = (reference: string) => manageToken.get(reference) ?? payToken.get(reference);
+
 /** A booking that has been created and is waiting for its payment. */
 export type PendingBooking = {
   reference: string;

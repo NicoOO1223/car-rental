@@ -11,7 +11,9 @@ import {
   type Reservation,
   type Location,
 } from "@/lib/api";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { isoToLocalInput, localInputToIso } from "@/lib/format";
+import { can } from "@/lib/permissions";
 import { t } from "@/lib/i18n";
 
 type CarOption = {
@@ -66,6 +68,13 @@ export function ReservationEditModal({
   const pickupZone = zoneOf(pickupLocationId);
   const returnZone = zoneOf(returnLocationId);
   const [carId, setCarId] = useState(reservation.car.id);
+
+  // A manager may keep the agreed price when the car changes (a courtesy
+  // upgrade); everyone else's change re-prices at the new car's rate.
+  const { user: currentUser } = useCurrentUser();
+  const [keepPrice, setKeepPrice] = useState(false);
+  const carChanged = carId !== reservation.car.id;
+  const canKeepPrice = carChanged && can(currentUser?.role, "money.approve");
 
   const [firstName, setFirstName] = useState(
     reservation.customer.first_name,
@@ -146,6 +155,7 @@ export function ReservationEditModal({
         pickup_location_id: pickupLocationId,
         return_location_id: returnLocationId,
         car_id: carId,
+        ...(canKeepPrice && keepPrice ? { price_policy: "keep" as const } : {}),
         customer: {
           first_name: firstName,
           last_name: lastName,
@@ -253,6 +263,21 @@ export function ReservationEditModal({
                 </option>
               ))}
             </SelectField>
+
+            {canKeepPrice && (
+              <label className="flex cursor-pointer items-start gap-2 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                  checked={keepPrice}
+                  onChange={(event) => setKeepPrice(event.target.checked)}
+                />
+                <span>
+                  <span className="font-medium text-ink">{t("c.reservations.ReservationEditModal.keepAgreedPrice")}</span>
+                  <span className="block text-ink-secondary">{t("c.reservations.ReservationEditModal.keepAgreedPriceHint")}</span>
+                </span>
+              </label>
+            )}
           </div>
         </div>
 

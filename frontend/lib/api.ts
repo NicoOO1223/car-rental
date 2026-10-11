@@ -151,6 +151,12 @@ export type Reservation = {
     make: string;
     model: string;
     license_plate: string;
+    category: string | null;
+    transmission: string | null;
+    fuel_type: string | null;
+    seats: number | null;
+    has_photo: boolean;
+    photo_version: number | null;
   };
 
   /** The class the booking was made for, when the renter chose a class and not a car. */
@@ -196,6 +202,12 @@ export type Reservation = {
   prepayment_percent: number | null;
   /** The price agreed when the booking was made, as a decimal string. */
   agreed_total_amount: string | null;
+  /** What the renter was asked to pay in advance when staff approved the booking. */
+  advance_amount: string | null;
+  /** A manual change to the price by staff: signed, with the reason given. */
+  price_adjustment_amount: string | null;
+  price_adjustment_reason: string | null;
+  price_adjusted_at: string | null;
   /** The share paid online when booking. */
   prepayment: {
     payment_status: string;
@@ -347,6 +359,9 @@ export type PriceBreakdown = {
 
   extras: PriceBreakdownExtraLine[];
   extras_amount: number;
+
+  /** A manual change by staff, signed (a discount is negative); 0 or absent when none. */
+  adjustment_amount?: number;
 
   /** VAT percentage; 0 means none is shown. */
   vat_rate: number;
@@ -624,6 +639,8 @@ export type ReservationSummary = {
   overdue_returns: number;
   /** Requests nobody has answered yet. */
   pending: number;
+  /** Approved bookings waiting for their advance. */
+  awaiting_payment: number;
 };
 
 export async function getReservationSummary(
@@ -701,6 +718,8 @@ export async function updateReservation(
     pickup_location_id: string;
     return_location_id: string;
     car_id: string;
+    /** With a new car: "keep" holds the agreed total (a manager's choice). */
+    price_policy: "reprice" | "keep";
     customer: Partial<{
       first_name: string;
       last_name: string;
@@ -719,6 +738,88 @@ export async function updateReservation(
       Accept: "application/json",
     },
     body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+async function reservationAction(path: string, body?: unknown): Promise<Reservation> {
+  const response = await apiFetch(`/api/reservations/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** Approves a request. "request" asks for the advance (when one is due); "none" confirms it without one. */
+export function approveReservation(reservationId: string, advance: "request" | "none"): Promise<Reservation> {
+  return reservationAction(`${reservationId}/approve`, { advance });
+}
+
+/** The advance was handed over by hand; confirms the booking. */
+export function recordAdvanceReceived(reservationId: string, method: "CASH" | "TRANSFER"): Promise<Reservation> {
+  return reservationAction(`${reservationId}/advance-received`, { method });
+}
+
+export function resendPaymentRequest(reservationId: string): Promise<Reservation> {
+  return reservationAction(`${reservationId}/payment-request/resend`);
+}
+
+/** Gives the renter more time; also brings back a booking whose window ran out. */
+export function extendPaymentWindow(reservationId: string, hours: number): Promise<Reservation> {
+  return reservationAction(`${reservationId}/payment-request/extend`, { hours });
+}
+
+/** The link the renter was sent, so staff can read it out when the email did not arrive. */
+export async function getPaymentLink(reservationId: string): Promise<string> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/payment-link`);
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.load");
+  }
+
+  return (await response.json()).url;
+}
+
+/** Adds a discount (negative) or a surcharge to a booking, with the reason. 0 removes it. */
+export async function setPriceAdjustment(
+  reservationId: string,
+  amount: string,
+  reason: string,
+): Promise<Reservation> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/price-adjustment`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ amount, reason }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "errors.generic.save");
+  }
+
+  return response.json();
+}
+
+/** Sets the booking's total directly (a manager's decision), with the reason. */
+export async function setFinalTotal(
+  reservationId: string,
+  total: string,
+  reason: string,
+): Promise<Reservation> {
+  const response = await apiFetch(`/api/reservations/${reservationId}/final-total`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ total, reason }),
   });
 
   if (!response.ok) {
@@ -2302,6 +2403,8 @@ export type PaymentIntent = {
   airport_change_fee: number;
   extras: PriceBreakdownExtraLine[];
   extras_amount: number;
+  /** A manual change by staff, signed; 0 or absent when none. */
+  adjustment_amount?: number;
   vat_rate: number;
   vat_amount: number;
   net_amount: number;
@@ -2717,6 +2820,12 @@ export type Configuration = {
   default_currency: string;
   access_token_expire_days: number;
   confirm_within_hours: number;
+  /** Whether cars are grouped into classes; off shows and books each car on its own. */
+  use_vehicle_classes: boolean;
+  /** "APPROVAL": every booking is a request staff approve, then the advance is paid. "INSTANT": paid at once on the website. */
+  booking_flow: "INSTANT" | "APPROVAL";
+  /** How long an approved booking waits for its advance, in hours. */
+  payment_window_hours: number;
   reminder_days: number;
   /** Distance since the last oil change at which a car is flagged overdue. */
   oil_change_interval_km: number;
@@ -2786,6 +2895,15 @@ export async function getPublicConfiguration(): Promise<{
   prices_include_vat: boolean;
   /** Hours a booking request may wait for an answer; 0 means no flag. */
   confirm_within_hours: number;
+  /** Whether cars are grouped into classes; off shows and books each car on its own. */
+  use_vehicle_classes: boolean;
+  /** "APPROVAL": every booking is a request staff approve. "INSTANT": paid at once on the website. */
+  booking_flow: "INSTANT" | "APPROVAL";
+  /** The share asked in advance; 0 means nothing before pickup. */
+  online_share_percent: number;
+  payment_window_hours: number;
+  /** Whether an advance can be paid online here (Stripe, a booking site, online booking on). */
+  online_advance_available: boolean;
 }> {
   const response = await apiFetch("/api/configuration/public");
 

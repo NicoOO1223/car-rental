@@ -22,6 +22,7 @@ import { t } from "@/lib/i18n";
 
 const NUMBER_FIELDS = [
   "online_share_percent",
+  "payment_window_hours",
   "free_cancellation_hours",
   "hold_minutes",
   "min_booking_lead_hours",
@@ -60,7 +61,9 @@ function readAsDataUrl(file: File): Promise<string> {
 
 type Form = {
   storefront_enabled: boolean;
+  booking_flow: "INSTANT" | "APPROVAL";
   online_share_percent: string;
+  payment_window_hours: string;
   free_cancellation_hours: string;
   hold_minutes: string;
   min_booking_lead_hours: string;
@@ -87,7 +90,9 @@ type Form = {
 function toForm(configuration: Configuration): Form {
   return {
     storefront_enabled: configuration.storefront_enabled,
+    booking_flow: configuration.booking_flow,
     online_share_percent: String(configuration.online_share_percent),
+    payment_window_hours: String(configuration.payment_window_hours),
     free_cancellation_hours: String(configuration.free_cancellation_hours),
     hold_minutes: String(configuration.hold_minutes),
     min_booking_lead_hours: String(configuration.min_booking_lead_hours),
@@ -152,7 +157,10 @@ export default function StorefrontConfigurationPage() {
     setSaved(false);
 
     try {
-      const patch: Partial<Configuration> = { storefront_enabled: form.storefront_enabled };
+      const patch: Partial<Configuration> = {
+        storefront_enabled: form.storefront_enabled,
+        booking_flow: form.booking_flow,
+      };
 
       for (const key of NUMBER_FIELDS) patch[key] = Number(form[key]);
       for (const key of TEXT_FIELDS) patch[key] = form[key];
@@ -598,16 +606,38 @@ export default function StorefrontConfigurationPage() {
           <p className="mt-1 text-sm text-ink-secondary">{t("s.admin.configuration.storefront.rulesDescription")}</p>
         </div>
 
+        <SelectField
+          label={t("s.admin.configuration.storefront.bookingFlow")}
+          hint={t("s.admin.configuration.storefront.bookingFlowHint")}
+          value={form.booking_flow}
+          onChange={(event) => setForm({ ...form, booking_flow: event.target.value as Form["booking_flow"] })}
+        >
+          <option value="APPROVAL">{t("s.admin.configuration.storefront.flowApproval")}</option>
+          <option value="INSTANT">{t("s.admin.configuration.storefront.flowInstant")}</option>
+        </SelectField>
+
         <TextField
           label={t("s.admin.configuration.storefront.onlineShare")}
           hint={t("s.admin.configuration.storefront.onlineShareHint")}
           type="number"
-          min={1}
+          min={0}
           max={100}
           step={1}
           required
           value={form.online_share_percent}
           onChange={set("online_share_percent")}
+        />
+
+        <TextField
+          label={t("s.admin.configuration.storefront.paymentWindow")}
+          hint={t("s.admin.configuration.storefront.paymentWindowHint")}
+          type="number"
+          min={1}
+          max={168}
+          step={1}
+          required
+          value={form.payment_window_hours}
+          onChange={set("payment_window_hours")}
         />
 
         <TextField

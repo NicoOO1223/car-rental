@@ -62,6 +62,13 @@ class CarSummary(BaseModel):
     make: str
     model: str
     license_plate: str
+    # What the reservation page shows about the car: its photo and what kind of car it is.
+    category: str | None = None
+    transmission: str | None = None
+    fuel_type: str | None = None
+    seats: int | None = None
+    has_photo: bool = False
+    photo_version: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -162,7 +169,14 @@ class OnlineBookingFields(BaseModel):
     cancellation_deadline_at: datetime | None = None
     prepayment_percent: int | None = None
     agreed_total_amount: Decimal | None = None
+    # What staff asked the renter to pay in advance when they approved the booking.
+    advance_amount: Decimal | None = None
     prepayment: OnlinePaymentSummary | None = None
+
+    # A manual change to the price by staff, signed, with the reason given.
+    price_adjustment_amount: Decimal | None = None
+    price_adjustment_reason: str | None = None
+    price_adjusted_at: datetime | None = None
 
 
 class ReservationResponse(OnlineBookingFields):
@@ -245,6 +259,8 @@ class ReservationSummary(BaseModel):
     upcoming: int
     overdue_returns: int
     pending: int
+    # Approved bookings waiting for their advance.
+    awaiting_payment: int
 
 
 class CarReservationResponse(BaseModel):
@@ -337,3 +353,7 @@ class ReservationUpdate(BaseModel):
     # Absent leaves the add-ons alone; present replaces the whole set.
     # Refused once payment has succeeded — see update_reservation.
     extras: list[ExtraSelectionRequest] | None = None
+
+    # When the car changes: "reprice" charges the new car's rate (the default);
+    # "keep" holds the agreed total, as an adjustment. A manager's choice.
+    price_policy: Literal["reprice", "keep"] = "reprice"

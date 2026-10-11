@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
 
 import { api } from "@/lib/client";
-import { manageToken, pendingBooking } from "@/lib/session";
+import { anyToken, pendingBooking } from "@/lib/session";
 
 type Outcome = "checking" | "slow" | "refunded" | "failed";
 
@@ -28,7 +28,7 @@ export function ReturnStatus({ language }: { language: string }) {
   const [outcome, setOutcome] = useState<Outcome>("checking");
 
   useEffect(() => {
-    const token = manageToken.get(reference);
+    const token = anyToken(reference);
 
     if (!reference || !token) {
       router.replace(`/${language}/manage${reference ? `?reference=${encodeURIComponent(reference)}` : ""}`);

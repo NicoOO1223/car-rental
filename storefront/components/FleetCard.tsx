@@ -53,10 +53,12 @@ export function FleetCard({
 
         <div className="absolute inset-x-0 top-0 p-5 text-white">
           <h3 className="text-xl font-semibold">{name}</h3>
-          <p className="text-sm text-white/80">
-            {example ? `${example} ` : ""}
-            {t("fleet.orSimilar")}
-          </p>
+          {(example || vehicle.or_similar) && (
+            <p className="text-sm text-white/80">
+              {example ? `${example} ` : ""}
+              {vehicle.or_similar ? t("fleet.orSimilar") : ""}
+            </p>
+          )}
         </div>
 
         <div className="absolute bottom-0 left-0 p-5">

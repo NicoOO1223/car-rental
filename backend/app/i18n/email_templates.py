@@ -358,6 +358,102 @@ TEMPLATES.update(
 
 TEMPLATES.update(
     {
+        "request_received": {
+            "en": (
+                "We received your booking request {reference} - {business}",
+                "Hello {name},\n\n"
+                "Thank you. We have received your booking request and will come back to you shortly.\n\n"
+                "Booking number: {reference}\n"
+                "Vehicle: {vehicle}\n"
+                "Pick-up: {pickup_place}, {pickup_time}\n"
+                "Return: {return_place}, {return_time}\n"
+                "Total: {total}\n\n"
+                "Your booking is not confirmed yet. We will email you as soon as it is.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Abbiamo ricevuto la tua richiesta di prenotazione {reference} - {business}",
+                "Buongiorno {name},\n\n"
+                "Grazie. Abbiamo ricevuto la tua richiesta di prenotazione e ti risponderemo a breve.\n\n"
+                "Numero di prenotazione: {reference}\n"
+                "Veicolo: {vehicle}\n"
+                "Ritiro: {pickup_place}, {pickup_time}\n"
+                "Riconsegna: {return_place}, {return_time}\n"
+                "Totale: {total}\n\n"
+                "La prenotazione non è ancora confermata. Ti scriveremo appena lo sarà.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Otrzymaliśmy Twoją prośbę o rezerwację {reference} - {business}",
+                "Dzień dobry {name},\n\n"
+                "Dziękujemy. Otrzymaliśmy Twoją prośbę o rezerwację i wkrótce się odezwiemy.\n\n"
+                "Numer rezerwacji: {reference}\n"
+                "Pojazd: {vehicle}\n"
+                "Odbiór: {pickup_place}, {pickup_time}\n"
+                "Zwrot: {return_place}, {return_time}\n"
+                "Razem: {total}\n\n"
+                "Rezerwacja nie jest jeszcze potwierdzona. Napiszemy do Ciebie, gdy tylko będzie.\n\n"
+                "{manage_link}\n\n"
+                "{signoff}",
+            ),
+        },
+        "payment_requested": {
+            "en": (
+                "Please pay the advance for your booking {reference} - {business}",
+                "Hello {name},\n\n"
+                "Good news: your booking {reference} for {vehicle} ({pickup_time}) has been approved.\n\n"
+                "To confirm it, please pay the advance of {advance} (total {total}) by {pay_deadline}:\n\n"
+                "{pay_url}\n\n"
+                "The car is held for you until then. If the advance is not paid in time the booking lapses.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "Paga l'anticipo per la tua prenotazione {reference} - {business}",
+                "Buongiorno {name},\n\n"
+                "Buone notizie: la tua prenotazione {reference} per {vehicle} ({pickup_time}) è stata approvata.\n\n"
+                "Per confermarla, paga l'anticipo di {advance} (totale {total}) entro {pay_deadline}:\n\n"
+                "{pay_url}\n\n"
+                "L'auto è riservata per te fino ad allora. Se l'anticipo non viene pagato in tempo la prenotazione decade.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Prosimy o wpłatę zaliczki za rezerwację {reference} - {business}",
+                "Dzień dobry {name},\n\n"
+                "Dobra wiadomość: Twoja rezerwacja {reference} na {vehicle} ({pickup_time}) została zatwierdzona.\n\n"
+                "Aby ją potwierdzić, wpłać zaliczkę w wysokości {advance} (razem {total}) do {pay_deadline}:\n\n"
+                "{pay_url}\n\n"
+                "Samochód jest dla Ciebie zarezerwowany do tego czasu. Jeśli zaliczka nie zostanie wpłacona, rezerwacja wygaśnie.\n\n"
+                "{signoff}",
+            ),
+        },
+        "payment_expired": {
+            "en": (
+                "Your booking {reference} has lapsed - {business}",
+                "Hello {name},\n\n"
+                "We did not receive the advance for your booking {reference} ({vehicle}, {pickup_time}) in time, "
+                "so the booking has lapsed and the car is available to others again.\n\n"
+                "If you still want it, please contact us or make a new booking.\n\n"
+                "{signoff}",
+            ),
+            "it": (
+                "La tua prenotazione {reference} è decaduta - {business}",
+                "Buongiorno {name},\n\n"
+                "Non abbiamo ricevuto in tempo l'anticipo per la tua prenotazione {reference} ({vehicle}, {pickup_time}): "
+                "la prenotazione è decaduta e l'auto è di nuovo disponibile.\n\n"
+                "Se la desideri ancora, contattaci o effettua una nuova prenotazione.\n\n"
+                "{signoff}",
+            ),
+            "pl": (
+                "Twoja rezerwacja {reference} wygasła - {business}",
+                "Dzień dobry {name},\n\n"
+                "Nie otrzymaliśmy na czas zaliczki za rezerwację {reference} ({vehicle}, {pickup_time}), "
+                "więc rezerwacja wygasła, a samochód jest znowu dostępny dla innych.\n\n"
+                "Jeśli nadal jej chcesz, skontaktuj się z nami lub złóż nową rezerwację.\n\n"
+                "{signoff}",
+            ),
+        },
         "verify_email": {
             "en": (
                 "Confirm your email - {business}",

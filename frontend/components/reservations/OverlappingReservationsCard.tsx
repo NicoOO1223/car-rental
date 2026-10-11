@@ -54,7 +54,7 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
 
   return (
     <Card>
-      <h2 className="flex items-center gap-2 text-lg font-semibold">
+      <h2 className="flex items-start gap-2 text-base font-semibold">
         <Users className="h-5 w-5 text-ink-muted" aria-hidden="true" />
         {t("c.reservations.OverlappingReservationsCard.title")}
       </h2>
@@ -64,16 +64,19 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
       </p>
 
       {yourReservationIsSuggested && (
-        <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-warning-soft px-3 py-2 text-sm font-medium text-warning">
-          <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {t("c.reservations.OverlappingReservationsCard.yourReservationSuggested")}
-          {overlaps.suggested_reasons.length > 0 && (
-            <span className="font-normal text-border-strong">
-              {" — "}
-              {overlaps.suggested_reasons.map((reason) => t(REASON_LABELS[reason] ?? reason)).join(" · ")}
-            </span>
-          )}
-        </p>
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-success-line bg-success-soft px-3 py-2 text-sm text-success">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">
+              {t("c.reservations.OverlappingReservationsCard.yourReservationSuggested")}
+            </p>
+            {overlaps.suggested_reasons.length > 0 && (
+              <p className="font-medium">
+                {overlaps.suggested_reasons.map((reason) => t(REASON_LABELS[reason] ?? reason)).join(" · ")}
+              </p>
+            )}
+          </div>
+        </div>
       )}
 
       <ul className="mt-4 space-y-3">
@@ -92,7 +95,7 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
                     <p className="flex items-center gap-1.5 truncate font-medium text-ink">
                       {item.customer_name}
                       {suggested && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
                           <Sparkles className="h-3 w-3" aria-hidden="true" />
                           {t("c.reservations.OverlappingReservationsCard.suggested")}
                         </span>
@@ -105,7 +108,7 @@ export function OverlappingReservationsCard({ reservationId }: { reservationId: 
                     </p>
 
                     {suggested && overlaps.suggested_reasons.length > 0 && (
-                      <p className="mt-1 text-xs text-ink-muted">
+                      <p className="mt-1 text-xs font-medium text-success">
                         {overlaps.suggested_reasons
                           .map((reason) => t(REASON_LABELS[reason] ?? reason))
                           .join(" · ")}

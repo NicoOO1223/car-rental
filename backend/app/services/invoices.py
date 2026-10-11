@@ -125,6 +125,20 @@ def _lines(reservation: Reservation, car: Car, breakdown, extra_words: dict | No
             }
         )
 
+    if breakdown.adjustment:
+        # Its reason is printed as written, like the business's own extras.
+        reason = (reservation.price_adjustment_reason or "").strip()
+        lines.append(
+            {
+                "description": f"Price adjustment: {reason}" if reason else "Price adjustment",
+                "key": "line.adjustment",
+                "params": {"reason": reason},
+                "quantity": 1,
+                "unit_price": _money(breakdown.adjustment),
+                "amount": _money(breakdown.adjustment),
+            }
+        )
+
     return lines
 
 

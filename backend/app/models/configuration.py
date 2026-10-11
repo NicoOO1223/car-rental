@@ -61,6 +61,11 @@ class Configuration(Base):
     # it. 0 turns the flag off.
     confirm_within_hours: Mapped[int] = mapped_column(nullable=False, default=24, server_default="24")
 
+    # Whether cars are grouped into vehicle classes. Off: every car is shown
+    # and booked on its own (the classes themselves are kept, and come back
+    # when this is turned on again).
+    use_vehicle_classes: Mapped[bool] = mapped_column(nullable=False, default=True, server_default="true")
+
     # Distance since the last oil change at which the fleet condition page
     # and notifications flag a car as overdue (km, matching the unit the
     # odometer/mileage fields are already shown in).
@@ -68,8 +73,15 @@ class Configuration(Base):
 
     # The public storefront. Off until an admin turns it on.
     storefront_enabled: Mapped[bool] = mapped_column(nullable=False, default=False, server_default="false")
-    # The share of a rental paid online when booking (100 = all of it).
+    # The share of a rental paid online (100 = all of it). 0 = nothing is
+    # paid before pickup.
     online_share_percent: Mapped[int] = mapped_column(nullable=False, default=30, server_default="30")
+    # How a booking becomes confirmed. INSTANT: on the website the renter pays
+    # at once and it confirms itself. APPROVAL: every booking is a request that
+    # staff approve; if an advance is due the renter is then asked to pay it.
+    booking_flow: Mapped[str] = mapped_column(String(10), nullable=False, default="INSTANT", server_default="INSTANT")
+    # How long an approved booking waits for its advance before it lapses.
+    payment_window_hours: Mapped[int] = mapped_column(nullable=False, default=24, server_default="24")
     # A cancellation up to this many hours before pickup is refunded in full.
     free_cancellation_hours: Mapped[int] = mapped_column(nullable=False, default=48, server_default="48")
     # How long an unpaid online booking holds the car.

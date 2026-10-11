@@ -22,6 +22,7 @@ from app.services.class_assignment import pick_car_for_class
 from app.services.email_outbox import (
     booking_snapshot,
     queue_booking_cancelled,
+    queue_request_received,
     queue_booking_changed,
     queue_booking_confirmed,
     queue_online_cancellation,
@@ -41,7 +42,20 @@ from app.services.pricing import (
     calculate_rental_duration_days,
 )
 from app.services.configuration import get_configuration, vat_terms
+from app.services.price_adjustments import keep_agreed_price
+from app.services.references import assign_reference
 from app.services.locations import require_bookable_location
+
+
+def require_classes_on(db: Session) -> None:
+    """Booking a class (no car chosen) needs classes switched on: with them off every
+    booking names its car."""
+
+    if not get_configuration(db).use_vehicle_classes:
+        raise AppError(
+            "reservation.classes_off",
+            "Vehicle classes are switched off, so a booking must name its car.",
+        )
 
 
 def create_reservation(
@@ -73,6 +87,7 @@ def create_reservation(
         if class_id is None:
             raise AppError("reservation.car_or_class_required", "Choose a car or a class.")
 
+        require_classes_on(db)
         require_bookable_location(db, pickup_location_id, "pickup")
         car = pick_car_for_class(db, class_id, pickup_location_id, pickup_at, return_at)
 
@@ -188,8 +203,10 @@ def create_reservation(
     # The price agreed now is what will be charged, whatever rates do later.
     stamp_agreed_prices(db, reservation, car)
 
+    # Every booking has a reference, so the renter can look it up and be sent a
+    # link to it (to pay an advance, for one).
     db.add(reservation)
-    db.flush()
+    assign_reference(db, reservation)
 
     audit_log(
         db,
@@ -197,8 +214,12 @@ def create_reservation(
         action="reservation.created",
         entity_type="reservation",
         entity_id=reservation.id,
-        metadata={"car_id": str(car.id), "source": "staff"},
+        metadata={"car_id": str(car.id), "source": "staff", "reference": reservation.public_reference},
     )
+
+    db.flush()
+    db.refresh(reservation)
+    queue_request_received(db, reservation)
 
     db.commit()
     db.refresh(reservation)
@@ -232,6 +253,7 @@ def quote_reservation(
         if data.class_id is None:
             raise AppError("reservation.car_or_class_required", "Choose a car or a class.")
 
+        require_classes_on(db)
         members = class_cars(db, data.class_id)
 
         if not members:
@@ -473,53 +495,9 @@ def update_reservation_status(
 
     # A PENDING request never blocked anyone else from being confirmed first
     # (see app/services/availability.py), so approving one has to check for
-    # real conflicts now rather than assume there are none. lock_car()
-    # serializes two staff members approving overlapping requests at once —
-    # the second one waits here, then sees the first one's CONFIRMED status.
+    # real conflicts now rather than assume there are none.
     if new_status == "CONFIRMED":
-        lock_car(db, reservation.car_id)
-
-        # A class booking whose car has been taken meanwhile: another car in the class will do.
-        if (
-            reservation.class_id is not None
-            and not reservation.car_confirmed
-            and (
-                has_conflicting_reservation(
-                    db, reservation.car_id, reservation.pickup_at, reservation.return_at, exclude_reservation_id=reservation.id
-                )
-                or has_conflicting_maintenance(db, reservation.car_id, reservation.pickup_at, reservation.return_at)
-            )
-        ):
-            other = pick_car_for_class(
-                db,
-                reservation.class_id,
-                reservation.pickup_location_id,
-                reservation.pickup_at,
-                reservation.return_at,
-                exclude_reservation_id=reservation.id,
-            )
-
-            if other is not None:
-                reservation.car_id = other.id
-
-        if has_conflicting_reservation(
-            db, reservation.car_id, reservation.pickup_at, reservation.return_at,
-            exclude_reservation_id=reservation.id,
-        ):
-            raise AppError(
-                "reservation.cannot_confirm_car_already_reserved",
-                "This car is already confirmed or active for part of this period.",
-            )
-
-        # A PENDING request does not block maintenance either, so a service or
-        # cleaning may have been booked over it since it was made.
-        if has_conflicting_maintenance(
-            db, reservation.car_id, reservation.pickup_at, reservation.return_at,
-        ):
-            raise AppError(
-                "reservation.car_scheduled_maintenance_or_cleaning_during",
-                "Car is scheduled for maintenance or cleaning during this period.",
-            )
+        recheck_before_confirming(db, reservation)
 
     reservation.status = new_status
     reservation.updated_by = actor.id
@@ -540,6 +518,60 @@ def update_reservation_status(
     db.refresh(reservation)
 
     return reservation
+
+def recheck_before_confirming(db: Session, reservation: Reservation) -> None:
+    """
+    A PENDING request never blocked anyone else (see app/services/availability.py),
+    so before it is approved, whether that confirms it or holds the car for an
+    advance, it has to be checked for real conflicts. lock_car() serializes two
+    staff members approving overlapping requests at once: the second waits here,
+    then sees the first one's status.
+    """
+
+    lock_car(db, reservation.car_id)
+
+    # A class booking whose car has been taken meanwhile: another car in the class will do.
+    if (
+        reservation.class_id is not None
+        and not reservation.car_confirmed
+        and (
+            has_conflicting_reservation(
+                db, reservation.car_id, reservation.pickup_at, reservation.return_at, exclude_reservation_id=reservation.id
+            )
+            or has_conflicting_maintenance(db, reservation.car_id, reservation.pickup_at, reservation.return_at)
+        )
+    ):
+        other = pick_car_for_class(
+            db,
+            reservation.class_id,
+            reservation.pickup_location_id,
+            reservation.pickup_at,
+            reservation.return_at,
+            exclude_reservation_id=reservation.id,
+        )
+
+        if other is not None:
+            reservation.car_id = other.id
+
+    if has_conflicting_reservation(
+        db, reservation.car_id, reservation.pickup_at, reservation.return_at,
+        exclude_reservation_id=reservation.id,
+    ):
+        raise AppError(
+            "reservation.cannot_confirm_car_already_reserved",
+            "This car is already confirmed or active for part of this period.",
+        )
+
+    # A PENDING request does not block maintenance either, so a service or
+    # cleaning may have been booked over it since it was made.
+    if has_conflicting_maintenance(
+        db, reservation.car_id, reservation.pickup_at, reservation.return_at,
+    ):
+        raise AppError(
+            "reservation.car_scheduled_maintenance_or_cleaning_during",
+            "Car is scheduled for maintenance or cleaning during this period.",
+        )
+
 
 def _payment_fixes_the_price(db: Session, reservation_id) -> bool:
     """
@@ -781,7 +813,13 @@ def update_reservation(
     # should describe what it is now. (Older bookings without an agreed price
     # keep pricing from the live rates.)
     if reservation.agreed_price_per_day is not None and (booking_moved or data.extras is not None):
+        previous_total = reservation.agreed_total_amount
         stamp_agreed_prices(db, reservation, target_car)
+
+        # A manager may keep what was agreed when the car changed (a courtesy
+        # upgrade): the total goes back, as an adjustment with its own line.
+        if data.price_policy == "keep" and is_reassignment and previous_total is not None:
+            keep_agreed_price(db, reservation, target_car, previous_total, actor)
 
     if before is not None:
         # The relationships still point at the old car and places until reloaded.

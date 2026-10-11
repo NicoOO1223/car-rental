@@ -16,10 +16,17 @@ from app.schemas.public import (
     PublicBookingLookup,
     PublicBookingRequest,
     PublicBookingStatus,
+    PublicPaymentRequest,
+    PublicPaymentStarted,
 )
 from app.services.client_ip import client_ip
 from app.services.customer_accounts import link_booking, optional_account
-from app.services.manage_token import create_manage_token, reservation_id_from_token
+from app.services.advance_payments import start_payment
+from app.services.manage_token import (
+    create_manage_token,
+    reservation_id_from_pay_or_manage_token,
+    reservation_id_from_token,
+)
 from app.services.public_booking import (
     booking_view,
     create_booking,
@@ -46,6 +53,24 @@ def booking_from_token(
     to be that same booking, so a token cannot be used on another one."""
 
     reservation_id = reservation_id_from_token(credentials.credentials if credentials else None)
+    reservation = db.get(Reservation, reservation_id)
+
+    if reservation is None or reservation.public_reference != normalize_reference(reference):
+        raise AppError("public.manage_token_invalid", "This link has expired. Look up your booking again.", status_code=401)
+
+    return reservation
+
+
+def booking_from_any_token(
+    reference: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    configuration=Depends(enabled_configuration),
+    db: Session = Depends(get_db),
+) -> Reservation:
+    """The booking a manage token or a payment link is for. A payment link can see
+    the booking and pay its advance; cancelling needs the full manage token."""
+
+    reservation_id, _audience = reservation_id_from_pay_or_manage_token(credentials.credentials if credentials else None)
     reservation = db.get(Reservation, reservation_id)
 
     if reservation is None or reservation.public_reference != normalize_reference(reference):
@@ -95,6 +120,7 @@ def create_public_booking(
         online_amount=float(online),
         due_at_pickup=float(at_pickup),
         client_secret=client_secret,
+        requires_payment=client_secret is not None,
         manage_token=create_manage_token(reservation.id),
     )
 
@@ -105,7 +131,7 @@ def create_public_booking(
     dependencies=[Depends(limit_by_ip("public-sync", 30))],
 )
 def sync_public_payment(
-    reservation: Reservation = Depends(booking_from_token),
+    reservation: Reservation = Depends(booking_from_any_token),
     db: Session = Depends(get_db),
 ):
     """Called when the renter returns from Stripe. Confirms the booking from
@@ -141,10 +167,32 @@ def lookup_public_booking(
     dependencies=[Depends(limit_by_ip("public-read", 120))],
 )
 def get_public_booking(
-    reservation: Reservation = Depends(booking_from_token),
+    reservation: Reservation = Depends(booking_from_any_token),
     db: Session = Depends(get_db),
 ):
     return booking_view(db, reservation)
+
+
+@router.post(
+    "/bookings/{reference}/payment",
+    response_model=PublicPaymentStarted,
+    dependencies=[Depends(limit_by_ip("public-pay", 20))],
+)
+def start_public_payment(
+    data: PublicPaymentRequest,
+    reservation: Reservation = Depends(booking_from_any_token),
+    db: Session = Depends(get_db),
+):
+    """Starts (or resumes) paying the advance of a booking staff have approved."""
+
+    client_secret, amount, currency = start_payment(
+        db,
+        reservation,
+        terms_accepted=data.terms_accepted,
+        privacy_acknowledged=data.privacy_acknowledged,
+    )
+
+    return PublicPaymentStarted(client_secret=client_secret, amount=float(amount), currency=currency)
 
 
 @router.post(

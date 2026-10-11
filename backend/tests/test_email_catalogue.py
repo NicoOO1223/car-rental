@@ -13,8 +13,8 @@ def _by_audience(audience: str) -> set[str]:
     return {key for key, email_type in TYPES.items() if email_type.audience == audience}
 
 
-def test_the_catalogue_has_thirteen_emails():
-    assert len(TYPES) == 13
+def test_the_catalogue_has_sixteen_emails():
+    assert len(TYPES) == 16
 
 
 def test_renter_emails():
@@ -27,6 +27,10 @@ def test_renter_emails():
         "agreement_copy",
         "return_summary",
         "refund_notice",
+        # request, approve, pay
+        "request_received",
+        "payment_requested",
+        "payment_expired",
     }
 
 

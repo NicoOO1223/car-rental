@@ -130,6 +130,7 @@
     }
   },
   "status": {
+    "PENDING": "Waiting for approval",
     "AWAITING_PAYMENT": "Waiting for payment",
     "CONFIRMED": "Confirmed",
     "ACTIVE": "Car picked up",
@@ -235,6 +236,16 @@
     "lookup": "Look up my booking",
     "search": "Search again"
   },
+  "advance": {
+    "title": "Pay the advance of {amount}",
+    "body": "Your booking has been approved. Paying the advance confirms it.",
+    "deadline": "Please pay by {date} at {time}. The car is held for you until then.",
+    "remainder": "The remaining {amount} is paid at pickup.",
+    "acceptTerms": "I accept the <link>terms and conditions</link>.",
+    "acceptPrivacy": "I have read the <link>privacy notice</link>.",
+    "pay": "Pay {amount}",
+    "preparing": "Preparing the payment…"
+  },
   "booking": {
     "title": "Your booking",
     "reference": "Reference",
@@ -242,6 +253,12 @@
     "confirmedBody": "You paid {paid} online. Pay the remaining {rest} at pickup.",
     "confirmedFull": "You paid {paid} online. Nothing is due at pickup.",
     "keepReference": "Keep this reference: it is how you find your booking again.",
+    "copyReference": "Copy reference",
+    "referenceCopied": "Copied",
+    "requestedTitle": "Request received",
+    "requestedBody": "We have received your booking request. We will email you as soon as it is approved, and tell you how to pay the advance if one is due.",
+    "pendingNote": "Your request has not been approved yet. You do not need to do anything: we will email you.",
+    "cancelNeedsLookup": "To cancel this booking, look it up with your reference and email.",
     "waitingTitle": "Waiting for payment",
     "waitingBody": "Your car is held until {time}. Finish paying to confirm the booking.",
     "expiredNote": "This booking expired because it was not paid in time.",

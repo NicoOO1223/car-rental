@@ -171,7 +171,13 @@ export default function CarDetailsPage({ params }: Props) {
     }
   }
 
+  // A request, or an approved booking whose advance has not come: not settled yet, so
+  // an outline. Amber stays for out of service, the one thing it means here.
   function getReservationClass(status: string) {
+    if (status === "PENDING" || status === "AWAITING_PAYMENT") {
+      return "border border-dashed border-border-strong bg-surface text-ink-secondary";
+    }
+
     return getReservationStatusStyle(status, "solid");
   }
 
@@ -322,7 +328,39 @@ export default function CarDetailsPage({ params }: Props) {
     };
   }
 
-  const timelineRowCount = visibleReservations.length + visibleTasks.length;
+  /*
+   * Rows: bookings and service windows share a row unless they would overlap on
+   * screen (a short booking is drawn at least a day wide, so two on the same day
+   * collide). Each item takes the first row where it fits, which keeps the
+   * schedule as short as it can be and adds a row only for a real overlap.
+   */
+  const timelineItems = [
+    ...visibleReservations.map((reservation) => ({
+      key: `r:${reservation.id}`,
+      ...getReservationPosition(reservation),
+    })),
+    ...visibleTasks.map(({ task, start, end }) => ({
+      key: `t:${task.id}`,
+      ...getTaskPosition(start, end),
+    })),
+  ].sort((a, b) => a.left - b.left || b.width - a.width);
+
+  const rowEnds: number[] = [];
+  const rowOf = new Map<string, number>();
+
+  for (const item of timelineItems) {
+    let row = rowEnds.findIndex((end) => end <= item.left + 0.5);
+
+    if (row === -1) {
+      row = rowEnds.length;
+      rowEnds.push(0);
+    }
+
+    rowEnds[row] = item.left + item.width;
+    rowOf.set(item.key, row);
+  }
+
+  const timelineRowCount = rowEnds.length;
 
   if (loading) {
     return (
@@ -725,6 +763,9 @@ export default function CarDetailsPage({ params }: Props) {
                 />{t("s.cars.id.completed")}</div>
 
               <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border border-dashed border-ink-muted bg-surface" />{t("s.cars.id.notConfirmed")}</div>
+
+              <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-warning-strong" />{t("s.cars.id.outService2")}</div>
 
             </div>
@@ -837,7 +878,7 @@ export default function CarDetailsPage({ params }: Props) {
 
                 {/* Reservations */}
                 {visibleReservations.map(
-                  (reservation, index) => {
+                  (reservation) => {
 
                     const position =
                       getReservationPosition(
@@ -859,7 +900,7 @@ export default function CarDetailsPage({ params }: Props) {
                           width:
                             position.width,
                           top:
-                            index * 70 + 10,
+                            (rowOf.get(`r:${reservation.id}`) ?? 0) * 70 + 10,
                           height: 50,
                         }}
                         title={`${reservation.customer.first_name} ${reservation.customer.last_name} — ${formatDateTime(
@@ -902,7 +943,7 @@ export default function CarDetailsPage({ params }: Props) {
                 )}
 
                 {/* Maintenance / cleaning windows */}
-                {visibleTasks.map(({ task, start, end }, taskIndex) => {
+                {visibleTasks.map(({ task, start, end }) => {
                   const position = getTaskPosition(start, end);
 
                   return (
@@ -912,7 +953,7 @@ export default function CarDetailsPage({ params }: Props) {
                       style={{
                         left: position.left,
                         width: position.width,
-                        top: (visibleReservations.length + taskIndex) * 70 + 10,
+                        top: (rowOf.get(`t:${task.id}`) ?? 0) * 70 + 10,
                         height: 50,
                       }}
                       title={`${enumLabel("taskType", task.task_type)} — ${formatDateTime(

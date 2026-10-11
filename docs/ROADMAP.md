@@ -27,7 +27,7 @@ Commit references are approximate: layers were grouped into a few large commits.
 | L6 | Configuration (admin-editable business rules) | Shipped, extended with return charges and security deposit |
 | L7 | Identity and licence details | Shipped as manual entry |
 | L8 | Data export and erasure | Shipped |
-| L9 | Email and SMS | Email built: 13 emails (8 to renters, 3 to the business, 2 storefront-account), editable per language in Configuration, Email; includes the pickup reminder. SMS and overdue-return reminders not built |
+| L9 | Email and SMS | Email built: 16 emails (11 to renters, 3 to the business, 2 storefront-account), editable per language in Configuration, Email; includes the pickup reminder. SMS and overdue-return reminders not built |
 | L10 | Finance reporting | Partial: admin revenue page only, scope not audited |
 | L11 | Visual redesign | Shipped and live on `demo`: brand colour per business, design tokens, new tables, app shell, fleet "All vehicles" view. Detail pages restyled but not rethought, by choice |
 | L12 | Production hardening | Shipped and live on `demo` |
@@ -176,9 +176,24 @@ Not done, on purpose:
 - **Italian and Polish wording** added with this layer is a draft, like the rest of those catalogs.
 - **Small gaps.** The email log is not sortable, and the maintenance list has no "Sort by" list for phones.
 
+**Vehicle classes can be turned off.** Configuration, Classes has a switch, on by default. Off, every car is shown and booked on its own; the classes and the cars' links to them are kept and come back when it is turned on.
+- **Booking site.** Cars are offered individually (cars that look the same still group, as classless cars always have), with no class words or "or similar". A booking holds the car the renter chose, and staff cannot swap it as they can a class booking. The car's own "offered online" switch decides what is shown; a class's switch no longer has a say.
+- **Staff.** A booking must name its car (booking a class is refused with `reservation.classes_off`, and the new-reservation screen drops the "assign later" choice). Class names leave the fleet screens. A car can then be priced on its own under Vehicle rates, which takes it out of its class, since a class is what shares one price.
+- **Existing bookings.** A class booking made earlier keeps its provisional car and the swap rules.
+
+**Request, approve, pay.** A booking, from staff or from the booking site, starts as a request; staff approve it; if an advance is due the renter is asked for it and the car is held until a deadline; paying it confirms the booking.
+- **Statuses.** No new status: PENDING (a request) → AWAITING_PAYMENT (approved, advance asked; amber, with the deadline) → CONFIRMED (paid, waived or recorded by hand; a green "Advance paid" tag). The hold, sweeper and advance invoice are the ones the website's instant booking already used.
+- **Settings** (Configuration, Online booking): how bookings are confirmed (`INSTANT`, today's behaviour and the default for existing stacks, or `APPROVAL`, the default for a new stack), the online share (now 0 to 100: 0 means nothing before pickup) and the hours an approved booking waits for its advance.
+- **Paying.** The email carries a link to the booking page with a payment-only token in the fragment (it can see the booking and pay, not cancel). The card form needs the booking site, Stripe and online booking switched on; without them approving still holds the car and staff record the advance by hand (cash or transfer).
+- **Staff.** Approve with the advance or without; record an advance received; send the request again; give 24 more hours (also reopens a lapsed booking if its car is still free); copy the payment link; a tile and filter for bookings awaiting payment.
+- **Emails.** Three new: request received, payment requested, payment window ended (16 in all). A declined request is still silent.
+- **Every booking has a reference** now, so a staff booking can be looked up and linked to like any other.
+
+**Price adjustments.** A reservation can carry a signed adjustment line with a reason, on top of rate, fees and extras; VAT and the total follow it and it prints on the payment screen, invoice and agreement. Staff may add one; managers and admins may also set the final total or keep the agreed price when the car changes. Only before any payment is taken; audited.
+
 ## Deferred
 
-- SMS and the rest of L9. Staff invites and password resets stay admin-driven, overdue-return reminders do not exist, and the personal Settings layer stays blocked. Renter and business email exists (13 emails, pickup reminder included); it needs the provider to be provisioned and a verified domain per stack.
+- SMS and the rest of L9. Staff invites and password resets stay admin-driven, overdue-return reminders do not exist, and the personal Settings layer stays blocked. Renter and business email exists (16 emails, pickup reminder included); it needs the provider to be provisioned and a verified domain per stack.
 - True multi-tenancy, which becomes relevant after several customers exist.
 - In-product billing for the SaaS itself. Invoice the first customers manually.
 

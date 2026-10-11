@@ -32,6 +32,8 @@ type Props = {
   airportChangeFee: number;
   extras: PriceBreakdownExtraLine[];
   extrasAmount: number;
+  /** A manual change to the price by staff, signed; 0 when none. */
+  adjustmentAmount?: number;
   /** VAT on the amount due, so it is shown as it was in the quote. */
   vat?: { rate: number; amount: number; net: number; includedInPrices: boolean };
   /** What the renter already paid on the website; the amount above is what is left. */
@@ -204,6 +206,7 @@ export function PaymentStep({
   shortTermFee,
   airportChangeFee,
   extras,
+  adjustmentAmount,
   vat,
   paidOnline = 0,
   onPaid,
@@ -222,6 +225,7 @@ export function PaymentStep({
             short_term_fee: shortTermFee,
             airport_change_fee: airportChangeFee,
             extras,
+            adjustment_amount: adjustmentAmount,
             // With an online share, the lines add up to the whole price and the
             // part still to pay is shown under them.
             total_amount: amount + paidOnline,

@@ -167,7 +167,7 @@ test.describe("the public storefront", () => {
     // --- staff side: find it, take the remainder, run the rental through ------------------------
 
     await signIn(page);
-    await page.goto(`${STAFF_URL}/reservations/manage?q=${encodeURIComponent(reference)}`);
+    await page.goto(`${STAFF_URL}/reservations/manage?status=ALL&q=${encodeURIComponent(reference)}`);
     await page.getByText(reference).first().click();
 
     await expect(page.getByRole("heading", { name: "Reservation" })).toBeVisible();

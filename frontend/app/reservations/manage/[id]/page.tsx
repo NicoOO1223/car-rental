@@ -1,9 +1,8 @@
 "use client";
 
-import { classWords } from "@/lib/classDisplay";
 import { confirmReservationCar } from "@/lib/api";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Pencil, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, CircleCheck, Pencil, Undo2 } from "lucide-react";
 
 import {
   getReservation,
@@ -13,7 +12,10 @@ import {
   downloadAgreement,
   cancelReservation,
   markReservationNoShow,
-  updateReservationStatus,
+  recordAdvanceReceived,
+  resendPaymentRequest,
+  extendPaymentWindow,
+  getPaymentLink,
   type Reservation,
   type Location,
   type CheckOut,
@@ -22,6 +24,14 @@ import {
 import { InvoicesCard } from "@/components/invoices/InvoicesCard";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { AdvancePaymentPanel, type AdvanceAction } from "@/components/reservations/AdvancePaymentPanel";
+import { ApproveModal } from "@/components/reservations/ApproveModal";
+import {
+  ReservationCustomerCard,
+  ReservationExtrasCard,
+  ReservationVehicleCard,
+} from "@/components/reservations/ReservationCards";
+import { PriceAdjustmentModal } from "@/components/reservations/PriceAdjustmentModal";
 import { ReservationEditModal } from "@/components/reservations/ReservationEditModal";
 import { CancelWithRefundModal } from "@/components/reservations/CancelWithRefundModal";
 import { OnlineBookingCard } from "@/components/reservations/OnlineBookingCard";
@@ -37,8 +47,7 @@ import {
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { can } from "@/lib/permissions";
 import { useNavigate } from "@/lib/useNavigate";
-import { extraName } from "@/lib/extras";
-import { enumLabel, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{
@@ -65,8 +74,13 @@ export default function ReservationDetailsPage({
   const [error, setError] = useState("");
 
  const [cancelling, setCancelling] = useState(false);
- const [updatingStatus, setUpdatingStatus] = useState(false);
+ const [updatingStatus] = useState(false);
  const [editing, setEditing] = useState(false);
+ const [adjustingPrice, setAdjustingPrice] = useState(false);
+ const [approving, setApproving] = useState(false);
+ const [paymentAction, setPaymentAction] = useState<AdvanceAction | "reopen" | null>(null);
+ const paymentBusy = paymentAction !== null;
+ const [paymentLink, setPaymentLink] = useState("");
  const [showApproval, setShowApproval] = useState(false);
  const [choosingRefund, setChoosingRefund] = useState(false);
  const [markingNoShow, setMarkingNoShow] = useState(false);
@@ -226,46 +240,56 @@ export default function ReservationDetailsPage({
     }
   }
 
-  async function handleStatusChange(
-  newStatus: "CONFIRMED" | "COMPLETED",
-) {
-  if (!reservation) {
-    return;
+  // The staff actions on a payment request: each returns the booking as it now is.
+  async function runPaymentAction(key: AdvanceAction | "reopen", action: () => Promise<Reservation>) {
+    setPaymentAction(key);
+    setActionError("");
+
+    try {
+      setReservation(await action());
+      setPaymentLink("");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : t("s.reservations.manage.id.failedPaymentAction"));
+    } finally {
+      setPaymentAction(null);
+    }
   }
 
-  const confirmed = window.confirm(
-    t(
-      newStatus === "CONFIRMED"
-        ? "s.reservations.manage.id.confirmApprove"
-        : "s.reservations.manage.id.confirmComplete",
-    ),
-  );
+  async function showPaymentLink() {
+    if (!reservation) return;
 
-  if (!confirmed) {
-    return;
+    setPaymentAction("link");
+    setActionError("");
+
+    try {
+      setPaymentLink(await getPaymentLink(reservation.id));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : t("s.reservations.manage.id.failedPaymentAction"));
+    } finally {
+      setPaymentAction(null);
+    }
   }
 
-  setUpdatingStatus(true);
-  setActionError("");
+  function handleAdvanceAction(action: AdvanceAction) {
+    if (!reservation) return;
 
-  try {
-    const updatedReservation =
-      await updateReservationStatus(
-        reservation.id,
-        newStatus,
-      );
+    if (action === "link") return void showPaymentLink();
 
-    setReservation(updatedReservation);
-  } catch (error) {
-    setActionError(
-      error instanceof Error
-        ? error.message
-        : t("s.reservations.manage.id.failedUpdateReservationStatus"),
+    if (action === "resend") return void runPaymentAction(action, () => resendPaymentRequest(reservation.id));
+
+    if (action === "extend") return void runPaymentAction(action, () => extendPaymentWindow(reservation.id, 24));
+
+    // Recording money received confirms the booking and issues an invoice: ask first.
+    const method = action === "cash" ? "CASH" : "TRANSFER";
+    const confirmed = window.confirm(
+      t("s.reservations.manage.id.confirmAdvanceReceived", {
+        amount: formatCurrency(reservation.advance_amount ?? 0),
+        method: t(action === "cash" ? "s.reservations.manage.id.methodCash" : "s.reservations.manage.id.methodTransfer"),
+      }),
     );
-  } finally {
-    setUpdatingStatus(false);
+
+    if (confirmed) void runPaymentAction(action, () => recordAdvanceReceived(reservation.id, method));
   }
-}
 
   if (loading) {
     return (
@@ -287,6 +311,15 @@ export default function ReservationDetailsPage({
     );
   }
 
+  // The price can be changed until money has been taken or is on its way.
+  const priceCanChange =
+    ["PENDING", "AWAITING_PAYMENT", "CONFIRMED"].includes(reservation.status) &&
+    !(reservation.prepayment && ["PENDING", "PROCESSING", "SUCCEEDED"].includes(reservation.prepayment.payment_status));
+
+  // The advance has been received (online, or recorded by hand) and still stands.
+  const advancePaid =
+    reservation.prepayment?.payment_status === "SUCCEEDED" && !["CANCELLED", "EXPIRED"].includes(reservation.status);
+
   const rentalDays = getRentalDays(
     reservation.pickup_at,
     reservation.return_at
@@ -296,8 +329,8 @@ export default function ReservationDetailsPage({
     <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
 
-        {/* Header */}
-        <div className="mb-8">
+        {/* Header: who and what at a glance, the figures, and the one edit button */}
+        <div className="mb-5">
 
           <button
             onClick={() =>
@@ -307,415 +340,212 @@ export default function ReservationDetailsPage({
           >
             <ArrowLeft className="h-4 w-4" />{t("s.reservations.manage.id.backReservations")}</button>
 
-          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.reservations.manage.id.reservation")}</h1>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl font-bold tracking-tight text-ink">{t("s.reservations.manage.id.reservation")}</h1>
 
                 <ReservationStatusBadge status={reservation.status} />
 
-                {EDITABLE_STATUSES.has(reservation.status) && (
-                  <Button variant="secondary" onClick={() => setEditing(true)} disabled={!canWrite}>
-                    <Pencil className="h-4 w-4" />{t("s.reservations.manage.id.edit")}</Button>
+                {advancePaid && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
+                    <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t("s.reservations.manage.id.advancePaid")}
+                  </span>
                 )}
               </div>
 
-              <p className="mt-2 text-sm text-ink-muted">{t("s.reservations.manage.id.booking")}{" "}<span className="font-mono text-ink-secondary">
-                  {reservation.public_reference ?? bookingReference(reservation.id)}
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
+                <span>
+                  {t("s.reservations.manage.id.booking")}{" "}
+                  <span className="font-mono text-ink-secondary">
+                    {reservation.public_reference ?? bookingReference(reservation.id)}
+                  </span>
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {t("s.reservations.manage.id.booked")} {formatDate(reservation.created_at)} {formatTime(reservation.created_at)}
                 </span>
               </p>
             </div>
 
-            <div className="flex gap-8 text-left md:text-right">
-              <div>
-                <p className="text-sm text-ink-muted">{t("s.reservations.manage.id.rentalDuration")}</p>
+            <div className="flex items-start gap-5">
+              <div className="text-left md:text-right">
+                <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.rentalDuration")}</p>
 
-                <p className="text-2xl font-semibold">
+                <p className="text-xl font-semibold">
                   {t("duration.days", { count: rentalDays })}
                 </p>
               </div>
 
               {reservation.agreed_total_amount !== null && (
-                <div>
-                  <p className="text-sm text-ink-muted">{t("s.reservations.manage.id.totalPrice")}</p>
+                <div className="text-left md:text-right">
+                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.totalPrice")}</p>
 
-                  <p className="text-2xl font-semibold">
+                  <p className="text-xl font-semibold tabular-nums">
                     {formatCurrency(reservation.agreed_total_amount)}
                   </p>
+
+                  {reservation.price_adjustment_amount && (
+                    <p className="mt-0.5 max-w-52 text-xs text-ink-muted">
+                      {t("s.reservations.manage.id.adjustmentNote", {
+                        amount: formatCurrency(reservation.price_adjustment_amount),
+                        reason: reservation.price_adjustment_reason ?? "",
+                      })}
+                    </p>
+                  )}
+
+                  {canWrite && priceCanChange && (
+                    <button
+                      type="button"
+                      onClick={() => setAdjustingPrice(true)}
+                      className="text-xs font-medium text-accent-ink underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                    >
+                      {t("s.reservations.manage.id.adjustPrice")}
+                    </button>
+                  )}
                 </div>
+              )}
+
+              {EDITABLE_STATUSES.has(reservation.status) && (
+                <Button variant="secondary" onClick={() => setEditing(true)} disabled={!canWrite}>
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  {t("s.reservations.manage.id.edit")}
+                </Button>
               )}
             </div>
 
           </div>
         </div>
 
-        {/* Main grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main grid: the facts on the left; on the right the actions come first, so what
+            to do about this booking is on screen without scrolling. */}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
 
-          {/* Left / main content */}
-          <div className="space-y-6 lg:col-span-2">
+          {/* Left: the facts. On a phone the columns stack and the actions come first. */}
+          <div className="order-2 space-y-4 lg:order-1">
 
-            {/* Customer */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ReservationCustomerCard
+                reservation={reservation}
+                onOpenCustomer={() => navigate(`/customers/${reservation.customer.id}`)}
+              />
 
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.customer")}</h2>
-
-                <button
-                  onClick={() =>
-                    navigate(`/customers/${reservation.customer.id}`)
+              <ReservationVehicleCard
+                reservation={reservation}
+                canWrite={canWrite}
+                onOpenVehicle={() => navigate(`/cars/${reservation.car.id}`)}
+                onConfirmCar={async () => {
+                  try {
+                    setReservation(await confirmReservationCar(reservation.id));
+                  } catch {
+                    /* the card stays as it was; the next action shows any real problem */
                   }
-                  className="flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-ink"
-                >{t("s.reservations.manage.id.viewCustomer")}<ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
+                }}
+              />
+            </div>
 
-              <div className="mt-5 flex items-center gap-4">
+            {/* Rental timeline, with the extras beside it when there are any */}
+            <div className="grid items-start gap-4 sm:grid-cols-2">
+              {/* Rental timeline */}
+              <section
+                className={`rounded-2xl border border-border-subtle bg-surface p-6 ${
+                  reservation.extras.length > 0 ? "" : "sm:col-span-2"
+                }`}
+              >
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-sunken text-lg font-semibold">
-                  {reservation.customer.first_name
-                    .charAt(0)}
-                  {reservation.customer.last_name
-                    .charAt(0)}
-                </div>
+                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.rentalTimeline")}</h2>
 
-                <div>
-                  <p className="text-lg font-medium">
-                    {reservation.customer.first_name}{" "}
-                    {reservation.customer.last_name}
-                  </p>
+                <div className="mt-6">
 
-                  <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.customerReservation")}</p>
-                </div>
+                  {/* Pickup */}
+                  <div className="flex gap-4">
 
-              </div>
-            </section>
+                    <div className="flex flex-col items-center">
 
-            {/* Vehicle */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
-
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.vehicle")}</h2>
-
-                <button
-                  onClick={() =>
-                    navigate(`/cars/${reservation.car.id}`)
-                  }
-                  className="flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-ink"
-                >{t("s.reservations.manage.id.viewVehicle")}<ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-                  <p className="text-xl font-semibold">
-                    {reservation.car.make}{" "}
-                    {reservation.car.model}
-                  </p>
-
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {reservation.car.license_plate}
-                  </p>
-
-                  {reservation.vehicle_class && (
-                    <p className="mt-1 text-sm text-ink-muted">
-                      {t("s.reservations.manage.id.bookedClass", { class: classWords(reservation.vehicle_class.name) })}
-                    </p>
-                  )}
-                </div>
-
-                <div className="rounded-lg bg-canvas px-4 py-3">
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.assignedVehicle")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {reservation.car.license_plate}
-                  </p>
-
-                  {!reservation.car_confirmed && (
-                    <>
-                      <p className="mt-1 text-xs font-medium text-warning">{t("s.reservations.manage.id.carNotFinal")}</p>
-
-                      {canWrite && ["PENDING", "CONFIRMED", "AWAITING_PAYMENT"].includes(reservation.status) && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              setReservation(await confirmReservationCar(reservation.id));
-                            } catch {
-                              /* the card stays as it was; the next action shows any real problem */
-                            }
-                          }}
-                          className="mt-2 text-sm font-medium text-ink-secondary underline underline-offset-4 hover:text-ink"
-                        >
-                          {t("s.reservations.manage.id.confirmThisCar")}
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-
-              </div>
-            </section>
-
-            {/* Extras — only rendered when the booking has any, so a
-                plain booking does not gain an empty panel. */}
-            {reservation.extras.length > 0 && (
-              <section className="rounded-2xl border border-border-subtle bg-surface p-6">
-                <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.extras")}</h2>
-
-                <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.bookedAddOnsAt")}</p>
-
-                <ul className="mt-5 divide-y divide-border-subtle">
-                  {reservation.extras.map((line) => (
-                    <li
-                      key={line.extra_id}
-                      className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium">
-                          {extraName({ code: line.extra_code, name: line.name, translations: line.translations })}
-                          {line.quantity > 1 && (
-                            <span className="text-ink-muted">
-                              {" × "}
-                              {line.quantity}
-                            </span>
-                          )}
-                        </p>
-
-                        <p className="mt-0.5 text-sm text-ink-muted">
-                          {formatCurrency(line.unit_price)}
-                          {line.price_unit === "PER_DAY"
-                            ? t("s.reservations.manage.id.perDay")
-                            : " one-off"}
-                        </p>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-on-accent">
+                        <Check className="h-4 w-4" />
                       </div>
-                    </li>
-                  ))}
-                </ul>
+
+                      <div className="mt-2 h-16 w-px bg-border-subtle" />
+
+                    </div>
+
+                    <div className="pb-6">
+
+                      <p className="text-sm font-medium text-ink-muted">{t("s.reservations.manage.id.pickup")}</p>
+
+                      <p className="mt-1 text-lg font-semibold">
+                        {reservation.pickup_location.name}
+                      </p>
+
+                      <p className="mt-1 text-sm text-ink-secondary">
+                        {formatDateTime(
+                          reservation.pickup_at, reservation.pickup_location.timezone
+                        )}
+                      </p>
+
+                      <span className="mt-2 inline-block rounded-md bg-surface-sunken px-2 py-1 text-xs font-medium">
+                        {
+                          reservation.pickup_location
+                            .airport_code
+                        }
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                  {/* Return */}
+                  <div className="flex gap-4">
+
+                    <div className="flex flex-col items-center">
+
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-sunken text-ink-secondary">
+                        <Undo2 className="h-4 w-4" />
+                      </div>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm font-medium text-ink-muted">{t("s.reservations.manage.id.return")}</p>
+
+                      <p className="mt-1 text-lg font-semibold">
+                        {reservation.return_location.name}
+                      </p>
+
+                      <p className="mt-1 text-sm text-ink-secondary">
+                        {formatDateTime(
+                          reservation.return_at, reservation.return_location.timezone
+                        )}
+                      </p>
+
+                      <span className="mt-2 inline-block rounded-md bg-surface-sunken px-2 py-1 text-xs font-medium">
+                        {
+                          reservation.return_location
+                            .airport_code
+                        }
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
               </section>
-            )}
 
-            {/* Rental timeline */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
-
-              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.rentalTimeline")}</h2>
-
-              <div className="mt-6">
-
-                {/* Pickup */}
-                <div className="flex gap-4">
-
-                  <div className="flex flex-col items-center">
-
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-on-accent">
-                      <Check className="h-4 w-4" />
-                    </div>
-
-                    <div className="mt-2 h-16 w-px bg-border-subtle" />
-
-                  </div>
-
-                  <div className="pb-6">
-
-                    <p className="text-sm font-medium text-ink-muted">{t("s.reservations.manage.id.pickup")}</p>
-
-                    <p className="mt-1 text-lg font-semibold">
-                      {reservation.pickup_location.name}
-                    </p>
-
-                    <p className="mt-1 text-sm text-ink-secondary">
-                      {formatDateTime(
-                        reservation.pickup_at, reservation.pickup_location.timezone
-                      )}
-                    </p>
-
-                    <span className="mt-2 inline-block rounded-md bg-surface-sunken px-2 py-1 text-xs font-medium">
-                      {
-                        reservation.pickup_location
-                          .airport_code
-                      }
-                    </span>
-
-                  </div>
-
-                </div>
-
-                {/* Return */}
-                <div className="flex gap-4">
-
-                  <div className="flex flex-col items-center">
-
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-sunken text-ink-secondary">
-                      <Undo2 className="h-4 w-4" />
-                    </div>
-
-                  </div>
-
-                  <div>
-
-                    <p className="text-sm font-medium text-ink-muted">{t("s.reservations.manage.id.return")}</p>
-
-                    <p className="mt-1 text-lg font-semibold">
-                      {reservation.return_location.name}
-                    </p>
-
-                    <p className="mt-1 text-sm text-ink-secondary">
-                      {formatDateTime(
-                        reservation.return_at, reservation.return_location.timezone
-                      )}
-                    </p>
-
-                    <span className="mt-2 inline-block rounded-md bg-surface-sunken px-2 py-1 text-xs font-medium">
-                      {
-                        reservation.return_location
-                          .airport_code
-                      }
-                    </span>
-
-                  </div>
-
-                </div>
-
-              </div>
-            </section>
+              {reservation.extras.length > 0 && <ReservationExtrasCard reservation={reservation} rentalDays={rentalDays} />}
+            </div>
 
           </div>
 
-          {/* Right sidebar */}
-          <div className="space-y-6">
-
-            {/* Reservation summary */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
-
-              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.reservationSummary")}</h2>
-
-              <div className="mt-5 space-y-4">
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.status")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {enumLabel("reservationStatus", reservation.status)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.booked")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {formatDate(
-                      reservation.created_at
-                    )}
-                  </p>
-
-                  <p className="text-sm text-ink-muted">
-                    {formatTime(
-                      reservation.created_at
-                    )}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.pickup2")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {formatDate(
-                      reservation.pickup_at, reservation.pickup_location.timezone
-                    )}
-                  </p>
-
-                  <p className="text-sm text-ink-muted">
-                    {formatTime(
-                      reservation.pickup_at, reservation.pickup_location.timezone
-                    )}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.return2")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {formatDate(
-                      reservation.return_at, reservation.return_location.timezone
-                    )}
-                  </p>
-
-                  <p className="text-sm text-ink-muted">
-                    {formatTime(
-                      reservation.return_at, reservation.return_location.timezone
-                    )}
-                  </p>
-                </div>
-
-                <div className="border-t pt-4">
-
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.rentalPeriod")}</p>
-
-                  <p className="mt-1 text-lg font-semibold">
-                    {t("duration.days", { count: rentalDays })}
-                  </p>
-
-                </div>
-
-              </div>
-            </section>
-
-            {/* Locations */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
-
-              <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.locations")}</h2>
-
-              <div className="mt-5 space-y-5">
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.pickupLocation")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {
-                      reservation.pickup_location
-                        .airport_code
-                    }
-                  </p>
-
-                  <p className="text-sm text-ink-muted">
-                    {
-                      reservation.pickup_location
-                        .name
-                    }
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-ink-muted">{t("s.reservations.manage.id.returnLocation")}</p>
-
-                  <p className="mt-1 font-medium">
-                    {
-                      reservation.return_location
-                        .airport_code
-                    }
-                  </p>
-
-                  <p className="text-sm text-ink-muted">
-                    {
-                      reservation.return_location
-                        .name
-                    }
-                  </p>
-                </div>
-
-              </div>
-            </section>
-
-            <OnlineBookingCard reservation={reservation} />
-
-            {reservation.status === "PENDING" && (
-              <OverlappingReservationsCard reservationId={reservation.id} />
-            )}
+          {/* Right rail: the actions first, then what bears on the decision and the paperwork */}
+          <div className="order-1 space-y-4 lg:order-2">
 
             {/* Actions */}
-            <section className="rounded-2xl border border-border-subtle bg-surface p-6">
+            <section className="rounded-2xl border border-border-subtle bg-surface p-5">
 
               <h2 className="text-lg font-semibold">{t("s.reservations.manage.id.actions")}</h2>
 
@@ -730,9 +560,7 @@ export default function ReservationDetailsPage({
                 <div className="mt-5 space-y-3">
 
                   <button
-                    onClick={() =>
-                      handleStatusChange("CONFIRMED")
-                    }
+                    onClick={() => setApproving(true)}
                     disabled={!canWrite || updatingStatus || cancelling}
                     className="w-full rounded-lg bg-accent px-4 py-3 font-medium text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -759,11 +587,23 @@ export default function ReservationDetailsPage({
               {/* AWAITING_PAYMENT: an online booking still being paid for */}
               {reservation.status === "AWAITING_PAYMENT" && (
                 <div className="mt-5 space-y-3">
-                  <div className="rounded-lg bg-surface-sunken p-4">
-                    <p className="font-medium text-ink-secondary">{t("s.reservations.manage.id.waitingForPayment")}</p>
+                  {reservation.advance_amount !== null ? (
+                    <AdvancePaymentPanel
+                      amount={reservation.advance_amount}
+                      deadline={reservation.hold_expires_at}
+                      timeZone={reservation.pickup_location.timezone}
+                      canWrite={canWrite}
+                      busy={paymentAction === "reopen" ? null : paymentAction}
+                      link={paymentLink}
+                      onAction={handleAdvanceAction}
+                    />
+                  ) : (
+                    <div className="rounded-lg bg-surface-sunken p-4">
+                      <p className="font-medium text-ink-secondary">{t("s.reservations.manage.id.waitingForPayment")}</p>
 
-                    <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.waitingForPaymentBody")}</p>
-                  </div>
+                      <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.waitingForPaymentBody")}</p>
+                    </div>
+                  )}
 
                   <button
                     onClick={handleCancelReservation}
@@ -783,6 +623,19 @@ export default function ReservationDetailsPage({
                   <p className="font-medium text-ink-secondary">{t("s.reservations.manage.id.holdExpired")}</p>
 
                   <p className="mt-1 text-sm text-ink-muted">{t("s.reservations.manage.id.holdExpiredBody")}</p>
+
+                  {reservation.advance_amount !== null && canWrite && (
+                    <Button
+                      className="mt-3"
+                      variant="secondary"
+                      size="sm"
+                      disabled={paymentBusy}
+                      loading={paymentAction === "reopen"}
+                      onClick={() => void runPaymentAction("reopen", () => extendPaymentWindow(reservation.id, 24))}
+                    >
+                      {t("s.reservations.manage.id.reopenWindow")}
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -994,6 +847,12 @@ export default function ReservationDetailsPage({
 
             </section>
 
+            {reservation.status === "PENDING" && (
+              <OverlappingReservationsCard reservationId={reservation.id} />
+            )}
+
+            <OnlineBookingCard reservation={reservation} />
+
             <InvoicesCard
               reservationId={reservation.id}
               refreshKey={handover?.payment_status ?? ""}
@@ -1009,6 +868,23 @@ export default function ReservationDetailsPage({
           reservation={reservation}
           onClose={() => setChoosingRefund(false)}
           onCancelled={(updated) => setReservation(updated)}
+        />
+      )}
+
+      {approving && (
+        <ApproveModal
+          reservation={reservation}
+          onClose={() => setApproving(false)}
+          onApproved={(updated) => setReservation(updated)}
+        />
+      )}
+
+      {adjustingPrice && (
+        <PriceAdjustmentModal
+          reservation={reservation}
+          reasonRequired={!can(currentUser?.role, "money.approve")}
+          onClose={() => setAdjustingPrice(false)}
+          onSaved={(updated) => setReservation(updated)}
         />
       )}
 

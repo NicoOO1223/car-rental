@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ReservationStatusBadge } from "@/components/ui/Badge";
 import { CashPaymentForm, PaymentStep, PrepaidSettleForm } from "@/components/handover/PaymentStep";
+import { CheckInSummary } from "@/components/handover/CheckInSummary";
 import { ConditionReviewStep } from "@/components/handover/ConditionReviewStep";
 import { DepositStep } from "@/components/handover/DepositStep";
 import {
@@ -311,8 +312,9 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-canvas p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      {/* The finished check-in has a two-column summary, so it gets more room. */}
+      <div className={`mx-auto ${agreementDone ? "max-w-5xl" : "max-w-3xl"}`}>
+        <div className={`flex flex-wrap items-center justify-between gap-4 ${agreementDone ? "mb-3" : "mb-6"}`}>
           <button
             onClick={() => navigate("/handovers")}
             className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
@@ -326,6 +328,8 @@ export default function FinalizeHandoverPage({ params }: Props) {
           </button>
         </div>
 
+        {/* Once it is finished the summary below says all of this, so the screen keeps its room */}
+        {!agreementDone && (
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t("s.handovers.id.checkIn.vehicleCheck")}</h1>
@@ -339,40 +343,27 @@ export default function FinalizeHandoverPage({ params }: Props) {
 
           <ReservationStatusBadge status={reservation.status} />
         </div>
+        )}
 
-        <div className="mb-6">
-          <ConditionReviewStep reservationId={reservation.id} kind="CHECK_IN" />
-        </div>
+        {!agreementDone && (
+          <div className="mb-6">
+            <ConditionReviewStep reservationId={reservation.id} kind="CHECK_IN" />
+          </div>
+        )}
 
         {agreementDone ? (
-          <Card className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent">
-              <Check className="h-6 w-6" />
-            </div>
-
-            <h2 className="text-xl font-semibold">{t("s.handovers.id.checkIn.checkComplete")}</h2>
-
-            <p className="mt-2 text-sm text-ink-secondary">{t("s.handovers.id.checkIn.rentalAgreementHasBeen")}</p>
-
-            <div className="mt-6 flex justify-center gap-3">
-              <button
-                onClick={() =>
-                  downloadAgreement(
-                    reservation.id,
-                    `agreement-${reservation.id}.pdf`,
-                  )
-                }
-                className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2"
-              >{t("s.handovers.id.checkIn.downloadAgreement")}</button>
-
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  navigate(`/reservations/manage/${reservation.id}`)
-                }
-              >{t("s.handovers.id.checkIn.viewReservation")}</Button>
-            </div>
-          </Card>
+          <>
+            <CheckInSummary
+              reservation={reservation}
+              handover={handover}
+              summary={summary}
+              onDownload={() => downloadAgreement(reservation.id, `agreement-${reservation.id}.pdf`)}
+              onViewReservation={() => navigate(`/reservations/manage/${reservation.id}`)}
+              onOpenCustomer={() => navigate(`/customers/${reservation.customer.id}`)}
+              onOpenVehicle={() => navigate(`/cars/${reservation.car.id}`)}
+              condition={<ConditionReviewStep reservationId={reservation.id} kind="CHECK_IN" />}
+            />
+          </>
         ) : (
           <div className="space-y-6">
             {/* Step 1: Payment */}
@@ -425,6 +416,7 @@ export default function FinalizeHandoverPage({ params }: Props) {
                     airportChangeFee={paymentIntent.airport_change_fee}
                     extras={paymentIntent.extras}
                     extrasAmount={paymentIntent.extras_amount}
+                    adjustmentAmount={paymentIntent.adjustment_amount}
                     vat={{
                       rate: paymentIntent.vat_rate,
                       amount: paymentIntent.vat_amount,

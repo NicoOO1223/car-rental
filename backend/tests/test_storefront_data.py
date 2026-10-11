@@ -42,8 +42,10 @@ def test_configuration_carries_the_storefront_fields():
 
 def test_storefront_values_are_checked():
     cases = [
-        ({"online_share_percent": 0}, "validation.online_share_range"),
+        ({"online_share_percent": -1}, "validation.online_share_range"),
         ({"online_share_percent": 101}, "validation.online_share_range"),
+        ({"payment_window_hours": 0}, "validation.payment_window_range"),
+        ({"payment_window_hours": 169}, "validation.payment_window_range"),
         ({"free_cancellation_hours": -1}, "validation.cancellation_hours_range"),
         ({"hold_minutes": 4}, "validation.hold_minutes_range"),
         ({"hold_minutes": 61}, "validation.hold_minutes_range"),

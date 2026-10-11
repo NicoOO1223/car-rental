@@ -130,6 +130,9 @@ class PaymentIntentResponse(BaseModel):
     extras: list[PriceBreakdownExtraLine] = []
     extras_amount: float = 0.0
 
+    # A manual change by staff, signed; 0 when there is none.
+    adjustment_amount: float = 0.0
+
     # VAT, so the payment screen shows the same lines as the quote.
     vat_rate: float = 0.0
     vat_amount: float = 0.0

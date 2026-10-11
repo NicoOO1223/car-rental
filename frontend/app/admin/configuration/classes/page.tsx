@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
   getCars,
+  getConfiguration,
   getVehicleClasses,
   reactivateVehicleClass,
   reorderVehicleClasses,
+  updateConfiguration,
   type Car,
   type VehicleClass,
 } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { setUsesVehicleClasses } from "@/lib/vehicleClasses";
 
 export default function ClassesConfigurationPage() {
   const [classes, setClasses] = useState<VehicleClass[] | null>(null);
@@ -29,6 +32,9 @@ export default function ClassesConfigurationPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   // A class just added opens with its cars panel, so cars can go straight in.
   const [openNew, setOpenNew] = useState<string | null>(null);
+  // Whether cars are grouped into classes at all; null until known.
+  const [usesClasses, setUsesClasses] = useState<boolean | null>(null);
+  const [savingSwitch, setSavingSwitch] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -45,6 +51,28 @@ export default function ClassesConfigurationPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  useEffect(() => {
+    getConfiguration()
+      .then((configuration) => setUsesClasses(configuration.use_vehicle_classes))
+      .catch(() => setError(t("s.admin.configuration.classes.failedLoad")));
+  }, []);
+
+  async function changeUsesClasses(on: boolean) {
+    setSavingSwitch(true);
+    setError("");
+
+    try {
+      const saved = await updateConfiguration({ use_vehicle_classes: on });
+
+      setUsesClasses(saved.use_vehicle_classes);
+      setUsesVehicleClasses(saved.use_vehicle_classes);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("s.admin.configuration.classes.failedSwitch"));
+    } finally {
+      setSavingSwitch(false);
+    }
+  }
 
   // The classes that can be put in order: those in the fleet, in the website's order.
   const orderable = (classes ?? []).filter((row) => !row.is_retired);
@@ -83,7 +111,7 @@ export default function ClassesConfigurationPage() {
     }
   }
 
-  return (
+  const classesCard = (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -184,5 +212,55 @@ export default function ClassesConfigurationPage() {
         />
       )}
     </Card>
+  );
+
+  return (
+    <>
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-ink">{t("s.admin.configuration.classes.useTitle")}</h2>
+            <p className="mt-1 text-sm text-ink-secondary">
+              {usesClasses === false
+                ? t("s.admin.configuration.classes.useOff")
+                : t("s.admin.configuration.classes.useOn")}
+            </p>
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              role="switch"
+              className="h-4 w-4 accent-accent"
+              checked={usesClasses !== false}
+              disabled={usesClasses === null || savingSwitch}
+              onChange={(event) => void changeUsesClasses(event.target.checked)}
+            />
+            <span className="text-ink-secondary">
+              {usesClasses === false
+                ? t("s.admin.configuration.classes.switchOff")
+                : t("s.admin.configuration.classes.switchOn")}
+            </span>
+            <span className="sr-only">{t("s.admin.configuration.classes.useTitle")}</span>
+          </label>
+        </div>
+
+        {error && usesClasses === null && (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
+      </Card>
+
+      {usesClasses === false ? (
+        <Card>
+          <p className="text-sm text-ink-secondary">
+            {t("s.admin.configuration.classes.offNote", { count: orderable.length })}
+          </p>
+        </Card>
+      ) : (
+        classesCard
+      )}
+    </>
   );
 }

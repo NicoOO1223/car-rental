@@ -6,12 +6,13 @@ import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
 /**
- * What only a booking made on the public website has: its reference, what the
- * renter paid online, and until when cancelling gives that back. Nothing is
- * shown for a booking made by staff.
+ * A booking's reference, what the renter was asked to pay in advance and what was
+ * paid, and until when cancelling gives that back. Shown for a booking made on
+ * the website and for one staff approved with an advance; nothing for a plain
+ * staff booking.
  */
 export function OnlineBookingCard({ reservation }: { reservation: Reservation }) {
-  if (reservation.source !== "STOREFRONT") {
+  if (reservation.source !== "STOREFRONT" && reservation.advance_amount === null && reservation.prepayment === null) {
     return null;
   }
 
@@ -40,6 +41,17 @@ export function OnlineBookingCard({ reservation }: { reservation: Reservation })
     });
   }
 
+  // Approved, with the advance still to come. While it is awaited the actions panel
+  // already says how much and by when, so it is not repeated here.
+  const awaitingAdvance = reservation.status === "AWAITING_PAYMENT" && reservation.advance_amount !== null;
+
+  if (!payment && reservation.advance_amount !== null && !awaitingAdvance) {
+    rows.push({
+      label: t("c.reservations.OnlineBookingCard.advanceAsked"),
+      value: money(reservation.advance_amount),
+    });
+  }
+
   if (payment && payment.amount !== null) {
     rows.push({
       label: t("c.reservations.OnlineBookingCard.paidOnline"),
@@ -53,7 +65,7 @@ export function OnlineBookingCard({ reservation }: { reservation: Reservation })
     });
   }
 
-  if (reservation.status === "AWAITING_PAYMENT" && reservation.hold_expires_at) {
+  if (reservation.status === "AWAITING_PAYMENT" && reservation.hold_expires_at && !awaitingAdvance) {
     rows.push({
       label: t("c.reservations.OnlineBookingCard.holdUntil"),
       value: at(reservation.hold_expires_at),
@@ -76,9 +88,11 @@ export function OnlineBookingCard({ reservation }: { reservation: Reservation })
 
   return (
     <Card>
-      <h2 className="flex items-center gap-2 text-lg font-semibold">
+      <h2 className="flex items-center gap-2 text-base font-semibold">
         <Globe className="h-5 w-5 text-ink-muted" aria-hidden="true" />
-        {t("c.reservations.OnlineBookingCard.bookedOnline")}
+        {reservation.source === "STOREFRONT"
+          ? t("c.reservations.OnlineBookingCard.bookedOnline")
+          : t("c.reservations.OnlineBookingCard.advancePayment")}
       </h2>
 
       <dl className="mt-4 space-y-3 text-sm">

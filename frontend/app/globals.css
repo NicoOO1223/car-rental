@@ -2,8 +2,8 @@
 
 /*
   This app is light-only. Its colours are a set of greys, one brand colour
-  (the accent, which each business can set) and two fixed status tints,
-  warning and danger. Components use the tokens below and never a raw
+  (the accent, which each business can set) and three fixed status tints:
+  warning, danger and success. Components use the tokens below and never a raw
   palette class; scripts/check-colors.mjs enforces that.
 
   There is no prefers-color-scheme block here on purpose. One used to
@@ -56,6 +56,14 @@
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
 
+  /* Green: something is done or paid (an advance received, the suggested
+     pick). Fixed like the other two, so it never follows the brand colour. */
+  --success: #166534;
+  --success-soft: #dcfce7;
+  --success-line: #86efac;
+  /* A fill (a status dot), brighter than the text green above. */
+  --success-strong: #16a34a;
+
   /* A dark surface (a tooltip, a dark notice). Not an action, so it does
      not follow the brand colour. */
   --deep: #0a0a0a;
@@ -91,6 +99,11 @@
 
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-success-strong: var(--success-strong);
 
   --color-deep: var(--deep);
   --color-on-deep: var(--on-deep);

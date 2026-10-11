@@ -35,6 +35,9 @@ BUSINESS_FIELDS = {
     "defaultLanguage": "default_language",
     "documentLanguage": "document_language",
     "invoicePrefix": "invoice_prefix",
+    # "APPROVAL" (every booking is a request staff approve, then the advance is
+    # paid) or "INSTANT" (paid at once on the website). A new stack defaults to APPROVAL.
+    "bookingFlow": "booking_flow",
 }
 
 
@@ -91,6 +94,9 @@ def apply_stack_setup(
         return result
 
     updates = business_updates(business or {})
+
+    # A new stack takes bookings as requests unless its manifest says otherwise.
+    updates.setdefault("booking_flow", "APPROVAL")
 
     admin = User(
         email=normalize_email(admin_email),

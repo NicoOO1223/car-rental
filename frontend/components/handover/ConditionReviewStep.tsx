@@ -36,10 +36,10 @@ function readAsDataUrl(file: File): Promise<string> {
 }
 
 /**
- * An optional step for both check-in and check-out: reassess tire
- * condition, attach exterior/interior photos. Deliberately never gates
- * payment, signature or completion — see app/models/condition_review.py
- * (backend) for why.
+ * An optional step for both check-in and check-out: attach exterior/interior
+ * photos, and, when the car comes back, reassess its tires (they are not
+ * checked at pickup). Deliberately never gates payment, signature or
+ * completion — see app/models/condition_review.py (backend) for why.
  */
 export function ConditionReviewStep({ reservationId, kind }: Props) {
   const [review, setReview] = useState<ConditionReview | null>(null);
@@ -149,36 +149,49 @@ export function ConditionReviewStep({ reservationId, kind }: Props) {
   return (
     <Card>
       <h2 className="text-lg font-semibold text-ink">{t("c.handover.ConditionReviewStep.title")}</h2>
-      <p className="mt-1 text-sm text-ink-secondary">{t("c.handover.ConditionReviewStep.optionalHint")}</p>
+      <p className="mt-1 text-sm text-ink-secondary">
+        {kind === "CHECK_OUT"
+          ? t("c.handover.ConditionReviewStep.optionalHint")
+          : t("c.handover.ConditionReviewStep.optionalHintPickup")}
+      </p>
 
       <div className="mt-5 space-y-5">
-        <SelectField
-          label={t("c.handover.ConditionReviewStep.tireCondition")}
-          disabled={loading || savingTire}
-          value={tireCondition}
-          onChange={(event) => handleTireConditionChange(event.target.value)}
-        >
-          <option value="">{t("c.handover.ConditionReviewStep.unknown")}</option>
-          {TIRE_CONDITION_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {enumLabel("tireCondition", option)}
-            </option>
-          ))}
-        </SelectField>
+        {/* Tires are only assessed when the car comes back. */}
+        {kind === "CHECK_OUT" && (
+          <SelectField
+            label={t("c.handover.ConditionReviewStep.tireCondition")}
+            disabled={loading || savingTire}
+            value={tireCondition}
+            onChange={(event) => handleTireConditionChange(event.target.value)}
+          >
+            <option value="">{t("c.handover.ConditionReviewStep.unknown")}</option>
+            {TIRE_CONDITION_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {enumLabel("tireCondition", option)}
+              </option>
+            ))}
+          </SelectField>
+        )}
 
-        {(["EXTERIOR", "INTERIOR"] as const).map((category) => (
-          <div key={category}>
-            <p className="text-sm font-medium text-ink">
-              {category === "EXTERIOR"
-                ? t("c.handover.ConditionReviewStep.exteriorPhotos")
-                : t("c.handover.ConditionReviewStep.interiorPhotos")}
-            </p>
+        {/* Exterior and interior in one row, as plain groups (no boxes), each as wide as its
+            photos need; the button to add one is below them. They wrap on a narrow screen. */}
+        <div className="flex flex-wrap gap-x-10 gap-y-5">
+          {(["EXTERIOR", "INTERIOR"] as const).map((category) => (
+            <div key={category} className="flex min-w-0 flex-col">
+              <p className="text-sm font-medium text-ink">
+                {category === "EXTERIOR"
+                  ? t("c.handover.ConditionReviewStep.exteriorPhotos")
+                  : t("c.handover.ConditionReviewStep.interiorPhotos")}
+              </p>
 
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              {photosFor(category).map((thumb) => (
-                // eslint-disable-next-line @next/next/no-img-element -- an authenticated blob URL, not a static asset Next can optimize
-                <img key={thumb.id} src={thumb.url} alt="" className="h-20 w-20 rounded-lg object-cover" />
-              ))}
+              {photosFor(category).length > 0 && (
+                <div className="mt-2 flex max-w-[11rem] flex-wrap content-start gap-2">
+                  {photosFor(category).map((thumb) => (
+                    // eslint-disable-next-line @next/next/no-img-element -- an authenticated blob URL, not a static asset Next can optimize
+                    <img key={thumb.id} src={thumb.url} alt="" className="h-20 w-20 rounded-lg object-cover" />
+                  ))}
+                </div>
+              )}
 
               <input
                 ref={category === "EXTERIOR" ? exteriorInput : interiorInput}
@@ -198,6 +211,7 @@ export function ConditionReviewStep({ reservationId, kind }: Props) {
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="mt-2 self-start"
                 loading={uploading === category}
                 onClick={() => (category === "EXTERIOR" ? exteriorInput : interiorInput).current?.click()}
               >
@@ -205,8 +219,8 @@ export function ConditionReviewStep({ reservationId, kind }: Props) {
                 {t("c.handover.ConditionReviewStep.addPhoto")}
               </Button>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {error && (
           <p className="text-sm text-danger" role="alert">

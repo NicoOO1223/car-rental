@@ -130,6 +130,7 @@
     }
   },
   "status": {
+    "PENDING": "In attesa di approvazione",
     "AWAITING_PAYMENT": "In attesa di pagamento",
     "CONFIRMED": "Confermata",
     "ACTIVE": "Auto ritirata",
@@ -235,6 +236,16 @@
     "lookup": "Ritrova la mia prenotazione",
     "search": "Cerca di nuovo"
   },
+  "advance": {
+    "title": "Paga l'anticipo di {amount}",
+    "body": "La tua prenotazione è stata approvata. Il pagamento dell'anticipo la conferma.",
+    "deadline": "Paga entro il {date} alle {time}. L'auto è riservata per te fino ad allora.",
+    "remainder": "I restanti {amount} si pagano al ritiro.",
+    "acceptTerms": "Accetto i <link>termini e condizioni</link>.",
+    "acceptPrivacy": "Ho letto l'<link>informativa sulla privacy</link>.",
+    "pay": "Paga {amount}",
+    "preparing": "Preparazione del pagamento…"
+  },
   "booking": {
     "title": "La tua prenotazione",
     "reference": "Riferimento",
@@ -242,6 +253,12 @@
     "confirmedBody": "Hai pagato {paid} online. I restanti {rest} si pagano al ritiro.",
     "confirmedFull": "Hai pagato {paid} online. Al ritiro non c’è nulla da pagare.",
     "keepReference": "Conserva questo riferimento: serve per ritrovare la prenotazione.",
+    "copyReference": "Copia il riferimento",
+    "referenceCopied": "Copiato",
+    "requestedTitle": "Richiesta ricevuta",
+    "requestedBody": "Abbiamo ricevuto la tua richiesta di prenotazione. Ti scriveremo appena sarà approvata e ti diremo come pagare l'anticipo, se dovuto.",
+    "pendingNote": "La tua richiesta non è ancora stata approvata. Non devi fare nulla: ti scriveremo.",
+    "cancelNeedsLookup": "Per annullare questa prenotazione, cercala con il riferimento e l'email.",
     "waitingTitle": "In attesa di pagamento",
     "waitingBody": "L’auto è riservata fino alle {time}. Completa il pagamento per confermare la prenotazione.",
     "expiredNote": "Questa prenotazione è scaduta perché non è stata pagata in tempo.",

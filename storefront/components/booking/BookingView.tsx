@@ -5,12 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
 
+import { AdvancePayment } from "@/components/booking/AdvancePayment";
+import { CopyReference } from "@/components/booking/CopyReference";
 import { VehicleArt } from "@/components/VehicleArt";
 import { VehicleSpecs } from "@/components/VehicleSpecs";
 import { api, carPhotoUrl, type Booking } from "@/lib/client";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, formatTime } from "@/lib/format";
-import { manageToken } from "@/lib/session";
+import { anyToken, manageToken, payToken } from "@/lib/session";
 import { vehicleName } from "@/lib/vehicleText";
 
 const primary =
@@ -22,7 +24,9 @@ const secondary =
 export function BookingView({ language, reference }: { language: string; reference: string }) {
   const t = useTranslations("booking");
   const all = useTranslations();
-  const justConfirmed = useSearchParams().get("confirmed") === "1";
+  const search = useSearchParams();
+  const justConfirmed = search.get("confirmed") === "1";
+  const justRequested = search.get("requested") === "1";
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState("");
@@ -31,7 +35,16 @@ export function BookingView({ language, reference }: { language: string; referen
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    const token = manageToken.get(reference);
+    // The link in a payment-request email carries a token after the #, so it
+    // never reaches a server log. Keep it for this tab and take it off the address.
+    const fromLink = /(?:^|&)pay=([^&]+)/.exec(window.location.hash.slice(1));
+
+    if (fromLink) {
+      payToken.set(reference, decodeURIComponent(fromLink[1]));
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
+
+    const token = anyToken(reference);
 
     if (!token) {
       setNeedsLookup(true);
@@ -50,6 +63,7 @@ export function BookingView({ language, reference }: { language: string; referen
   }, [reference]);
 
   async function handleCancel() {
+    // Cancelling needs the full token, not just a payment link's.
     const token = manageToken.get(reference);
 
     if (!token) return setNeedsLookup(true);
@@ -94,9 +108,19 @@ export function BookingView({ language, reference }: { language: string; referen
   const deadline = booking.cancellation_deadline_at;
   const zone = booking.pickup_location.timezone;
   const statusKey = `status.${booking.status}`;
+  const mayCancelHere = manageToken.get(reference) !== null;
+  const payment = anyToken(reference);
 
   return (
     <div className="space-y-6">
+      {justRequested && booking.status === "PENDING" && (
+        <section className="rounded-xl bg-gray-900 p-6 text-white" role="status">
+          <h1 className="text-xl font-bold">{t("requestedTitle")}</h1>
+          <p className="mt-2 text-gray-200">{t("requestedBody")}</p>
+          <p className="mt-2 text-sm text-gray-300">{t("keepReference")}</p>
+        </section>
+      )}
+
       {justConfirmed && booking.status === "CONFIRMED" && (
         <section className="rounded-xl bg-gray-900 p-6 text-white" role="status">
           <h1 className="text-xl font-bold">{t("confirmedTitle")}</h1>
@@ -112,9 +136,13 @@ export function BookingView({ language, reference }: { language: string; referen
       <section className="rounded-xl bg-surface p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            {!justConfirmed && <h1 className="text-xl font-bold">{t("title")}</h1>}
+            {!justConfirmed && !justRequested && <h1 className="text-xl font-bold">{t("title")}</h1>}
             <p className="text-sm text-ink-muted">{t("reference")}</p>
-            <p className="font-mono text-2xl font-semibold tracking-wide">{booking.reference}</p>
+
+            <div className="flex items-center gap-1">
+              <p className="font-mono text-2xl font-semibold tracking-wide">{booking.reference}</p>
+              <CopyReference value={booking.reference} />
+            </div>
           </div>
 
           <span className="rounded-full bg-surface-sunken px-3 py-1 text-sm font-medium">
@@ -122,6 +150,7 @@ export function BookingView({ language, reference }: { language: string; referen
           </span>
         </div>
 
+        {booking.status === "PENDING" && <p className="mt-4 rounded-lg bg-surface-sunken p-3 text-sm text-ink-secondary">{t("pendingNote")}</p>}
         {booking.status === "AWAITING_PAYMENT" && booking.hold_expires_at && (
           <p className="mt-4 rounded-lg bg-surface-sunken p-3 text-sm text-ink-secondary">
             {t("waitingBody", { time: formatTime(booking.hold_expires_at, zone, language) })}
@@ -136,6 +165,8 @@ export function BookingView({ language, reference }: { language: string; referen
           </div>
         )}
       </section>
+
+      {booking.payment_open && payment && <AdvancePayment language={language} booking={booking} token={payment} />}
 
       <section className="grid gap-5 rounded-xl bg-surface p-5 shadow-sm sm:grid-cols-[14rem_1fr] sm:p-6">
         <VehicleArt
@@ -240,7 +271,14 @@ export function BookingView({ language, reference }: { language: string; referen
             </p>
           )}
 
-          {booking.can_cancel ? (
+          {booking.can_cancel && !mayCancelHere ? (
+            <p className="mt-3 text-sm text-ink-secondary">
+              {t("cancelNeedsLookup")}{" "}
+              <Link href={`/${language}/manage?reference=${encodeURIComponent(reference)}`} className="font-medium underline">
+                {t("lookup")}
+              </Link>
+            </p>
+          ) : booking.can_cancel ? (
             confirming ? (
               <div className="mt-4 rounded-lg border border-border-strong p-4">
                 <p className="font-semibold">{t("cancelTitle")}</p>

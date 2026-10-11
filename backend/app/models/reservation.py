@@ -163,8 +163,20 @@ class Reservation(Base):
     agreed_airport_change_fee: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     agreed_total_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     agreed_currency: Mapped[str | None] = mapped_column(String(3))
+    # A manual change to the price: signed (a discount is negative), on the
+    # same basis as the other lines (gross when prices include VAT). It is a
+    # line of its own on the payment screen, invoice and agreement, and it
+    # survives a re-price of the rate and fees. See services/price_adjustments.py.
+    price_adjustment_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    price_adjustment_reason: Mapped[str | None] = mapped_column(String(300))
+    price_adjusted_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    price_adjusted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # The share paid online, as set when the booking was made.
     prepayment_percent: Mapped[int | None] = mapped_column(Integer)
+    # The advance asked of the renter when staff approved the booking.
+    advance_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     # A keyed hash of the booker's address, for limits on live holds.
     client_ip_hash: Mapped[str | None] = mapped_column(String(64))
 

@@ -161,6 +161,10 @@ def render_agreement_pdf(db: Session, reservation, car, handover) -> bytes:
         quantity_label = f"{extra_line.quantity} x " if extra_line.quantity > 1 else ""
         extra_name = localized_name(extra_line.name, extra_words.get(extra_line.code), language)
         money_line(f"{quantity_label}{extra_name}", extra_line.amount)
+    if breakdown.adjustment:
+        reason = (reservation.price_adjustment_reason or "").strip()
+        adjustment_name = label(language, "agreement.price_adjustment")
+        money_line(f"{adjustment_name}: {reason}" if reason else adjustment_name, breakdown.adjustment)
     amount = handover.payment_amount if handover.payment_amount is not None else breakdown.total_amount
     online = prepaid_amount(db, reservation.id)
 

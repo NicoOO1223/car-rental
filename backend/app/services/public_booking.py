@@ -40,6 +40,8 @@ from app.services.email_outbox import (
     queue_booking_confirmed,
     queue_needs_attention,
     queue_new_online_booking,
+    queue_payment_expired,
+    queue_request_received,
     queue_online_cancellation,
 )
 from app.services.availability import (
@@ -56,6 +58,7 @@ from app.services.prepayments import refund_prepayment
 from app.services.public_catalog import (
     cancellation_deadline,
     cars_for_offer,
+    classes_enabled,
     offer_for,
     offer_key,
     public_vehicle_fields,
@@ -80,22 +83,9 @@ MAX_HOLDS_PER_IP = 3
 MAX_HOLDS_PER_EMAIL = 2
 MAX_HOLDS_TOTAL = 100
 
-# No 0, O, 1, I or L: a reference is read out and typed in by people.
-_REFERENCE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
-
-
-def new_reference() -> str:
-    letters = "".join(secrets.choice(_REFERENCE_ALPHABET) for _ in range(8))
-
-    return f"{letters[:4]}-{letters[4:]}"
-
-
-def normalize_reference(text: str) -> str:
-    """What a renter typed, as stored: upper case with the dash in place."""
-
-    compact = "".join(ch for ch in text.upper() if ch.isalnum())
-
-    return f"{compact[:4]}-{compact[4:]}" if len(compact) == 8 else text.strip().upper()
+# The reference helpers live in services/references.py; imported here because
+# this is where they were first used.
+from app.services.references import new_reference, normalize_reference  # noqa: E402,F401
 
 
 def hash_ip(ip: str) -> str:
@@ -138,6 +128,42 @@ def enforce_hold_caps(db: Session, ip_hash: str, email: str, now: datetime) -> N
         raise too_many()
 
 
+# Requests waiting for a staff answer (the approval flow), counted the same way.
+MAX_REQUESTS_PER_IP = 10
+MAX_REQUESTS_PER_EMAIL = 5
+MAX_REQUESTS_TOTAL = 500
+
+
+def enforce_request_caps(db: Session, ip_hash: str, email: str) -> None:
+    """Stops one visitor filling the request list with bookings nobody will answer."""
+
+    open_request = (Reservation.status == "PENDING", Reservation.source == "STOREFRONT")
+
+    def too_many():
+        return AppError(
+            "public.too_many_requests",
+            "You have too many booking requests waiting for an answer. Please wait for a reply.",
+            status_code=429,
+        )
+
+    if db.scalar(select(func.count(Reservation.id)).where(*open_request)) >= MAX_REQUESTS_TOTAL:
+        raise AppError(
+            "public.busy", "Online booking is very busy right now. Please try again shortly.", status_code=503
+        )
+
+    if db.scalar(select(func.count(Reservation.id)).where(*open_request, Reservation.client_ip_hash == ip_hash)) >= MAX_REQUESTS_PER_IP:
+        raise too_many()
+
+    per_email = db.scalar(
+        select(func.count(Reservation.id))
+        .join(Customer, Customer.id == Reservation.customer_id)
+        .where(*open_request, func.lower(Customer.email) == email.lower())
+    )
+
+    if per_email >= MAX_REQUESTS_PER_EMAIL:
+        raise too_many()
+
+
 def _require_stripe() -> None:
     if not stripe.api_key:
         raise AppError(
@@ -164,7 +190,7 @@ def _pick_and_lock_car(db: Session, candidates, data, resolved_pickup_at, resolv
     return None
 
 
-def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservation, ReservationPayment, str, Decimal, Decimal]:
+def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservation, ReservationPayment | None, str | None, Decimal, Decimal]:
     """
     Holds a car for the renter and starts the payment of the online share.
     Returns (reservation, payment, stripe client secret, online amount, amount
@@ -181,12 +207,21 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
         raise AppError("public.terms_required", "Please accept the terms and acknowledge the privacy notice to book.")
 
     require_human(data.captcha_token, ip)
-    _require_stripe()
+
+    # In the approval flow the booking is a request: nothing is paid, and nothing is
+    # held, until staff approve it.
+    approval = configuration.booking_flow == "APPROVAL"
+
+    if not approval:
+        _require_stripe()
 
     ip_hash = hash_ip(ip)
     email = data.customer.email.strip()
 
-    enforce_hold_caps(db, ip_hash, email, now)
+    if approval:
+        enforce_request_caps(db, ip_hash, email)
+    else:
+        enforce_hold_caps(db, ip_hash, email, now)
 
     candidates = cars_for_offer(db, data.offer_key, data.pickup_location_id, data.pickup_at, data.return_at)
 
@@ -195,7 +230,9 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
 
     resolved_extras = resolve_extra_selections(db, data.extras)
 
-    if candidates[0].class_id is not None:
+    classes_on = classes_enabled(db)
+
+    if classes_on and candidates[0].class_id is not None:
         # A class: the best-fitting free car, held provisionally.
         car = pick_car_for_class(
             db, candidates[0].class_id, data.pickup_location_id, data.pickup_at, data.return_at, online_only=True
@@ -226,17 +263,18 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
         car_id=car.id,
         class_id=car.class_id,
         # The renter chose a class, not this car: staff may swap it until pickup.
-        car_confirmed=car.class_id is None,
+        # With classes off the renter always chose this car.
+        car_confirmed=not (classes_on and car.class_id is not None),
         pickup_location_id=data.pickup_location_id,
         return_location_id=data.return_location_id,
         pickup_at=data.pickup_at,
         return_at=data.return_at,
-        status="AWAITING_PAYMENT",
+        status="PENDING" if approval else "AWAITING_PAYMENT",
         source="STOREFRONT",
         language=data.language,
-        hold_expires_at=now + timedelta(minutes=configuration.hold_minutes),
-        prepayment_percent=configuration.online_share_percent,
-        cancellation_deadline_at=cancellation_deadline(configuration, data.pickup_at),
+        hold_expires_at=None if approval else now + timedelta(minutes=configuration.hold_minutes),
+        prepayment_percent=None if approval else configuration.online_share_percent,
+        cancellation_deadline_at=None if approval else cancellation_deadline(configuration, data.pickup_at),
         client_ip_hash=ip_hash,
         extras=build_reservation_extras(resolved_extras),
     )
@@ -281,6 +319,16 @@ def create_booking(db: Session, data, configuration, ip: str) -> tuple[Reservati
         entity_id=reservation.id,
         metadata={"car_id": str(car.id), "source": "storefront", "reference": reservation.public_reference},
     )
+
+    if approval:
+        # A request: staff are told, the renter is told it arrived, and that is all.
+        db.flush()
+        db.refresh(reservation)
+        queue_request_received(db, reservation)
+        db.commit()
+        db.refresh(reservation)
+
+        return reservation, None, None, online, at_pickup
 
     # The hold is committed (and the car unlocked) before Stripe is called.
     db.commit()
@@ -539,6 +587,11 @@ def _expire_one(db: Session, reservation_id, now: datetime) -> str:
         metadata={"reference": reservation.public_reference},
     )
 
+    # A renter who was asked for an advance and let it lapse is told so; a checkout
+    # that was simply abandoned is not.
+    if reservation.advance_amount is not None:
+        queue_payment_expired(db, reservation)
+
     return "expired"
 
 
@@ -547,9 +600,8 @@ def _expire_one(db: Session, reservation_id, now: datetime) -> str:
 
 def find_booking(db: Session, reference: str, email: str) -> Reservation:
     """
-    The storefront booking with this reference and this booker's email. Every
-    way of not finding one (wrong reference, wrong email, a staff booking)
-    gives the same answer, so the lookup cannot be used to discover which
+    The booking with this reference and this booker's email, whoever made it.
+    Every way of not finding one (wrong reference, wrong email) gives the same answer, so the lookup cannot be used to discover which
     references exist.
     """
 
@@ -557,7 +609,6 @@ def find_booking(db: Session, reference: str, email: str) -> Reservation:
         select(Reservation)
         .join(Customer, Customer.id == Reservation.customer_id)
         .where(
-            Reservation.source == "STOREFRONT",
             Reservation.public_reference == normalize_reference(reference),
             func.lower(Customer.email) == email.strip().lower(),
         )
@@ -574,7 +625,7 @@ def find_booking(db: Session, reference: str, email: str) -> Reservation:
 
 
 def _can_cancel(reservation: Reservation, now: datetime) -> bool:
-    return reservation.status in ("AWAITING_PAYMENT", "CONFIRMED") and reservation.pickup_at > now
+    return reservation.status in ("PENDING", "AWAITING_PAYMENT", "CONFIRMED") and reservation.pickup_at > now
 
 
 def booking_view(db: Session, reservation: Reservation):
@@ -619,7 +670,7 @@ def booking_view(db: Session, reservation: Reservation):
         return_location=location(reservation.return_location),
         vehicle=PublicVehicle(
             **{
-                **public_vehicle_fields(offer_for(car)),
+                **public_vehicle_fields(offer_for(car, classes_on=classes_enabled(db))),
                 "price_per_day": float(reservation.agreed_price_per_day or car.price_per_day),
             }
         ),
@@ -633,6 +684,14 @@ def booking_view(db: Session, reservation: Reservation):
         cancellation_deadline_at=reservation.cancellation_deadline_at,
         can_cancel=_can_cancel(reservation, now),
         cancel_refunds_online=refund_is_free(reservation, now),
+        advance_amount=float(reservation.advance_amount) if reservation.advance_amount is not None else None,
+        payment_open=(
+            reservation.status == "AWAITING_PAYMENT"
+            and reservation.advance_amount is not None
+            and reservation.hold_expires_at is not None
+            and reservation.hold_expires_at > now
+        ),
+        terms_accepted=reservation.customer.terms_accepted_at is not None,
     )
 
 

@@ -214,6 +214,21 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
         captcha_token: captchaToken,
       });
 
+      manageToken.set(created.reference, created.manage_token);
+
+      // Signed in: the booking also goes on the account's list. A guest has no
+      // session and this just fails quietly; the booking itself is already made.
+      void accountApi.claim({ reference: created.reference, email: details.email.trim() }).catch(() => undefined);
+
+      // A request to be approved: nothing is paid or held yet. The booking page
+      // says so, and the renter is emailed when staff answer.
+      if (!created.requires_payment || !created.client_secret || !created.hold_expires_at) {
+        pendingBooking.clear();
+        router.push(`/${language}/booking/${encodeURIComponent(created.reference)}?requested=1`);
+
+        return;
+      }
+
       const saved: PendingBooking = {
         reference: created.reference,
         clientSecret: created.client_secret,
@@ -225,11 +240,6 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
         summary: { vehicle: vehicleName(offer, language), pickup: search.from, dropoff: search.to },
       };
 
-      manageToken.set(created.reference, created.manage_token);
-
-      // Signed in: the booking also goes on the account's list. A guest has no
-      // session and this just fails quietly; the booking itself is already made.
-      void accountApi.claim({ reference: created.reference, email: details.email.trim() }).catch(() => undefined);
       pendingBooking.set(saved);
       setPending(saved);
       setStep("payment");
@@ -392,7 +402,7 @@ export function BookingWizard({ language, holdMinutes }: { language: string; hol
                       {vehicleName(candidate, language)}{" "}
                       <span className="text-sm font-normal text-ink-muted">
                         {exampleCar(candidate, language) ? `${exampleCar(candidate, language)} ` : ""}
-                        {t("vehicles.orSimilar")}
+                        {candidate.or_similar ? t("vehicles.orSimilar") : ""}
                       </span>
                     </h2>
 

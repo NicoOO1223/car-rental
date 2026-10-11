@@ -119,6 +119,9 @@ class PriceBreakdown:
     # what it was before VAT existed.
     vat_rate: Decimal = Decimal("0.00")
     prices_include_vat: bool = True
+    # A manual change by staff (see services/price_adjustments.py): signed, on
+    # the same basis as the lines above. Use `adjustment` for what is applied.
+    adjustment_amount: Decimal = Decimal("0.00")
 
     @property
     def extras_amount(self) -> Decimal:
@@ -128,9 +131,8 @@ class PriceBreakdown:
         )
 
     @property
-    def lines_amount(self) -> Decimal:
-        """The itemized lines added up, in the price basis they were entered
-        in: gross when prices include VAT, net when they do not."""
+    def subtotal_amount(self) -> Decimal:
+        """The itemized lines before any manual adjustment."""
 
         return (
             self.base_amount
@@ -138,6 +140,20 @@ class PriceBreakdown:
             + self.airport_change_fee
             + self.extras_amount
         )
+
+    @property
+    def adjustment(self) -> Decimal:
+        """The manual adjustment as applied: a discount can take the price to
+        nothing, never below it (a later shorter rental cannot make it negative)."""
+
+        return max(self.adjustment_amount, -self.subtotal_amount)
+
+    @property
+    def lines_amount(self) -> Decimal:
+        """The itemized lines added up, in the price basis they were entered
+        in: gross when prices include VAT, net when they do not."""
+
+        return self.subtotal_amount + self.adjustment
 
     @property
     def vat_amount(self) -> Decimal:
@@ -210,6 +226,7 @@ def calculate_price_breakdown(
     vat_rate: Decimal = Decimal("0.00"),
     prices_include_vat: bool = True,
     timezone_name: str | None = None,
+    adjustment_amount: Decimal = Decimal("0.00"),
 ) -> PriceBreakdown:
     """
     Itemized reservation cost, applied at handover-payment time (so it
@@ -266,4 +283,5 @@ def calculate_price_breakdown(
         ],
         vat_rate=Decimal(vat_rate),
         prices_include_vat=prices_include_vat,
+        adjustment_amount=Decimal(adjustment_amount or 0),
     )

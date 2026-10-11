@@ -130,6 +130,7 @@
     }
   },
   "status": {
+    "PENDING": "Oczekuje na zatwierdzenie",
     "AWAITING_PAYMENT": "Oczekuje na płatność",
     "CONFIRMED": "Potwierdzona",
     "ACTIVE": "Auto odebrane",
@@ -235,6 +236,16 @@
     "lookup": "Znajdź moją rezerwację",
     "search": "Szukaj ponownie"
   },
+  "advance": {
+    "title": "Wpłać zaliczkę {amount}",
+    "body": "Twoja rezerwacja została zatwierdzona. Wpłata zaliczki ją potwierdza.",
+    "deadline": "Wpłać do {date} o {time}. Samochód jest dla Ciebie zarezerwowany do tego czasu.",
+    "remainder": "Pozostałe {amount} płacisz przy odbiorze.",
+    "acceptTerms": "Akceptuję <link>regulamin</link>.",
+    "acceptPrivacy": "Zapoznałem(-am) się z <link>informacją o prywatności</link>.",
+    "pay": "Zapłać {amount}",
+    "preparing": "Przygotowanie płatności…"
+  },
   "booking": {
     "title": "Twoja rezerwacja",
     "reference": "Numer rezerwacji",
@@ -242,6 +253,12 @@
     "confirmedBody": "Zapłacono online {paid}. Pozostałe {rest} zapłacisz przy odbiorze.",
     "confirmedFull": "Zapłacono online {paid}. Przy odbiorze nic nie musisz płacić.",
     "keepReference": "Zachowaj ten numer: dzięki niemu odnajdziesz rezerwację.",
+    "copyReference": "Kopiuj numer",
+    "referenceCopied": "Skopiowano",
+    "requestedTitle": "Prośba otrzymana",
+    "requestedBody": "Otrzymaliśmy Twoją prośbę o rezerwację. Napiszemy do Ciebie, gdy tylko zostanie zatwierdzona, i poinformujemy, jak wpłacić zaliczkę, jeśli jest wymagana.",
+    "pendingNote": "Twoja prośba nie została jeszcze zatwierdzona. Nie musisz nic robić: napiszemy do Ciebie.",
+    "cancelNeedsLookup": "Aby anulować tę rezerwację, wyszukaj ją po numerze i adresie e-mail.",
     "waitingTitle": "Oczekiwanie na płatność",
     "waitingBody": "Auto jest zarezerwowane do godz. {time}. Dokończ płatność, aby potwierdzić rezerwację.",
     "expiredNote": "Ta rezerwacja wygasła, bo nie została opłacona na czas.",

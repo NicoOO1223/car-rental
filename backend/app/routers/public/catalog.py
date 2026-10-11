@@ -39,6 +39,7 @@ from app.services.public_catalog import (
     bookable_cars,
     cancellation_deadline,
     car_for_offer_key,
+    classes_enabled,
     cars_for_offer,
     group_into_offers,
     offered_cars,
@@ -184,7 +185,7 @@ def public_fleet(configuration=Depends(enabled_configuration), db: Session = Dep
 
     return [
         PublicVehicle(**public_vehicle_fields(offer))
-        for offer, _ in group_into_offers(offered_cars(db))
+        for offer, _ in group_into_offers(offered_cars(db), classes_enabled(db))
     ]
 
 
@@ -282,7 +283,9 @@ def public_availability(
 
     pickup_timezone = location_timezone_name(db, pickup_location_id)
 
-    for offer, cars in group_into_offers(bookable_cars(db, pickup_location_id, pickup_at, return_at)):
+    classes_on = classes_enabled(db)
+
+    for offer, cars in group_into_offers(bookable_cars(db, pickup_location_id, pickup_at, return_at), classes_on):
         breakdown = _breakdown_for(
             cars[0], configuration, pickup_location_id, return_location_id, pickup_at, return_at, pickup_timezone
         )

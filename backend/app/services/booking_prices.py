@@ -60,6 +60,8 @@ def agreed_price_breakdown(
         extras=selections_from_reservation(reservation),
         # Days are counted on the clock at the pickup place.
         timezone_name=timezone_name,
+        # A manual change by staff; it stays when the rate and fees are re-stamped.
+        adjustment_amount=reservation.price_adjustment_amount or 0,
     )
 
 

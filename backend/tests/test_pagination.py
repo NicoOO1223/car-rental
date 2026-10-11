@@ -125,6 +125,32 @@ def test_reservation_status_filter_and_sort_order():
         _cancel(reservation)
 
 
+def test_reservation_open_filter_and_pending_first_order():
+    reservation = _make_reservation()
+
+    try:
+        rows = client.get(
+            "/api/reservations",
+            params={"status": "OPEN", "sort": "pending_first", "limit": 100},
+        ).json()["items"]
+
+        assert rows
+        assert {row["status"] for row in rows} <= {"PENDING", "AWAITING_PAYMENT", "CONFIRMED", "ACTIVE"}
+
+        pending = [row for row in rows if row["status"] == "PENDING"]
+        rest = [row for row in rows if row["status"] != "PENDING"]
+
+        # Pending ones on top, the longest-waiting first; the rest by what happens next.
+        assert rows == pending + rest
+        assert [row["created_at"] for row in pending] == sorted(row["created_at"] for row in pending)
+        assert [row["pickup_at"] for row in rest] == sorted(row["pickup_at"] for row in rest)
+
+        closed = client.get("/api/reservations", params={"status": "OPEN", "limit": 100}).json()["items"]
+        assert all(row["status"] not in ("COMPLETED", "CANCELLED", "EXPIRED") for row in closed)
+    finally:
+        _cancel(reservation)
+
+
 def test_reservation_status_filter_rejects_unknown_values():
     assert client.get("/api/reservations", params={"status": "NOPE"}).status_code == 422
 
@@ -213,6 +239,7 @@ def test_reservation_summary_counts():
             "active",
             "upcoming",
             "overdue_returns",
+            "awaiting_payment",
             "pending",
         }
         assert summary["total"] >= 1

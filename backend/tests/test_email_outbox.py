@@ -34,6 +34,19 @@ client = TestClient(app)
 def email_on(monkeypatch):
     monkeypatch.setenv("EMAIL_CONNECTION_STRING", "endpoint=https://example.communication.azure.com/;accesskey=fake")
     monkeypatch.setenv("EMAIL_FROM_ADDRESS", "bookings@example.com")
+    _without_request_received()
+
+
+def _without_request_received():
+    """The request-received email has its own tests; the ones using this fixture are
+    about the other emails and count what a booking queues."""
+
+    db = SessionLocal()
+    try:
+        db.merge(EmailTypeSetting(type="request_received", enabled=False, options={}))
+        db.commit()
+    finally:
+        db.close()
 
 
 @pytest.fixture(autouse=True)
@@ -546,40 +559,36 @@ def test_the_confirmation_has_the_address_the_cancellation_deadline_and_a_footer
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 
-def test_the_manage_link_is_there_for_a_booking_made_on_the_website_and_the_line_vanishes_otherwise(email_on, monkeypatch):
+def test_the_manage_link_is_in_every_booking_and_the_line_vanishes_only_without_a_booking_site(email_on, monkeypatch):
+    # Every booking has a reference now, whoever made it, so each can be linked to.
     monkeypatch.setenv("STOREFRONT_URL", "https://shop.example.com/")
-    reservation = _booking()  # made by staff: no public reference
+    reservation = _booking()
+
+    try:
+        [message] = _messages(reservation["id"])
+        db = SessionLocal()
+        try:
+            from app.models import Reservation as ReservationRow
+
+            reference = db.get(ReservationRow, UUID(reservation["id"])).public_reference
+        finally:
+            db.close()
+
+        assert reference
+        assert f"https://shop.example.com/en/manage?reference={reference}" in message.body_text.replace("/it/", "/en/").replace("/pl/", "/en/")
+    finally:
+        client.patch(f"/api/reservations/{reservation['id']}/cancel")
+
+    # A stack with no booking site has nowhere to link to: the line is left out.
+    monkeypatch.delenv("STOREFRONT_URL", raising=False)
+    reservation = _booking()
 
     try:
         [message] = _messages(reservation["id"])
 
-        assert "shop.example.com" not in message.body_text.split("-- ")[0]
+        assert "/manage?reference=" not in message.body_text
         assert "View or manage your booking" not in message.body_text
     finally:
-        client.patch(f"/api/reservations/{reservation['id']}/cancel")
-
-    # With a reference, the link takes the renter to the lookup with it filled in.
-    db = SessionLocal()
-    try:
-        from app.models import Reservation as ReservationRow
-
-        reservation = _booking()
-        row = db.get(ReservationRow, UUID(reservation["id"]))
-        reference = uuid4().hex[:9].upper()
-        row.public_reference = reference
-        db.query(EmailMessage).delete()
-        db.commit()
-
-        email_outbox.queue_booking_confirmed(db, db.get(ReservationRow, UUID(reservation["id"])))
-        db.commit()
-
-        message = db.scalars(select(EmailMessage)).one()
-        assert f"https://shop.example.com/en/manage?reference={reference}" in message.body_text.replace("/it/", "/en/").replace("/pl/", "/en/")
-    finally:
-        db.rollback()
-        db.get(ReservationRow, UUID(reservation["id"])).public_reference = None
-        db.commit()
-        db.close()
         client.patch(f"/api/reservations/{reservation['id']}/cancel")
 
 

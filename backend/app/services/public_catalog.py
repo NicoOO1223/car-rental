@@ -24,6 +24,7 @@ from app.config import SECRET_KEY
 from app.errors import AppError, NotFoundError
 from app.models import Car, Configuration
 from app.services.availability import get_available_cars
+from app.services.configuration import get_configuration
 from app.services.locations import require_bookable_location
 from app.services.money import round_money
 
@@ -73,6 +74,12 @@ def validate_window(
         )
 
 
+def classes_enabled(db: Session) -> bool:
+    """Whether cars are grouped into vehicle classes (Configuration > Classes)."""
+
+    return get_configuration(db).use_vehicle_classes
+
+
 # --- Offers ---------------------------------------------------------------------------------
 
 
@@ -100,6 +107,8 @@ class Offer:
     has_photo: bool
     photo_version: int | None
     price_per_day: Decimal
+    # False when the business shows every car on its own (classes off).
+    or_similar: bool = True
 
 
 def _identity(car: Car) -> list:
@@ -119,11 +128,11 @@ def _identity(car: Car) -> list:
     ]
 
 
-def offer_key(car: Car) -> str:
+def offer_key(car: Car, classes_on: bool = True) -> str:
     """A class: "class-<slug>". Otherwise opaque, stable for as long as the cars
-    look the same, and not guessable."""
+    look the same, and not guessable. With classes off, every car is the second kind."""
 
-    if car.vehicle_class is not None:
+    if classes_on and car.vehicle_class is not None:
         return f"class-{car.vehicle_class.slug}"
 
     payload = json.dumps(_identity(car), separators=(",", ":")).encode()
@@ -138,17 +147,18 @@ def _example_car(cars: list[Car]) -> Car:
     return sorted(cars, key=lambda car: (not car.has_photo, car.license_plate))[0]
 
 
-def offer_for(car: Car, members: list[Car] | None = None) -> Offer:
+def offer_for(car: Car, members: list[Car] | None = None, classes_on: bool = True) -> Offer:
     """The offer a car belongs to. `members` are all the cars in it that are on show,
-    for a class made of different cars; without them the car stands alone."""
+    for a class made of different cars; without them the car stands alone.
+    With classes off, the car's class is ignored: it is an offer like any classless car."""
 
     cars = members or [car]
-    example = _example_car(cars) if car.vehicle_class is not None else car
+    cls = car.vehicle_class if classes_on else None
+    example = _example_car(cars) if cls is not None else car
     seats = [item.seats for item in cars if item.seats is not None]
-    cls = car.vehicle_class
 
     return Offer(
-        key=offer_key(car),
+        key=offer_key(car, classes_on),
         class_slug=cls.slug if cls else None,
         class_name=dict(cls.name) if cls else None,
         class_description=dict(cls.description) if cls else None,
@@ -168,6 +178,7 @@ def offer_for(car: Car, members: list[Car] | None = None) -> Offer:
         has_photo=example.has_photo or (cls is not None and cls.has_photo),
         photo_version=cls.photo_version if cls is not None and cls.has_photo else example.photo_version,
         price_per_day=car.price_per_day,
+        or_similar=classes_on,
     )
 
 
@@ -193,19 +204,20 @@ def public_vehicle_fields(offer: Offer) -> dict:
         "has_photo": offer.has_photo,
         "photo_version": offer.photo_version,
         "price_per_day": float(offer.price_per_day),
+        "or_similar": offer.or_similar,
     }
 
 
-def group_into_offers(cars: list[Car]) -> list[tuple[Offer, list[Car]]]:
+def group_into_offers(cars: list[Car], classes_on: bool = True) -> list[tuple[Offer, list[Car]]]:
     """Cars grouped by offer: classes first in the business's own order, then the
     cars without a class, cheapest first."""
 
     grouped: dict[str, list[Car]] = {}
 
     for car in cars:
-        grouped.setdefault(offer_key(car), []).append(car)
+        grouped.setdefault(offer_key(car, classes_on), []).append(car)
 
-    offers = [(offer_for(members[0], members), members) for members in grouped.values()]
+    offers = [(offer_for(members[0], members, classes_on), members) for members in grouped.values()]
 
     return sorted(
         offers,
@@ -219,31 +231,36 @@ def group_into_offers(cars: list[Car]) -> list[tuple[Offer, list[Car]]]:
     )
 
 
-def offerable(car: Car) -> bool:
-    """A car in a class is on show only while its class is: not retired, and offered online."""
+def offerable(car: Car, classes_on: bool = True) -> bool:
+    """A car in a class is on show only while its class is: not retired, and offered online.
+    With classes off the class has no say; the car's own switch decides."""
 
     cls = car.vehicle_class
 
-    return cls is None or (cls.retired_at is None and cls.offered_online)
+    return not classes_on or cls is None or (cls.retired_at is None and cls.offered_online)
 
 
 def bookable_cars(db: Session, pickup_location_id, pickup_at: datetime, return_at: datetime) -> list[Car]:
     """The cars the storefront may offer for this period, at this pickup place."""
 
+    classes_on = classes_enabled(db)
+
     return [
         car
         for car in get_available_cars(db, pickup_location_id, pickup_at, return_at, online_only=True)
-        if offerable(car)
+        if offerable(car, classes_on)
     ]
 
 
 def cars_for_offer(db: Session, key: str, pickup_location_id, pickup_at: datetime, return_at: datetime) -> list[Car]:
     """Every free car that is the offer with this key; empty when none is left."""
 
+    classes_on = classes_enabled(db)
+
     return [
         car
         for car in bookable_cars(db, pickup_location_id, pickup_at, return_at)
-        if hmac.compare_digest(offer_key(car), key)
+        if hmac.compare_digest(offer_key(car, classes_on), key)
     ]
 
 
@@ -254,7 +271,9 @@ def car_for_offer_key(db: Session, key: str) -> Car | None:
     availability, so it looks at the whole fleet, not just bookable cars).
     """
 
-    if key.startswith("class-"):
+    classes_on = classes_enabled(db)
+
+    if classes_on and key.startswith("class-"):
         # A class has a stable address: no need to hash the fleet. Prefer a car with a photo.
         from app.models import VehicleClass
 
@@ -266,8 +285,11 @@ def car_for_offer_key(db: Session, key: str) -> Car | None:
             .limit(1)
         ).first()
 
-    for car in db.scalars(select(Car).where(Car.class_id.is_(None))).all():
-        if hmac.compare_digest(offer_key(car), key):
+    # With classes off every car is a candidate, whether or not it has a class.
+    query = select(Car) if not classes_on else select(Car).where(Car.class_id.is_(None))
+
+    for car in db.scalars(query).all():
+        if hmac.compare_digest(offer_key(car, classes_on), key):
             return car
 
     return None
@@ -285,7 +307,9 @@ def offered_cars(db: Session) -> list[Car]:
         select(Car).where(Car.offered_online.is_(True), Car.retired_at.is_(None)).order_by(Car.make, Car.model, Car.license_plate)
     )
 
-    return [car for car in cars if offerable(car)]
+    classes_on = classes_enabled(db)
+
+    return [car for car in cars if offerable(car, classes_on)]
 
 
 # --- The online share -------------------------------------------------------------------------
@@ -295,13 +319,17 @@ def split_payment(total: Decimal, percent: int) -> tuple[Decimal, Decimal]:
     """
     (paid online now, paid at pickup). The share is the admin's percentage of
     the total, rounded to cents, never below the smallest charge Stripe accepts
-    and never more than the total. At 100 percent nothing is left for pickup.
+    and never more than the total. At 100 percent nothing is left for pickup,
+    and at 0 percent nothing is taken before it.
     """
 
     total = round_money(Decimal(total))
 
     if total <= 0:
         raise AppError("public.nothing_to_pay", "There is nothing to pay for this rental.")
+
+    if percent <= 0:
+        return Decimal("0.00"), total
 
     online = round_money(total * Decimal(percent) / Decimal(100))
     online = min(max(online, MIN_ONLINE_CHARGE), total)

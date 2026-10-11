@@ -14,14 +14,15 @@ import { categoryLabel } from "@/lib/carDisplay";
 import { classWords } from "@/lib/classDisplay";
 import { formatCurrency } from "@/lib/format";
 import { enumLabel, t } from "@/lib/i18n";
+import { useUsesVehicleClasses } from "@/lib/vehicleClasses";
 
 const STATUSES = ["AVAILABLE", "RESERVED", "RENTED", "MAINTENANCE", "CLEANING"];
 
 export type FleetVehicleFilters = { layout: string; location: string; status: string };
 
-/** What kind of car it is: its class when it has one, else its category. */
-function kindOf(car: Car): string {
-  return (car.vehicle_class ? classWords(car.vehicle_class.name) : categoryLabel(car.category)) ?? "";
+/** What kind of car it is: its class when it has one (and classes are on), else its category. */
+function kindOf(car: Car, classesOn: boolean): string {
+  return (classesOn && car.vehicle_class ? classWords(car.vehicle_class.name) : categoryLabel(car.category)) ?? "";
 }
 
 /**
@@ -49,6 +50,9 @@ export function FleetVehicles({
   /** Whether the page's search box has text in it, for the empty message. */
   searching: boolean;
 }) {
+  const classesOn = useUsesVehicleClasses();
+  const kind = (car: Car) => kindOf(car, classesOn);
+
   const locations = [...new Map(cars.map((car) => [car.home_location.airport_code, car.home_location])).values()].sort((a, b) =>
     a.airport_code.localeCompare(b.airport_code),
   );
@@ -87,9 +91,9 @@ export function FleetVehicles({
       id: "kind",
       header: t("s.cars.kind"),
       mobileLabel: "",
-      cell: (car) => kindOf(car) || "—",
+      cell: (car) => kind(car) || "—",
       sortable: true,
-      sortAccessor: kindOf,
+      sortAccessor: kind,
     },
     {
       id: "status",
@@ -229,7 +233,7 @@ export function FleetVehicles({
                     </span>
                   </div>
 
-                  <p className="mt-0.5 truncate text-sm text-ink-muted">{kindOf(car) || "—"}</p>
+                  <p className="mt-0.5 truncate text-sm text-ink-muted">{kind(car) || "—"}</p>
 
                   <p className={`mt-3 flex items-center gap-1.5 text-sm ${car.is_away_from_home ? "font-semibold text-warning" : "text-ink-secondary"}`}>
                     <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

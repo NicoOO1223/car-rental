@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeftRight, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, CalendarDays, RefreshCw } from "lucide-react";
 
 import {
   getReservations,
@@ -13,18 +13,25 @@ import { DataTable, TwoLine, type Column } from "@/components/ui/DataTable";
 import { PageHeader, PageShell } from "@/components/ui/PageHeader";
 import { StatTile, StatTileGrid } from "@/components/ui/StatTile";
 import { SubNav } from "@/components/ui/SubNav";
-import { formatAge, formatDateTime, formatDayTime } from "@/lib/format";
+import { formatAge, formatDateTime, formatDayTime, instantToZoned, todayInZone } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { t } from "@/lib/i18n";
 
 const FILTER_DEFAULTS = {
   tab: "check-in",
+  // "today" keeps only what is due today; everything else is "all".
+  day: "all",
 };
 
 type Tab = "check-in" | "check-out";
 
 const QUEUE_LIMIT = 100;
+
+/** Whether an instant falls on today's date at the place it happens (that place's own clocks). */
+function isToday(iso: string, timeZone: string): boolean {
+  return instantToZoned(iso, timeZone).date === todayInZone(timeZone);
+}
 
 /** "Late by 3h 20m" for an ACTIVE rental past its scheduled return. */
 function lateLabel(returnAt: string, now: number): string | null {
@@ -43,8 +50,10 @@ function lateLabel(returnAt: string, now: number): string | null {
 
 export default function HandoversPage() {
   const navigate = useNavigate();
-  const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS);
+  // Kept for the session, so the counter finds the list the way it was left.
+  const { filters, setFilters } = useUrlFilters(FILTER_DEFAULTS, { persist: true });
   const tab: Tab = filters.tab === "check-out" ? "check-out" : "check-in";
+  const todayOnly = filters.day === "today";
 
   // The two work queues, fetched by status. The server caps a page at
   // QUEUE_LIMIT rows, far more than a counter can work through; if a queue
@@ -220,7 +229,16 @@ export default function HandoversPage() {
       ? [customerColumn, vehicleColumn, pickupColumn, returnColumn, bookedColumn]
       : [customerColumn, vehicleColumn, returnColumn, pickupColumn, bookedColumn];
 
-  const rows = tab === "check-in" ? awaitingCheckIn : awaitingCheckOut;
+  // A pickup counts as today by the clocks of the place the car is handed over at,
+  // a return by the clocks of the place it comes back to.
+  const dueToday = {
+    "check-in": awaitingCheckIn.filter((r) => isToday(r.pickup_at, r.pickup_location.timezone)),
+    "check-out": awaitingCheckOut.filter((r) => isToday(r.return_at, r.return_location.timezone)),
+  };
+  // Overdue, but only the returns that were due earlier today (an older one is not "today").
+  const overdueToday = dueToday["check-out"].filter((r) => new Date(r.return_at).getTime() < now).length;
+  const queue = tab === "check-in" ? awaitingCheckIn : awaitingCheckOut;
+  const rows = todayOnly ? dueToday[tab] : queue;
 
   function openHandover(reservation: Reservation) {
     navigate(
@@ -267,32 +285,47 @@ export default function HandoversPage() {
       <StatTileGrid columns={3} className="mb-6">
         <StatTile
           label={t("s.handovers.awaitingCheck")}
-          value={checkInTotal}
+          value={todayOnly ? dueToday["check-in"].length : checkInTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
           label={t("s.handovers.awaitingCheckOut")}
-          value={checkOutTotal}
+          value={todayOnly ? dueToday["check-out"].length : checkOutTotal}
           icon={ArrowLeftRight}
         />
         <StatTile
           label={t("s.handovers.overdueReturns")}
-          value={overdueCount}
+          value={todayOnly ? overdueToday : overdueCount}
           icon={ArrowLeftRight}
         />
       </StatTileGrid>
 
-      <SubNav
-        className="mb-4"
-        activeId={tab}
-        onSelect={(id) => setFilters({ tab: id })}
-        items={[
-          { id: "check-in", label: t("s.handovers.check"), count: checkInTotal },
-          { id: "check-out", label: t("s.handovers.checkOut"), count: checkOutTotal },
-        ]}
-      />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SubNav
+          activeId={tab}
+          onSelect={(id) => setFilters({ tab: id })}
+          items={[
+            { id: "check-in", label: t("s.handovers.check"), count: todayOnly ? dueToday["check-in"].length : checkInTotal },
+            { id: "check-out", label: t("s.handovers.checkOut"), count: todayOnly ? dueToday["check-out"].length : checkOutTotal },
+          ]}
+        />
 
-      {(tab === "check-in" ? checkInTotal : checkOutTotal) > QUEUE_LIMIT && (
+        <button
+          type="button"
+          aria-pressed={todayOnly}
+          onClick={() => setFilters({ day: todayOnly ? "all" : "today" })}
+          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+            todayOnly
+              ? "border-accent bg-accent-soft text-accent-ink"
+              : "border-border-strong bg-surface text-ink-secondary hover:bg-surface-sunken"
+          }`}
+        >
+          <CalendarDays className="h-4 w-4" aria-hidden="true" />
+          {t("s.handovers.todayOnly")}
+        </button>
+      </div>
+
+      {!todayOnly && (tab === "check-in" ? checkInTotal : checkOutTotal) > QUEUE_LIMIT && (
         <p className="mb-3 text-sm text-ink-muted">{t("s.handovers.showingFirstWorkThrough", { limit: QUEUE_LIMIT, total: tab === "check-in" ? checkInTotal : checkOutTotal })}</p>
       )}
 
@@ -315,17 +348,25 @@ export default function HandoversPage() {
             variant: "primary",
           },
         ]}
-        empty={{
-          icon: ArrowLeftRight,
-          title:
-            tab === "check-in"
-              ? t("s.handovers.nothingWaitingCheck")
-              : t("s.handovers.nothingWaitingCheckOut"),
-          description:
-            tab === "check-in"
-              ? t("s.handovers.confirmedReservationsShowUp")
-              : t("s.handovers.vehiclesOutWithCustomers"),
-        }}
+        empty={
+          todayOnly
+            ? {
+                icon: ArrowLeftRight,
+                title: tab === "check-in" ? t("s.handovers.nothingCheckInToday") : t("s.handovers.nothingCheckOutToday"),
+                description: t("s.handovers.nothingTodayHint"),
+              }
+            : {
+                icon: ArrowLeftRight,
+                title:
+                  tab === "check-in"
+                    ? t("s.handovers.nothingWaitingCheck")
+                    : t("s.handovers.nothingWaitingCheckOut"),
+                description:
+                  tab === "check-in"
+                    ? t("s.handovers.confirmedReservationsShowUp")
+                    : t("s.handovers.vehiclesOutWithCustomers"),
+              }
+        }
       />
     </PageShell>
   );

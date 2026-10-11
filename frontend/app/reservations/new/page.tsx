@@ -58,6 +58,7 @@ import {
 } from "@/lib/format";
 import { useNavigate } from "@/lib/useNavigate";
 import { t } from "@/lib/i18n";
+import { useUsesVehicleClasses } from "@/lib/vehicleClasses";
 
 type SortKey = "price-asc" | "price-desc" | "name";
 
@@ -99,7 +100,10 @@ export default function NewReservationPage() {
   const [searching, setSearching] = useState(false);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   // Book the car's class and let the system hold a car of it, instead of this exact car.
-  const [assignLater, setAssignLater] = useState(false);
+  const [assignLaterChoice, setAssignLater] = useState(false);
+  // Booking a class is only offered while classes are on; off, a booking names its car.
+  const classesOn = useUsesVehicleClasses();
+  const assignLater = classesOn && assignLaterChoice;
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [transmissionFilter, setTransmissionFilter] = useState("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("price-asc");
@@ -798,12 +802,12 @@ export default function NewReservationPage() {
                 </div>
               )}
 
-              {selectedCar?.vehicle_class && (
+              {classesOn && selectedCar?.vehicle_class && (
                 <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border-subtle bg-surface p-4 text-sm">
                   <input
                     type="checkbox"
                     className="mt-0.5 h-4 w-4 accent-accent"
-                    checked={assignLater}
+                    checked={assignLaterChoice}
                     onChange={(event) => setAssignLater(event.target.checked)}
                   />
                   <span>

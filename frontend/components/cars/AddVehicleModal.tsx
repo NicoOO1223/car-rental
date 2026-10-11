@@ -10,6 +10,7 @@ import { classWords } from "@/lib/classDisplay";
 import { CATEGORY_OPTIONS, FUEL_OPTIONS, TRANSMISSION_OPTIONS } from "@/lib/carDisplay";
 import { getDefaultCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { useUsesVehicleClasses } from "@/lib/vehicleClasses";
 
 type Props = {
   locations: Location[];
@@ -33,6 +34,7 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
   const [seats, setSeats] = useState("");
   const [pricePerDay, setPricePerDay] = useState("");
   const [classId, setClassId] = useState("");
+  const classesOn = useUsesVehicleClasses();
   const [classes, setClasses] = useState<VehicleClass[]>([]);
   const [mileage, setMileage] = useState("");
   const [homeLocationId, setHomeLocationId] = useState(locations[0]?.id ?? "");
@@ -129,14 +131,16 @@ export function AddVehicleModal({ locations, onClose, onCreated }: Props) {
             ))}
           </SelectField>
 
-          <SelectField label={t("c.cars.AddVehicleModal.class")} value={classId} onChange={(event) => setClassId(event.target.value)}>
-            <option value="">{t("c.cars.AddVehicleModal.noClass")}</option>
-            {classes.map((option) => (
-              <option key={option.id} value={option.id}>
-                {classWords(option.name)} · {option.price_per_day}
-              </option>
-            ))}
-          </SelectField>
+          {classesOn && (
+            <SelectField label={t("c.cars.AddVehicleModal.class")} value={classId} onChange={(event) => setClassId(event.target.value)}>
+              <option value="">{t("c.cars.AddVehicleModal.noClass")}</option>
+              {classes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {classWords(option.name)} · {option.price_per_day}
+                </option>
+              ))}
+            </SelectField>
+          )}
 
           {classId === "" && (
             <TextField

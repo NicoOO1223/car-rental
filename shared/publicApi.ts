@@ -81,6 +81,8 @@ export type PublicVehicle = {
   seats_max: number | null;
   transmissions: string[];
   fuel_types: string[];
+  /** Whether the page says "or similar" next to the car; false when cars are shown on their own. */
+  or_similar: boolean;
 };
 
 export type PublicOffer = PublicVehicle & {

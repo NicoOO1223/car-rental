@@ -84,6 +84,44 @@ TYPES: dict[str, EmailType] = {
         ),
         parts=("paid_online_note", "cancellation_policy", "bring_list", "manage_link", "signoff"),
     ),
+    # --- request, approve, pay: the three emails around an advance payment
+    "request_received": EmailType(
+        key="request_received",
+        audience=RENTER,
+        values=(
+            "name",
+            "reference",
+            "vehicle",
+            "pickup_place",
+            "pickup_time",
+            "return_place",
+            "return_time",
+            "total",
+            "manage_url",
+        ),
+        parts=("manage_link", "signoff"),
+    ),
+    "payment_requested": EmailType(
+        key="payment_requested",
+        audience=RENTER,
+        values=(
+            "name",
+            "reference",
+            "vehicle",
+            "pickup_time",
+            "total",
+            "advance",
+            "pay_deadline",
+            "pay_url",
+        ),
+        parts=("signoff",),
+    ),
+    "payment_expired": EmailType(
+        key="payment_expired",
+        audience=RENTER,
+        values=("name", "reference", "vehicle", "pickup_time"),
+        parts=("signoff",),
+    ),
     "booking_cancelled": EmailType(
         key="booking_cancelled",
         audience=RENTER,
@@ -333,6 +371,38 @@ SAMPLE_VALUES.update(
         "needs_attention": {
             "what": "A late online payment was refunded",
             "details": "Booking AB12CD34E was paid after its hold ran out and the car had been taken, so 27.00 EUR was refunded automatically.",
+        },
+    }
+)
+
+SAMPLE_VALUES.update(
+    {
+        "request_received": {
+            "name": "Giulia",
+            "reference": "AB12-CD34",
+            "vehicle": "Fiat Panda",
+            "pickup_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "pickup_time": "2030-06-01 10:00 CEST",
+            "return_place": "Olbia Airport, Via dell'Aeroporto 1",
+            "return_time": "2030-06-04 10:00 CEST",
+            "total": "135.00 EUR",
+            "manage_url": "https://www.example.com/en/manage?reference=AB12-CD34",
+        },
+        "payment_requested": {
+            "name": "Giulia",
+            "reference": "AB12-CD34",
+            "vehicle": "Fiat Panda",
+            "pickup_time": "2030-06-01 10:00 CEST",
+            "total": "135.00 EUR",
+            "advance": "40.50 EUR",
+            "pay_deadline": "2030-05-20 18:00 CEST",
+            "pay_url": "https://www.example.com/en/booking/AB12-CD34#pay=sample",
+        },
+        "payment_expired": {
+            "name": "Giulia",
+            "reference": "AB12-CD34",
+            "vehicle": "Fiat Panda",
+            "pickup_time": "2030-06-01 10:00 CEST",
         },
     }
 )

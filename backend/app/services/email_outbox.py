@@ -355,6 +355,169 @@ def queue_booking_confirmed(db: Session, reservation: Reservation) -> EmailMessa
         return None
 
 
+def _renter_basics(db: Session, reservation: Reservation):
+    """What every renter email about a booking needs, or None when there is nobody
+    to send to: (address, name, language, currency, configuration)."""
+
+    configuration = get_configuration(db)
+    customer = reservation.customer
+    address = _address_of(customer)
+
+    if address is None:
+        return None
+
+    return (
+        address,
+        f"{customer.first_name} {customer.last_name}".strip(),
+        renter_language(db, reservation),
+        reservation.agreed_currency or configuration.default_currency,
+        configuration,
+    )
+
+
+def queue_request_received(db: Session, reservation: Reservation) -> EmailMessage | None:
+    """The booking request was made (by the renter or by staff for them); staff will answer."""
+
+    if not email_active(db) or not type_enabled(db, "request_received"):
+        return None
+
+    try:
+        from app.services.booking_prices import reservation_price_breakdown
+
+        basics = _renter_basics(db, reservation)
+
+        if basics is None:
+            return None
+
+        address, to_name, language, currency, configuration = basics
+        customer = reservation.customer
+        pickup = reservation.pickup_location
+        total = reservation_price_breakdown(db, reservation, reservation.car, configuration).total_amount
+
+        return queue_email(
+            db,
+            "request_received",
+            to_address=address,
+            to_name=to_name,
+            language=language,
+            dedupe_key=f"request_received:{reservation.id}",
+            reservation_id=reservation.id,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": vehicle_label(reservation, language),
+                "pickup_place": _place(pickup),
+                "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
+                "return_place": _place(reservation.return_location),
+                "return_time": format_local(reservation.return_at, reservation.return_location.timezone, language),
+                "total": format_amount(total, currency, language),
+                "manage_url": manage_url(reservation, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the request-received email for %s", reservation.id)
+
+        return None
+
+
+def pay_url(reservation: Reservation, language: str) -> str:
+    """The link in the payment request: the booking page with a token that lets the
+    renter see this booking and pay its advance. The token is in the fragment, so it
+    never reaches a server log."""
+
+    base = storefront_url()
+
+    if not base or not reservation.public_reference or reservation.hold_expires_at is None:
+        return ""
+
+    from app.services.manage_token import create_pay_token
+
+    token = create_pay_token(reservation.id, reservation.hold_expires_at + timedelta(days=1))
+
+    return f"{base}/{language}/booking/{reservation.public_reference}#pay={token}"
+
+
+def queue_payment_requested(db: Session, reservation: Reservation, *, attempt: str = "1") -> EmailMessage | None:
+    """Staff approved the booking and the renter has to pay the advance by the deadline."""
+
+    if not email_active(db) or not type_enabled(db, "payment_requested"):
+        return None
+
+    try:
+        from app.services.booking_prices import reservation_price_breakdown
+
+        basics = _renter_basics(db, reservation)
+
+        if basics is None or reservation.advance_amount is None or reservation.hold_expires_at is None:
+            return None
+
+        address, to_name, language, currency, configuration = basics
+        customer = reservation.customer
+        pickup = reservation.pickup_location
+        total = reservation_price_breakdown(db, reservation, reservation.car, configuration).total_amount
+
+        return queue_email(
+            db,
+            "payment_requested",
+            to_address=address,
+            to_name=to_name,
+            language=language,
+            # A new attempt (resent, or the window extended) is a new email.
+            dedupe_key=f"payment_requested:{reservation.id}:{attempt}",
+            reservation_id=reservation.id,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": vehicle_label(reservation, language),
+                "pickup_time": format_local(reservation.pickup_at, pickup.timezone, language),
+                "total": format_amount(total, currency, language),
+                "advance": format_amount(reservation.advance_amount, currency, language),
+                "pay_deadline": format_local(reservation.hold_expires_at, pickup.timezone, language),
+                "pay_url": pay_url(reservation, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the payment-request email for %s", reservation.id)
+
+        return None
+
+
+def queue_payment_expired(db: Session, reservation: Reservation) -> EmailMessage | None:
+    """The advance was not paid in time and the booking has lapsed."""
+
+    if not email_active(db) or not type_enabled(db, "payment_expired"):
+        return None
+
+    try:
+        basics = _renter_basics(db, reservation)
+
+        if basics is None:
+            return None
+
+        address, to_name, language, _currency, _configuration = basics
+        customer = reservation.customer
+
+        return queue_email(
+            db,
+            "payment_expired",
+            to_address=address,
+            to_name=to_name,
+            language=language,
+            dedupe_key=f"payment_expired:{reservation.id}",
+            reservation_id=reservation.id,
+            values={
+                "name": customer.first_name,
+                "reference": _reference(reservation),
+                "vehicle": vehicle_label(reservation, language),
+                "pickup_time": format_local(reservation.pickup_at, reservation.pickup_location.timezone, language),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Could not write the payment-expired email for %s", reservation.id)
+
+        return None
+
+
 def queue_booking_cancelled(
     db: Session,
     reservation: Reservation,

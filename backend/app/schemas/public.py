@@ -121,6 +121,9 @@ class PublicVehicle(BaseModel):
     seats_max: int | None = None
     transmissions: list[str] = []
     fuel_types: list[str] = []
+    # Whether the page says "or similar" next to the car: the renter may be given another
+    # car of the same kind. False when the business shows each car on its own (classes off).
+    or_similar: bool = True
 
 
 class PublicOffer(PublicVehicle):
@@ -202,15 +205,35 @@ class PublicBookingRequest(BaseModel):
 class PublicBookingCreated(BaseModel):
     reference: str
     status: str
-    hold_expires_at: datetime
+    # None for a request that staff have yet to approve: nothing is held.
+    hold_expires_at: datetime | None = None
     currency: str
     total_amount: float
+    # What is paid online (or, for a request, what is expected to be asked for).
     online_amount: float
     due_at_pickup: float
-    # Stripe's secret for confirming this one payment in the browser.
-    client_secret: str
+    # Stripe's secret for confirming this one payment in the browser; None when
+    # nothing is paid now (a request to be approved).
+    client_secret: str | None = None
+    # Whether the renter has a payment to make right now.
+    requires_payment: bool = True
     # Lets this browser act on the booking for the next hour.
     manage_token: str
+
+
+class PublicPaymentRequest(BaseModel):
+    """Starting the advance payment of an approved booking."""
+
+    # Needed only when the renter never accepted them (a booking staff made).
+    terms_accepted: bool = False
+    privacy_acknowledged: bool = False
+
+
+class PublicPaymentStarted(BaseModel):
+    # Stripe's secret for confirming this one payment in the browser.
+    client_secret: str
+    amount: float
+    currency: str
 
 
 class PublicBookingStatus(BaseModel):
@@ -248,6 +271,13 @@ class PublicBooking(BaseModel):
     can_cancel: bool
     # Whether cancelling right now gives the online share back.
     cancel_refunds_online: bool
+
+    # An approved booking waiting for its advance: how much, and whether it can be
+    # paid right now. And whether the renter has yet to accept the terms (a
+    # booking staff made for them).
+    advance_amount: float | None = None
+    payment_open: bool = False
+    terms_accepted: bool = True
 
 
 class PublicBookingLookup(BaseModel):

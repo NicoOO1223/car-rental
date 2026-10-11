@@ -36,13 +36,15 @@ import { useNavigate } from "@/lib/useNavigate";
 import { useUrlFilters } from "@/lib/useUrlFilters";
 import { t } from "@/lib/i18n";
 
+// The list opens on what staff work through: everything still open, with the
+// requests waiting for an answer on top, the one that has waited longest first.
 const FILTER_DEFAULTS = {
   q: "",
-  status: "ALL",
+  status: "OPEN",
   location: "ALL",
   source: "ALL",
   window: "ALL",
-  sort: "pickup_asc",
+  sort: "pending_first",
   page: "1",
 };
 
@@ -54,8 +56,9 @@ const SORT_KEYS = { customer: "customer", vehicle: "vehicle", rental: "pickup", 
 
 export default function ManageReservationsPage() {
   const navigate = useNavigate();
+  // Kept for the session, so coming back from a reservation finds the list as it was left.
   const { filters, setFilters, clearFilters, isFiltered } =
-    useUrlFilters(FILTER_DEFAULTS);
+    useUrlFilters(FILTER_DEFAULTS, { persist: true });
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [total, setTotal] = useState(0);
@@ -152,7 +155,7 @@ export default function ManageReservationsPage() {
   // The quick-filter tiles reset every other filter, so a tile is either
   // the whole current view or it is not active at all.
   function applyQuickFilter(window: string) {
-    updateFilters({ q: "", status: "ALL", location: "ALL", source: "ALL", window });
+    updateFilters({ q: "", status: "ALL", location: "ALL", source: "ALL", window, sort: "pickup_asc" });
   }
 
   const quickFilterActive = (window: string) =>
@@ -166,6 +169,18 @@ export default function ManageReservationsPage() {
   function showAwaitingConfirmation() {
     updateFilters({ q: "", status: "PENDING", location: "ALL", source: "ALL", window: "ALL", sort: "created_asc" });
   }
+
+  // Approved bookings whose advance has not come yet, the one closest to lapsing first.
+  function showAwaitingPayment() {
+    updateFilters({ q: "", status: "AWAITING_PAYMENT", location: "ALL", source: "ALL", window: "ALL", sort: "pickup_asc" });
+  }
+
+  const awaitingPaymentActive =
+    filters.status === "AWAITING_PAYMENT" &&
+    filters.window === "ALL" &&
+    filters.q === "" &&
+    filters.location === "ALL" &&
+    filters.source === "ALL";
 
   const awaitingConfirmationActive =
     filters.status === "PENDING" &&
@@ -335,7 +350,7 @@ export default function ManageReservationsPage() {
         }
       />
 
-      <StatTileGrid columns={5} className="mb-4">
+      <StatTileGrid columns={6} className="mb-4">
         <StatTile
           label={t("s.reservations.manage.allReservations")}
           value={summary?.total ?? "–"}
@@ -347,6 +362,12 @@ export default function ManageReservationsPage() {
           value={summary?.pending ?? "–"}
           onClick={showAwaitingConfirmation}
           active={awaitingConfirmationActive}
+        />
+        <StatTile
+          label={t("s.reservations.manage.awaitingPaymentTile")}
+          value={summary?.awaiting_payment ?? "–"}
+          onClick={showAwaitingPayment}
+          active={awaitingPaymentActive}
         />
         <StatTile
           label={t("s.reservations.manage.todaySActivity")}
@@ -405,6 +426,7 @@ export default function ManageReservationsPage() {
               value={filters.status}
               onChange={(event) => updateFilters({ status: event.target.value })}
             >
+              <option value="OPEN">{t("s.reservations.manage.openStatuses")}</option>
               <option value="ALL">{t("s.reservations.manage.allStatuses")}</option>
               <option value="PENDING">{t("s.reservations.manage.pending")}</option>
               <option value="AWAITING_PAYMENT">{t("s.reservations.manage.awaitingPayment")}</option>
@@ -471,6 +493,7 @@ export default function ManageReservationsPage() {
               value={filters.sort}
               onChange={(event) => updateFilters({ sort: event.target.value })}
             >
+              <option value="pending_first">{t("s.reservations.manage.sortPendingFirst")}</option>
               {sortOptions(columns, SORT_KEYS).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

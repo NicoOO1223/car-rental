@@ -67,7 +67,8 @@ def test_a_staff_booking_has_no_online_details():
         body = client.get(f"/api/reservations/{reservation['id']}").json()
 
         assert body["source"] == "STAFF"
-        assert body["public_reference"] is None
+        # Every booking has a reference, so its renter can look it up and be sent a link.
+        assert body["public_reference"]
         assert body["prepayment"] is None
     finally:
         client.patch(f"/api/reservations/{reservation['id']}/cancel")

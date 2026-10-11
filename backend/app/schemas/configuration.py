@@ -1,4 +1,5 @@
 import re
+from typing import Literal
 from zoneinfo import available_timezones
 
 from app.languages import SUPPORTED_LANGUAGES
@@ -36,6 +37,7 @@ class ConfigurationResponse(BaseModel):
     access_token_expire_days: int
     reminder_days: int
     confirm_within_hours: int
+    use_vehicle_classes: bool
     oil_change_interval_km: int
     business_name: str
     legal_name: str
@@ -54,6 +56,8 @@ class ConfigurationResponse(BaseModel):
     document_language: str
     storefront_enabled: bool
     online_share_percent: int
+    booking_flow: str
+    payment_window_hours: int
     free_cancellation_hours: int
     hold_minutes: int
     min_booking_lead_hours: int
@@ -94,6 +98,7 @@ class ConfigurationUpdate(BaseModel):
     access_token_expire_days: int | None = None
     reminder_days: int | None = None
     confirm_within_hours: int | None = None
+    use_vehicle_classes: bool | None = None
     oil_change_interval_km: int | None = None
     business_name: str | None = Field(default=None, max_length=100)
     legal_name: str | None = Field(default=None, max_length=150)
@@ -112,6 +117,8 @@ class ConfigurationUpdate(BaseModel):
     document_language: str | None = None
     storefront_enabled: bool | None = None
     online_share_percent: int | None = None
+    booking_flow: Literal["INSTANT", "APPROVAL"] | None = None
+    payment_window_hours: int | None = None
     free_cancellation_hours: int | None = None
     hold_minutes: int | None = None
     min_booking_lead_hours: int | None = None
@@ -137,8 +144,17 @@ class ConfigurationUpdate(BaseModel):
     @field_validator("online_share_percent")
     @classmethod
     def share_is_a_percentage(cls, v: int | None) -> int | None:
-        if v is not None and not (1 <= v <= 100):
-            raise PydanticCustomError("validation.online_share_range", "The online share must be between 1 and 100 percent.")
+        if v is not None and not (0 <= v <= 100):
+            raise PydanticCustomError("validation.online_share_range", "The online share must be between 0 and 100 percent.")
+        return v
+
+    @field_validator("payment_window_hours")
+    @classmethod
+    def payment_window_in_range(cls, v: int | None) -> int | None:
+        if v is not None and not (1 <= v <= 168):
+            raise PydanticCustomError(
+                "validation.payment_window_range", "The time to pay an advance must be between 1 and 168 hours."
+            )
         return v
 
     @field_validator("free_cancellation_hours")
@@ -347,6 +363,14 @@ class PublicConfigurationResponse(BaseModel):
     accent_color: str
     # How long a booking request may wait for an answer; 0 means no flag.
     confirm_within_hours: int
+    # Whether cars are grouped into classes; off shows and books each car on its own.
+    use_vehicle_classes: bool
+    # How a booking becomes confirmed, and the advance on it.
+    booking_flow: str
+    online_share_percent: int
+    payment_window_hours: int
+    # Whether an advance can be paid online here (Stripe, a booking site, online booking on).
+    online_advance_available: bool = False
     # What a price is: whether it already contains VAT, and how much.
     vat_rate: float
     prices_include_vat: bool

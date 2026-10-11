@@ -9,9 +9,10 @@
 //   active   happening now; the one weight that uses the brand colour
 //   muted    over or called off (completed, cancelled), de-emphasized
 //   warning  waiting on staff
+//   success  done or paid (an advance received)
 //   danger   something is wrong
 //
-// Warning and danger are fixed colours (see app/globals.css); they do not
+// Warning, success and danger are fixed colours (see app/globals.css); they do not
 // follow the brand colour, so a business's accent can never look like one.
 
 import {
@@ -31,7 +32,7 @@ import {
 
 export type ReservationStatusVariant = "subtle" | "solid" | "dot";
 
-type StatusWeight = "neutral" | "active" | "muted" | "warning" | "danger";
+type StatusWeight = "neutral" | "active" | "muted" | "warning" | "success" | "danger";
 
 const WEIGHT_BADGE: Record<StatusWeight, string> = {
   neutral: "bg-surface-sunken text-ink",
@@ -40,6 +41,8 @@ const WEIGHT_BADGE: Record<StatusWeight, string> = {
   muted: "bg-surface text-ink-muted ring-1 ring-inset ring-border-strong",
   // Waiting on staff.
   warning: "bg-warning-soft text-warning",
+  // Done or paid.
+  success: "bg-success-soft text-success",
   // Something is wrong.
   danger: "bg-danger-soft text-danger",
 };
@@ -49,6 +52,7 @@ const WEIGHT_SOLID: Record<StatusWeight, string> = {
   active: "bg-accent text-on-accent",
   muted: "bg-border-subtle text-ink-muted",
   warning: "bg-warning-strong text-surface",
+  success: "bg-success text-surface",
   danger: "bg-danger text-surface",
 };
 
@@ -57,6 +61,7 @@ const WEIGHT_DOT: Record<StatusWeight, string> = {
   active: "bg-accent",
   muted: "bg-border-strong",
   warning: "bg-warning-strong",
+  success: "bg-success",
   danger: "bg-danger",
 };
 
@@ -110,7 +115,8 @@ export function getCarStatusHex(status: string): string {
 const RESERVATION_STATUS_WEIGHT: Record<string, StatusWeight> = {
   // A request nobody has answered yet is the one status waiting on staff.
   PENDING: "warning",
-  AWAITING_PAYMENT: "neutral",
+  // Approved, and the renter has an advance to pay: waiting on them, with a deadline.
+  AWAITING_PAYMENT: "warning",
   CONFIRMED: "neutral",
   ACTIVE: "active",
   COMPLETED: "neutral",

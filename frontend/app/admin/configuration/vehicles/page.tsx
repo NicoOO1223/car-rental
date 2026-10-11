@@ -20,10 +20,12 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency, getDefaultCurrency } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { useUsesVehicleClasses } from "@/lib/vehicleClasses";
 import { categoryLabel } from "@/lib/carDisplay";
 import { classWords } from "@/lib/classDisplay";
 
 export default function VehicleRatesConfigurationPage() {
+  const classesOn = useUsesVehicleClasses();
   const [cars, setCars] = useState<Car[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -137,7 +139,12 @@ export default function VehicleRatesConfigurationPage() {
         current
           ? current.map((item) =>
               item.id === car.id
-                ? { ...item, price_per_day: updated.price_per_day }
+                ? {
+                    ...item,
+                    price_per_day: updated.price_per_day,
+                    class_id: updated.class_id,
+                    vehicle_class: updated.vehicle_class,
+                  }
                 : item,
             )
           : current,
@@ -182,23 +189,27 @@ export default function VehicleRatesConfigurationPage() {
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <label className="sr-only" htmlFor={`class-${car.id}`}>
-                      {t("s.admin.configuration.vehicles.classOf", { license_plate: car.license_plate })}
-                    </label>
-                    <select
-                      id={`class-${car.id}`}
-                      value={car.class_id ?? ""}
-                      disabled={car.is_retired || busyId === car.id}
-                      onChange={(event) => void changeClass(car, event.target.value)}
-                      className="max-w-40 rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-ink focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
-                    >
-                      <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
-                      {classes.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {classWords(option.name)}
-                        </option>
-                      ))}
-                    </select>
+                    {classesOn && (
+                      <>
+                        <label className="sr-only" htmlFor={`class-${car.id}`}>
+                          {t("s.admin.configuration.vehicles.classOf", { license_plate: car.license_plate })}
+                        </label>
+                        <select
+                          id={`class-${car.id}`}
+                          value={car.class_id ?? ""}
+                          disabled={car.is_retired || busyId === car.id}
+                          onChange={(event) => void changeClass(car, event.target.value)}
+                          className="max-w-40 rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm text-ink focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent-ink"
+                        >
+                          <option value="">{t("s.admin.configuration.vehicles.noClass")}</option>
+                          {classes.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {classWords(option.name)}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
 
                     <label className="sr-only" htmlFor={`rate-${car.id}`}>{t("s.admin.configuration.vehicles.dailyRate", { license_plate: car.license_plate })}</label>
 
@@ -209,8 +220,8 @@ export default function VehicleRatesConfigurationPage() {
                         min={0}
                         step="0.01"
                         value={draft ?? car.price_per_day}
-                        disabled={car.is_retired || car.class_id !== null}
-                        title={car.class_id ? t("s.admin.configuration.vehicles.pricedByClass") : undefined}
+                        disabled={car.is_retired || (classesOn && car.class_id !== null)}
+                        title={classesOn && car.class_id ? t("s.admin.configuration.vehicles.pricedByClass") : undefined}
                         onChange={(event) => {
                           setSavedId(null);
                           setDrafts({ ...drafts, [car.id]: event.target.value });
@@ -226,7 +237,7 @@ export default function VehicleRatesConfigurationPage() {
                     <Button
                       variant="secondary"
                       onClick={() => save(car)}
-                      disabled={!dirty || savingId === car.id || car.class_id !== null}
+                      disabled={!dirty || savingId === car.id || (classesOn && car.class_id !== null)}
                     >
                       {savingId === car.id ? t("s.admin.configuration.vehicles.saving") : savedId === car.id ? t("s.admin.configuration.vehicles.saved") : t("s.admin.configuration.vehicles.save")}
                     </Button>
@@ -286,9 +297,15 @@ export default function VehicleRatesConfigurationPage() {
         !error && <p className="mt-6 text-ink-secondary">{t("s.admin.configuration.vehicles.loadingVehicles")}</p>
       ) : (
         <>
-          <ul className="mt-6 divide-y divide-border-subtle">{renderRows(cars.filter((car) => !car.class_id))}</ul>
+          {!classesOn && cars.some((car) => car.class_id) && (
+            <p className="mt-6 text-sm text-ink-secondary">{t("s.admin.configuration.vehicles.leavesClass")}</p>
+          )}
 
-          {cars.some((car) => car.class_id) && (
+          <ul className="mt-6 divide-y divide-border-subtle">
+            {renderRows(classesOn ? cars.filter((car) => !car.class_id) : cars)}
+          </ul>
+
+          {classesOn && cars.some((car) => car.class_id) && (
             <details className="mt-8 rounded-lg border border-border-subtle p-4">
               <summary className="cursor-pointer text-sm font-medium text-ink">
                 {t("s.admin.configuration.vehicles.inClasses", { count: cars.filter((car) => car.class_id).length })}

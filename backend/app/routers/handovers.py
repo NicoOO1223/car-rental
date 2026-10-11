@@ -102,6 +102,7 @@ def create_payment_intent_endpoint(
             for line in breakdown.extras
         ],
         extras_amount=float(breakdown.extras_amount),
+        adjustment_amount=float(breakdown.adjustment),
         vat_rate=float(breakdown.vat_rate),
         vat_amount=float(breakdown.vat_amount),
         net_amount=float(breakdown.net_amount),
