@@ -516,7 +516,8 @@ if ($firstAdmin) {
 }
 # A new stack's CORS is pointed at the real frontend below; until it exists
 # nothing is allowed. An existing stack keeps serving with what it has.
-$corsPending = if ($isNew) { @("CORS_ORIGINS=https://pending.invalid") } else { @() }
+# @(...) around the if: one item would otherwise come out as a bare string, which splats as single characters.
+$corsPending = @(if ($isNew) { "CORS_ORIGINS=https://pending.invalid" })
 Invoke-Checked {
     az containerapp update --name $backendApp --resource-group $rg --image $backendImage `
         --min-replicas $minReplicas --set-env-vars @backendEnv @corsPending --output none
@@ -528,7 +529,7 @@ if ($manifest.alertEmail) {
     $pgName = $postgresFqdn.Split(".")[0]
     Invoke-Checked {
         az deployment group create --resource-group $rg --template-file "$PSScriptRoot\alerts.bicep" `
-            --parameters alertEmail=$($manifest.alertEmail) postgresServerName=$pgName --output none
+            --parameters alertEmail=$($manifest.alertEmail) postgresServerName=$pgName backendAppName=$backendApp --output none
     } "deploy alerts"
 } else {
     Write-Host "No alertEmail in the manifest: monitoring alerts skipped." -ForegroundColor Yellow

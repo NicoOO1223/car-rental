@@ -1,0 +1,27 @@
+{
+  "slug": "crashtest",
+  "resourceGroup": "car-rental-crashtest-rg",
+  "region": "swedencentral",
+  "canary": false,
+  "backendMinReplicas": 1,
+  "sharedEnvironmentStack": "demo",
+  "alertEmail": "nicosw.biz@gmail.com",
+  "storefront": { "enabled": false },
+  "email": { "azureManaged": true, "fromName": "Adriatic Drive Rentals" },
+  "business": {
+    "name": "Adriatic Drive Rentals",
+    "legalName": "Adriatic Drive d.o.o. (test client)",
+    "address": "Obala Hrvatskog narodnog preporoda 1, 21000 Split, Croatia",
+    "phone": "+385 21 000 000",
+    "email": "hello@example.com",
+    "vatId": "HR00000000000",
+    "vatRate": 25,
+    "pricesIncludeVat": true,
+    "currency": "eur",
+    "timezone": "Europe/Zagreb",
+    "locale": "en-GB",
+    "defaultLanguage": "en",
+    "documentLanguage": "en",
+    "invoicePrefix": "ADR"
+  }
+}

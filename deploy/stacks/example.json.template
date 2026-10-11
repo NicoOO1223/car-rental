@@ -16,6 +16,7 @@
     "defaultLanguage": "en",
     "documentLanguage": "en",
     "vatRate": 20,
-    "pricesIncludeVat": true
+    "pricesIncludeVat": true,
+    "bookingFlow": "APPROVAL"
   }
 }
