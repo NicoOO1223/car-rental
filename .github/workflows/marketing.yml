@@ -39,7 +39,7 @@ jobs:
       run:
         working-directory: marketing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 20
     environment: marketing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Once the site is meant to be found by search engines (SITE_INDEXABLE=true on the
       # environment), it may not deploy while anything is still a placeholder.
